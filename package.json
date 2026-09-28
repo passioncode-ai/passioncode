@@ -1,0 +1,42 @@
+{
+  "name": "passioncode",
+  "version": "0.1.0",
+  "description": "Every PassionCode.ai agent skill — Fabric Agent Adapter, Observatory Log, Mobile Publisher, Asset Foundry — for Claude Code and every other agent on the machine, updated as one set.",
+  "bin": {
+    "passioncode": "bin/passioncode.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "payload",
+    "family.json",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs",
+    "vendor:release": "node scripts/vendor.mjs --release",
+    "test": "node --test test/",
+    "prepublishOnly": "node scripts/vendor.mjs --release && node --test test/"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": "github:passioncode-ai/passioncode",
+  "homepage": "https://github.com/passioncode-ai/passioncode",
+  "license": "MIT",
+  "author": {
+    "name": "PassionCode.ai",
+    "url": "https://passioncode.ai/"
+  },
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "passioncode",
+    "fabric",
+    "skills",
+    "launcher"
+  ]
+}
