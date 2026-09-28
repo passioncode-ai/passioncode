@@ -26,7 +26,7 @@ function main(argv) {
         out(r, [
           ...r.steps.map((s) => `${s.outcome.padEnd(8)} ${s.kind.padEnd(11)} ${s.detail}${s.error ? `\n         ${s.error}` : ''}`),
           '',
-          failed.length ? `${failed.length} step(s) failed — the rest were applied. Re-run after fixing, or \`passioncode restore\`.` : `PassionCode.ai ${r.version}: done. Restart your agent — skills load at session start.`,
+          failed.length ? `${failed.length} step(s) failed — the rest were applied. Re-run after fixing, or \`passioncode restore\`.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent — skills load at session start.`,
           r.moved.length ? `${r.moved.length} item(s) moved aside, restorable with \`passioncode restore\`.` : '',
         ].filter(Boolean).join('\n'));
       }

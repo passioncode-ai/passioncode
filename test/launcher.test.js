@@ -115,6 +115,9 @@ test('dry run changes nothing', () => {
   assert.equal(fs.existsSync(path.join(env.home, '.passioncode')), false);
   assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/example-agent')).isSymbolicLink());
   assert.ok(JSON.parse(r.stdout).steps.every((s) => s.outcome === 'planned'));
+  const text = run(env, 'update', '--dry-run');
+  assert.match(text.stdout, /nothing was changed/);
+  assert.doesNotMatch(text.stdout, /: done\./);
 });
 
 test('without Claude Code the other agents are still served', () => {
