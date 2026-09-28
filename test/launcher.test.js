@@ -29,18 +29,18 @@ function setup() {
   const payload = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-payload-'));
   const members = [
     { name: 'fabric-agent-adapter', version: '0.4.0', skills: ['building-fabric-services', 'creating-fabric-agents'], legacyPluginIds: ['fabric-agent-adapter@fabric-agent-adapter'] },
-    { name: 'mobile-publisher', version: '0.1.0', skills: ['mobile-publisher'], legacyPluginIds: [] },
+    { name: 'example-agent', version: '0.1.0', skills: ['example-agent'], legacyPluginIds: [] },
   ];
   makePayload(payload, '0.1.0', members);
   // What this machine looked like on 2026-09-28: a legacy plugin, working-tree links in the hub, a shadowing link in ~/.claude/skills.
   fs.mkdirSync(path.join(home, '.claude/plugins'), { recursive: true });
   fs.writeFileSync(path.join(home, '.claude/plugins/installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'fabric-agent-adapter@fabric-agent-adapter': [{ installPath: '/old' }] } }));
-  const tree = path.join(home, 'DATA/mobile-publisher-agent/skills/mobile-publisher');
+  const tree = path.join(home, 'DATA/example-agent-agent/skills/example-agent');
   fs.mkdirSync(tree, { recursive: true });
   fs.mkdirSync(path.join(home, '.agents/skills'), { recursive: true });
-  fs.symlinkSync(tree, path.join(home, '.agents/skills/mobile-publisher'));
+  fs.symlinkSync(tree, path.join(home, '.agents/skills/example-agent'));
   fs.mkdirSync(path.join(home, '.claude/skills'), { recursive: true });
-  fs.symlinkSync(path.join(home, '.agents/skills/mobile-publisher'), path.join(home, '.claude/skills/mobile-publisher'));
+  fs.symlinkSync(path.join(home, '.agents/skills/example-agent'), path.join(home, '.claude/skills/example-agent'));
   fs.mkdirSync(path.join(home, '.cursor/skills'), { recursive: true });
   fs.mkdirSync(path.join(home, '.codex/skills/creating-fabric-agents'), { recursive: true }); // a plain copy
   return { home, payload, members };
@@ -61,12 +61,12 @@ test('update installs the release, the plugins, the hub and channels, and moves 
   const c = calls(home);
   assert.ok(c.includes(`plugin marketplace add ${current}`));
   assert.ok(c.includes('plugin install fabric-agent-adapter@passioncode'));
-  assert.ok(c.includes('plugin install mobile-publisher@passioncode'));
+  assert.ok(c.includes('plugin install example-agent@passioncode'));
   assert.ok(c.includes('plugin uninstall fabric-agent-adapter@fabric-agent-adapter'), 'the legacy single-member plugin is replaced');
-  assert.equal(fs.readlinkSync(path.join(home, '.agents/skills/mobile-publisher')), path.join(current, 'plugins/mobile-publisher/skills/mobile-publisher'), 'the hub no longer follows a working tree');
+  assert.equal(fs.readlinkSync(path.join(home, '.agents/skills/example-agent')), path.join(current, 'plugins/example-agent/skills/example-agent'), 'the hub no longer follows a working tree');
   assert.equal(fs.readlinkSync(path.join(home, '.cursor/skills/building-fabric-services')), path.join(home, '.agents/skills/building-fabric-services'));
   assert.equal(fs.readlinkSync(path.join(home, '.codex/skills/creating-fabric-agents')), path.join(home, '.agents/skills/creating-fabric-agents'), 'a plain channel copy is replaced by a link');
-  assert.equal(fs.existsSync(path.join(home, '.claude/skills/mobile-publisher')), false, 'the shadowing plain entry is gone');
+  assert.equal(fs.existsSync(path.join(home, '.claude/skills/example-agent')), false, 'the shadowing plain entry is gone');
   assert.equal(fs.existsSync(path.join(home, '.gemini/skills')), false, 'a channel that does not exist is not invented');
   const state = JSON.parse(fs.readFileSync(path.join(home, '.passioncode/state.json'), 'utf8'));
   assert.equal(state.installed, '0.1.0');
@@ -92,8 +92,8 @@ test('restore puts back what the last update moved aside', () => {
   assert.equal(run(env, 'update').status, 0);
   const r = run(env, 'restore', '--json');
   assert.equal(r.status, 0);
-  assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/mobile-publisher')), path.join(env.home, 'DATA/mobile-publisher-agent/skills/mobile-publisher'));
-  assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/mobile-publisher')).isSymbolicLink());
+  assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'));
+  assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/example-agent')).isSymbolicLink());
   assert.ok(fs.statSync(path.join(env.home, '.codex/skills/creating-fabric-agents')).isDirectory());
 });
 
@@ -105,7 +105,7 @@ test('a failed plugin install keeps the legacy plugin and the shadow, and report
   const out = JSON.parse(r.stdout);
   assert.ok(out.steps.some((s) => s.outcome === 'failed' && s.detail.includes('fabric-agent-adapter@passioncode')));
   assert.ok(!calls(env.home).includes('plugin uninstall fabric-agent-adapter@fabric-agent-adapter'), 'the only working copy is not removed');
-  assert.equal(fs.existsSync(path.join(env.home, '.claude/skills/mobile-publisher')), false, 'the other member still proceeds');
+  assert.equal(fs.existsSync(path.join(env.home, '.claude/skills/example-agent')), false, 'the other member still proceeds');
 });
 
 test('dry run changes nothing', () => {
@@ -113,7 +113,7 @@ test('dry run changes nothing', () => {
   const r = run(env, 'update', '--dry-run', '--json');
   assert.equal(r.status, 0);
   assert.equal(fs.existsSync(path.join(env.home, '.passioncode')), false);
-  assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/mobile-publisher')).isSymbolicLink());
+  assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/example-agent')).isSymbolicLink());
   assert.ok(JSON.parse(r.stdout).steps.every((s) => s.outcome === 'planned'));
 });
 
@@ -123,8 +123,8 @@ test('without Claude Code the other agents are still served', () => {
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stdout);
   assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'claude' && s.outcome === 'skipped'));
-  assert.ok(fs.lstatSync(path.join(env.home, '.cursor/skills/mobile-publisher')).isSymbolicLink());
-  assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/mobile-publisher')).isSymbolicLink(), 'no plugin was verified, so the entry Claude reads is kept');
+  assert.ok(fs.lstatSync(path.join(env.home, '.cursor/skills/example-agent')).isSymbolicLink());
+  assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/example-agent')).isSymbolicLink(), 'no plugin was verified, so the entry Claude reads is kept');
 });
 
 test('status and config', () => {
@@ -132,7 +132,7 @@ test('status and config', () => {
   run(env, 'update');
   const s = JSON.parse(run(env, 'status', '--json').stdout);
   assert.equal(s.installed, '0.1.0');
-  assert.deepEqual(s.members.map((m) => [m.name, m.claude, m.shadows.length]), [['fabric-agent-adapter', 'plugin', 0], ['mobile-publisher', 'plugin', 0]]);
+  assert.deepEqual(s.members.map((m) => [m.name, m.claude, m.shadows.length]), [['fabric-agent-adapter', 'plugin', 0], ['example-agent', 'plugin', 0]]);
   assert.equal(run(env, 'config', 'set', 'update.auto', 'off').status, 0);
   assert.equal(JSON.parse(run(env, 'status', '--json').stdout).auto, false);
   assert.equal(run(env, 'config', 'set', 'update.auto', 'maybe').status, 1);

@@ -33,8 +33,8 @@ There is no hosted CI: vendoring reads private member repositories.
   `passioncode restore`.
 - A release vendors tagged bytes only (`npm run vendor:release`, run by `prepublishOnly`),
   and the vendor step refuses credential-shaped strings.
-- Publishing makes the skill text of private member repositories public on npm: every
-  release is an operator decision.
+- Members are PassionCode.ai products only. An agent someone builds for themselves is never
+  added, even when it implements a Fabric protocol.
 
 ## Organisation
 

@@ -11,7 +11,9 @@
       "ref": "agent/fabric-service-m2",
       "kind": "plugin",
       "path": "plugins/fabric-agent-adapter",
-      "legacyPluginIds": ["fabric-agent-adapter@fabric-agent-adapter"]
+      "legacyPluginIds": [
+        "fabric-agent-adapter@fabric-agent-adapter"
+      ]
     },
     {
       "name": "observatory-log",
@@ -20,29 +22,9 @@
       "ref": "main",
       "kind": "plugin",
       "path": "observatory/engine/skill/plugins/observatory-log",
-      "legacyPluginIds": ["observatory-log@observatory-log"]
-    },
-    {
-      "name": "mobile-publisher",
-      "repo": "passioncode-ai/mobile-publisher-agent",
-      "checkout": "~/DATA/mobile-publisher-agent",
-      "ref": "main",
-      "kind": "skills",
-      "path": "skills",
-      "skills": ["mobile-publisher"],
-      "version": "0.1.0",
-      "description": "Store work for App Store, Google Play and Meta Horizon through the local Mobile Publisher service."
-    },
-    {
-      "name": "asset-foundry",
-      "repo": "passioncode-ai/asset-foundry",
-      "checkout": "~/DATA/asset-foundry",
-      "ref": "main",
-      "kind": "skills",
-      "path": "skills",
-      "skills": ["asset-foundry", "godot-assets", "unity-3d-vr-assets", "asset-media-workflows"],
-      "version": "0.2.0",
-      "description": "Game assets ordered from the local Asset Foundry service: bodies, textures, rigs, animation, images and sound."
+      "legacyPluginIds": [
+        "observatory-log@observatory-log"
+      ]
     },
     {
       "name": "passioncode",

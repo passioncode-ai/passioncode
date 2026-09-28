@@ -9,8 +9,8 @@ The operator chose a separate `passioncode` package over a second family inside
 be reused as a dependency. Measured on 2026-09-28: `sshlg-skills` 1.52.2 declares no
 `main` or `exports`; its update probe, runner and hooks hard-code the name
 `sshlg-skills` and `~/.sshlg-skills`; and its reusable planner builds `skills add
-<owner/repo>` commands, which clone from GitHub — while four of the five PassionCode.ai
-members live in private repositories.
+<owner/repo>` commands, which clone from GitHub — while the members live in private
+repositories.
 
 ## Decision
 
@@ -23,7 +23,7 @@ none of its code.
 ## Consequences
 
 - Installing needs npm only, no GitHub credentials.
-- Publishing the npm package publishes the skill text of private repositories; that is
-  an operator decision per release.
+- Members are PassionCode.ai products only; an operator's personal agents are never
+  members (operator, 2026-09-29).
 - If `sshlg-skills` ever exports an engine, this launcher can adopt it without changing
   its install layout.

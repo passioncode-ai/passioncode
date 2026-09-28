@@ -1,7 +1,7 @@
 {
   "name": "passioncode",
   "version": "0.1.0",
-  "description": "Every PassionCode.ai agent skill — Fabric Agent Adapter, Observatory Log, Mobile Publisher, Asset Foundry — for Claude Code and every other agent on the machine, updated as one set.",
+  "description": "Every PassionCode.ai agent skill — Fabric Agent Adapter and Observatory Log — for Claude Code and every other agent on the machine, updated as one set.",
   "bin": {
     "passioncode": "bin/passioncode.js"
   },

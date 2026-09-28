@@ -13,9 +13,10 @@ npx passioncode@latest update
 |---|---|
 | Fabric Agent Adapter | `creating-fabric-agents`, `adapting-projects-to-fabric`, `building-fabric-services` |
 | Observatory Log | `explaining-changes`, `handling-secrets`, `tracking-resources` (+ its session hooks) |
-| Mobile Publisher | `mobile-publisher` |
-| Asset Foundry | `asset-foundry`, `godot-assets`, `unity-3d-vr-assets`, `asset-media-workflows` |
 | passioncode | the once-a-day update check |
+
+Only PassionCode.ai products are members. Agents that people build for themselves stay
+out of it, even when they implement Fabric protocols.
 
 ## How it installs
 
