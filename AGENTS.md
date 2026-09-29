@@ -12,8 +12,9 @@ other agents through the `~/.agents/skills` hub (`README.md`).
 
 ```bash
 npm test                    # node --test test/ — the launcher against a temp HOME and a fake claude CLI
-npm run vendor              # build payload/ from the member checkouts named in family.json
+npm run vendor              # build payload/ from the members in family.json: checkout, or a shallow clone of repo@ref
 npm run vendor:release      # the same, refusing any ref that is not a tag
+npm run vendor -- --clone   # ignore local checkouts (also PASSIONCODE_VENDOR_CLONE=1; PASSIONCODE_GIT_BASE replaces git@github.com:)
 claude plugin validate ./payload --strict
 ```
 
@@ -22,7 +23,11 @@ There is no hosted CI: vendoring reads private member repositories.
 ## Where things live
 
 - `lib/launcher.js` (update, restore, status, uninstall), `bin/passioncode.js` (the CLI),
-  `scripts/vendor.mjs` (the payload), `plugin/passioncode/` (the self-update SessionStart hook).
+  `scripts/vendor.mjs` (the payload), `plugin/passioncode/` (the self-update SessionStart
+  hook: `hooks/update-check.js` decides, `probe.js` asks npm, `session-start.js` acts;
+  `trust.json` names the npm accounts allowed to publish).
+- Tests: `test/launcher.test.js` (fake `claude` in `test/fake-claude.js`),
+  `test/self-update.test.js` (fake `npm`/`npx` on PATH), `test/vendor.test.js` (a local bare remote).
 - Decisions: [docs/adr/](docs/adr/). What the launcher touches: [SECURITY.md](SECURITY.md).
 - `payload/` is generated and never committed.
 
@@ -33,6 +38,9 @@ There is no hosted CI: vendoring reads private member repositories.
   `passioncode restore`.
 - A release vendors tagged bytes only (`npm run vendor:release`, run by `prepublishOnly`),
   and the vendor step refuses credential-shaped strings.
+- The self-update never runs a version it has not attributed: only a pinned
+  `passioncode@<x.y.z>` whose every npm maintainer and publisher is in `trust.json`
+  ([ADR-0002](docs/adr/0002-self-update-trusts-named-publishers.md)).
 - Members are PassionCode.ai products only. An agent someone builds for themselves is never
   added, even when it implements a Fabric protocol.
 

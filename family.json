@@ -6,6 +6,7 @@
   "members": [
     {
       "name": "fabric-agent-adapter",
+      "displayName": "Fabric Agent Adapter",
       "repo": "passioncode-ai/fabric-agent-adapter",
       "checkout": "~/DATA/fabric-agent-adapter",
       "ref": "v0.4.2",
@@ -13,10 +14,14 @@
       "path": "plugins/fabric-agent-adapter",
       "legacyPluginIds": [
         "fabric-agent-adapter@fabric-agent-adapter"
+      ],
+      "legacyMarketplaces": [
+        "fabric-agent-adapter"
       ]
     },
     {
       "name": "observatory-log",
+      "displayName": "Observatory Log",
       "repo": "passioncode-ai/project-observatory-dashboard",
       "checkout": "~/DATA/project-observatory-open-source",
       "ref": "v0.7.1",
@@ -24,10 +29,14 @@
       "path": "observatory/engine/skill/plugins/observatory-log",
       "legacyPluginIds": [
         "observatory-log@observatory-log"
+      ],
+      "legacyMarketplaces": [
+        "observatory-log"
       ]
     },
     {
       "name": "passioncode",
+      "displayName": "PassionCode.ai",
       "kind": "self",
       "path": "plugin/passioncode",
       "description": "Keeps the PassionCode.ai set current: a once-a-day check at session start and a background update."

@@ -28,7 +28,7 @@ function setup() {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-home-'));
   const payload = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-payload-'));
   const members = [
-    { name: 'fabric-agent-adapter', version: '0.4.0', skills: ['building-fabric-services', 'creating-fabric-agents'], legacyPluginIds: ['fabric-agent-adapter@fabric-agent-adapter'] },
+    { name: 'fabric-agent-adapter', version: '0.4.0', skills: ['building-fabric-services', 'creating-fabric-agents'], legacyPluginIds: ['fabric-agent-adapter@fabric-agent-adapter'], legacyMarketplaces: ['fabric-agent-adapter'] },
     { name: 'example-agent', version: '0.1.0', skills: ['example-agent'], legacyPluginIds: [] },
   ];
   makePayload(payload, '0.1.0', members);
@@ -82,7 +82,7 @@ test('a second update is idempotent: updates plugins, moves nothing', () => {
   assert.equal(r.status, 0);
   const out = JSON.parse(r.stdout);
   assert.equal(out.moved.length, 0);
-  assert.deepEqual(out.steps.filter((s) => ['hub', 'channel', 'shadow', 'legacy'].includes(s.kind)), []);
+  assert.deepEqual(out.steps.filter((s) => ['hub', 'channel', 'shadow', 'legacy', 'legacy-marketplace'].includes(s.kind)), []);
   assert.ok(calls(env.home).includes('plugin marketplace update passioncode'));
   assert.ok(calls(env.home).includes('plugin update fabric-agent-adapter@passioncode'));
 });
@@ -141,21 +141,6 @@ test('status and config', () => {
   assert.equal(run(env, 'config', 'set', 'update.auto', 'maybe').status, 1);
 });
 
-test('the session-start hook reports a newer set and starts one background update', () => {
-  const env = setup();
-  const state = path.join(env.home, '.passioncode');
-  fs.mkdirSync(state, { recursive: true });
-  fs.writeFileSync(path.join(state, 'state.json'), JSON.stringify({ installed: '0.1.0', latest: '0.2.0', checkedAt: new Date().toISOString(), config: { auto: false } }));
-  const hook = path.join(ROOT, 'plugin/passioncode/hooks/session-start.js');
-  const r = spawnSync(process.execPath, [hook], { encoding: 'utf8', env: { ...process.env, HOME: env.home, PASSIONCODE_HOME: state } });
-  assert.equal(r.status, 0);
-  assert.match(r.stdout, /0\.2\.0 is out \(you have 0\.1\.0\): npx passioncode@latest update/);
-  fs.writeFileSync(path.join(state, 'state.json'), JSON.stringify({ installed: '0.2.0', latest: '0.2.0', checkedAt: new Date().toISOString() }));
-  assert.equal(spawnSync(process.execPath, [hook], { encoding: 'utf8', env: { ...process.env, HOME: env.home, PASSIONCODE_HOME: state } }).stdout, '');
-  fs.writeFileSync(path.join(state, 'state.json'), '{broken');
-  assert.equal(spawnSync(process.execPath, [hook], { encoding: 'utf8', env: { ...process.env, HOME: env.home, PASSIONCODE_HOME: state } }).status, 0, 'a damaged state never fails a session');
-});
-
 test('vendor refuses credential-shaped strings', async () => {
   const { scanForSecrets } = await import(path.join(ROOT, 'scripts/vendor.mjs'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-scan-'));
@@ -164,4 +149,114 @@ test('vendor refuses credential-shaped strings', async () => {
   const hits = scanForSecrets(dir);
   assert.equal(hits.length, 1);
   assert.match(hits[0], /SKILL\.md/);
+});
+
+// The legacy marketplace as this machine had it on 2026-09-29: registered, declared in
+// settings.json with autoUpdate, beside the person's own settings and marketplaces.
+const LEGACY_SOURCE = { source: 'github', repo: 'passioncode-ai/fabric-agent-adapter' };
+function withLegacyMarketplace(env, { alsoInstalled = [] } = {}) {
+  const plugins = path.join(env.home, '.claude/plugins');
+  fs.writeFileSync(path.join(plugins, 'known_marketplaces.json'), JSON.stringify({
+    'fabric-agent-adapter': { source: LEGACY_SOURCE, installLocation: path.join(plugins, 'marketplaces/fabric-agent-adapter'), lastUpdated: '2026-08-27T14:19:25.159Z', autoUpdate: true },
+    'someone-else': { source: { source: 'github', repo: 'someone/else' }, installLocation: '/x', lastUpdated: '2026-08-01T00:00:00.000Z' },
+  }, null, 2));
+  const installed = JSON.parse(fs.readFileSync(path.join(plugins, 'installed_plugins.json'), 'utf8'));
+  for (const id of alsoInstalled) installed.plugins[id] = [{ installPath: '/other' }];
+  fs.writeFileSync(path.join(plugins, 'installed_plugins.json'), JSON.stringify(installed));
+  const settings = { theme: 'dark', enabledPlugins: { 'fabric-agent-adapter@fabric-agent-adapter': true }, extraKnownMarketplaces: { 'fabric-agent-adapter': { source: LEGACY_SOURCE, autoUpdate: true }, 'someone-else': { source: { source: 'github', repo: 'someone/else' } } } };
+  fs.writeFileSync(path.join(env.home, '.claude/settings.json'), JSON.stringify(settings, null, 2));
+  fs.writeFileSync(path.join(env.home, 'fake-marketplace-names.json'), JSON.stringify({ 'passioncode-ai/fabric-agent-adapter': 'fabric-agent-adapter' }));
+  return settings;
+}
+const known = (home) => JSON.parse(fs.readFileSync(path.join(home, '.claude/plugins/known_marketplaces.json'), 'utf8'));
+const settingsOf = (home) => JSON.parse(fs.readFileSync(path.join(home, '.claude/settings.json'), 'utf8'));
+
+test('a legacy marketplace is retired only after its replacement is verified, and restore brings it back', () => {
+  const env = setup();
+  const before = withLegacyMarketplace(env);
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const c = calls(env.home);
+  const at = (line) => c.indexOf(line);
+  assert.ok(at('plugin marketplace remove fabric-agent-adapter') > at('plugin install fabric-agent-adapter@passioncode'), 'removed after the replacement is installed');
+  assert.ok(at('plugin marketplace remove fabric-agent-adapter') > at('plugin uninstall fabric-agent-adapter@fabric-agent-adapter'), 'and after the legacy plugin is gone');
+  assert.equal(known(env.home)['fabric-agent-adapter'], undefined);
+  assert.ok(known(env.home)['someone-else'], 'another marketplace is untouched');
+  const after = settingsOf(env.home);
+  assert.equal(after.extraKnownMarketplaces['fabric-agent-adapter'], undefined, 'Claude Code will not re-register it from settings');
+  assert.deepEqual(after.extraKnownMarketplaces['someone-else'], before.extraKnownMarketplaces['someone-else']);
+  assert.equal(after.theme, 'dark', 'the rest of settings.json is kept');
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode/state.json'), 'utf8'));
+  const moved = JSON.parse(fs.readFileSync(path.join(state.quarantines[0], 'moved.json'), 'utf8'));
+  const record = moved.find((m) => m.kind === 'marketplace');
+  assert.deepEqual({ name: record.name, source: record.source, settingsEntry: record.settingsEntry }, { name: 'fabric-agent-adapter', source: LEGACY_SOURCE, settingsEntry: { source: LEGACY_SOURCE, autoUpdate: true } });
+  const backup = JSON.parse(fs.readFileSync(record.settingsBackup, 'utf8'));
+  assert.deepEqual(backup.extraKnownMarketplaces['fabric-agent-adapter'], before.extraKnownMarketplaces['fabric-agent-adapter'], 'settings.json as it was before the change is kept in the quarantine');
+  assert.equal(backup.theme, 'dark');
+
+  const back = run(env, 'restore', '--json');
+  assert.equal(back.status, 0, back.stderr);
+  assert.ok(JSON.parse(back.stdout).includes('marketplace fabric-agent-adapter'));
+  assert.ok(calls(env.home).includes('plugin marketplace add passioncode-ai/fabric-agent-adapter'));
+  assert.deepEqual(known(env.home)['fabric-agent-adapter'].source, LEGACY_SOURCE, 'registered again');
+  assert.deepEqual(settingsOf(env.home).extraKnownMarketplaces['fabric-agent-adapter'], { source: LEGACY_SOURCE, autoUpdate: true }, 'declared again as it was, autoUpdate included');
+});
+
+test('a machine that already lost the legacy plugin still loses the leftover marketplace', () => {
+  const env = setup();
+  fs.writeFileSync(path.join(env.home, '.claude/plugins/installed_plugins.json'), JSON.stringify({ version: 2, plugins: {} })); // what 0.1.1 left
+  withLegacyMarketplace(env);
+  assert.equal(run(env, 'update').status, 0);
+  assert.ok(calls(env.home).includes('plugin marketplace remove fabric-agent-adapter'));
+  assert.equal(settingsOf(env.home).extraKnownMarketplaces['fabric-agent-adapter'], undefined);
+});
+
+test('a failed install keeps the legacy marketplace registered and declared', () => {
+  const env = setup();
+  withLegacyMarketplace(env);
+  const bytes = fs.readFileSync(path.join(env.home, '.claude/settings.json'), 'utf8');
+  env.extra = { FAKE_CLAUDE_FAIL: 'install fabric-agent-adapter@passioncode' };
+  assert.equal(run(env, 'update').status, 1);
+  assert.ok(!calls(env.home).some((l) => l.startsWith('plugin marketplace remove fabric-agent-adapter')));
+  assert.ok(known(env.home)['fabric-agent-adapter']);
+  assert.deepEqual(settingsOf(env.home).extraKnownMarketplaces['fabric-agent-adapter'], JSON.parse(bytes).extraKnownMarketplaces['fabric-agent-adapter']);
+});
+
+test('a marketplace still serving another installed plugin is left alone', () => {
+  const env = setup();
+  withLegacyMarketplace(env, { alsoInstalled: ['fabric-extras@fabric-agent-adapter'] });
+  const bytes = fs.readFileSync(path.join(env.home, '.claude/settings.json'), 'utf8');
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stdout);
+  assert.ok(!calls(env.home).some((l) => l.startsWith('plugin marketplace remove fabric-agent-adapter')));
+  assert.ok(known(env.home)['fabric-agent-adapter']);
+  assert.deepEqual(settingsOf(env.home).extraKnownMarketplaces['fabric-agent-adapter'], JSON.parse(bytes).extraKnownMarketplaces['fabric-agent-adapter']);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'legacy-marketplace' && s.outcome === 'skipped' && s.detail.includes('fabric-extras@fabric-agent-adapter')));
+  const st = JSON.parse(run(env, 'status', '--json').stdout);
+  assert.deepEqual(st.members.find((m) => m.name === 'fabric-agent-adapter').legacyMarketplaces, ['fabric-agent-adapter'], 'status names the leftover');
+});
+
+test('an unreadable settings.json keeps the legacy marketplace', () => {
+  const env = setup();
+  withLegacyMarketplace(env);
+  fs.writeFileSync(path.join(env.home, '.claude/settings.json'), '{ "theme": "dark", // a comment\n}');
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 1);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'legacy-marketplace' && s.outcome === 'failed'));
+  assert.ok(!calls(env.home).some((l) => l.startsWith('plugin marketplace remove fabric-agent-adapter')));
+  assert.equal(fs.readFileSync(path.join(env.home, '.claude/settings.json'), 'utf8'), '{ "theme": "dark", // a comment\n}');
+});
+
+test('dry run plans the marketplace retirement and changes nothing', () => {
+  const env = setup();
+  withLegacyMarketplace(env);
+  const settingsBytes = fs.readFileSync(path.join(env.home, '.claude/settings.json'), 'utf8');
+  const knownBytes = fs.readFileSync(path.join(env.home, '.claude/plugins/known_marketplaces.json'), 'utf8');
+  const r = run(env, 'update', '--dry-run', '--json');
+  assert.equal(r.status, 0, r.stdout);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'legacy-marketplace' && s.outcome === 'planned'), 'the legacy plugin planned for removal does not count as serving');
+  assert.equal(fs.readFileSync(path.join(env.home, '.claude/settings.json'), 'utf8'), settingsBytes);
+  assert.equal(fs.readFileSync(path.join(env.home, '.claude/plugins/known_marketplaces.json'), 'utf8'), knownBytes);
+  assert.ok(!calls(env.home).some((l) => l.startsWith('plugin marketplace remove') || l.startsWith('plugin uninstall')));
+  assert.equal(fs.existsSync(path.join(env.home, '.passioncode')), false);
 });

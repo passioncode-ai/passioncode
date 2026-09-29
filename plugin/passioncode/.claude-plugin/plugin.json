@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "passioncode",
   "displayName": "PassionCode.ai",
   "version": "0.0.0",
