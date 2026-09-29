@@ -2,6 +2,10 @@
 
 ## 0.1.3 - 2026-09-29
 
+- Observatory Log 0.12.2 (Observatory 0.8.1): the engine's `full agent` recognises the copy this
+  launcher installs instead of adding a second one, and `tracking-resources` no longer triggers on
+  creation requests.
+
 ### Security
 
 - The session-start hook no longer runs whatever is published under the npm name
