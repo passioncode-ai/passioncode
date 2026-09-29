@@ -11,7 +11,7 @@ other agents through the `~/.agents/skills` hub (`README.md`).
 ## Build and test
 
 ```bash
-npm test                    # node --test test/ — the launcher against a temp HOME and a fake claude CLI
+npm test                    # node --test 'test/*.test.js' — the launcher against a temp HOME and a fake claude CLI
 npm run vendor              # build payload/ from the members in family.json: a shallow clone of repo@ref
 npm run vendor:release      # the same, refusing any ref that is not a tag
 PASSIONCODE_CHECKOUT_ROOT=<dir> npm run vendor   # read members from local clones <dir>/<repo name> instead
