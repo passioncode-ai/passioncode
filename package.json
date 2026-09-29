@@ -21,8 +21,8 @@
   "scripts": {
     "vendor": "node scripts/vendor.mjs",
     "vendor:release": "node scripts/vendor.mjs --release",
-    "test": "node --test test/",
-    "prepublishOnly": "node scripts/vendor.mjs --release && node --test test/"
+    "test": "node --test 'test/*.test.js'",
+    "prepublishOnly": "node scripts/vendor.mjs --release && node --test 'test/*.test.js'"
   },
   "engines": {
     "node": ">=18"

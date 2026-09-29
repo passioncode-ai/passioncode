@@ -143,7 +143,7 @@ jobs:
           export PASSIONCODE_VENDOR_CLONE=1
           export PASSIONCODE_GIT_BASE="https://x-access-token:${READ_TOKEN}@github.com/"
           node scripts/vendor.mjs --release
-          node --test test/
+          node --test 'test/*.test.js'
 
       - name: Pack and install smoke from a clean HOME
         if: steps.pub.outputs.skip == 'false'

@@ -58,7 +58,7 @@ The README section "Validate this repository" is the gate:
 ```bash
 python3 -m unittest discover -s test -v
 python3 test/validate.py
-node --test test/
+node --test 'test/*.test.js'
 claude plugin validate ./plugins/fabric-agent-adapter --strict
 claude plugin validate . --strict
 ```
