@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.6 - 2026-09-29
+
+### Fixed
+
+- **A version published from GitHub is trusted.** npm records a trusted-publishing (OIDC)
+  release as `GitHub Actions <npm-oidc-no-reply@github.com>`; the hook read that as an
+  unreadable account and would have refused every release the workflow publishes. It is now
+  recognised by its email as `github-actions-oidc`, which `trust.json` lists; a look-alike
+  name with another email is not. Maintainers are still checked one by one.
+- `vendor.mjs` reads `PASSIONCODE_VENDOR_CLONE` and `PASSIONCODE_GIT_BASE` from the
+  environment it is given, so a CI step's clone mode no longer leaks into the tests.
+- The release job waits up to 10 minutes for npm to serve a new version (5 was too short).
+
+0.1.5 was tagged but its release job failed on the leak above; it was never published.
+
 ## 0.1.5 - 2026-09-29
 
 ### Added

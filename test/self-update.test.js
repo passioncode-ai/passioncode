@@ -216,3 +216,18 @@ test('the package the hook watches is the org-scoped one, not the squattable bar
   assert.equal(PACKAGE, '@passioncode-ai/passioncode');
   assert.equal(require('../package.json').name, PACKAGE);
 });
+
+test('a version published by GitHub Actions through npm trusted publishing is recognised, not unreadable', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const view = (npmUser) => JSON.stringify({ version: '0.2.0', maintainers: ['ssheleg <sergeysheleg4@gmail.com>'], _npmUser: npmUser });
+  // npm records the OIDC publish in both shapes, depending on the client.
+  for (const who of ['GitHub Actions <npm-oidc-no-reply@github.com>', { name: 'GitHub Actions', email: 'npm-oidc-no-reply@github.com' }]) {
+    assert.equal(u.parseView(view(who)).publisher, u.OIDC_PUBLISHER);
+  }
+  // The name alone is not the identity: anyone can call an account "GitHub Actions".
+  assert.notEqual(u.parseView(view('GitHub Actions <someone@example.com>')).publisher, u.OIDC_PUBLISHER);
+  const state = { installed: '0.1.0', published: true, latest: '0.2.0', maintainers: ['ssheleg'], publisher: u.OIDC_PUBLISHER, config: { auto: true } };
+  assert.deepEqual(u.decide(state, ['ssheleg', u.OIDC_PUBLISHER]).spawn, ['--yes', `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
+  assert.equal(u.decide(state, ['ssheleg']).spawn, null, 'not listed in trust.json: not installed');
+  assert.ok(u.loadTrust().includes(u.OIDC_PUBLISHER), 'the shipped trust list accepts the release workflow');
+});

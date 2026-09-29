@@ -26,6 +26,9 @@ The hook installs a newer version on its own only when all of these hold:
 - `update.auto` is on (the default);
 - the recorded maintainers are not empty, and every maintainer **and** the publishing
   account is listed in `trust.json` inside the plugin (`npmPublishers`);
+  a release published by this repository's `release.yml` through npm trusted publishing
+  appears as `github-actions-oidc` (npm's `npm-oidc-no-reply@github.com` identity, matched
+  by email, never by display name), and only a maintainer can register that workflow;
 - the version is a plain `x.y.z`.
 
 It then runs `npx --yes @passioncode-ai/passioncode@<that exact version> update --quiet`, detached, so

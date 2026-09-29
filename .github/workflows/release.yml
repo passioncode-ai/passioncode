@@ -140,9 +140,8 @@ jobs:
           set -eu
           # The token rides in the clone URL of a throwaway runner and is never printed:
           # vendor.mjs reports the member name and ref, not the URL it cloned.
-          export PASSIONCODE_VENDOR_CLONE=1
-          export PASSIONCODE_GIT_BASE="https://x-access-token:${READ_TOKEN}@github.com/"
-          node scripts/vendor.mjs --release
+          PASSIONCODE_VENDOR_CLONE=1 PASSIONCODE_GIT_BASE="https://x-access-token:${READ_TOKEN}@github.com/" \
+            node scripts/vendor.mjs --release
           node --test 'test/*.test.js'
 
       - name: Pack and install smoke from a clean HOME
@@ -175,9 +174,9 @@ jobs:
         if: steps.pub.outputs.skip == 'false'
         run: |
           set -eu
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             V=$(npm view "${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }}" version 2>/dev/null || true)
             [ "$V" = "${{ steps.t.outputs.ver }}" ] && { echo "served: ${{ steps.pub.outputs.name }}@$V"; exit 0; }
             sleep 10
           done
-          echo "::error::npm does not serve ${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }} after 5 minutes"; exit 1
+          echo "::error::npm does not serve ${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }} after 10 minutes"; exit 1
