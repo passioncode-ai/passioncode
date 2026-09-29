@@ -15,6 +15,22 @@ const PACKAGE = '@passioncode-ai/passioncode';
 const VERSION = /^\d+\.\d+\.\d+$/;
 const TRUST_FILE = path.join(__dirname, '..', 'trust.json');
 
+/**
+ * The identity npm records for a version published by GitHub Actions through trusted
+ * publishing (OIDC). Recognised by its email, never by the display name, which any account
+ * can copy. Only a maintainer can register a trusted publisher, and maintainers are still
+ * checked one by one, so listing this in trust.json trusts the release workflow the
+ * maintainers configured, not GitHub at large.
+ */
+const OIDC_PUBLISHER = 'github-actions-oidc';
+const OIDC_EMAIL = 'npm-oidc-no-reply@github.com';
+
+function publisherName(entry) {
+  const email = entry && typeof entry === 'object' ? entry.email : (String(entry || '').match(/<([^>]*)>/) || [])[1];
+  if (typeof email === 'string' && email.trim().toLowerCase() === OIDC_EMAIL) return OIDC_PUBLISHER;
+  return accountName(entry);
+}
+
 /** `name <email>`, `{ name, email }` or `name` → the npm account name, lowercased. */
 function accountName(entry) {
   const raw = entry && typeof entry === 'object' ? entry.name : entry;
@@ -47,7 +63,7 @@ function parseView(stdout, error) {
     latest,
     // An entry that is not a readable account name poisons the list: it cannot be trusted.
     maintainers: maintainers.includes(null) ? [] : maintainers,
-    publisher: doc._npmUser ? accountName(doc._npmUser) : null,
+    publisher: doc._npmUser ? publisherName(doc._npmUser) : null,
   };
 }
 
@@ -123,4 +139,4 @@ function decide(state, trust, now = Date.now()) {
   return { lines, spawn, stateChanges };
 }
 
-module.exports = { PACKAGE, TRUST_FILE, accountName, parseView, recordProbe, loadTrust, newer, decide };
+module.exports = { PACKAGE, OIDC_PUBLISHER, TRUST_FILE, accountName, parseView, recordProbe, loadTrust, newer, decide };

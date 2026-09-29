@@ -129,10 +129,14 @@ export function build({
   release = false,
   root: base = root,
   out = path.join(base, 'payload'),
-  clone = process.env.PASSIONCODE_VENDOR_CLONE === '1',
-  gitBase = process.env.PASSIONCODE_GIT_BASE || 'git@github.com:',
+  clone,
+  gitBase,
   env = process.env,
 } = {}) {
+  // Read from the environment the caller passed, not the process's: a test that hands its
+  // own env must not inherit a CI step's PASSIONCODE_VENDOR_CLONE.
+  if (clone === undefined) clone = env.PASSIONCODE_VENDOR_CLONE === '1';
+  if (gitBase === undefined) gitBase = env.PASSIONCODE_GIT_BASE || 'git@github.com:';
   const family = JSON.parse(fs.readFileSync(path.join(base, 'family.json'), 'utf8'));
   const pinned = family.members.filter((m) => Object.prototype.hasOwnProperty.call(m, 'checkout')).map((m) => m.name);
   if (pinned.length) throw new Error(`family.json names a machine path (checkout) for ${pinned.join(', ')}; point PASSIONCODE_CHECKOUT_ROOT or ${checkoutVar(pinned[0])} at a local clone instead.`);
