@@ -6,7 +6,7 @@ Every PassionCode.ai agent skill, for Claude Code and every other agent on your 
 installed and updated as one set:
 
 ```bash
-npx passioncode@latest update
+npx @passioncode-ai/passioncode@latest update
 ```
 
 | Member | Skills |
@@ -57,8 +57,13 @@ npx passioncode uninstall
 3. The npm account that publishes must be listed in `plugin/passioncode/trust.json`
    (`npmPublishers`), and be the package's only kind of maintainer — otherwise every
    installed hook refuses the update and says so.
-4. `npm publish` — `prepublishOnly` vendors from tags only (`--release`), refuses
-   credential-shaped strings, and runs the tests. Members are read from `checkout` when
-   it exists, otherwise shallow-cloned from `repo` over SSH with your own key
-   (`npm run vendor -- --clone` forces the clone).
-5. `npx passioncode@<version> update` on this machine; restart the agents.
+4. Merge, then tag the merge commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml`
+   validates, checks the tag against both manifests, creates the GitHub release from the
+   CHANGELOG section, vendors every member **from its own repository** at its pinned tag,
+   runs the tests, installs the packed tarball from a clean `HOME`, publishes
+   `@passioncode-ai/passioncode` and waits until npm serves it. It runs when the repository
+   variables `RELEASE_ENABLED` and `PUBLISH_NPMJS` are `true`; npm auth is trusted publishing
+   (OIDC) or the `NPM_TOKEN` secret; a private member needs `MEMBERS_READ_TOKEN`.
+   By hand, `npm publish` still works: `prepublishOnly` vendors from tags only (`--release`),
+   refuses credential-shaped strings and runs the tests.
+5. `npx @passioncode-ai/passioncode@<version> update` on this machine; restart the agents.

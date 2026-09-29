@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PACKAGE = 'passioncode';
+const PACKAGE = '@passioncode-ai/passioncode';
 const VERSION = /^\d+\.\d+\.\d+$/;
 const TRUST_FILE = path.join(__dirname, '..', 'trust.json');
 
@@ -24,7 +24,7 @@ function accountName(entry) {
 }
 
 /**
- * Reads the answer of `npm view passioncode version maintainers _npmUser --json`.
+ * Reads the answer of `npm view @passioncode-ai/passioncode version maintainers _npmUser --json`.
  * Returns what the probe records: `{ published: true, latest, maintainers, publisher }`,
  * `{ published: false }` for a name nobody has published (E404), or `{ checkError }`.
  */

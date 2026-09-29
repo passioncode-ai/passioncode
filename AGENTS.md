@@ -4,7 +4,7 @@
 
 `passioncode` is the npm launcher that installs every PassionCode.ai agent skill for Claude
 Code and every other agent on a machine, and keeps them current as one set
-(`npx passioncode@latest update`). Members are vendored from their own repositories at a
+(`npx @passioncode-ai/passioncode@latest update`). Members are vendored from their own repositories at a
 pinned ref (`family.json`); Claude Code gets them from a local `passioncode` marketplace,
 other agents through the `~/.agents/skills` hub (`README.md`).
 
@@ -39,7 +39,7 @@ There is no hosted CI: vendoring reads private member repositories.
 - A release vendors tagged bytes only (`npm run vendor:release`, run by `prepublishOnly`),
   and the vendor step refuses credential-shaped strings.
 - The self-update never runs a version it has not attributed: only a pinned
-  `passioncode@<x.y.z>` whose every npm maintainer and publisher is in `trust.json`
+  `@passioncode-ai/passioncode@<x.y.z>` whose every npm maintainer and publisher is in `trust.json`
   ([ADR-0002](docs/adr/0002-self-update-trusts-named-publishers.md)).
 - Members are PassionCode.ai products only. An agent someone builds for themselves is never
   added, even when it implements a Fabric protocol.

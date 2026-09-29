@@ -4,7 +4,7 @@ const L = require('../lib/launcher');
 
 const HELP = `passioncode — every PassionCode.ai skill, for every agent on this machine
 
-  npx passioncode@latest update [--dry-run] [--json]   install or update the whole set
+  npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]   install or update the whole set
   npx passioncode status [--json]                       what is installed where
   npx passioncode restore                               put back what the last update moved aside
   npx passioncode config set update.auto on|off         background updates at session start

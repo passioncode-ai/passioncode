@@ -1,0 +1,183 @@
+name: release
+
+# The same pipeline as fabric-agent-adapter's. OFF by default: `release` runs only when
+# the repo variable RELEASE_ENABLED is "true", `publish` only when PUBLISH_NPMJS is "true".
+#
+# Trigger: a v* tag, or a manual run naming an existing tag. Steps: validate -> tag
+# reachable from the default branch -> version sync -> GitHub release carrying the
+# CHANGELOG section -> vendor every member FROM ITS OWN REPOSITORY at its pinned tag ->
+# pack + install smoke -> npm publish -> the registry must serve it.
+#
+# Members are cloned over HTTPS. GITHUB_TOKEN reads only this repository, so a private
+# member needs the MEMBERS_READ_TOKEN secret (a fine-grained token with Contents: read on
+# the member repositories); a public member needs nothing.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing vX.Y.Z tag to release and publish (defaults to the ref this runs on)"
+        required: false
+        type: string
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+
+  release:
+    needs: validate
+    if: vars.RELEASE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Resolve the tag to release
+        id: t
+        run: |
+          set -eu
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "ver=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.t.outputs.tag }}
+          fetch-depth: 0
+
+      - name: The tag must be reachable from the default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          # A tag pushed without its branch is a release a fresh clone cannot reach.
+          DEF="$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)"
+          git fetch --no-tags origin "$DEF"
+          git merge-base --is-ancestor HEAD "origin/$DEF" || {
+            echo "::error::${{ steps.t.outputs.tag }} is not an ancestor of origin/$DEF; push the branch, then re-run."
+            exit 1
+          }
+
+      - name: Tag must match the manifests (version sync)
+        run: |
+          set -eu
+          for f in package.json plugin/passioncode/.claude-plugin/plugin.json; do
+            V=$(node -p "require('./$f').version")
+            [ "$V" = "${{ steps.t.outputs.ver }}" ] || { echo "tag ${{ steps.t.outputs.tag }} != $f $V"; exit 1; }
+          done
+
+      - name: Extract this version's CHANGELOG section
+        run: |
+          set -eu
+          awk -v v="${{ steps.t.outputs.ver }}" '
+            $0 ~ "^## \\[?v?" v "\\]?([^0-9]|$)" {f=1; next}
+            /^## \[?v?[0-9]+\.[0-9]+\.[0-9]+/ {f=0}
+            f {print}
+          ' CHANGELOG.md > /tmp/notes.md
+          test -s /tmp/notes.md || { echo "no CHANGELOG section for ${{ steps.t.outputs.ver }}"; exit 1; }
+
+      - name: Create or refresh the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          if gh release view "${{ steps.t.outputs.tag }}" >/dev/null 2>&1; then
+            gh release edit "${{ steps.t.outputs.tag }}" --notes-file /tmp/notes.md
+          else
+            gh release create "${{ steps.t.outputs.tag }}" --title "${{ steps.t.outputs.tag }} — PassionCode.ai" \
+              --notes-file /tmp/notes.md --latest
+          fi
+
+  publish:
+    # Auth: npm trusted publishing (OIDC, `id-token: write`) is the intended path — the
+    # package names this workflow as its trusted publisher and no long-lived credential
+    # exists. NPM_TOKEN (a granular automation token) is honoured while that is being set up.
+    needs: release
+    if: vars.PUBLISH_NPMJS == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Resolve the tag to publish
+        id: t
+        run: |
+          set -eu
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "ver=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.t.outputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: npm must be new enough for trusted publishing
+        run: npm install -g npm@latest && npm --version
+
+      - name: Is this version already on the registry?
+        id: pub
+        run: |
+          set -eu
+          NAME=$(node -p "require('./package.json').name")
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          if npm view "$NAME@${{ steps.t.outputs.ver }}" version >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "$NAME@${{ steps.t.outputs.ver }} already published"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Vendor every member from its own repository at its tag
+        if: steps.pub.outputs.skip == 'false'
+        env:
+          READ_TOKEN: ${{ secrets.MEMBERS_READ_TOKEN || github.token }}
+        run: |
+          set -eu
+          # The token rides in the clone URL of a throwaway runner and is never printed:
+          # vendor.mjs reports the member name and ref, not the URL it cloned.
+          export PASSIONCODE_VENDOR_CLONE=1
+          export PASSIONCODE_GIT_BASE="https://x-access-token:${READ_TOKEN}@github.com/"
+          node scripts/vendor.mjs --release
+          node --test test/
+
+      - name: Pack and install smoke from a clean HOME
+        if: steps.pub.outputs.skip == 'false'
+        run: |
+          set -eu
+          TARBALL="$PWD/$(npm pack --silent)"
+          export HOME="$(mktemp -d)"
+          cd "$(mktemp -d)"
+          npx --yes --package "$TARBALL" passioncode status
+          echo "OK: the packed tarball runs"
+
+      - name: npm publish
+        if: steps.pub.outputs.skip == 'false'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          # prepublishOnly would vendor again from local checkouts; the payload above is
+          # the one that was tested, so publish it as is.
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = "false" ]; then
+            npm publish --ignore-scripts --provenance
+          else
+            echo "repository is private — publishing without provenance"
+            npm publish --ignore-scripts
+          fi
+
+      - name: The registry must actually serve it
+        if: steps.pub.outputs.skip == 'false'
+        run: |
+          set -eu
+          for i in $(seq 1 30); do
+            V=$(npm view "${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }}" version 2>/dev/null || true)
+            [ "$V" = "${{ steps.t.outputs.ver }}" ] && { echo "served: ${{ steps.pub.outputs.name }}@$V"; exit 0; }
+            sleep 10
+          done
+          echo "::error::npm does not serve ${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }} after 5 minutes"; exit 1

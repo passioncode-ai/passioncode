@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.4 - 2026-09-29
+
+### Security
+
+- The package is `@passioncode-ai/passioncode`, in the npm organisation that PassionCode.ai
+  owns. The bare name `passioncode` was unclaimed, so whoever registered it would have been
+  what the self-update checks. The hook now watches the scoped name, and `trust.json` names
+  the organisation's publisher.
+
+### Changed
+
+- Install and update with `npx @passioncode-ai/passioncode@latest update`.
+- A `v*` tag releases and publishes from GitHub Actions (`.github/workflows/release.yml`),
+  the same pipeline as the adapter.
+
 ## 0.1.3 - 2026-09-29
 
 - Observatory Log 0.12.2 (Observatory 0.8.1): the engine's `full agent` recognises the copy this

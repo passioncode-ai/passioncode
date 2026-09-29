@@ -120,3 +120,11 @@ test('versions are in sync: package.json, the self plugin and the CHANGELOG', ()
   assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT, 'plugin/passioncode/.claude-plugin/plugin.json'), 'utf8')).version, version);
   assert.match(fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'), new RegExp(`^## ${version.replace(/\./g, '\\.')} - `, 'm'));
 });
+
+test('a clone URL carrying a token is never printed', async () => {
+  const { redactUrl } = await vendor();
+  assert.equal(redactUrl('https://x-access-token:ghs_SECRET123@github.com/org/repo.git'), 'https://***@github.com/org/repo.git');
+  assert.equal(redactUrl('git@github.com:org/repo.git'), 'git@github.com:org/repo.git');
+  assert.equal(redactUrl('file:///tmp/remotes/org/repo.git'), 'file:///tmp/remotes/org/repo.git');
+  assert.equal(redactUrl("fatal: repository 'https://x-access-token:ghs_S@github.com/o/r.git/' not found"), "fatal: repository 'https://***@github.com/o/r.git/' not found");
+});
