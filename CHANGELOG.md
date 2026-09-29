@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7 - 2026-09-29
+
+- Observatory Log 0.12.3 (Observatory v0.8.2) in the set: source-available license and PassionCode.ai metadata; no behaviour change.
+
 ## 0.1.6 - 2026-09-29
 
 ### Fixed
