@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2026-09-29
+
+- Fabric Agent Adapter 0.4.2: the kit's `LoopbackHTTPServer` binds without a reverse DNS
+  lookup, a garbled pid file reads as unknown, and every SKILL.md front matter parses as
+  strict YAML (0.4.1).
+
 ## 0.1.1 - 2026-09-29
 
 - `update --dry-run` says the plan changed nothing instead of reporting it as done.
