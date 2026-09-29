@@ -2,9 +2,12 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "passioncode",
   "displayName": "PassionCode.ai",
-  "version": "0.0.0",
+  "version": "0.1.3",
   "description": "Keeps the PassionCode.ai skill set current: a once-a-day check at session start and a background update.",
-  "author": { "name": "PassionCode.ai", "url": "https://passioncode.ai/" },
+  "author": {
+    "name": "PassionCode.ai",
+    "url": "https://passioncode.ai/"
+  },
   "homepage": "https://github.com/passioncode-ai/passioncode",
   "license": "MIT"
 }

@@ -115,3 +115,8 @@ test('vendor refuses a self plugin without a valid trust list', async () => {
   assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase }), /lowercase npm account names/);
 });
 
+test('versions are in sync: package.json, the self plugin and the CHANGELOG', () => {
+  const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+  assert.equal(JSON.parse(fs.readFileSync(path.join(ROOT, 'plugin/passioncode/.claude-plugin/plugin.json'), 'utf8')).version, version);
+  assert.match(fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8'), new RegExp(`^## ${version.replace(/\./g, '\\.')} - `, 'm'));
+});

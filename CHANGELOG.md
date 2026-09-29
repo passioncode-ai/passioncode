@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.3 - 2026-09-29
+
+### Security
+
+- The session-start hook no longer runs whatever is published under the npm name
+  `passioncode`. The name was unclaimed (`npm view passioncode` answered E404), so
+  whoever registered it would have had code run on every machine with the plugin. The
+  daily probe now records the latest version together with its npm maintainers and
+  publishing account (`npm view passioncode version maintainers _npmUser --json`); the
+  hook updates only when every one of them is in `plugin/passioncode/trust.json`, and
+  otherwise spawns nothing and names who published it. The list ships empty: until the
+  maintainers add their npm account, nothing updates on its own.
+- The update it runs is pinned — `npx --yes passioncode@<verified version> update` — so
+  what was checked is what runs, not whatever `@latest` points at a moment later.
+
+### Fixed
+
+- A failed update check is shown once in the session-start line instead of never; the
+  same error is not repeated every session.
+- A background update is recorded (`updatingSince`) when it starts, so a second session
+  start within ten minutes does not start a second one.
+- The old single-member marketplaces (`fabric-agent-adapter`, `observatory-log`) are
+  retired once the member's `@passioncode` plugin is verified and nothing else installed
+  comes from them: the `extraKnownMarketplaces` entry leaves `~/.claude/settings.json`
+  (backed up in the quarantine) and `claude plugin marketplace remove` unregisters it —
+  otherwise Claude Code re-registered it, with autoUpdate, and installing from it would
+  bring a second channel back. `passioncode restore` re-adds both. `status` names any
+  that are left.
+- Vendoring no longer needs the maintainer's own checkouts: a member whose `checkout`
+  is absent is shallow-cloned from `repo` at `ref` over SSH (`--clone` or
+  `PASSIONCODE_VENDOR_CLONE=1` forces it). The payload's marketplace entries carry
+  `displayName` and `author`, and the `$schema` URLs are ones that resolve.
+
 ## 0.1.2 - 2026-09-29
 
 - Fabric Agent Adapter 0.4.2: the kit's `LoopbackHTTPServer` binds without a reverse DNS
