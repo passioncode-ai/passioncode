@@ -16,7 +16,7 @@ installed comes from it, it also moves the `extraKnownMarketplaces` entry out of
 ## The self-update and who it trusts
 
 The SessionStart hook reads `~/.passioncode/state.json` and, at most once a day, starts
-`npm view passioncode version maintainers _npmUser --json`, detached, logging to
+`npm view @passioncode-ai/passioncode version maintainers _npmUser --json`, detached, logging to
 `~/.passioncode/logs/`. It records the latest version, the package's npm maintainers
 and the account that published that version.
 
@@ -27,7 +27,7 @@ The hook installs a newer version on its own only when all of these hold:
   account is listed in `trust.json` inside the plugin (`npmPublishers`);
 - the version is a plain `x.y.z`.
 
-It then runs `npx --yes passioncode@<that exact version> update --quiet`, detached, so
+It then runs `npx --yes @passioncode-ai/passioncode@<that exact version> update --quiet`, detached, so
 the version that was checked is the version that runs. In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher — not installing"); a name nobody has

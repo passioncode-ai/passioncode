@@ -25,7 +25,7 @@ const FAKE_NPX = `#!/usr/bin/env node
 require('fs').appendFileSync(require('path').join(process.env.HOME, 'npx-calls.log'), process.argv.slice(2).join(' ') + '\\n');
 `;
 
-const E404 = JSON.stringify({ error: { code: 'E404', summary: 'Not Found - GET https://registry.npmjs.org/passioncode - Not found', detail: '' } }, null, 2);
+const E404 = JSON.stringify({ error: { code: 'E404', summary: 'Not Found - GET https://registry.npmjs.org/@passioncode-ai%2fpassioncode - Not found', detail: '' } }, null, 2);
 const published = (version, maintainers, publisher) => JSON.stringify({ version, maintainers: maintainers.map((m) => `${m} <${m}@example.com>`), ...(publisher ? { _npmUser: `${publisher} <${publisher}@example.com>` } : {}) }, null, 2);
 
 function sandbox({ trust = [] } = {}) {
@@ -78,7 +78,7 @@ async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
 test('probe records the latest version, its maintainers and its publisher', () => {
   const sb = sandbox();
   const state = probe(sb, published('0.2.0', ['PassionCode-AI', 'sshlg'], 'sshlg'));
-  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view passioncode version maintainers _npmUser --json']);
+  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view @passioncode-ai/passioncode version maintainers _npmUser --json']);
   assert.equal(state.published, true);
   assert.equal(state.latest, '0.2.0');
   assert.deepEqual(state.maintainers, ['passioncode-ai', 'sshlg']);
@@ -114,7 +114,7 @@ test('hook: an untrusted publisher is named and nothing is spawned', async () =>
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai', 'mallory'], publisher: 'mallory' });
   const out = hook(sb);
-  assert.equal(out, '[passioncode] passioncode@0.2.0 is on npm but published by mallory, not a trusted PassionCode publisher — not installing; see SECURITY.md.\n');
+  assert.equal(out, '[passioncode] @passioncode-ai/passioncode@0.2.0 is on npm but published by mallory, not a trusted PassionCode publisher — not installing; see SECURITY.md.\n');
   assert.deepEqual(await npxCalls(sb), []);
   assert.equal(stateOf(sb).updatingSince, undefined);
 });
@@ -144,16 +144,16 @@ test('hook: a trusted publisher starts one update, pinned to the verified versio
   const sb = sandbox({ trust: ['passioncode-ai', 'sshlg'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai', 'sshlg'], publisher: 'sshlg' });
   assert.match(hook(sb), /0\.2\.0 is out \(you have 0\.1\.0\); updating in the background/);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.ok(Date.parse(stateOf(sb).updatingSince) > 0, 'the running update is recorded');
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
+  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes @passioncode-ai/passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
 });
 
 test('hook: with auto-update off it names the pinned command and spawns nothing', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], config: { auto: false } });
-  assert.equal(hook(sb), '[passioncode] 0.2.0 is out (you have 0.1.0): npx passioncode@0.2.0 update\n');
+  assert.equal(hook(sb), '[passioncode] 0.2.0 is out (you have 0.1.0): npx @passioncode-ai/passioncode@0.2.0 update\n');
   assert.deepEqual(await npxCalls(sb), []);
 });
 
@@ -200,7 +200,7 @@ test('hook: a stale check starts the probe, which asks npm who publishes', async
   const file = path.join(sb.home, 'npm-calls.log');
   const until = Date.now() + 5000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
-  assert.deepEqual(lines(file), ['view passioncode version maintainers _npmUser --json']);
+  assert.deepEqual(lines(file), ['view @passioncode-ai/passioncode version maintainers _npmUser --json']);
 });
 
 test('the shipped trust list is a valid list of npm accounts, and a missing one trusts no one', () => {
@@ -209,4 +209,10 @@ test('the shipped trust list is a valid list of npm accounts, and a missing one 
   const { loadTrust } = require(path.join(ROOT, 'plugin/passioncode/hooks/update-check.js'));
   assert.deepEqual(loadTrust(path.join(ROOT, 'plugin/passioncode/trust.json')), doc.npmPublishers);
   assert.deepEqual(loadTrust(path.join(os.tmpdir(), 'no-such-trust.json')), [], 'a missing list trusts no one');
+});
+
+test('the package the hook watches is the org-scoped one, not the squattable bare name', () => {
+  const { PACKAGE } = require('../plugin/passioncode/hooks/update-check');
+  assert.equal(PACKAGE, '@passioncode-ai/passioncode');
+  assert.equal(require('../package.json').name, PACKAGE);
 });

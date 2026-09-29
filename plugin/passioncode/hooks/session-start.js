@@ -2,7 +2,7 @@
 // SessionStart: never blocks, never fails the session. Reads the cached check,
 // starts a detached probe at most once a day, and — only when a newer version is
 // out, every one of its npm publishers is in trust.json, and auto-update is on —
-// a detached `npx --yes passioncode@<that exact version> update`. What was
+// a detached `npx --yes @passioncode-ai/passioncode@<that exact version> update`. What was
 // verified is what runs; the update lands for the NEXT session.
 'use strict';
 const { spawn } = require('child_process');

@@ -1,4 +1,6 @@
 {
-  "$comment": "npm accounts allowed to publish the passioncode package. The session-start hook auto-updates only to a version whose every npm maintainer and publisher is listed here; see SECURITY.md.",
-  "npmPublishers": []
+  "$comment": "npm accounts allowed to publish @passioncode-ai/passioncode. The session-start hook auto-updates only to a version whose every npm maintainer and publisher is listed here; see SECURITY.md.",
+  "npmPublishers": [
+    "ssheleg"
+  ]
 }

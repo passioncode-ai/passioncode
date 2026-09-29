@@ -72,6 +72,11 @@ function extract(checkout, ref, sub, into) {
   return path.join(into, sub);
 }
 
+/** A URL for messages: credentials in its userinfo (a CI token) become `***`. */
+export function redactUrl(url) {
+  return String(url).replace(/([a-z][a-z0-9+.-]*:\/\/)[^/@\s'"]+@/gi, '$1***@');
+}
+
 /** Where a member's bytes are read from: its checkout, or a shallow clone of its repo at ref. */
 function memberRepo(m, { clone, gitBase, temp }) {
   const checkout = m.checkout ? expand(m.checkout) : null;
@@ -82,9 +87,9 @@ function memberRepo(m, { clone, gitBase, temp }) {
   try {
     execFileSync('git', ['clone', '--quiet', '--depth', '1', '--branch', m.ref, url, dir], { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' });
   } catch (error) {
-    throw new Error(`${m.name}: could not clone ${url} at ${m.ref}: ${String(error.stderr || error.message).trim()}`);
+    throw new Error(`${m.name}: could not clone ${redactUrl(url)} at ${m.ref}: ${redactUrl(String(error.stderr || error.message).trim())}`);
   }
-  return { dir, via: `clone of ${url}` };
+  return { dir, via: `clone of ${redactUrl(url)}` };
 }
 
 /** The self plugin's trust list must ship, and must be a list of npm account names. */
