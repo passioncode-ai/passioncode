@@ -15,7 +15,7 @@ const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'u
 
 function writePlugin(dir, version) {
   fs.mkdirSync(path.join(dir, '.claude-plugin'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.claude-plugin/plugin.json'), JSON.stringify({ name: 'member', version, description: 'A member plugin.' }));
+  fs.writeFileSync(path.join(dir, '.claude-plugin/plugin.json'), JSON.stringify({ name: 'member', version, description: 'A member plugin.', license: 'Apache-2.0' }));
   fs.mkdirSync(path.join(dir, 'skills/using-member'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'skills/using-member/SKILL.md'), `---\nname: using-member\n---\n${version}\n`);
 }
@@ -44,7 +44,7 @@ function fixture() {
   const family = (member) => fs.writeFileSync(path.join(root, 'family.json'), JSON.stringify({
     name: 'passioncode', owner: 'passioncode-ai', displayName: 'PassionCode.ai', description: 'test family',
     members: [
-      { name: 'member', displayName: 'Member', repo: 'example-org/member', checkout: path.join(base, 'no-such-checkout'), ref: 'v1.0.0', kind: 'plugin', path: 'plugins/member', legacyPluginIds: ['member@member'], legacyMarketplaces: ['member'], ...member },
+      { name: 'member', displayName: 'Member', repo: 'example-org/member', ref: 'v1.0.0', kind: 'plugin', path: 'plugins/member', legacyPluginIds: ['member@member'], legacyMarketplaces: ['member'], ...member },
       { name: 'passioncode', displayName: 'PassionCode.ai', kind: 'self', path: 'plugin/passioncode', description: 'self' },
     ],
   }));
@@ -55,7 +55,7 @@ function fixture() {
 test('vendor falls back to a shallow clone of the member repository at its tag when the checkout is absent', async () => {
   const { build, PLUGIN_SCHEMA, MARKETPLACE_SCHEMA } = await vendor();
   const f = fixture();
-  const { members } = build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase });
+  const { members } = build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase, env: {} });
   const member = members.find((m) => m.name === 'member');
   assert.equal(member.commit, f.tagged, 'the tagged commit, not the newer work');
   assert.equal(member.version, '1.0.0');
@@ -81,21 +81,47 @@ test('vendor falls back to a shallow clone of the member repository at its tag w
   assert.deepEqual(manifest.members.find((m) => m.name === 'member').legacyMarketplaces, ['member'], 'the launcher learns the legacy marketplaces');
 });
 
-test('clone mode ignores an existing checkout, and a checkout is used when present', async () => {
+test('a local clone is used only when the environment names one; clone mode ignores it', async () => {
+  const { build, checkoutVar } = await vendor();
+  const f = fixture();
+  const opts = (env, extra = {}) => ({ root: f.root, out: f.out, gitBase: f.gitBase, env, ...extra });
+  assert.match(build(opts({})).members[0].via, /^clone of /, 'no environment: the member repository at its tag');
+  assert.equal(checkoutVar('observatory-log'), 'PASSIONCODE_CHECKOUT_OBSERVATORY_LOG');
+  assert.equal(build(opts({ [checkoutVar('member')]: f.work })).members[0].via, 'checkout', 'a per-member path');
+  const clones = path.join(f.base, 'clones-root');
+  fs.mkdirSync(clones);
+  fs.symlinkSync(f.work, path.join(clones, 'member')); // <root>/<repo name>
+  assert.equal(build(opts({ PASSIONCODE_CHECKOUT_ROOT: clones })).members[0].via, 'checkout', 'a root of clones named like their repositories');
+  assert.equal(build(opts({ PASSIONCODE_CHECKOUT_ROOT: clones, [checkoutVar('member')]: path.join(f.base, 'nowhere') })).members[0].via.startsWith('clone of '), true, 'a named clone that does not exist falls back to cloning, not to the root');
+  assert.match(build(opts({ PASSIONCODE_CHECKOUT_ROOT: clones }, { clone: true })).members[0].via, /^clone of /, 'clone mode ignores local clones');
+});
+
+test('family.json carries no machine paths', async () => {
   const { build } = await vendor();
+  assert.ok(JSON.parse(fs.readFileSync(path.join(ROOT, 'family.json'), 'utf8')).members.every((m) => !('checkout' in m)), 'this repository\'s family.json');
   const f = fixture();
   f.family({ checkout: f.work });
-  assert.equal(build({ root: f.root, out: f.out, gitBase: f.gitBase }).members[0].via, 'checkout');
-  assert.match(build({ root: f.root, out: f.out, gitBase: f.gitBase, clone: true }).members[0].via, /^clone of /);
+  assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /machine path \(checkout\) for member.*PASSIONCODE_CHECKOUT_ROOT/);
+});
+
+test('the payload carries each member\'s own license and ships the self plugin\'s skills', async () => {
+  const { build } = await vendor();
+  const f = fixture();
+  const { members } = build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} });
+  const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const market = JSON.parse(fs.readFileSync(path.join(f.out, '.claude-plugin/marketplace.json'), 'utf8'));
+  assert.deepEqual(market.plugins.map((p) => [p.name, p.license]), [['member', 'Apache-2.0'], ['passioncode', pkg.license]], 'a member is listed under its own license, not a hard-coded one');
+  const self = members.find((m) => m.name === 'passioncode');
+  assert.ok(self.skills.includes('working-in-passioncode'), 'the launcher links the self plugin\'s skills into the hub like any member\'s');
+  assert.ok(fs.existsSync(path.join(f.out, 'plugins/passioncode/skills/working-in-passioncode/references/releasing.md')));
 });
 
 test('a release refuses a branch ref, from a clone as from a checkout', async () => {
   const { build } = await vendor();
   const f = fixture();
   f.family({ ref: 'main' });
-  assert.throws(() => build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase }), /ref main is not a tag/);
-  f.family({ ref: 'main', checkout: f.work });
-  assert.throws(() => build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase }), /ref main is not a tag/);
+  assert.throws(() => build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /ref main is not a tag/);
+  assert.throws(() => build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase, env: { PASSIONCODE_CHECKOUT_MEMBER: f.work } }), /ref main is not a tag/);
   assert.equal(fs.existsSync(f.out), false, 'no payload is written');
 });
 
@@ -103,16 +129,16 @@ test('an unreachable member repository is a clear error', async () => {
   const { build } = await vendor();
   const f = fixture();
   f.family({ repo: 'example-org/missing' });
-  assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase }), /member: could not clone .*missing\.git at v1\.0\.0/);
+  assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /member: could not clone .*missing\.git at v1\.0\.0/);
 });
 
 test('vendor refuses a self plugin without a valid trust list', async () => {
   const { build } = await vendor();
   const f = fixture();
   fs.rmSync(path.join(f.root, 'plugin/passioncode/trust.json'));
-  assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase }), /trust\.json is missing/);
+  assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /trust\.json is missing/);
   fs.writeFileSync(path.join(f.root, 'plugin/passioncode/trust.json'), JSON.stringify({ npmPublishers: ['Not An Account'] }));
-  assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase }), /lowercase npm account names/);
+  assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /lowercase npm account names/);
 });
 
 test('versions are in sync: package.json, the self plugin and the CHANGELOG', () => {

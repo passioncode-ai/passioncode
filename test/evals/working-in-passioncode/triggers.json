@@ -1,0 +1,30 @@
+{
+  "skill": "working-in-passioncode",
+  "queries": [
+    {"query": "I'm about to work on a PassionCode repo for the first time — what are the rules?", "shouldTrigger": true},
+    {"query": "Open a PR in passioncode-ai/fabric-inbox for this fix.", "shouldTrigger": true},
+    {"query": "The adapter change is ready; land it on main in fabric-agent-adapter.", "shouldTrigger": true},
+    {"query": "Release the passioncode launcher and tag the version.", "shouldTrigger": true},
+    {"query": "Which passioncode-ai repository owns the fabric-service protocol schemas?", "shouldTrigger": true},
+    {"query": "Bump the fabric-agent-contract pin in the adapter.", "shouldTrigger": true},
+    {"query": "Publish this change to the public fabric-dashboards repo.", "shouldTrigger": true},
+    {"query": "What license do we put in package.json for fabric-switchboard?", "shouldTrigger": true},
+    {"query": "Hosted CI failed after three seconds on fabric — is main red?", "shouldTrigger": true},
+    {"query": "Работаю в репозитории PassionCode — как тут принято оформлять ветки и коммиты?", "shouldTrigger": true},
+    {"query": "Где записать решение, которое касается fabric и fabric-inbox сразу?", "shouldTrigger": true},
+    {"query": "Как выпустить релиз fabric-agent-adapter и не опубликовать его в npm случайно?", "shouldTrigger": true},
+
+    {"query": "Design the onboarding flow for Fabric Inbox's first-run screen.", "shouldTrigger": false},
+    {"query": "Pick the colour tokens and motion for the Observatory dashboard.", "shouldTrigger": false},
+    {"query": "Rewrite the headline on the passioncode.ai landing page.", "shouldTrigger": false},
+    {"query": "Create a new Fabric-compatible agent for campaign reporting.", "shouldTrigger": false},
+    {"query": "Make this agent a local service with an always-on dashboard.", "shouldTrigger": false},
+    {"query": "Adapt this MCP server to the Fabric Agent Contract.", "shouldTrigger": false},
+    {"query": "Release my personal project on GitHub under my own account.", "shouldTrigger": false},
+    {"query": "Rotate the OpenRouter key this project uses.", "shouldTrigger": false},
+    {"query": "Explain what an MIT license allows in general.", "shouldTrigger": false},
+    {"query": "Сделай экран оплаты для приложения понятнее.", "shouldTrigger": false},
+    {"query": "Напиши пост в твиттер про релиз Switchboard.", "shouldTrigger": false},
+    {"query": "Set up branch protection rules for a repository in another organisation.", "shouldTrigger": false}
+  ]
+}

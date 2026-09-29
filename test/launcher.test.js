@@ -141,6 +141,32 @@ test('status and config', () => {
   assert.equal(run(env, 'config', 'set', 'update.auto', 'maybe').status, 1);
 });
 
+test('status reads the installed release, not the package payload it is run from', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  // The CLI now runs from a checkout whose payload/ is older and lists other members.
+  const stale = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-stale-'));
+  makePayload(stale, '0.0.9', [{ name: 'fabric-agent-adapter', version: '0.3.0', skills: ['creating-fabric-agents'] }]);
+  env.payload = stale;
+  const s = JSON.parse(run(env, 'status', '--json').stdout);
+  assert.equal(s.installed, '0.1.0');
+  assert.equal(s.package, '0.0.9', 'the payload this CLI would install is still reported, as the package');
+  assert.equal(s.source, 'installed');
+  assert.deepEqual(s.members.map((m) => [m.name, m.version, m.hub.filter((h) => h.ok).length, m.hub.length]),
+    [['fabric-agent-adapter', '0.4.0', 2, 2], ['example-agent', '0.1.0', 1, 1]], 'members, versions and hub links of what is installed');
+  const text = run(env, 'status').stdout;
+  assert.match(text, /installed 0\.1\.0 · package 0\.0\.9/);
+  assert.match(text, /example-agent\s+0\.1\.0\s+claude: plugin · hub: 1\/1/);
+});
+
+test('status before any install describes the package payload', () => {
+  const env = setup();
+  const s = JSON.parse(run(env, 'status', '--json').stdout);
+  assert.equal(s.installed, null);
+  assert.equal(s.source, 'package');
+  assert.deepEqual(s.members.map((m) => m.name), ['fabric-agent-adapter', 'example-agent']);
+});
+
 test('vendor refuses credential-shaped strings', async () => {
   const { scanForSecrets } = await import(path.join(ROOT, 'scripts/vendor.mjs'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-scan-'));

@@ -1,0 +1,69 @@
+{
+  "skill": "working-in-passioncode",
+  "scenarios": [
+    {
+      "id": "blocked-ci-is-not-green",
+      "trap": "a report called a private repository 'green' because no failing test was shown, while every hosted job had been refused by the spending cap",
+      "request": "Check CI on fabric-agent-adapter main and tell me whether it's safe to tag.",
+      "expected": [
+        "runs the repository's local gate and reports each command with its exit code",
+        "reads the hosted run's annotation and reports it as blocked, not passing",
+        "does not dispatch a hosted run by hand for a routine check",
+        "names the nightly 23:00 Europe/Warsaw batch as the next hosted run"
+      ]
+    },
+    {
+      "id": "tag-never-moves",
+      "trap": "a session prepared version 0.1.4 while another session had already tagged and published v0.1.4 on a different commit",
+      "request": "Release the launcher as 0.1.4 with the new skill.",
+      "expected": [
+        "fetches tags first and finds v0.1.4 already exists",
+        "does not move or delete the existing tag",
+        "releases the next free patch version and says why",
+        "checks gh variable list before pushing the tag, because a v* tag can publish to npm"
+      ]
+    },
+    {
+      "id": "never-touch-shared-checkout",
+      "trap": "an agent stashed another session's uncommitted work to switch branches in a shared checkout",
+      "request": "Fix the typo in fabric's README; the checkout has other changes in it.",
+      "expected": [
+        "leaves the dirty checkout untouched",
+        "creates a worktree from origin/main on its own branch",
+        "lands by fast-forward after the local gate, or opens a PR",
+        "writes no merge commit onto someone else's unpushed work"
+      ]
+    },
+    {
+      "id": "source-available-wording",
+      "trap": "a README called a PolyForm-licensed product 'open source (MIT)' after the relicense",
+      "request": "Update the Switchboard README's license section.",
+      "expected": [
+        "calls the product source-available and uses the short line",
+        "names the SPDX expression PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0",
+        "states that already-released MIT versions stay MIT",
+        "mentions CLA.md for contributions"
+      ]
+    },
+    {
+      "id": "no-personal-agents-in-examples",
+      "trap": "an eval in a distributed plugin named one of the operator's personal agents as its example service",
+      "request": "Add an example service to the adapter's evals.",
+      "expected": [
+        "uses a neutral name such as example-agent",
+        "adds no absolute home path",
+        "runs the repository's privacy or validation check before pushing"
+      ]
+    },
+    {
+      "id": "decision-home-and-id",
+      "trap": "two agents wrote the same ADR number after reading the 'next free id' line",
+      "request": "Record the decision that Fabric Inbox and fabric share one auth service.",
+      "expected": [
+        "puts the record in fabric/docs/adr as a cross-repository decision",
+        "reserves the id with agent_sync.py reserve ADR before writing",
+        "takes the lease on the guarded path and releases it on every path"
+      ]
+    }
+  ]
+}

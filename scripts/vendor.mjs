@@ -7,10 +7,16 @@
 //   node scripts/vendor.mjs --release    every ref must be a tag; refuses otherwise
 //   node scripts/vendor.mjs --clone      ignore local checkouts; shallow-clone every member
 //
-// A member is read from its `checkout` when that directory exists, and otherwise
-// from a shallow clone of `repo` at `ref` over SSH (`git@github.com:<repo>.git`,
-// the contributor's own key — members may be private). PASSIONCODE_VENDOR_CLONE=1
-// is the same as --clone; PASSIONCODE_GIT_BASE replaces `git@github.com:`.
+// A member is shallow-cloned from `repo` at `ref` over SSH (`git@github.com:<repo>.git`,
+// the contributor's own key — members may be private). family.json names no machine
+// paths (org-index RULES §7). A maintainer who keeps local clones points the vendor
+// at them instead:
+//   PASSIONCODE_CHECKOUT_ROOT=<dir>          a member is read from <dir>/<repo name>
+//   PASSIONCODE_CHECKOUT_<MEMBER>=<path>     one member's clone under another name
+//                                            (<MEMBER>: its name upper-cased, - as _)
+// A checkout that does not exist falls back to the clone. PASSIONCODE_VENDOR_CLONE=1
+// is the same as --clone and ignores both; PASSIONCODE_GIT_BASE replaces
+// `git@github.com:`.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -77,11 +83,22 @@ export function redactUrl(url) {
   return String(url).replace(/([a-z][a-z0-9+.-]*:\/\/)[^/@\s'"]+@/gi, '$1***@');
 }
 
-/** Where a member's bytes are read from: its checkout, or a shallow clone of its repo at ref. */
-function memberRepo(m, { clone, gitBase, temp }) {
-  const checkout = m.checkout ? expand(m.checkout) : null;
-  if (!clone && checkout && fs.existsSync(path.join(checkout, '.git'))) return { dir: checkout, via: 'checkout' };
-  if (!m.repo || !m.ref) throw new Error(`${m.name}: no checkout at ${m.checkout ?? '(none)'} and no repo/ref to clone.`);
+/** The environment variable that points the vendor at one member's local clone. */
+export const checkoutVar = (name) => `PASSIONCODE_CHECKOUT_${String(name).toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+
+/** The local clone the environment names for a member, or null: a per-member path wins over the root. */
+export function checkoutFor(m, env = process.env) {
+  const own = env[checkoutVar(m.name)];
+  if (own) return expand(own);
+  if (env.PASSIONCODE_CHECKOUT_ROOT && m.repo) return path.join(expand(env.PASSIONCODE_CHECKOUT_ROOT), m.repo.split('/').pop());
+  return null;
+}
+
+/** Where a member's bytes are read from: a local clone the environment names, or a shallow clone of its repo at ref. */
+function memberRepo(m, { clone, gitBase, temp, env }) {
+  const checkout = clone ? null : checkoutFor(m, env);
+  if (checkout && fs.existsSync(path.join(checkout, '.git'))) return { dir: checkout, via: 'checkout' };
+  if (!m.repo || !m.ref) throw new Error(`${m.name}: no repo/ref to clone${checkout ? ` and no clone at ${checkout}` : ''}.`);
   const dir = path.join(temp, 'clones', m.name);
   const url = `${gitBase}${m.repo}.git`;
   try {
@@ -114,8 +131,11 @@ export function build({
   out = path.join(base, 'payload'),
   clone = process.env.PASSIONCODE_VENDOR_CLONE === '1',
   gitBase = process.env.PASSIONCODE_GIT_BASE || 'git@github.com:',
+  env = process.env,
 } = {}) {
   const family = JSON.parse(fs.readFileSync(path.join(base, 'family.json'), 'utf8'));
+  const pinned = family.members.filter((m) => Object.prototype.hasOwnProperty.call(m, 'checkout')).map((m) => m.name);
+  if (pinned.length) throw new Error(`family.json names a machine path (checkout) for ${pinned.join(', ')}; point PASSIONCODE_CHECKOUT_ROOT or ${checkoutVar(pinned[0])} at a local clone instead.`);
   const pkg = JSON.parse(fs.readFileSync(path.join(base, 'package.json'), 'utf8'));
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'passioncode-vendor-'));
   const stage = path.join(temp, 'payload');
@@ -135,7 +155,7 @@ export function build({
         const doc = JSON.parse(fs.readFileSync(manifest, 'utf8'));
         fs.writeFileSync(manifest, JSON.stringify({ ...doc, $schema: PLUGIN_SCHEMA, version }, null, 2) + '\n');
       } else {
-        const repo = memberRepo(m, { clone, gitBase, temp });
+        const repo = memberRepo(m, { clone, gitBase, temp, env });
         const checkout = repo.dir;
         via = repo.via;
         if (release && !isTag(checkout, m.ref)) throw new Error(`${m.name}: ref ${m.ref} is not a tag; a release vendors tagged bytes only.`);
@@ -154,7 +174,7 @@ export function build({
           fs.mkdirSync(path.join(dest, '.claude-plugin'), { recursive: true });
           fs.writeFileSync(path.join(dest, '.claude-plugin/plugin.json'), JSON.stringify({
             $schema: PLUGIN_SCHEMA, name: m.name, ...(m.displayName ? { displayName: m.displayName } : {}), version, description: m.description,
-            author: AUTHOR, homepage: `https://github.com/${m.repo}`, license: 'MIT',
+            author: AUTHOR, homepage: `https://github.com/${m.repo}`, license: m.license ?? pkg.license,
           }, null, 2) + '\n');
         }
       }
@@ -164,6 +184,7 @@ export function build({
         name: m.name, displayName: m.displayName ?? plugin.displayName ?? m.name, repo: m.repo ?? `${family.owner}/passioncode`, ref: m.ref ?? `v${pkg.version}`, commit, version, via,
         skills: skillsIn(dest), legacyPluginIds: m.legacyPluginIds ?? [], legacyMarketplaces: m.legacyMarketplaces ?? [], contentHash: treeHash(dest),
         description: m.description ?? plugin.description, author: m.author ?? (plugin.author && plugin.author.name ? plugin.author : AUTHOR),
+        license: plugin.license ?? (m.kind === 'self' ? pkg.license : null),
       });
     }
     const hits = scanForSecrets(stage);
@@ -172,7 +193,7 @@ export function build({
     fs.writeFileSync(path.join(stage, '.claude-plugin/marketplace.json'), JSON.stringify({
       $schema: MARKETPLACE_SCHEMA, name: family.name,
       owner: { name: family.displayName, url: 'https://passioncode.ai/' }, description: family.description,
-      plugins: members.map((m) => ({ name: m.name, displayName: m.displayName, source: `./plugins/${m.name}`, version: m.version, description: m.description, author: m.author, license: 'MIT' })),
+      plugins: members.map((m) => ({ name: m.name, displayName: m.displayName, source: `./plugins/${m.name}`, version: m.version, description: m.description, author: m.author, ...(m.license ? { license: m.license } : {}) })),
     }, null, 2) + '\n');
     fs.writeFileSync(path.join(stage, 'manifest.json'), JSON.stringify({ family: family.name, version: pkg.version, release, members }, null, 2) + '\n');
     fs.rmSync(out, { recursive: true, force: true });

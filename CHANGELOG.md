@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.1.5 - 2026-09-29
+
+### Added
+
+- `working-in-passioncode`, a skill in the self plugin: the organisation's working rules —
+  the org map, landing, nightly CI and why a blocked run is not green, handoffs,
+  decisions, ids and leases, secrets, licensing, the privacy gate, releases and pins —
+  reach every contributor's agent instead of living only in org-index. It points to
+  org-index as the source of truth; detail is in its `references/releasing.md` and
+  `references/publishing.md`. Trigger and scenario evals are in
+  `test/evals/working-in-passioncode/`; `test/skill.test.js` holds every self-plugin skill
+  to the Agent Skills standard (strict front matter, description budget, references
+  linked, no home paths). The hub links it like any member's skill (`status` showed
+  `passioncode hub: 0/0` because the self plugin had no skill).
+- Fabric Agent Adapter 0.4.3: source-available license, one contract pin (`a5a2709`),
+  neutral examples, and hand-offs to the neighbouring agent-stack and make-skill skills.
+
+### Changed
+
+- **License.** The launcher is source-available under
+  `PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0`, with a
+  commercial license on request (contact@passioncode.ai). Versions up to and including
+  v0.1.4 were released under MIT and remain available under it. Contributions come in
+  under `CLA.md` (new `CONTRIBUTING.md` and PR template). The payload's marketplace
+  lists each member under its own manifest's license instead of a hard-coded `MIT`.
+- `family.json` names no machine paths. Members are cloned from their repositories at
+  their tags; a maintainer's local clones are an environment override:
+  `PASSIONCODE_CHECKOUT_ROOT=<dir>` reads `<dir>/<repository name>`, and
+  `PASSIONCODE_CHECKOUT_<MEMBER>=<path>` names one clone kept under another name. A
+  `checkout` key in `family.json` is refused.
+
+### Fixed
+
+- `passioncode status` described the payload beside the CLI — from a checkout, whatever
+  was last vendored there — instead of what is installed. It now reads the release
+  `~/.passioncode/current` points at, reports the payload version separately as
+  `package`, and says which it described (`source`).
+
 ## 0.1.4 - 2026-09-29
 
 ### Security

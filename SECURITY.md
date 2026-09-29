@@ -1,6 +1,7 @@
 # Security
 
-Report vulnerabilities privately to the maintainers of the `passioncode-ai` organization.
+Report vulnerabilities privately to contact@passioncode.ai. Do not open an issue that
+carries credentials or a working exploit.
 
 What `passioncode update` touches: `~/.passioncode/` (releases, state, quarantine,
 logs); Claude Code's plugin registry through the `claude plugin` CLI only;

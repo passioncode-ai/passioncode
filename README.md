@@ -13,7 +13,7 @@ npx @passioncode-ai/passioncode@latest update
 |---|---|
 | Fabric Agent Adapter | `creating-fabric-agents`, `adapting-projects-to-fabric`, `building-fabric-services` |
 | Observatory Log | `explaining-changes`, `handling-secrets`, `tracking-resources` (+ its session hooks) |
-| passioncode | the once-a-day update check |
+| passioncode | `working-in-passioncode` (the organisation's working rules, for every contributor's agent) and the once-a-day update check |
 
 Only PassionCode.ai products are members. Agents that people build for themselves stay
 out of it, even when they implement Fabric protocols.
@@ -44,7 +44,7 @@ installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 `npx passioncode config set update.auto off` makes it only say so.
 
 ```bash
-npx passioncode status      # installed version, per-member channels, shadows
+npx passioncode status      # the installed release: its members, their channels, shadows
 npx passioncode update --dry-run
 npx passioncode uninstall
 ```
@@ -66,4 +66,19 @@ npx passioncode uninstall
    (OIDC) or the `NPM_TOKEN` secret; a private member needs `MEMBERS_READ_TOKEN`.
    By hand, `npm publish` still works: `prepublishOnly` vendors from tags only (`--release`),
    refuses credential-shaped strings and runs the tests.
-5. `npx @passioncode-ai/passioncode@<version> update` on this machine; restart the agents.
+5. `npx @passioncode-ai/passioncode@<version> update` on each machine; restart the agents.
+
+Vendoring clones every member from its own repository at its tag. A maintainer with
+local clones can point the vendor at them instead — `PASSIONCODE_CHECKOUT_ROOT=<dir>`
+reads a member from `<dir>/<repository name>`, and `PASSIONCODE_CHECKOUT_<MEMBER>=<path>`
+(the member's name upper-cased, `-` as `_`) names one clone kept under another name.
+`PASSIONCODE_VENDOR_CLONE=1` ignores both. `family.json` names no machine paths.
+
+## License
+
+Source-available under PolyForm Noncommercial or Internal Use; commercial license on
+request (contact@passioncode.ai). SPDX:
+`PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0` — see
+[LICENSE](LICENSE). Versions up to and including v0.1.4 were released under the MIT
+License and remain available under it. Contributions are accepted under [CLA.md](CLA.md)
+([CONTRIBUTING.md](CONTRIBUTING.md)).
