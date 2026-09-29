@@ -50,7 +50,8 @@ const fresh = () => new Date().toISOString();
 const lines = (file) => { try { return fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
 function hook(sb) {
-  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env() });
+  // Run from a directory outside any passioncode-ai repository, so the read-first line (repo-rules.test.js) stays out of these cases.
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(), cwd: os.tmpdir(), input: '' });
   assert.equal(r.status, 0, r.stderr);
   return r.stdout;
 }

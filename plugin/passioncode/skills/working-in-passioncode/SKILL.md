@@ -44,6 +44,18 @@ where a repository's own `AGENTS.md` is stricter, **that file wins**.
 No org-index clone: `gh repo clone passioncode-ai/org-index`. No access at all: say so,
 follow the repository's `AGENTS.md`, and name that you worked from it alone.
 
+Also, before the first edit:
+
+- **Read the organization's [CONTRIBUTING.md](https://github.com/passioncode-ai/.github/blob/main/CONTRIBUTING.md)**
+  — the session-start hook of this plugin prints that line in every passioncode-ai repository.
+- **Names** (Fabric ADR-0090): PassionCode.ai is the organization; **Fabric** is the product,
+  the CEO AI agent; Fabric's tools carry its full name before any short form (Fabric Inbox,
+  Fabric Dashboards, Fabric Switchboard); the Fabric Agent Contract and Adapter make any agent
+  Fabric-compatible; Project Observatory keeps its own name. Never "PassionCode app".
+- **Code region markers**: fence a feature, module or special condition with
+  `#region <slug> — docs: <path>#<anchor>` … `#endregion <slug>` in the file's comment syntax;
+  the reference must resolve. Repositories that ship `check-regions` fail a broken one.
+
 ## 2. Landing on main
 
 | `main` is | Land by |

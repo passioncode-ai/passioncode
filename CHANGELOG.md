@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.8 - 2026-09-29
+
+### Added
+
+- **Read the rules first.** In a passioncode-ai repository the session-start hook now prints one
+  line sending the agent to the repository's `AGENTS.md` and the organization's `CONTRIBUTING.md`
+  before its first edit; anywhere else it prints nothing, and a missing or slow git prints
+  nothing (`hooks/repo-rules.js`).
+- `working-in-passioncode` carries the names of Fabric ADR-0090 and the code region marker rule.
+
 ## 0.1.7 - 2026-09-29
 
 - Observatory Log 0.12.3 (Observatory v0.8.2) in the set: source-available license and PassionCode.ai metadata; no behaviour change.
