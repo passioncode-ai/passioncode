@@ -10,6 +10,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { decide, loadTrust } = require('./update-check');
+const { rulesLine } = require('./repo-rules');
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
 const STATE = path.join(DIR, 'state.json');
@@ -41,5 +42,10 @@ try {
     fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
     fs.renameSync(tmp, STATE);
   }
+  // Claude Code passes the session's directory on stdin; the process cwd is the fallback.
+  let cwd = process.cwd();
+  try { const input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); if (input && typeof input.cwd === 'string') cwd = input.cwd; } catch (_) { /* no stdin */ }
+  const rules = rulesLine(cwd);
+  if (rules) lines.unshift(rules);
   if (lines.length) process.stdout.write(lines.join('\n') + '\n');
 } catch (_) { /* never fail a session start */ }
