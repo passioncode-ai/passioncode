@@ -13,6 +13,7 @@ npx @passioncode-ai/passioncode@latest update
 |---|---|
 | Fabric Agent Adapter | `creating-fabric-agents`, `adapting-projects-to-fabric`, `building-fabric-services` |
 | Observatory Log | `explaining-changes`, `handling-secrets`, `tracking-resources` (+ its session hooks) |
+| Fabric Inbox | `working-with-fabric-inbox` (an agent works with a Fabric Inbox server over its MCP agent protocol) |
 | passioncode | `working-in-passioncode` (the organisation's working rules, for every contributor's agent) and the once-a-day update check |
 
 Only PassionCode.ai products are members. Agents that people build for themselves stay

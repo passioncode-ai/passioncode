@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.8 - 2026-09-29
+
+### Added
+
+- Fabric Inbox 0.7.0 joins the set: the `working-with-fabric-inbox` skill teaches an agent to
+  work with a Fabric Inbox server over its MCP agent protocol — connecting with its own
+  Cloudflare Access service token, the read, mail and admin levels, Drafts only and Can send
+  keys, idempotent sending, two-step confirmation of irreversible actions, and the workflows
+  for mail and for administering addresses, domains, forwarding, spam, reply agents,
+  categories, knowledge and rules. Its tool names are checked against the server's tools in
+  Fabric Inbox's own tests. The repository is private, so the release workflow reads it with
+  `MEMBERS_READ_TOKEN`.
+
 ## 0.1.7 - 2026-09-29
 
 - Observatory Log 0.12.3 (Observatory v0.8.2) in the set: source-available license and PassionCode.ai metadata; no behaviour change.

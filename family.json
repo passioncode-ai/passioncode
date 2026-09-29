@@ -33,6 +33,14 @@
       ]
     },
     {
+      "name": "fabric-inbox",
+      "displayName": "Fabric Inbox",
+      "repo": "passioncode-ai/fabric-inbox",
+      "ref": "v0.7.0",
+      "kind": "plugin",
+      "path": "plugins/fabric-inbox"
+    },
+    {
       "name": "passioncode",
       "displayName": "PassionCode.ai",
       "kind": "self",
