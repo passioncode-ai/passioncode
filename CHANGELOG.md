@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The CLI help, `README.md` and `SECURITY.md` told people to run `npx passioncode <command>`.
+  No unscoped `passioncode` package exists on npm (`npm view passioncode` → E404), so those
+  commands failed on any machine without a local install, and a squatted name would have run
+  someone else's code. They now name `npx @passioncode-ai/passioncode@latest <command>`.
+- `README.md` gains a quick start for a new teammate: install, configure, MCP, develop.
+
 ## 0.1.8 - 2026-09-29
 
 ### Added

@@ -40,7 +40,7 @@ published (npm E404) is silent; a failed check is shown once.
 `trust.json` ships **empty**, so auto-update stays inert until the maintainers name the
 npm account(s) that publish PassionCode. Adding an account there is a release decision:
 it is reviewed like code and ships in the package. A person who wants no background
-updates at all runs `npx passioncode config set update.auto off`.
+updates at all runs `npx @passioncode-ai/passioncode@latest config set update.auto off`.
 
 The published package carries skill text only; the vendor step refuses to build when it
 finds a credential-shaped string, or when the self plugin has no valid `trust.json`.
