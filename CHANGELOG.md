@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.1.9 - 2026-09-30
+
+### Changed
+
+- Fabric Agent Adapter 0.5.0 in the set (`family.json` pins `v0.5.0`, was `v0.4.3`); Observatory
+  Log stays at Observatory `v0.8.2`, still its latest tag.
 
 ### Fixed
 

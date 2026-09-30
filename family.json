@@ -8,7 +8,7 @@
       "name": "fabric-agent-adapter",
       "displayName": "Fabric Agent Adapter",
       "repo": "passioncode-ai/fabric-agent-adapter",
-      "ref": "v0.4.3",
+      "ref": "v0.5.0",
       "kind": "plugin",
       "path": "plugins/fabric-agent-adapter",
       "legacyPluginIds": [
