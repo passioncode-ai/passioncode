@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.10 - 2026-09-30
+
+### Changed
+
+- Fabric Agent Adapter 0.5.1 in the set (`family.json` pins `v0.5.1`, was `v0.5.0`): the kits follow the
+  contract rulings of DEC-0017 — full result envelope with its trace for jobs, a job tool's
+  `outputSchema` as the union of envelope and handle, `providers/` entries carrying `providerId`.
+
 ## 0.1.9 - 2026-09-30
 
 ### Changed
