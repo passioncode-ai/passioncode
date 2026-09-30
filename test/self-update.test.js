@@ -220,7 +220,7 @@ test('the package the hook watches is the org-scoped one, not the squattable bar
 
 test('a version published by GitHub Actions through npm trusted publishing is recognised, not unreadable', () => {
   const u = require(path.join(PLUGIN, 'hooks/update-check'));
-  const view = (npmUser) => JSON.stringify({ version: '0.2.0', maintainers: ['ssheleg <sergeysheleg4@gmail.com>'], _npmUser: npmUser });
+  const view = (npmUser) => JSON.stringify({ version: '0.2.0', maintainers: ['ssheleg <maintainer@example.com>'], _npmUser: npmUser });
   // npm records the OIDC publish in both shapes, depending on the client.
   for (const who of ['GitHub Actions <npm-oidc-no-reply@github.com>', { name: 'GitHub Actions', email: 'npm-oidc-no-reply@github.com' }]) {
     assert.equal(u.parseView(view(who)).publisher, u.OIDC_PUBLISHER);
