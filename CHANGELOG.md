@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.13 - 2026-10-01
+
+### Changed
+
+- Fabric Agent Adapter 0.5.4 in the set (`family.json` pins `v0.5.4`, was `v0.5.3`): the adapter pins
+  the public Fabric Agent Contract, re-created with one clean history; no behaviour changes.
+
 ## 0.1.12 - 2026-09-30
 
 ### Changed
