@@ -1,5 +1,10 @@
 # passioncode — working in this repository
 
+Read this file and the organization's
+[CONTRIBUTING.md](https://github.com/passioncode-ai/.github/blob/main/CONTRIBUTING.md) before the
+first edit, then this repository's [CONTRIBUTING.md](CONTRIBUTING.md) (test first, one version,
+the CLA). This repository's files win where they differ from the organization's.
+
 ## Role
 
 `passioncode` is the npm launcher that installs every PassionCode.ai agent skill for Claude
@@ -19,10 +24,11 @@ npm run vendor -- --clone   # ignore local clones (also PASSIONCODE_VENDOR_CLONE
 claude plugin validate ./payload --strict
 ```
 
-Hosted workflows exist (`validate.yml` runs `node --test`; `release.yml` releases and publishes on
-a `v*` tag when `RELEASE_ENABLED` and `PUBLISH_NPMJS` are `true`), but Actions for this private
-repository are held by the organisation's spending cap: the local gate above is the evidence, and a
-blocked run is reported as blocked.
+There is nothing to install: the launcher has no dependencies and no lockfile, so `npm ci`
+refuses to run here; `npm test` works on a fresh clone. Hosted workflows exist (`validate.yml`
+runs `node --test`; `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and
+`PUBLISH_NPMJS` are `true`). The repository is public, so they run outside the organisation's
+spending cap; the local gate above is still the evidence, and a skipped run is reported as skipped.
 
 ## Where things live
 
