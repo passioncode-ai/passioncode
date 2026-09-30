@@ -4,11 +4,11 @@ const L = require('../lib/launcher');
 
 const HELP = `passioncode — every PassionCode.ai skill, for every agent on this machine
 
-  npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]   install or update the whole set
-  npx passioncode status [--json]                       what is installed where
-  npx passioncode restore                               put back what the last update moved aside
-  npx passioncode config set update.auto on|off         background updates at session start
-  npx passioncode uninstall                             remove the set (quarantined items stay restorable)
+  npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]     install or update the whole set
+  npx @passioncode-ai/passioncode@latest status [--json]                 what is installed where
+  npx @passioncode-ai/passioncode@latest restore                         put back what the last update moved aside
+  npx @passioncode-ai/passioncode@latest config set update.auto on|off   background updates at session start
+  npx @passioncode-ai/passioncode@latest uninstall                       remove the set (quarantined items stay restorable)
 
 Claude Code gets plugins from the local "passioncode" marketplace; other agents get
 the same skills through ~/.agents/skills. Restart your agent after an update.`;

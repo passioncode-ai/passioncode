@@ -18,6 +18,23 @@ npx @passioncode-ai/passioncode@latest update
 Only PassionCode.ai products are members. Agents that people build for themselves stay
 out of it, even when they implement Fabric protocols.
 
+## Quick start for a new teammate
+
+1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
+   `npx @passioncode-ai/passioncode@latest update`, then restart your agents. Check it with
+   `npx @passioncode-ai/passioncode@latest status` (every member `claude: plugin · hub: n/n`) and
+   `claude plugin list` (three plugins `@passioncode`). Always call the scoped package: there is
+   no unscoped `passioncode` package on npm.
+2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
+   `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off.
+3. **MCP:** none. The launcher installs skills and session hooks; it neither serves nor calls an
+   MCP server. The tools that do (Fabric Switchboard, Fabric Inbox) document their own.
+4. **Develop:** clone, then `npm test` — there are no dependencies and no lockfile, so there is
+   nothing to install (`npm ci` refuses to run here). `npm run vendor` builds `payload/` from the
+   members pinned in `family.json`; `claude plugin validate ./payload --strict` checks it. Start
+   in `lib/launcher.js` (update, restore, status, uninstall) and `bin/passioncode.js` (the CLI);
+   [AGENTS.md](AGENTS.md) maps the rest and [CONTRIBUTING.md](CONTRIBUTING.md) the rules.
+
 ## How it installs
 
 - **Claude Code** gets plugins from a local marketplace named `passioncode` at
@@ -31,7 +48,7 @@ out of it, even when they implement Fabric protocols.
   the machine.
 - Nothing is written to `~/.claude/skills`: a plain copy there shadows the plugin. Such
   copies, and hub entries that pointed at a repository's working tree, are moved into
-  `~/.passioncode/quarantine/` — `npx passioncode restore` puts them back.
+  `~/.passioncode/quarantine/` — `npx @passioncode-ai/passioncode@latest restore` puts them back.
 - Each version is an immutable release under `~/.passioncode/releases/<version>`.
 
 ## Staying current
@@ -41,12 +58,12 @@ day and, when a newer set is out **and every npm account that publishes it is in
 plugin's `trust.json`**, updates to that exact version in the background — it takes
 effect in the next session. A version published by anyone else is named and not
 installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
-`npx passioncode config set update.auto off` makes it only say so.
+`npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so.
 
 ```bash
-npx passioncode status      # the installed release: its members, their channels, shadows
-npx passioncode update --dry-run
-npx passioncode uninstall
+npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows
+npx @passioncode-ai/passioncode@latest update --dry-run
+npx @passioncode-ai/passioncode@latest uninstall
 ```
 
 ## Release (maintainers)
