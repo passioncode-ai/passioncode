@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.11 - 2026-09-30
+
+### Fixed
+
+- Fabric Agent Adapter 0.5.2 in the set (`family.json` pins `v0.5.2`, was `v0.5.1`): services built on its
+  kits answer the MCP `initialize` handshake, so a real client such as Claude Code connects (0.5.0
+  and 0.5.1 did not), and every tool's `outputSchema` has an object root (contract DEC-0018).
+
 ## 0.1.10 - 2026-09-30
 
 ### Changed
