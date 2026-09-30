@@ -2,12 +2,12 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "passioncode",
   "displayName": "PassionCode.ai",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "The organisation's working rules for every contributor's agent (working-in-passioncode), and a once-a-day check at session start that keeps the PassionCode.ai skill set current.",
   "author": {
     "name": "PassionCode.ai",
     "url": "https://passioncode.ai/"
   },
   "homepage": "https://github.com/passioncode-ai/passioncode",
-  "license": "PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0"
+  "license": "AGPL-3.0-only OR LicenseRef-PassionCode-Commercial"
 }

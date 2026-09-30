@@ -1,9 +1,10 @@
-# passioncode
+# PassionCode.ai launcher
 
-> **PassionCode.ai — The agent-agnostic operating system for AI-native teams.**
-
-Every PassionCode.ai agent skill, for Claude Code and every other agent on your machine,
-installed and updated as one set:
+The **PassionCode.ai launcher** (`@passioncode-ai/passioncode` on npm) installs and updates every
+PassionCode.ai agent skill and plugin — the Fabric Agent Adapter, Observatory Log and the
+organization's working rules — for Claude Code and every other agent on your machine, as one set.
+It is how a teammate's agent gets the tools that build for Fabric, PassionCode.ai's CEO AI agent,
+and it works on its own: no Fabric install, no account, no key.
 
 ```bash
 npx @passioncode-ai/passioncode@latest update
@@ -27,8 +28,11 @@ out of it, even when they implement Fabric protocols.
    no unscoped `passioncode` package on npm.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
    `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off.
-3. **MCP:** none. The launcher installs skills and session hooks; it neither serves nor calls an
-   MCP server. The tools that do (Fabric Switchboard, Fabric Inbox) document their own.
+3. **MCP:** none today, and not planned. The launcher installs skills and session hooks and is
+   driven by its CLI (`update`, `status`, `restore`, `uninstall`, `config`); it neither serves nor
+   calls an MCP server. The products it installs for, and the ones that serve MCP (Fabric
+   Switchboard, Fabric Inbox, Fabric Dashboards), document their own registration and proving
+   call; the Fabric Agent Adapter's quick start builds and calls one.
 4. **Develop:** clone, then `npm test` — there are no dependencies and no lockfile, so there is
    nothing to install (`npm ci` refuses to run here). `npm run vendor` builds `payload/` from the
    members pinned in `family.json`; `claude plugin validate ./payload --strict` checks it. Start
@@ -93,9 +97,8 @@ reads a member from `<dir>/<repository name>`, and `PASSIONCODE_CHECKOUT_<MEMBER
 
 ## License
 
-Source-available under PolyForm Noncommercial or Internal Use; commercial license on
-request (contact@passioncode.ai). SPDX:
-`PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0` — see
-[LICENSE](LICENSE). Versions up to and including v0.1.4 were released under the MIT
-License and remain available under it. Contributions are accepted under [CLA.md](CLA.md)
-([CONTRIBUTING.md](CONTRIBUTING.md)).
+Open source under the [GNU AGPL-3.0](LICENSE). A [commercial license](COMMERCIAL-LICENSE.md) is
+available for use that does not meet the AGPL's terms — contact@passioncode.ai.
+Versions before 0.1.12 were released under PolyForm Noncommercial or Internal Use (v0.1.5 to
+v0.1.11) and MIT (v0.1.4 and earlier); each keeps the licence it was released under.
+Contributions are accepted under [CLA.md](CLA.md) ([CONTRIBUTING.md](CONTRIBUTING.md)).

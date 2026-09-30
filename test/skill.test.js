@@ -11,7 +11,7 @@ const test = require('node:test');
 const ROOT = path.resolve(__dirname, '..');
 const SKILLS = path.join(ROOT, 'plugin/passioncode/skills');
 const EVALS = path.join(__dirname, 'evals');
-const SPDX = 'PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0';
+const SPDX = 'AGPL-3.0-only OR LicenseRef-PassionCode-Commercial'; // Fabric ADR-0092
 
 /**
  * A strict reader for the YAML subset SKILL.md uses: a flat mapping of plain, quoted or
@@ -119,8 +119,18 @@ for (const name of fs.existsSync(SKILLS) ? skills() : []) {
     for (const file of walk(dir)) {
       const t = fs.readFileSync(file, 'utf8');
       assert.doesNotMatch(t, /\/Users\/[a-z]|\/home\/[a-z]|~\/DATA\b/, `${path.relative(ROOT, file)} names an absolute home path`);
-      assert.doesNotMatch(t, /(?<!["\u201c])\bopen[- ]source\b/i, `${path.relative(ROOT, file)} calls a PassionCode tool open source (quote the phrase only to forbid it)`);
+      assert.doesNotMatch(t, /Source-available under|PolyForm-Noncommercial-1\.0\.0 OR/i, `${path.relative(ROOT, file)} states the retired PolyForm licence as current (ADR-0092: AGPL-3.0 or commercial)`);
     }
+  });
+
+  test(`${name}: says the knowledge base protocol — read first, update last`, () => {
+    const { body } = parseFrontMatter(text);
+    const flat = body.replace(/\s+/g, ' ');
+    assert.match(flat, /fabric-workspace\/knowledge\//, 'names the local copy of the knowledge base');
+    assert.match(flat, /wiki\.passioncode\.ai\/knowledge/, 'names the published knowledge base');
+    assert.match(flat, /before the first edit/i);
+    assert.match(flat, /update the (knowledge base )?page (here )?that owns/i, 'after the work, the page that owns a changed cross-repository fact');
+    assert.match(flat, /AGPL-3\.0-only OR LicenseRef-PassionCode-Commercial/, 'the licence expression, exactly');
   });
 
   test(`${name}: trigger and scenario evals exist and are balanced`, () => {

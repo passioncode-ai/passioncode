@@ -1,14 +1,15 @@
 'use strict';
-// The read-first reminder (Fabric agent-registry plan AR-0.7): at session start in a
-// passioncode-ai repository, one line sends the agent to AGENTS.md and the organization's
-// CONTRIBUTING.md before its first edit; anywhere else, nothing is printed.
+// The read-first reminder (Fabric agent-registry plan AR-0.7, the protocol of Fabric ADR-0093):
+// at session start in a passioncode-ai repository, one line says the protocol — read the
+// knowledge base and the repository's AGENTS.md before the first edit, update the knowledge base
+// page that owns a changed cross-repository fact after the work; anywhere else, nothing is printed.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const test = require('node:test');
-const { orgOf, rulesLine } = require('../plugin/passioncode/hooks/repo-rules');
+const { orgOf, rulesLine, KNOWLEDGE, KNOWLEDGE_WEB } = require('../plugin/passioncode/hooks/repo-rules');
 
 function repo(url) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-rules-'));
@@ -30,8 +31,22 @@ test('origin URLs of the organization are recognised in every spelling', () => {
 test('a passioncode-ai repository gets one read-first line, from any subdirectory', () => {
   const dir = repo('git@github.com:passioncode-ai/fabric.git');
   const line = rulesLine(path.join(dir, 'sub'));
-  assert.match(line, /^\[passioncode\] passioncode-ai repository: read AGENTS\.md and the organization's CONTRIBUTING\.md/);
+  assert.match(line, /^\[passioncode\] passioncode-ai repository: /);
   assert.equal(line.split('\n').length, 1);
+});
+
+test('the line says the protocol: the knowledge base and AGENTS.md before, the owning page after', () => {
+  const line = rulesLine(repo('https://github.com/passioncode-ai/fabric-inbox'));
+  assert.equal(KNOWLEDGE, 'fabric-workspace/knowledge/');
+  assert.equal(KNOWLEDGE_WEB, 'https://wiki.passioncode.ai/knowledge');
+  const before = line.indexOf('before the first edit');
+  const after = line.indexOf('after the work');
+  assert.ok(before > 0 && after > before, `"before the first edit" comes before "after the work": ${line}`);
+  const head = line.slice(0, before);
+  assert.ok(head.includes(KNOWLEDGE) && head.includes(KNOWLEDGE_WEB), 'before: the knowledge base, local copy and wiki');
+  assert.ok(head.indexOf('knowledge') < head.indexOf('AGENTS.md'), 'before: the knowledge base first, then AGENTS.md');
+  assert.match(line.slice(after), /knowledge base page that owns/, 'after: update the page that owns a changed cross-repository fact');
+  assert.match(line.slice(after), /cross-repository fact/);
 });
 
 test('any other repository, a folder without git, or a missing git prints nothing', () => {

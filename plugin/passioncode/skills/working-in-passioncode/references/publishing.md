@@ -13,41 +13,50 @@ change to a license, a manifest's `license` field, `CLA.md` or a PR template.
 
 ## The license, file by file
 
-The source-available expression is
-`PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0`; a commercial
-license is offered on request at contact@passioncode.ai. The schemas in
-`project-observatory-contract` are MIT instead. To relicense a repository, copy the
-`LICENSE` of one already relicensed (this launcher's, for instance) and change only the
-MIT-history sentence — the copyright line and the Required Notice stay as they are.
+Every repository is open source under the GNU AGPL-3.0, or available under a commercial
+license from PassionCode.ai (contact@passioncode.ai): SPDX
+`AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric ADR-0092). The owning page is the
+knowledge base's `licensing.md`; the file list is its `repository-standard.md`, and org-index
+`scripts/check_format.py` (rules F7–F11) checks it. The three licence files are **copied byte
+for byte** from the knowledge base's `templates/` — never retyped, reflowed or "fixed".
 
 | File | What it carries |
 |---|---|
-| `LICENSE` | the copyright line, the two licenses, a one-paragraph summary marked as not part of either license, one sentence naming which earlier releases stay MIT, the Required Notice, then both PolyForm texts verbatim |
-| `CLA.md` | the contributor license agreement, at the repository root |
-| `CONTRIBUTING.md` | says contributions are accepted under `CLA.md` |
+| `LICENSE` | `templates/LICENSE-AGPL-3.0.txt`, the unmodified AGPL-3.0 text (SHA-256 `0d96a4ff…abcb0`) |
+| `COMMERCIAL-LICENSE.md` | `templates/COMMERCIAL-LICENSE.md` |
+| `CLA.md` | `templates/CLA.md`, in every repository, private ones included |
+| `SECURITY.md` | every public repository: report privately to contact@passioncode.ai |
+| `CONTRIBUTING.md` | only when the repository adds rules; says contributions are accepted under `CLA.md` |
 | `.github/pull_request_template.md` | a checkbox "I agree to CLA.md"; any existing template content is kept |
-| `package.json` | `"license"` set to the SPDX expression |
+| `package.json` | `"license"` set to the SPDX expression; `files` ships `LICENSE` and `COMMERCIAL-LICENSE.md` |
 | `.claude-plugin/plugin.json`, marketplace entries | `"license"` set to the SPDX expression |
 | SKILL.md front matter | `license:` set to the SPDX expression |
-| `pyproject.toml` | `license` as an SPDX expression (PEP 639), which needs `setuptools>=77` in `build-system` |
-| `Cargo.toml` | `license-file = "LICENSE"` instead of `license`, and `publish = false` |
+| `pyproject.toml`, `Cargo.toml` | `license = "AGPL-3.0-only OR LicenseRef-PassionCode-Commercial"` |
 
-- The PolyForm texts are copied verbatim. Never edit, abridge or "fix" them.
-- The MIT sentence names the real last MIT release — for example "Versions up to and
-  including v0.8.1 of this repository were released under the MIT License; those
-  releases remain available under MIT." For a repository with no release: "Commits
-  before <sha> …".
-- A published MIT release stays MIT. Never write that it changed.
+- A version released earlier keeps the licence it was released under — MIT or PolyForm
+  Noncommercial or Internal Use. Never write that it changed; the README may say which.
+- Third-party code keeps its own licence and notice (vendored dependencies, imported templates).
+- The operator's own agents are outside the organization and outside this licence: their
+  licence is the operator's choice, and nothing about them is published.
 
 ## Wording
 
-- The products are **source-available**. Never "open source", "open-source" or "MIT"
-  for them — in a README, the site, the profile, a description or JSON-LD.
-- The short line: "Source-available under PolyForm Noncommercial or Internal Use;
-  commercial license on request."
-- The tagline is "The agent-agnostic operating system for AI-native teams." and "A
-  toolkit for AI-native teams."; the category line is "From vibe coding to passion
-  coding."
+- The README section, word for word apart from the versions:
+
+  ```markdown
+  ## License
+
+  Open source under the [GNU AGPL-3.0](LICENSE). A [commercial license](COMMERCIAL-LICENSE.md) is
+  available for use that does not meet the AGPL's terms — contact@passioncode.ai.
+  Versions before <first AGPL version> were released under <MIT | PolyForm Noncommercial or Internal Use>.
+  ```
+
+- "Source-available" and the PolyForm expression describe past releases only; never state
+  them as the current licence.
+- No price or term for the commercial licence is stated anywhere; point to
+  contact@passioncode.ai.
+- Positioning and names come from the knowledge base (`vision.md`, `principles.md` §2); do not
+  restate a tagline from memory.
 
 ## The privacy gate
 
@@ -70,7 +79,8 @@ MIT-history sentence — the copyright line and the Required Notice stay as they
 - Product metadata: author and owner **PassionCode.ai**, URL `https://passioncode.ai/`.
   The site names the author by first name only; do not add full names or biographies to
   product surfaces.
-- Public documents do not link private repositories. org-index may be linked for the
-  map and the rules only.
+- Public documents do not link private repositories. org-index and the knowledge base
+  (fabric-workspace `knowledge/`, published at wiki.passioncode.ai/knowledge) may be linked for
+  the map and the rules only.
 - Security and conduct contact: contact@passioncode.ai, plus GitHub private
   vulnerability reporting on a public repository.
