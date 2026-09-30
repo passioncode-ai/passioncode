@@ -7,12 +7,12 @@ description: >-
   PassionCode», «как тут принято», «где записать решение», «как выпустить релиз». Covers the org
   map, landing (protected and unprotected main, fast-forward, never force-push shared work,
   never touch another session's work), nightly CI and why a blocked run is not green,
-  handoffs, decisions, ids and leases, secrets, licensing (source-available, CLA, MIT
-  schemas), the privacy gate before anything goes public, and releases, versions and pins;
-  org-index stays the source of truth. NOT for product UX, visual design or copy (super-ux,
+  handoffs, decisions, ids and leases, secrets, licensing (AGPL-3.0 or commercial, CLA), the
+  repository standard, the privacy gate, and releases, versions and pins; the knowledge base
+  stays the source of truth. NOT for product UX, visual design or copy (super-ux,
   sheleg-design, copywriting), building Fabric agents or services (the fabric-agent-adapter
   skills), or repositories outside passioncode-ai.
-license: PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0
+license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
 compatibility: Any agent that can read files and run git. The gh CLI and a clone of passioncode-ai/org-index make the checks exact; without them follow the fallbacks in the body.
 metadata:
   author: PassionCode.ai
@@ -20,17 +20,33 @@ metadata:
 
 # Working in PassionCode repositories
 
-The rules of the `passioncode-ai` organisation live in one place:
-[org-index](https://github.com/passioncode-ai/org-index) (private; every member can
-read it) — `README.md` for the map, `RULES.md` for the rules, `ONBOARDING.md` for a new
-machine. This skill is the checklist that makes those rules reach you while you work.
-It summarises; it does not replace. Where it and org-index disagree, **org-index wins**;
-where a repository's own `AGENTS.md` is stricter, **that file wins**.
+What belongs to no single repository — the vision, the principles, how to work, the rules, the
+repository standard, the products and the licence — lives in one place: the organization's
+**knowledge base**, `fabric-workspace/knowledge/` in a clone (org-index
+`scripts/clone_all.sh` makes it), published at https://wiki.passioncode.ai/knowledge (sign-in
+required; Fabric ADR-0093). [org-index](https://github.com/passioncode-ai/org-index) (private;
+every member can read it) keeps the map (`repositories.json`), `ONBOARDING.md` and the checks
+(`check_index.py`, `check_names.py`, `check_format.py`). This skill is the checklist that makes
+those rules reach you while you work. It summarises; it does not replace. Where it and the
+knowledge base disagree, **the knowledge base wins**; where a repository's own `AGENTS.md` is
+stricter, **that file wins**.
+
+## 0. The protocol — before and after every piece of work
+
+**Before the first edit**, read the knowledge base (at least its `README.md`, `vision.md`,
+`principles.md` and `how-to-work.md`), then the repository's `AGENTS.md`. The session-start hook
+of this plugin prints that line in every passioncode-ai repository.
+
+**After the work**, in the same run: update the repository's own docs in the change that changes
+the behaviour; if a fact that crosses repositories changed — a product, a version, a plan row, a
+principle, a rule — update the knowledge base page that owns it (`products.md`, `plans.md`, …);
+land both; then publish (`node scripts/workspace.mjs sync` from a Fabric checkout) or leave it to
+the scheduled sync. A page there is read as true: every claim carries its receipt.
 
 ## 1. Before the first edit
 
-1. Read the repository's `AGENTS.md` (its `CLAUDE.md` imports it). It names the role,
-   the test command and any local rule.
+1. Read the knowledge base, then the repository's `AGENTS.md` (its `CLAUDE.md` imports
+   it). `AGENTS.md` names the role, the test command and any local rule.
 2. Find who owns what you are about to change: the table in org-index `README.md`,
    generated from `repositories.json`. Do not guess an owner from a directory name.
 3. `git fetch origin`, then work in a worktree from `origin/main` on your own branch
@@ -41,13 +57,14 @@ where a repository's own `AGENTS.md` is stricter, **that file wins**.
 4. An unmerged branch or a dirty tree you did not create is someone's work in
    progress. Leave it; ask before touching it.
 
-No org-index clone: `gh repo clone passioncode-ai/org-index`. No access at all: say so,
-follow the repository's `AGENTS.md`, and name that you worked from it alone.
+No clone: `gh repo clone passioncode-ai/org-index`, then its `scripts/clone_all.sh` for the
+knowledge base. No access at all: say so, follow the repository's `AGENTS.md`, and name that you
+worked from it alone.
 
 Also, before the first edit:
 
 - **Read the organization's [CONTRIBUTING.md](https://github.com/passioncode-ai/.github/blob/main/CONTRIBUTING.md)**
-  — the session-start hook of this plugin prints that line in every passioncode-ai repository.
+  — the repository's `AGENTS.md` sends you there in its *Read first* block.
 - **Names** (Fabric ADR-0090): PassionCode.ai is the organization; **Fabric** is the product,
   the CEO AI agent; Fabric's tools carry its full name before any short form (Fabric Inbox,
   Fabric Dashboards, Fabric Switchboard); the Fabric Agent Contract and Adapter make any agent
@@ -121,21 +138,31 @@ not edit a guarded file — say which file and why you stopped.
   enough. With the Observatory plugin installed, its `handling-secrets` skill does this
   by slot name without printing the value.
 
-## 6. Licensing — say it exactly
+## 6. Licensing and the repository standard
 
-| Products | License |
-|---|---|
-| `fabric-switchboard`, `project-observatory-dashboard`, `fabric-dashboards`, and the contributor tools (`passioncode`, `fabric-agent-adapter`) | `PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0`; a commercial license on request (contact@passioncode.ai) |
-| `project-observatory-contract` (the schemas) | MIT, so anyone can implement them |
-
-- Call these products **source-available**, never "open source", "open-source" or
-  "MIT". The short line: "Source-available under PolyForm Noncommercial or Internal
-  Use; commercial license on request."
-- Versions already released under MIT stay MIT, and each `LICENSE` names the last one.
-  Never claim otherwise.
-- Contributions are accepted under the repository's `CLA.md`; the PR template carries
-  the "I agree to CLA.md" box.
-- The PolyForm texts are verbatim; never edit them.
+- **Every repository** is open source under the GNU AGPL-3.0, or available under a commercial
+  license from PassionCode.ai (contact@passioncode.ai):
+  `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric ADR-0092; the knowledge base
+  `licensing.md` owns it). Copyright: Siarhei Sheleh. No price or term is stated anywhere.
+- `LICENSE`, `COMMERCIAL-LICENSE.md` and `CLA.md` are copied **byte for byte** from the knowledge
+  base's `templates/`; every manifest and SKILL.md `license:` carries the expression.
+- A version released earlier keeps its licence — MIT or PolyForm Noncommercial or Internal Use —
+  and the README may say which. Never write that a released version changed.
+- The README's `## License` section uses the knowledge base wording and names the earlier
+  licences: "Open source under the GNU AGPL-3.0. A commercial license is available for use that
+  does not meet the AGPL's terms — contact@passioncode.ai."
+- Contributions are accepted under the repository's `CLA.md`; the PR template carries the
+  "I agree to CLA.md" box.
+- **The repository standard** (the knowledge base `repository-standard.md`): README first heading
+  `# <Full name>`, `## Quick start for a new teammate` (Install, Configure, MCP — the registration
+  command and one proving call verified with a real client in a temporary config — and Develop)
+  and `## License`; `AGENTS.md` opens with the template's *Read first* block and ends with
+  *After work*; `CLAUDE.md` starts with `@AGENTS.md`; `SECURITY.md` in public repositories.
+  org-index `python3 scripts/check_format.py` checks it (offline: siblings `org-index`,
+  `fabric-workspace` and the repository, then `--offline --repo <repo>`); it reports 0 before
+  you call a repository done.
+- The operator's own agents are outside the organization and this licence: their licence is the
+  operator's choice, and nothing about them is published.
 
 Read [publishing](references/publishing.md) when adding or changing a license, a
 manifest's `license` field, `CLA.md` or a PR template.
@@ -209,4 +236,5 @@ skill's: `super-ux`, `sheleg-design` and `copywriting`.
 
 Report: the repository and branch; the landed commit or the PR URL; each gate command
 with its exit code; the hosted CI state (ran, blocked, or nightly pending); the handoff
-path; and the one next task.
+path; the knowledge base page you updated, or that no cross-repository fact changed; and the
+one next task.

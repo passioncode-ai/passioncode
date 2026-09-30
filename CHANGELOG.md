@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.12 - 2026-09-30
+
+### Changed
+
+- **License.** From this version the launcher is open source under the GNU AGPL-3.0, or
+  available under a commercial license from PassionCode.ai (contact@passioncode.ai): SPDX
+  `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric ADR-0092) in `package.json`, the
+  self plugin and the `working-in-passioncode` skill. `LICENSE` is the unmodified AGPL-3.0 text;
+  `COMMERCIAL-LICENSE.md` is new; both, with `CLA.md`, are byte for byte the knowledge base
+  templates and ship in the npm package (`test/license.test.js`). Versions v0.1.5 to v0.1.11 stay
+  under PolyForm Noncommercial or Internal Use, and v0.1.4 and earlier under MIT.
+- **The session-start line says the protocol** (Fabric ADR-0093): in a passioncode-ai repository
+  it now sends the agent to the knowledge base (`fabric-workspace/knowledge/` or
+  https://wiki.passioncode.ai/knowledge), then the repository's `AGENTS.md`, before the first
+  edit, and asks it to update the knowledge base page that owns any cross-repository fact it
+  changed after the work.
+- **`working-in-passioncode`** names the knowledge base as the source of truth (org-index keeps the
+  map, onboarding and the checks), opens with the before/after protocol, states the new licence
+  and the repository standard (`check_format.py`), and its completion report names the knowledge
+  base page updated. `references/publishing.md` lists the licence files as templates copied byte
+  for byte. Evals: the licence scenario rewritten, one protocol scenario, two trigger queries.
+- Fabric Agent Adapter 0.5.3 in the set (`family.json` pins `v0.5.3`, was `v0.5.2`): the same
+  licence, and its skills send a PassionCode.ai repository to the repository standard.
+- README and AGENTS.md follow the repository standard: `# PassionCode.ai launcher`, the
+  knowledge base *Read first* block and *After work*.
+
 ## 0.1.11 - 2026-09-30
 
 ### Fixed

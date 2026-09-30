@@ -13,7 +13,6 @@
     {"query": "Работаю в репозитории PassionCode — как тут принято оформлять ветки и коммиты?", "shouldTrigger": true},
     {"query": "Где записать решение, которое касается fabric и fabric-inbox сразу?", "shouldTrigger": true},
     {"query": "Как выпустить релиз fabric-agent-adapter и не опубликовать его в npm случайно?", "shouldTrigger": true},
-
     {"query": "Design the onboarding flow for Fabric Inbox's first-run screen.", "shouldTrigger": false},
     {"query": "Pick the colour tokens and motion for the Observatory dashboard.", "shouldTrigger": false},
     {"query": "Rewrite the headline on the passioncode.ai landing page.", "shouldTrigger": false},
@@ -25,6 +24,8 @@
     {"query": "Explain what an MIT license allows in general.", "shouldTrigger": false},
     {"query": "Сделай экран оплаты для приложения понятнее.", "shouldTrigger": false},
     {"query": "Напиши пост в твиттер про релиз Switchboard.", "shouldTrigger": false},
-    {"query": "Set up branch protection rules for a repository in another organisation.", "shouldTrigger": false}
+    {"query": "Set up branch protection rules for a repository in another organisation.", "shouldTrigger": false},
+    {"query": "Where is the knowledge base I should read before editing a passioncode-ai repo?", "shouldTrigger": true},
+    {"query": "What goes in COMMERCIAL-LICENSE.md for a PassionCode.ai repository?", "shouldTrigger": true}
   ]
 }

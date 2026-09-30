@@ -35,13 +35,14 @@
       ]
     },
     {
-      "id": "source-available-wording",
-      "trap": "a README called a PolyForm-licensed product 'open source (MIT)' after the relicense",
+      "id": "agpl-or-commercial-wording",
+      "trap": "a README still called a relicensed product source-available under PolyForm after Fabric ADR-0092, or said a released PolyForm version became AGPL",
       "request": "Update the Switchboard README's license section.",
       "expected": [
-        "calls the product source-available and uses the short line",
-        "names the SPDX expression PolyForm-Noncommercial-1.0.0 OR LicenseRef-PolyForm-Internal-Use-1.0.0",
-        "states that already-released MIT versions stay MIT",
+        "uses the knowledge base wording: open source under the GNU AGPL-3.0, a commercial license for use that does not meet its terms, contact@passioncode.ai",
+        "names the SPDX expression AGPL-3.0-only OR LicenseRef-PassionCode-Commercial",
+        "names which earlier versions were released under PolyForm or MIT and says they keep that licence",
+        "checks that LICENSE, COMMERCIAL-LICENSE.md and CLA.md are byte for byte the knowledge base templates",
         "mentions CLA.md for contributions"
       ]
     },
@@ -63,6 +64,17 @@
         "puts the record in fabric/docs/adr as a cross-repository decision",
         "reserves the id with agent_sync.py reserve ADR before writing",
         "takes the lease on the guarded path and releases it on every path"
+      ]
+    },
+    {
+      "id": "read-the-knowledge-base-first-update-it-last",
+      "trap": "an agent edited a repository without reading the knowledge base, then bumped a product version and left products.md naming the old one",
+      "request": "Release Fabric Dashboards 0.3.1 with a bug fix.",
+      "expected": [
+        "reads the knowledge base (fabric-workspace/knowledge/ or wiki.passioncode.ai/knowledge) and the repository's AGENTS.md before the first edit",
+        "updates the knowledge base page that owns the version (products.md) in the same run",
+        "names the knowledge base page it updated in the completion report",
+        "runs org-index check_format.py for the repository"
       ]
     }
   ]
