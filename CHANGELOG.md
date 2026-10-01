@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.17 - 2026-10-01
+
+### Changed
+
+- Pin Fabric Agent Adapter v0.5.6 so the installed set carries its dashboard deep-link procedure and portable handoff checker. The Observatory Log and working-in-passioncode members keep their existing behavior.
+- Dashboard routing evidence belongs to the [adapter handoff](https://github.com/passioncode-ai/fabric-agent-adapter/blob/v0.5.6/docs/handoffs/2026-10-01-dashboard-links.md); the launcher installs these bytes through its existing plugin and agents-hub channels.
+
 ## 0.1.16 - 2026-10-01
 
 ### Fixed
