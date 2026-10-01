@@ -51,6 +51,7 @@ function parseView(stdout, error) {
     if (doc.error.code === 'E404') return { published: false };
     return { checkError: `${doc.error.code || 'npm error'}: ${oneLine(doc.error.summary || '')}`.trim() };
   }
+  if (error) return { checkError: oneLine(error.message) };
   if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
     return { checkError: error ? oneLine(error.message) : 'npm answered with something that is not the expected JSON' };
   }
@@ -117,16 +118,18 @@ function decide(state, trust, now = Date.now()) {
 
   const latest = typeof state.latest === 'string' && VERSION.test(state.latest) ? state.latest : null;
   if (state.published !== false && latest && state.installed && newer(latest, state.installed)) {
-    const maintainers = Array.isArray(state.maintainers) ? state.maintainers.filter((m) => typeof m === 'string') : [];
+    const maintainers = Array.isArray(state.maintainers) ? state.maintainers : [];
     const trusted = new Set(trust);
     const untrusted = [...maintainers, ...(state.publisher ? [state.publisher] : [])].filter((m) => !trusted.has(m));
-    if (!maintainers.length) {
+    if (!maintainers.length || !maintainers.every((m) => typeof m === 'string' && accountName(m) === m)
+      || typeof state.publisher !== 'string' || !state.publisher || accountName(state.publisher) !== state.publisher) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read — not installing; see SECURITY.md.`);
     } else if (untrusted.length) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher — not installing; see SECURITY.md.`);
     } else {
       const auto = (state.config && state.config.auto) !== false;
-      const running = state.updatingSince && now - Date.parse(state.updatingSince) < 10 * 60 * 1000;
+      const runningAge = now - Date.parse(state.updatingSince);
+      const running = Number.isFinite(runningAge) && runningAge >= 0 && runningAge < 10 * 60 * 1000;
       if (auto && !running) {
         spawn = ['--yes', `${PACKAGE}@${latest}`, 'update', '--quiet'];
         stateChanges.updatingSince = new Date(now).toISOString();

@@ -33,6 +33,18 @@ function main(argv) {
   const json = rest.includes('--json');
   const quiet = rest.includes('--quiet');
   const out = (value, text) => process.stdout.write(json ? JSON.stringify(value, null, 2) + '\n' : text + '\n');
+  const options = {
+    update: ['--dry-run', '--json', '--quiet'], install: ['--dry-run', '--json', '--quiet'],
+    status: ['--json'], restore: ['--json'], uninstall: ['--json'], help: [], '--help': [], '-h': [],
+  };
+  const configArgs = rest.filter((arg) => arg !== '--json');
+  const invalid = cmd === 'config'
+    ? configArgs.length !== 3 || configArgs[0] !== 'set'
+    : Object.hasOwn(options, cmd) && rest.some((arg) => !options[cmd].includes(arg));
+  if (invalid) {
+    process.stderr.write(`passioncode: unsupported arguments for ${cmd}; run passioncode help.\n`);
+    return 2;
+  }
   try {
     if (cmd === 'update' || cmd === 'install') {
       const r = L.update({ dryRun: rest.includes('--dry-run') });
@@ -41,8 +53,8 @@ function main(argv) {
         out(r, [
           ...r.steps.map((s) => `${s.outcome.padEnd(8)} ${s.kind.padEnd(11)} ${s.detail}${s.error ? `\n         ${s.error}` : ''}`),
           '',
-          failed.length ? `${failed.length} step(s) failed — the rest were applied. Re-run after fixing, or \`passioncode restore\`.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent — skills load at session start.`,
-          r.moved.length ? `${r.moved.length} item(s) moved aside, restorable with \`passioncode restore\`.` : '',
+          failed.length ? `${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent — skills load at session start.`,
+          r.moved.length ? `${r.moved.length} recovery entry(s) saved; use \`passioncode restore\`.` : '',
         ].filter(Boolean).join('\n'));
       }
       return failed.length ? 1 : 0;
@@ -60,8 +72,8 @@ function main(argv) {
       out(r, r.length ? `Restored:\n  ${r.join('\n  ')}` : 'Nothing to restore.');
       return 0;
     }
-    if (cmd === 'config' && rest[0] === 'set') {
-      out(L.setConfig({ key: rest[1], value: rest[2] }), `update.auto = ${rest[2]}`);
+    if (cmd === 'config' && configArgs[0] === 'set') {
+      out(L.setConfig({ key: configArgs[1], value: configArgs[2] }), `update.auto = ${configArgs[2]}`);
       return 0;
     }
     if (cmd === 'uninstall') {

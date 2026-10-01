@@ -10,9 +10,9 @@ Humanization: on
 Humanization pass: own
 Last calibrated: 2026-10-01
 
-Scope: the status cache wording in issue #19. Inferred from the existing English
-CLI in `bin/passioncode.js`; this is not an approved organisation-wide brand pack.
-No WHY-layer or other commands are being redesigned.
+Scope: launcher command diagnostics and session-start notifications. Inferred from
+the existing English CLI; this is not an approved organisation-wide brand pack.
+The bug audit extends the status-only vocabulary without changing product positioning.
 
 | Axis | IS | IS NOT |
 |---|---|---|

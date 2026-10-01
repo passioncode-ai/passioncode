@@ -24,8 +24,8 @@ out of it, even when they implement Fabric protocols.
 1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
    `npx @passioncode-ai/passioncode@latest update`, then restart your agents. Check it with
    `npx @passioncode-ai/passioncode@latest status` (every member `claude: plugin · hub: n/n`) and
-   `claude plugin list` (three plugins `@passioncode`). Always call the scoped package: there is
-   no unscoped `passioncode` package on npm.
+   `claude plugin list` (the plugins listed in `family.json`, under `@passioncode`).
+   Always call the scoped package shown above.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
    `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off.
 3. **MCP:** none today, and not planned. The launcher installs skills and session hooks and is
@@ -50,15 +50,15 @@ out of it, even when they implement Fabric protocols.
 - **Every other agent** (Cursor, Codex, Gemini, OpenCode, Kiro, Windsurf, Goose, …) gets
   the same skills through `~/.agents/skills`, linked from each channel that exists on
   the machine.
-- Nothing is written to `~/.claude/skills`: a plain copy there shadows the plugin. Such
+- Updates create no skill copies in `~/.claude/skills`: a plain copy there shadows the plugin. Such
   copies, and hub entries that pointed at a repository's working tree, are moved into
   `~/.passioncode/quarantine/` — `npx @passioncode-ai/passioncode@latest restore` puts them back.
 - Each version is an immutable release under `~/.passioncode/releases/<version>`.
 
 ## Staying current
 
-At every Claude Code session start the `passioncode` plugin checks npm at most once a
-day and, when a newer set is out **and every npm account that publishes it is in the
+At Claude Code session start the `passioncode` plugin uses a cached npm check for up
+to 24 hours and, when a newer set is out **and every npm account that publishes it is in the
 plugin's `trust.json`**, updates to that exact version in the background — it takes
 effect in the next session. A version published by anyone else is named and not
 installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
@@ -77,6 +77,14 @@ npx @passioncode-ai/passioncode@latest update --dry-run
 npx @passioncode-ai/passioncode@latest uninstall
 ```
 
+For supported flags, JSON fields, exit codes and partial-failure recovery, read the
+[CLI contract](docs/reference/cli.md). `restore` repairs the latest quarantine batch;
+it is not a release rollback. A successful `uninstall` preserves recovery files and
+turns automatic updates off. Unsupported flags are rejected before mutation.
+
+Repository docs describe the current source. See the [documentation index](docs/README.md)
+and dated handoffs for which changes have actually been published or installed.
+
 ## Release (maintainers)
 
 1. Tag every member at the version to ship; set `ref` to that tag in `family.json`.
@@ -88,7 +96,8 @@ npx @passioncode-ai/passioncode@latest uninstall
 4. Merge, then tag the merge commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml`
    validates, checks the tag against both manifests, creates the GitHub release from the
    CHANGELOG section, vendors every member **from its own repository** at its pinned tag,
-   runs the tests, installs the packed tarball from a clean `HOME`, publishes
+   runs the tests, exercises packed update/status/uninstall with a fake Claude CLI
+   in a temporary home (`node scripts/smoke-pack.mjs`), publishes
    `@passioncode-ai/passioncode` and waits until npm serves it. It runs when the repository
    variables `RELEASE_ENABLED` and `PUBLISH_NPMJS` are `true`; npm auth is trusted publishing
    (OIDC) or the `NPM_TOKEN` secret; a private member needs `MEMBERS_READ_TOKEN`.

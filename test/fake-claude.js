@@ -51,9 +51,12 @@ else if (verb === 'marketplace' && a === 'remove') {
 } else if (verb === 'marketplace' && a === 'list') {
   console.log(JSON.stringify(Object.entries(known).map(([name, v]) => ({ name, ...v.source, installLocation: v.installLocation }))));
 } else if (verb === 'install' || verb === 'update') {
+  if (process.env.FAKE_CLAUDE_SKIP_PLUGIN) process.exit(0);
   const [name, mkt] = a.split('@');
   const src = mkt === 'passioncode' ? path.join(known.passioncode.source.path, 'plugins', name) : '/nowhere';
   if (!fs.existsSync(src)) { console.error(`Plugin ${a} not found`); process.exit(1); }
   installed.plugins[a] = [{ scope: 'user', installPath: src, version: JSON.parse(fs.readFileSync(path.join(src, '.claude-plugin/plugin.json'), 'utf8')).version }];
   write('installed_plugins.json', installed);
-} else if (verb === 'uninstall') { delete installed.plugins[a]; write('installed_plugins.json', installed); }
+} else if (verb === 'uninstall') {
+  if (!process.env.FAKE_CLAUDE_SKIP_UNINSTALL) { delete installed.plugins[a]; write('installed_plugins.json', installed); }
+}

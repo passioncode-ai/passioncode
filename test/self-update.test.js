@@ -127,6 +127,34 @@ test('hook: a trusted maintainer list with an untrusted publishing account is re
   assert.deepEqual(await npxCalls(sb), []);
 });
 
+test('hook: missing publisher or malformed maintainer never authorizes an update', () => {
+  const { decide } = require('../plugin/passioncode/hooks/update-check');
+  for (const identity of [{ maintainers: ['passioncode-ai'] }, { maintainers: ['passioncode-ai', null], publisher: 'passioncode-ai' }]) {
+    const r = decide({ installed: '0.1.0', published: true, latest: '0.2.0', ...identity }, ['passioncode-ai']);
+    assert.equal(r.spawn, null);
+    assert.match(r.lines.join('\n'), /could not be read/);
+  }
+});
+
+test('probe rejects valid-looking stdout when npm exits with an error', () => {
+  const sb = sandbox();
+  const state = probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai'), 1);
+  assert.ok(state.checkError);
+  assert.equal(state.latest, undefined);
+});
+
+test('hook: missing npx does not fail the session or leave an update running', () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });
+  const emptyPath = path.join(sb.base, 'empty-bin');
+  fs.mkdirSync(emptyPath);
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath }), cwd: os.tmpdir(), input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(stateOf(sb).updatingSince, undefined);
+  assert.doesNotMatch(r.stdout, /updating in the background/);
+  assert.match(r.stdout, /could not start the background update/);
+});
+
 test('hook: an empty trust list never spawns', async () => {
   const sb = sandbox({ trust: [] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });
@@ -153,7 +181,7 @@ test('hook: a trusted publisher starts one update, pinned to the verified versio
 
 test('hook: with auto-update off it names the pinned command and spawns nothing', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
-  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], config: { auto: false } });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', config: { auto: false } });
   assert.equal(hook(sb), '[passioncode] 0.2.0 is out (you have 0.1.0): npx @passioncode-ai/passioncode@0.2.0 update\n');
   assert.deepEqual(await npxCalls(sb), []);
 });
@@ -202,6 +230,19 @@ test('hook: a stale check starts the probe, which asks npm who publishes', async
   const until = Date.now() + 5000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
   assert.deepEqual(lines(file), ['view @passioncode-ai/passioncode version maintainers _npmUser --json']);
+});
+
+test('hook: future timestamps do not suppress probes or updates indefinitely', async () => {
+  const sb = sandbox();
+  setState(sb, { installed: '0.1.0', checkedAt: '2999-01-01T00:00:00Z' });
+  hook(sb);
+  const file = path.join(sb.home, 'npm-calls.log');
+  const until = Date.now() + 5000;
+  while (!lines(file).length && Date.now() < until) await sleep(50);
+  assert.equal(lines(file).length, 1);
+  const { decide } = require('../plugin/passioncode/hooks/update-check');
+  const result = decide({ installed: '0.1.0', latest: '0.2.0', published: true, maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', updatingSince: '2999-01-01T00:00:00Z' }, ['passioncode-ai']);
+  assert.ok(result.spawn, 'a future running marker cannot indefinitely suppress updates');
 });
 
 test('the shipped trust list is a valid list of npm accounts, and a missing one trusts no one', () => {
