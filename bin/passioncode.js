@@ -2,7 +2,7 @@
 'use strict';
 const L = require('../lib/launcher');
 
-const HELP = `passioncode — every PassionCode.ai skill, for every agent on this machine
+const HELP = `passioncode — the PassionCode.ai skill set (family.json), for every agent on this machine
 
   npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]     install or update the whole set
   npx @passioncode-ai/passioncode@latest status [--json]                 what is installed where

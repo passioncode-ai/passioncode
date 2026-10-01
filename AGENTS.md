@@ -13,7 +13,7 @@
 
 ## What this repository is
 
-PassionCode.ai launcher: `passioncode` is the npm launcher that installs every PassionCode.ai agent skill for Claude
+PassionCode.ai launcher: `passioncode` is the npm launcher that installs the PassionCode.ai agent skills listed in `family.json` for Claude
 Code and every other agent on a machine, and keeps them current as one set
 (`npx @passioncode-ai/passioncode@latest update`). Members are vendored from their own repositories at a
 pinned ref (`family.json`); Claude Code gets them from a local `passioncode` marketplace,
