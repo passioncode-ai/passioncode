@@ -6,6 +6,7 @@ documentation. Owner: `passioncode-ai/passioncode`, branch
 `86c206f31cff5d9bc52532faa7d23e41202a0a51` (PR #21).
 Implementation and documentation:
 [`d64eea14e9bba17a29662b9245eefee77b727d97`](https://github.com/passioncode-ai/passioncode/commit/d64eea14e9bba17a29662b9245eefee77b727d97).
+Integration entry: [PR #22](https://github.com/passioncode-ai/passioncode/pull/22).
 
 ## Scope and findings
 
@@ -69,6 +70,8 @@ Historical ADRs and release receipts remain unchanged. The earlier status fix's
 | External super-ux `brand_lint.py docs/brand --strict` and `ux_lint.py docs/ux --strict` | Both exit 0, no warnings |
 | `git diff --check` | Exit 0 |
 | org-index `scripts/check_private.py .` on all staged task files | Exit 0, 0 findings |
+| Fresh remote checkout `e905db3a31f4f65d1687ac364cf3265a8939ca38`, then `npm test` | 81 passed; handoff and CLI contract present |
+| Hosted `validate` on `e905db3a31f4f65d1687ac364cf3265a8939ca38` | Success: [run 36870691571](https://github.com/passioncode-ai/passioncode/actions/runs/36870691571) |
 
 The Node 18 binary came from the official 18.20.8 archive and matched its
 SHASUMS256 entry. Its previous quoted-glob invocation exited 1 before the runner
