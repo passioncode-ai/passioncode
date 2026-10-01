@@ -1,0 +1,5 @@
+# Reviewed synthetic findings for org-index scripts/check_private.py (fingerprint = rule:file:sha256(match)[:16]).
+# Fake tokens inside test URLs (credential-in-URL redaction tests).
+# Reviewed 2026-10-01. A denylist term (P1) can never be listed here.
+P2:test/vendor.test.js:9b84f8ce4971dba0
+P2:test/vendor.test.js:f7aafb6c0ddccf8e
