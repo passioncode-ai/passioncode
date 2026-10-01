@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.18 - 2026-10-01
+
+### Changed
+
+- Pin Fabric Agent Adapter v0.5.7: services are scheduled as standard processes (`ProcessType
+  Standard`; the probe's `lifecycle.priority` rule fails `Background`), `notify: true` is reserved
+  for a decision, a failure or a blocking warning once per episode, a service raises no banners of
+  its own, and a preview instance is uninstalled once checked
+  ([adapter changelog](https://github.com/passioncode-ai/fabric-agent-adapter/blob/v0.5.7/CHANGELOG.md)).
+
 ## 0.1.17 - 2026-10-01
 
 ### Changed
