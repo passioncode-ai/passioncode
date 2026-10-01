@@ -27,13 +27,24 @@ source locations and test names, but do not judge prose correctness.
 
 Run `actionlint` when changing workflows. The reusable validation workflow accepts
 the release ref so a manual release validates its selected tag, not the branch the
-workflow was dispatched from. A tag release still needs the vendor and strict
+workflow was dispatched from. `node scripts/check-registry.mjs PACKAGE VERSION`
+waits separately for metadata and the canonical tarball, then verifies SHA-512.
+Each phase allows 60 attempts with 10-second intervals and 15-second request
+timeouts; an already-published version must pass this receipt too. The local
+HTTP fixtures in `test/registry.test.js` cover metadata/archive propagation,
+persistent 404, corrupt bytes and the wrong version. A tag release still needs the vendor and strict
 plugin checks above; a successful source test run is not a publication receipt.
 
 `scripts/test.mjs` enumerates explicit test paths so `npm test` also works on
 Node 18, whose test runner does not expand quoted globs. Packed smoke uses the
 Node executable that runs it and a fake Claude CLI; it does not test a live
 Claude installation or npm publication.
+
+Inside this source checkout, invoke `node bin/passioncode.js ...`. To test the
+published CLI through `npx`, run it outside the package checkout: npm can select
+the local package and fail to resolve its unlinked binary. Release 0.1.16 was
+verified through a fresh temporary npm cache and from `/tmp`; see its
+[release receipt](docs/handoffs/2026-10-01-release-0.1.16.md#published-release-receipt).
 
 Run mutation/recovery tests only in isolated homes. Keep generated `payload/`,
 tarballs, temporary homes and coordination state local-only. See the latest

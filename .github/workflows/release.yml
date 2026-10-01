@@ -170,13 +170,7 @@ jobs:
             npm publish --ignore-scripts
           fi
 
-      - name: The registry must actually serve it
-        if: steps.pub.outputs.skip == 'false'
+      - name: The registry must actually serve verified tarball bytes
         run: |
           set -eu
-          for _ in $(seq 1 60); do
-            V=$(npm view "${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }}" version 2>/dev/null || true)
-            [ "$V" = "${{ steps.t.outputs.ver }}" ] && { echo "served: ${{ steps.pub.outputs.name }}@$V"; exit 0; }
-            sleep 10
-          done
-          echo "::error::npm does not serve ${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }} after 10 minutes"; exit 1
+          node scripts/check-registry.mjs "${{ steps.pub.outputs.name }}" "${{ steps.t.outputs.ver }}"
