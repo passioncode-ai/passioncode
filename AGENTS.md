@@ -75,6 +75,15 @@ MCP: none — the launcher serves and calls no MCP server; it is driven by its C
   LicenseRef-PassionCode-Commercial`; `LICENSE`, `COMMERCIAL-LICENSE.md` and `CLA.md` byte for byte
   the knowledge base templates (`test/license.test.js`). v0.1.5–v0.1.11 stay PolyForm, v0.1.4 and
   earlier MIT.
+- **Shared registers are edited under a lease.** [docs/AGENT_SYNC.md](docs/AGENT_SYNC.md)
+  (generated from `.claude/agent-sync.json` by `agent_sync.py setup`; never edited by hand) lists
+  the guarded files and the gate. Run `agent_sync.py acquire <file>` before editing one and
+  `agent_sync.py release <file>` after, on every path including failure. The lease is a ref under
+  `refs/agent-sync/leases/` on `origin`, so another contributor's agent sees it
+  (`git ls-remote origin 'refs/agent-sync/leases/*'`); the record plane is local (`fs`), and
+  `.agent-sync/` is git-ignored. No register here carries a "Next free ID" line, so nothing is
+  reserved yet; a register that gains one is declared under `idRegisters` and taken with
+  `agent_sync.py reserve <REG>`.
 
 ## Organisation
 
