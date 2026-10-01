@@ -47,6 +47,8 @@ function accountName(entry) {
 function parseView(stdout, error) {
   let doc = null;
   try { doc = JSON.parse(String(stdout || '').trim()); } catch (_) { /* judged below */ }
+  // npm 12 wraps a single-version answer in an array; ambiguous answers stay rejected.
+  if (Array.isArray(doc) && doc.length === 1) doc = doc[0];
   if (doc && typeof doc === 'object' && doc.error) {
     if (doc.error.code === 'E404') return { published: false };
     return { checkError: `${doc.error.code || 'npm error'}: ${oneLine(doc.error.summary || '')}`.trim() };

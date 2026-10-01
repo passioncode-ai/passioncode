@@ -273,3 +273,19 @@ test('a version published by GitHub Actions through npm trusted publishing is re
   assert.equal(u.decide(state, ['ssheleg']).spawn, null, 'not listed in trust.json: not installed');
   assert.ok(u.loadTrust().includes(u.OIDC_PUBLISHER), 'the shipped trust list accepts the release workflow');
 });
+
+
+test('npm 12 singleton view metadata preserves the publisher trust decision', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const metadata = { version: '0.2.0', maintainers: ['ssheleg <maintainer@example.com>'], _npmUser: 'GitHub Actions <npm-oidc-no-reply@github.com>' };
+  const result = u.parseView(JSON.stringify([metadata]));
+  assert.deepEqual(result, u.parseView(JSON.stringify(metadata)));
+  assert.deepEqual(u.decide({ installed: '0.1.0', ...result }, u.loadTrust()).spawn,
+    ['--yes', `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
+  for (const malformed of [[], [metadata, metadata], [[metadata]], [null], ['metadata']]) {
+    assert.ok(u.parseView(JSON.stringify(malformed)).checkError, 'ambiguous or malformed arrays fail closed');
+  }
+  for (const identity of [{ ...metadata, _npmUser: null }, { ...metadata, maintainers: ['ssheleg', null] }]) {
+    assert.equal(u.decide({ installed: '0.1.0', ...u.parseView(JSON.stringify([identity])) }, u.loadTrust()).spawn, null);
+  }
+});

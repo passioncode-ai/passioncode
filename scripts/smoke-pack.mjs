@@ -1,5 +1,6 @@
 // Exercise shipped bytes in an isolated home with fake Claude, never the real installation.
 import assert from 'node:assert/strict';
+import { readSinglePack } from './pack-result.mjs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -10,7 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'passioncode-pack-'));
 try {
   assert.ok(fs.existsSync(path.join(root, 'payload/manifest.json')), 'run npm run vendor:release first');
-  const [pack] = JSON.parse(execFileSync('npm', ['pack', '--json', '--pack-destination', temp], { cwd: root, encoding: 'utf8' }));
+  const pack = readSinglePack(execFileSync('npm', ['pack', '--json', '--pack-destination', temp], { cwd: root, encoding: 'utf8' }));
   execFileSync('tar', ['-xzf', path.join(temp, pack.filename), '-C', temp]);
   const home = path.join(temp, 'home');
   fs.mkdirSync(path.join(home, '.codex/skills'), { recursive: true });

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.16 - 2026-10-01
+
+### Fixed
+
+- The packed lifecycle release check accepts both npm 11’s array and npm 12’s
+  package-name-keyed JSON output, and rejects ambiguous or malformed pack results.
+- The update probe accepts npm 12’s singleton metadata array while preserving
+  publisher checks and rejecting ambiguous or malformed responses.
+- The 0.1.15 tag and GitHub release remain historical: its release workflow stopped
+  at this check before npm publication. Version 0.1.16 includes the fixes and shared
+  backlog instructions described below.
+
 ## 0.1.15 - 2026-10-01
 
 ### Fixed
