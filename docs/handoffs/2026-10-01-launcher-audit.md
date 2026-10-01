@@ -4,6 +4,8 @@ Objective: inspect launcher correctness, fix reproduced defects and update curre
 documentation. Owner: `passioncode-ai/passioncode`, branch
 `codex/launcher-bug-audit-2026-10-01`. Baseline:
 `86c206f31cff5d9bc52532faa7d23e41202a0a51` (PR #21).
+Implementation and documentation:
+[`d64eea14e9bba17a29662b9245eefee77b727d97`](https://github.com/passioncode-ai/passioncode/commit/d64eea14e9bba17a29662b9245eefee77b727d97).
 
 ## Scope and findings
 
@@ -66,6 +68,7 @@ Historical ADRs and release receipts remain unchanged. The earlier status fix's
 | `node scripts/check-docs.mjs` | 24 Markdown files, 21 named regressions, 0 errors |
 | External super-ux `brand_lint.py docs/brand --strict` and `ux_lint.py docs/ux --strict` | Both exit 0, no warnings |
 | `git diff --check` | Exit 0 |
+| org-index `scripts/check_private.py .` on all staged task files | Exit 0, 0 findings |
 
 The Node 18 binary came from the official 18.20.8 archive and matched its
 SHASUMS256 entry. Its previous quoted-glob invocation exited 1 before the runner
