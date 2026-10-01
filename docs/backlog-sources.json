@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "repository": "https://github.com/passioncode-ai/passioncode",
+  "sources": [
+    {
+      "path": "docs/backlog.md",
+      "goal": "workflow-control",
+      "kind": "tasks",
+      "format": "table",
+      "idColumn": "ID",
+      "titleColumn": "Item",
+      "statusColumn": "Status"
+    }
+  ]
+}

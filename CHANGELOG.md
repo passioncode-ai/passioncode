@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.15 - 2026-10-01
+
+### Fixed
+
+- Restore and uninstall preserve recoverable state, reject unsupported options before changes,
+  and report failed filesystem or plugin operations truthfully. Updates reject inconsistent
+  payloads and stop dependent work after a failed release or marketplace step.
+- Status reports the installed release correctly and retains concurrent probe/configuration
+  updates. Self-update checks reject untrusted or incomplete npm publisher metadata and
+  recover from failed spawns and future timestamps.
+- Node 18 test discovery, release-tag validation and the packed lifecycle smoke now guard
+  the release path. The launcher audit records the regression evidence.
+
+### Changed
+
+- The repository skill and SessionStart reminder direct agents to canonical local backlog
+  sources and the derived workspace backlog, with one owner per task and source-commit checks.
+- Developer documentation now states the CLI, recovery and self-update contracts and checks
+  their local references. Tagged Fabric Agent Adapter 0.5.5 and Observatory Log 0.13.0 stay
+  in the family; this release does not add a new family member.
+
 ## 0.1.14 - 2026-10-01
 
 ### Changed

@@ -87,16 +87,26 @@ MCP: none — the launcher serves and calls no MCP server; it is driven by its C
 
 ## Organisation
 
-This repository is one of the `passioncode-ai` repositories. **The org map, the shared
-rules and onboarding live in [passioncode-ai/org-index](https://github.com/passioncode-ai/org-index)**
+This repository is one of the `passioncode-ai` repositories. **The org map and onboarding live in [passioncode-ai/org-index](https://github.com/passioncode-ai/org-index)**
 (private; readable by every org member):
 
 - [README](https://github.com/passioncode-ai/org-index#repositories): which repository owns what, and how they connect
-- [RULES.md](https://github.com/passioncode-ai/org-index/blob/main/RULES.md): branches, commits, CI, leases, secrets, handoffs
+- [rules](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/rules.md): branches, commits, CI, leases, secrets, handoffs
 - [ONBOARDING.md](https://github.com/passioncode-ai/org-index/blob/main/ONBOARDING.md): setting up a new contributor's machine
 
-Where this file is stricter than RULES.md, this file wins. A change to this repository's
+Where this file is stricter than the shared rules, this file wins. A change to this repository's
 role, dependencies or test command updates its row in `org-index/repositories.json` in the same change.
+
+## Shared backlog
+
+[docs/backlog-sources.json](docs/backlog-sources.json) declares this repository's canonical
+local task sources and their vision goals. The [common backlog contract](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/backlog.md)
+owns aggregation; [the workspace backlog](https://wiki.passioncode.ai/backlog) is a derived view.
+Edit a task only in its canonical source under an agent-sync lease, retain stable IDs and
+closure receipts, and declare any new source in the manifest. Do not edit generated task
+status in the workspace or copy another repository's task into a second editable row.
+Land the source change, then run `node scripts/workspace.mjs sync` from a Fabric checkout
+(or use the scheduled sync); check the published source commit before calling it current.
 
 ## After work
 

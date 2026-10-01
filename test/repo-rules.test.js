@@ -55,3 +55,10 @@ test('any other repository, a folder without git, or a missing git prints nothin
   assert.equal(rulesLine(fs.mkdtempSync(path.join(os.tmpdir(), 'pc-nogit-'))), null);
   assert.equal(rulesLine(path.join(os.tmpdir(), 'does-not-exist-pc')), null);
 });
+
+test('the reminder sends task edits to canonical sources and the shared backlog', () => {
+  const line = rulesLine(repo('https://github.com/passioncode-ai/passioncode'));
+  assert.match(line, /docs\/backlog-sources\.json/);
+  assert.match(line, /canonical task source/);
+  assert.match(line, /workspace backlog/);
+});

@@ -10,7 +10,9 @@
   "guardedFiles": [
     "family.json",
     "docs/adr/*.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "docs/backlog-sources.json",
+    "docs/backlog.md"
   ],
   "claimTags": {},
   "gates": [

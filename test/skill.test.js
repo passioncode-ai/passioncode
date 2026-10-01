@@ -123,6 +123,12 @@ for (const name of fs.existsSync(SKILLS) ? skills() : []) {
     }
   });
 
+  test(`${name}: routes backlog work to one canonical owner`, () => {
+    assert.match(text, /docs\/backlog-sources\.json/);
+    assert.match(text, /knowledge\/backlog\.md/);
+    assert.match(text, /Never edit generated task status/);
+  });
+
   test(`${name}: says the knowledge base protocol — read first, update last`, () => {
     const { body } = parseFrontMatter(text);
     const flat = body.replace(/\s+/g, ' ');

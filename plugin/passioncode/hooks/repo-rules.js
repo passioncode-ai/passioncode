@@ -32,7 +32,7 @@ function originOf(dir) {
 /** The one line to print at session start in `dir`, or null. */
 function rulesLine(dir) {
   if (!orgOf(originOf(dir))) return null;
-  return `[passioncode] passioncode-ai repository: read the knowledge base (${KNOWLEDGE} or ${KNOWLEDGE_WEB}), then this repository's AGENTS.md, before the first edit; after the work, update the knowledge base page that owns any cross-repository fact you changed.`;
+  return `[passioncode] passioncode-ai repository: read the knowledge base (${KNOWLEDGE} or ${KNOWLEDGE_WEB}), then this repository's AGENTS.md, before the first edit; after the work, update the knowledge base page that owns any cross-repository fact you changed; edit each canonical task source declared in docs/backlog-sources.json and publish the derived workspace backlog.`;
 }
 
 module.exports = { KNOWLEDGE, KNOWLEDGE_WEB, orgOf, rulesLine };

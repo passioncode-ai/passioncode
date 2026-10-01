@@ -117,7 +117,7 @@ Also, before the first edit:
 - **Ids.** In a repository with `.claude/agent-sync.json`, reserve an id before writing
   it: `agent_sync.py reserve <REGISTER>` (for example `ADR` in fabric). Reading the
   "next free id" line is not reserving it — two agents read the same number.
-- **Leases.** `fabric` and `fabric-agent-contract` guard shared files (their
+- **Leases.** Every enrolled repository guards its declared shared files (its
   `docs/AGENT_SYNC.md` lists them) under a git lease, a ref under
   `refs/agent-sync/leases/` on `origin`, so both machines see it. `acquire` → edit →
   `release`, on every path, failure included.
@@ -127,6 +127,17 @@ Also, before the first edit:
 
 agent-sync missing: `npx @ssheleg/agent-sync install`. If it cannot be installed, do
 not edit a guarded file — say which file and why you stopped.
+
+### The common backlog
+
+The workspace's `knowledge/backlog.md` owns the aggregation contract. Each repository's
+`docs/backlog-sources.json` declares the canonical local task sources and their vision goals.
+Read those sources before choosing work. Update status only in the owning source under a lease,
+keep stable IDs and closure receipts, and add a new source to the manifest in the same change.
+A cross-repository task has one owner; other repositories link to it instead of copying status.
+The common view at https://wiki.passioncode.ai/backlog is generated from these sources and their
+commit identities. Never edit generated task status. Land the local change, publish through
+Fabric's workspace sync, and check the published source commit before calling it current.
 
 ## 5. Secrets
 
@@ -202,8 +213,8 @@ to a public surface.
   `project-observatory full update --check` and `--apply`.
 - **Launcher** (`passioncode`): members are tagged first, `family.json` refs point at
   those tags, the payload is vendored from tags only.
-- **Contract pins.** `fabric-agent-contract` has no tags, so consumers pin commits, and
-  the pins disagree (org-index `BACKLOG.md` X-4). Move a pin only in a release of the
+- **Contract pins.** `fabric-agent-contract` consumers carry explicit commit pins;
+  compatibility work is tracked in the owning consumer backlog and the derived workspace view. Move a pin only in a release of the
   consumer, and only when its own validation passes against the new commit.
 
 Read [releasing](references/releasing.md) for the step-by-step of each repository's

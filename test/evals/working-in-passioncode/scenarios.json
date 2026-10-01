@@ -76,6 +76,16 @@
         "names the knowledge base page it updated in the completion report",
         "runs org-index check_format.py for the repository"
       ]
+    },
+    {
+      "id": "canonical-backlog-source",
+      "trap": "an agent changes generated workspace task status and creates a second truth while the owning repository remains unchanged",
+      "request": "Close a task shown in the shared workspace backlog and add follow-up work in its project.",
+      "expected": [
+        "reads docs/backlog-sources.json to find the canonical source and vision goal",
+        "updates the source under a lease with stable IDs and a closure receipt, without editing the generated aggregate",
+        "lands the source and publishes workspace sync, then checks the published source commit"
+      ]
     }
   ]
 }

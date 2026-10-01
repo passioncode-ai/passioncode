@@ -58,7 +58,7 @@ The README section "Validate this repository" is the gate:
 ```bash
 python3 -m unittest discover -s test -v
 python3 test/validate.py
-node --test 'test/*.test.js'
+node --test 'test/*.test.mjs'
 claude plugin validate ./plugins/fabric-agent-adapter --strict
 claude plugin validate . --strict
 ```
@@ -78,16 +78,17 @@ manifests. Trigger and scenario evals change before the instructional prose they
 
 ## Contract pins
 
-- `fabric-agent-contract` publishes no tags; consumers (fabric, the adapter, the
-  Observatory) pin a commit. The pins disagree today — org-index `BACKLOG.md` X-4 tracks
-  it.
+- Consumers declare their own explicit contract pins. Read the actual lock or
+  submodule commit, then the owning consumer backlog and shared workspace view;
+  do not infer compatibility from matching version labels.
 - Moving a pin is a compatibility change of the **consumer**: run the consumer's own
   validation against the new contract commit (for the adapter:
   `adapt_project.py check <bundle> --contract <checkout at the new commit>` for each
   profile), review what changed between the two commits, and ship it as a new consumer
   release. If the validation does not pass, leave the pin and report why.
-- `project-observatory-contract` publishes immutable `rev-N` tags; a schema `$id` change
-  needs a new `rev-N`.
+- `project-observatory-contract` preserves historical immutable `rev-N` tags. Current
+  Project Observatory schemas ship with the engine release and its per-file release pins;
+  the engine publication checker refuses the retired `--stage` and `--publish` operations.
 
 ## After a release
 

@@ -1,4 +1,4 @@
-<!-- agent-sync:generated source=passioncode@6f1fc53 cfg=7e852b5782aa at=2026-09-30T23:50:32Z — regenerate with `agent_sync.py setup`, do not hand-edit -->
+<!-- agent-sync:generated source=passioncode@ee507b6 cfg=8d7dfa5a43bb at=2026-10-01T15:52:11Z — regenerate with `agent_sync.py setup`, do not hand-edit -->
 
 # How documentation and coordination work in passioncode
 
@@ -30,6 +30,8 @@ None declared here. Ids live in the parent repository; reserve them there.
 - `family.json`
 - `docs/adr/*.md`
 - `CHANGELOG.md`
+- `docs/backlog-sources.json`
+- `docs/backlog.md`
 
 ### Gates run before a change is considered done
 
