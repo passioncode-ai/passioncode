@@ -49,7 +49,7 @@ function setup() {
 function run(env, ...args) {
   return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', ...(env.extra || {}) } });
 }
-const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n'); } catch (_) { return []; } };
+const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
 test('update installs the release, the plugins, the hub and channels, and moves shadows aside', () => {
   const env = setup();
@@ -95,6 +95,254 @@ test('restore puts back what the last update moved aside', () => {
   assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'));
   assert.ok(fs.lstatSync(path.join(env.home, '.claude/skills/example-agent')).isSymbolicLink());
   assert.ok(fs.statSync(path.join(env.home, '.codex/skills/creating-fabric-agents')).isDirectory());
+});
+
+test('restore is repeatable and does not remove restored or newly replaced links', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'restore').status, 0);
+  const hub = path.join(env.home, '.agents/skills/example-agent');
+  const original = fs.readlinkSync(hub);
+  const again = run(env, 'restore', '--json');
+  assert.equal(again.status, 0, again.stderr);
+  assert.equal(fs.readlinkSync(hub), original);
+  assert.deepEqual(JSON.parse(again.stdout), []);
+});
+
+test('restore reports a conflicting user replacement and can be retried', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  const hub = path.join(env.home, '.agents/skills/example-agent');
+  fs.unlinkSync(hub);
+  fs.symlinkSync('/user-replacement', hub);
+  const conflict = run(env, 'restore');
+  assert.equal(conflict.status, 1);
+  assert.equal(fs.readlinkSync(hub), '/user-replacement');
+  assert.match(conflict.stderr, /conflict/i);
+  fs.unlinkSync(hub);
+  assert.equal(run(env, 'restore').status, 0);
+  assert.equal(fs.readlinkSync(hub), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'));
+});
+
+test('a failure immediately after a quarantine move still leaves a recovery journal', () => {
+  const env = setup();
+  const L = require('../lib/launcher');
+  const previous = process.env.PASSIONCODE_PAYLOAD;
+  const rename = fs.renameSync;
+  let injected = false;
+  process.env.PASSIONCODE_PAYLOAD = env.payload;
+  fs.renameSync = (from, to) => {
+    const result = rename(from, to);
+    if (!injected && String(to).includes(`${path.sep}quarantine${path.sep}`) && !String(to).endsWith('moved.json')) {
+      injected = true;
+      throw new Error('simulated interruption after move');
+    }
+    return result;
+  };
+  try {
+    const r = L.update({ home: env.home, claude: { available: () => false } });
+    assert.ok(r.steps.some((s) => s.error === 'simulated interruption after move'));
+    const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode/state.json')));
+    assert.equal(state.quarantines.length, 1);
+  } finally {
+    fs.renameSync = rename;
+    if (previous === undefined) delete process.env.PASSIONCODE_PAYLOAD;
+    else process.env.PASSIONCODE_PAYLOAD = previous;
+  }
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.lstatSync(path.join(env.home, '.codex/skills/creating-fabric-agents')).isDirectory(), 'the entry moved when the failure occurred is recoverable');
+  assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'));
+});
+
+test('a failed release copy leaves the old release and state active', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  const stateFile = path.join(env.home, '.passioncode/state.json');
+  const before = fs.readFileSync(stateFile, 'utf8');
+  makePayload(env.payload, '0.2.0', env.members);
+  fs.writeFileSync(path.join(env.home, '.passioncode/releases/0.2.0'), 'not a directory');
+  fs.writeFileSync(path.join(env.home, 'claude-calls.log'), '');
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 1);
+  assert.equal(fs.readlinkSync(path.join(env.home, '.passioncode/current')), path.join(env.home, '.passioncode/releases/0.1.0'));
+  assert.equal(fs.readFileSync(stateFile, 'utf8'), before);
+  assert.deepEqual(calls(env.home), [], 'no plugin action after release failure');
+});
+
+test('invalid or incomplete payloads are refused before installation changes', () => {
+  const cases = [
+    (manifest) => { manifest.version = '../escaped'; },
+    (manifest) => { manifest.members[0].name = '../outside'; },
+    (manifest) => { manifest.members[1].skills = ['creating-fabric-agents']; },
+    (manifest) => { manifest.members[0].skills.push('missing-skill'); },
+    (manifest) => { manifest.members[0].version = '9.9.9'; },
+  ];
+  for (const change of cases) {
+    const env = setup();
+    const file = path.join(env.payload, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(file));
+    change(manifest);
+    fs.writeFileSync(file, JSON.stringify(manifest));
+    const r = run(env, 'update');
+    assert.equal(r.status, 1);
+    assert.equal(fs.existsSync(path.join(env.home, '.passioncode')), false, 'no partial install from invalid payload');
+    assert.deepEqual(calls(env.home), []);
+  }
+});
+
+test('an existing different release is not silently reused under the same version', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  makePayload(env.payload, '0.1.0', [{ ...env.members[0], version: '0.9.0' }]);
+  const r = run(env, 'update');
+  assert.equal(r.status, 1);
+  assert.match(r.stdout + r.stderr, /different|mismatch/i);
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).members[0].version, '0.4.0');
+});
+
+test('marketplace failure prevents legacy removal and shadow cleanup', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  fs.mkdirSync(path.join(env.home, '.claude/skills/example-agent'));
+  env.extra = { FAKE_CLAUDE_FAIL: 'marketplace update passioncode' };
+  fs.writeFileSync(path.join(env.home, 'claude-calls.log'), '');
+  const r = run(env, 'update');
+  assert.equal(r.status, 1);
+  assert.ok(fs.existsSync(path.join(env.home, '.claude/skills/example-agent')));
+  assert.ok(!calls(env.home).some((line) => line.startsWith('plugin update ')));
+});
+
+test('a successful plugin command must register the requested version before cleanup', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  makePayload(env.payload, '0.2.0', [{ ...env.members[0], version: '0.5.0' }, env.members[1]]);
+  const shadow = path.join(env.home, '.claude/skills/creating-fabric-agents');
+  fs.mkdirSync(shadow);
+  env.extra = { FAKE_CLAUDE_SKIP_PLUGIN: '1' };
+  const r = run(env, 'update');
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /did not register.*0\.5\.0/);
+  assert.ok(fs.existsSync(shadow));
+});
+
+test('uninstall clears installed state, disables automatic reinstallation and is repeatable', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  const channel = path.join(env.home, '.cursor/skills/example-agent');
+  fs.unlinkSync(channel);
+  fs.symlinkSync(path.relative(path.dirname(channel), path.join(env.home, '.agents/skills/example-agent')), channel);
+  assert.equal(run(env, 'uninstall').status, 0);
+  const status = JSON.parse(run(env, 'status', '--json').stdout);
+  assert.equal(status.installed, null);
+  assert.equal(status.auto, false);
+  assert.equal(fs.existsSync(path.join(env.home, '.passioncode/current')), false);
+  assert.throws(() => fs.lstatSync(channel), { code: 'ENOENT' });
+  assert.deepEqual(JSON.parse(run(env, 'uninstall', '--json').stdout), []);
+  assert.equal(run(env, 'restore').status, 0, 'quarantine remains usable');
+});
+
+test('uninstall reports plugin failure and keeps the marketplace for a retry', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  env.extra = { FAKE_CLAUDE_FAIL: 'uninstall example-agent@passioncode' };
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /simulated failure/);
+  assert.ok(JSON.parse(fs.readFileSync(path.join(env.home, '.claude/plugins/known_marketplaces.json'))).passioncode);
+  env.extra = {};
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).installed, null);
+});
+
+test('uninstall refuses a successful CLI result that leaves the plugin registered', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  env.extra = { FAKE_CLAUDE_SKIP_UNINSTALL: '1' };
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /remains registered/);
+  assert.ok(fs.existsSync(path.join(env.home, '.passioncode/current')));
+});
+
+test('invalid state is not overwritten by mutating commands', () => {
+  const env = setup();
+  const file = path.join(env.home, '.passioncode/state.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  for (const bytes of ['{broken', 'null', '[]']) {
+    fs.writeFileSync(file, bytes);
+    for (const args of [['update'], ['restore'], ['uninstall'], ['config', 'set', 'update.auto', 'off']]) {
+      const r = run(env, ...args);
+      assert.equal(r.status, 1, args.join(' '));
+      assert.equal(fs.readFileSync(file, 'utf8'), bytes);
+    }
+    assert.equal(run(env, 'status').status, 0, 'read-only status tolerates a damaged cache');
+  }
+});
+
+test('unsupported flags are rejected before uninstall or restore can mutate anything', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  const before = fs.readFileSync(path.join(env.home, '.passioncode/state.json'), 'utf8');
+  for (const args of [['uninstall', '--dry-run'], ['restore', '--dry-run'], ['update', '--dryrun'], ['status', 'extra'], ['config', 'set', 'update.auto', 'off', 'extra']]) {
+    const r = run(env, ...args);
+    assert.equal(r.status, 2, args.join(' '));
+    assert.match(r.stderr, /arguments/i);
+  }
+  assert.equal(fs.readFileSync(path.join(env.home, '.passioncode/state.json'), 'utf8'), before);
+  assert.ok(fs.existsSync(path.join(env.home, '.passioncode/current')));
+});
+
+test('a failed current switch never changes plugins or installation state', () => {
+  const env = setup();
+  fs.mkdirSync(path.join(env.home, '.passioncode/current'), { recursive: true });
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 1);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'current' && s.outcome === 'failed'));
+  assert.deepEqual(calls(env.home), []);
+  assert.equal(fs.existsSync(path.join(env.home, '.passioncode/state.json')), false);
+});
+
+test('update preserves config and registry observations written while plugins run', () => {
+  const env = setup();
+  const L = require('../lib/launcher');
+  const previous = process.env.PASSIONCODE_PAYLOAD;
+  process.env.PASSIONCODE_PAYLOAD = env.payload;
+  const stateFile = path.join(env.home, '.passioncode/state.json');
+  try {
+    const r = L.update({ home: env.home, claude: {
+      available: () => true,
+      run: () => {
+        fs.writeFileSync(stateFile, JSON.stringify({ config: { auto: false }, latest: '0.3.0', checkedAt: '2026-10-01T12:00:00Z' }));
+        return { code: 1, out: 'simulated plugin failure' };
+      },
+    } });
+    assert.ok(r.steps.some((s) => s.outcome === 'failed'));
+    const state = JSON.parse(fs.readFileSync(stateFile));
+    assert.equal(state.config.auto, false);
+    assert.equal(state.latest, '0.3.0');
+    assert.equal(state.installed, '0.1.0');
+  } finally {
+    if (previous === undefined) delete process.env.PASSIONCODE_PAYLOAD;
+    else process.env.PASSIONCODE_PAYLOAD = previous;
+  }
+});
+
+test('status prefers the active release over stale bookkeeping', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  const file = path.join(env.home, '.passioncode/state.json');
+  fs.writeFileSync(file, JSON.stringify({ installed: '0.0.1' }));
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).installed, '0.1.0');
+});
+
+test('update follows an existing symlinked agent channel', () => {
+  const env = setup();
+  fs.rmdirSync(path.join(env.home, '.cursor/skills'));
+  const target = path.join(env.home, 'shared-skills');
+  fs.mkdirSync(target);
+  fs.symlinkSync(target, path.join(env.home, '.cursor/skills'));
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(fs.readlinkSync(path.join(target, 'example-agent')), path.join(env.home, '.agents/skills/example-agent'));
 });
 
 test('a failed plugin install keeps the legacy plugin and the shadow, and reports the failure', () => {

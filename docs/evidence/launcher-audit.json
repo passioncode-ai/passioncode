@@ -1,0 +1,133 @@
+{
+  "baseline": "86c206f31cff5d9bc52532faa7d23e41202a0a51",
+  "date": "2026-10-01",
+  "scope": "Regression addresses; execution results are recorded in the handoff.",
+  "regressions": [
+    {
+      "id": "AUD-01",
+      "file": "test/launcher.test.js",
+      "test": "restore is repeatable and does not remove restored or newly replaced links",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-02",
+      "file": "test/launcher.test.js",
+      "test": "restore reports a conflicting user replacement and can be retried",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-03",
+      "file": "test/launcher.test.js",
+      "test": "a failure immediately after a quarantine move still leaves a recovery journal",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-04",
+      "file": "test/launcher.test.js",
+      "test": "a failed release copy leaves the old release and state active",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-05",
+      "file": "test/launcher.test.js",
+      "test": "invalid or incomplete payloads are refused before installation changes",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-06",
+      "file": "test/launcher.test.js",
+      "test": "an existing different release is not silently reused under the same version",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-07",
+      "file": "test/launcher.test.js",
+      "test": "marketplace failure prevents legacy removal and shadow cleanup",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-08",
+      "file": "test/launcher.test.js",
+      "test": "a successful plugin command must register the requested version before cleanup",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-09",
+      "file": "test/launcher.test.js",
+      "test": "uninstall clears installed state, disables automatic reinstallation and is repeatable",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-10",
+      "file": "test/launcher.test.js",
+      "test": "uninstall reports plugin failure and keeps the marketplace for a retry",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-11",
+      "file": "test/launcher.test.js",
+      "test": "invalid state is not overwritten by mutating commands",
+      "scenario": "SCN-007"
+    },
+    {
+      "id": "AUD-12",
+      "file": "test/launcher.test.js",
+      "test": "unsupported flags are rejected before uninstall or restore can mutate anything",
+      "scenario": "SCN-007"
+    },
+    {
+      "id": "AUD-13",
+      "file": "test/launcher.test.js",
+      "test": "a failed current switch never changes plugins or installation state",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-14",
+      "file": "test/launcher.test.js",
+      "test": "update preserves config and registry observations written while plugins run",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-15",
+      "file": "test/launcher.test.js",
+      "test": "status prefers the active release over stale bookkeeping",
+      "scenario": "SCN-001"
+    },
+    {
+      "id": "AUD-16",
+      "file": "test/launcher.test.js",
+      "test": "update follows an existing symlinked agent channel",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-17",
+      "file": "test/self-update.test.js",
+      "test": "hook: missing publisher or malformed maintainer never authorizes an update",
+      "scenario": "SCN-006"
+    },
+    {
+      "id": "AUD-18",
+      "file": "test/self-update.test.js",
+      "test": "probe rejects valid-looking stdout when npm exits with an error",
+      "scenario": "SCN-006"
+    },
+    {
+      "id": "AUD-19",
+      "file": "test/self-update.test.js",
+      "test": "hook: missing npx does not fail the session or leave an update running",
+      "scenario": "SCN-006"
+    },
+    {
+      "id": "AUD-20",
+      "file": "test/self-update.test.js",
+      "test": "hook: future timestamps do not suppress probes or updates indefinitely",
+      "scenario": "SCN-006"
+    },
+    {
+      "id": "AUD-21",
+      "file": "test/launcher.test.js",
+      "test": "uninstall refuses a successful CLI result that leaves the plugin registered",
+      "scenario": "SCN-005"
+    }
+  ]
+}

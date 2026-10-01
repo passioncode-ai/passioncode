@@ -22,7 +22,7 @@ other agents through the `~/.agents/skills` hub (`README.md`).
 ## Commands
 
 ```bash
-npm test                    # node --test 'test/*.test.js' — the launcher against a temp HOME and a fake claude CLI
+npm test                    # scripts/test.mjs enumerates tests for Node 18+; temp HOME and a fake claude CLI
 npm run vendor              # build payload/ from the members in family.json: a shallow clone of repo@ref
 npm run vendor:release      # the same, refusing any ref that is not a tag
 PASSIONCODE_CHECKOUT_ROOT=<dir> npm run vendor   # read members from local clones <dir>/<repo name> instead
@@ -32,7 +32,7 @@ claude plugin validate ./payload --strict
 
 There is nothing to install: the launcher has no dependencies and no lockfile, so `npm ci`
 refuses to run here; `npm test` works on a fresh clone. Hosted workflows exist (`validate.yml`
-runs `node --test`; `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and
+runs `npm test`; `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and
 `PUBLISH_NPMJS` are `true`). The repository is public, so they run outside the organisation's
 spending cap; the local gate above is still the evidence, and a skipped run is reported as skipped.
 MCP: none — the launcher serves and calls no MCP server; it is driven by its CLI (README,

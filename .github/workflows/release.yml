@@ -6,7 +6,7 @@ name: release
 # Trigger: a v* tag, or a manual run naming an existing tag. Steps: validate -> tag
 # reachable from the default branch -> version sync -> GitHub release carrying the
 # CHANGELOG section -> vendor every member FROM ITS OWN REPOSITORY at its pinned tag ->
-# pack + install smoke -> npm publish -> the registry must serve it.
+# packed lifecycle smoke (fake Claude, temporary home) -> npm publish -> registry receipt.
 #
 # Members are cloned over HTTPS. GITHUB_TOKEN reads only this repository, so a private
 # member needs the MEMBERS_READ_TOKEN secret (a fine-grained token with Contents: read on
@@ -25,6 +25,8 @@ on:
 jobs:
   validate:
     uses: ./.github/workflows/validate.yml
+    with:
+      ref: ${{ inputs.tag || github.ref_name }}
 
   release:
     needs: validate
@@ -35,9 +37,11 @@ jobs:
     steps:
       - name: Resolve the tag to release
         id: t
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -eu
-          TAG="${{ inputs.tag || github.ref_name }}"
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "expected a vX.Y.Z tag"; exit 1; }
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "ver=${TAG#v}" >> "$GITHUB_OUTPUT"
 
@@ -102,9 +106,11 @@ jobs:
     steps:
       - name: Resolve the tag to publish
         id: t
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -eu
-          TAG="${{ inputs.tag || github.ref_name }}"
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "expected a vX.Y.Z tag"; exit 1; }
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "ver=${TAG#v}" >> "$GITHUB_OUTPUT"
 
@@ -142,17 +148,11 @@ jobs:
           # vendor.mjs reports the member name and ref, not the URL it cloned.
           PASSIONCODE_VENDOR_CLONE=1 PASSIONCODE_GIT_BASE="https://x-access-token:${READ_TOKEN}@github.com/" \
             node scripts/vendor.mjs --release
-          node --test 'test/*.test.js'
+          npm test
 
-      - name: Pack and install smoke from a clean HOME
+      - name: Packed lifecycle smoke with fake Claude in a temporary home
         if: steps.pub.outputs.skip == 'false'
-        run: |
-          set -eu
-          TARBALL="$PWD/$(npm pack --silent)"
-          export HOME="$(mktemp -d)"
-          cd "$(mktemp -d)"
-          npx --yes --package "$TARBALL" passioncode status
-          echo "OK: the packed tarball runs"
+        run: node scripts/smoke-pack.mjs
 
       - name: npm publish
         if: steps.pub.outputs.skip == 'false'
@@ -174,7 +174,7 @@ jobs:
         if: steps.pub.outputs.skip == 'false'
         run: |
           set -eu
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             V=$(npm view "${{ steps.pub.outputs.name }}@${{ steps.t.outputs.ver }}" version 2>/dev/null || true)
             [ "$V" = "${{ steps.t.outputs.ver }}" ] && { echo "served: ${{ steps.pub.outputs.name }}@$V"; exit 0; }
             sleep 10
