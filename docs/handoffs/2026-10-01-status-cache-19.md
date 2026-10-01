@@ -8,6 +8,7 @@ Objective: fix [#19](https://github.com/passioncode-ai/passioncode/issues/19), w
 [Implementation commit c544150](https://github.com/passioncode-ai/passioncode/commit/c544150)
 contains the formatter, regressions and documentation. The task branch is
 `codex/launcher-status-cache-19` on `passioncode-ai/passioncode`.
+Integration entry: [PR #21](https://github.com/passioncode-ai/passioncode/pull/21).
 
 - The summary labels npm data as cached and prints its saved check timestamp.
 - Missing or invalid timestamps say `check time unknown`; no version says `not checked`.
@@ -33,6 +34,8 @@ and the self-update trust policy are unchanged.
 |---|---|
 | `node --test --test-name-pattern='status labels cached\|status reports an absent' test/launcher.test.js` before the fix | Exit 1; both new tests reproduced the old wording |
 | `npm test` after the fix | Exit 0; 58 tests passed |
+| Fresh remote branch checkout at `24a59b24524e8a5b1f67a50a68c71b2ad37574a6`, handoff/brief/scenario/copy entry paths, then `npm test` | All entry paths present; exit 0; 58 tests passed |
+| Automatic hosted `validate` on `24a59b24524e8a5b1f67a50a68c71b2ad37574a6` | Success: [run 36865156311](https://github.com/passioncode-ai/passioncode/actions/runs/36865156311) |
 | `git diff --cached --check` | Exit 0 |
 | org-index `scripts/check_private.py .` after staging all task files | Exit 0; 0 findings |
 | super-ux `scripts/brand_lint.py docs/brand --brief` | Exit 0; 0 errors, 5 warnings for existing help/restore/uninstall strings outside this scoped registry |
