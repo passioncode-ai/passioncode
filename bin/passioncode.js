@@ -2,6 +2,21 @@
 'use strict';
 const L = require('../lib/launcher');
 
+function cachedNpmStatus({ latest, checkedAt, installed }) {
+  if (!latest) return 'npm latest: not checked';
+  const checked = typeof checkedAt === 'string' && Number.isFinite(Date.parse(checkedAt))
+    ? `checked ${checkedAt}` : 'check time unknown';
+  let stale = false;
+  // The registry probe accepts stable x.y.z versions only. Do not guess an
+  // ordering for other values that may have been written to the state file.
+  if (/^\d+\.\d+\.\d+$/.test(latest) && /^\d+\.\d+\.\d+$/.test(installed)) {
+    const a = latest.split('.').map(Number), b = installed.split('.').map(Number);
+    const difference = a.findIndex((part, i) => part !== b[i]);
+    stale = difference !== -1 && a[difference] < b[difference];
+  }
+  return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''})`;
+}
+
 const HELP = `passioncode — the PassionCode.ai skill set (family.json), for every agent on this machine
 
   npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]     install or update the whole set
@@ -35,7 +50,7 @@ function main(argv) {
     if (cmd === 'status') {
       const s = L.status();
       out(s, [
-        `installed ${s.installed || 'nothing'} · package ${s.package || '?'} · latest on npm ${s.latest || 'not checked'}${s.auto ? ' · auto-update on' : ' · auto-update off'}`,
+        `installed ${s.installed || 'nothing'} · package ${s.package || '?'} · ${cachedNpmStatus(s)}${s.auto ? ' · auto-update on' : ' · auto-update off'}`,
         ...s.members.map((m) => `${m.name.padEnd(22)} ${String(m.version).padEnd(8)} claude: ${m.claude}${m.legacy.length ? ` (+ legacy ${m.legacy.join(', ')})` : ''}${m.legacyMarketplaces.length ? ` (+ legacy marketplace ${m.legacyMarketplaces.join(', ')})` : ''} · hub: ${m.hub.filter((h) => h.ok).length}/${m.hub.length}${m.shadows.length ? ` · SHADOW: ${m.shadows.join(', ')}` : ''}`),
       ].join('\n'));
       return 0;

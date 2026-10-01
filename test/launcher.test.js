@@ -167,6 +167,51 @@ test('status before any install describes the package payload', () => {
   assert.deepEqual(s.members.map((m) => m.name), ['fabric-agent-adapter', 'example-agent']);
 });
 
+test('status labels cached npm observations without changing state or probing npm', () => {
+  const env = setup();
+  const stateFile = path.join(env.home, '.passioncode/state.json');
+  fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+  const fakeBin = path.join(env.home, 'bin');
+  fs.mkdirSync(fakeBin);
+  fs.writeFileSync(path.join(fakeBin, 'npm'), '#!/bin/sh\necho called > "$HOME/npm-called"\nexit 1\n', { mode: 0o755 });
+  env.extra = { PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` };
+  const checkedAt = '2026-09-30T13:22:11.000Z';
+  const cases = [
+    { latest: '0.1.10', checkedAt, expected: `npm latest (cached) 0.1.10 (checked ${checkedAt}; stale: older than installed)` },
+    { latest: '0.1.9', checkedAt, expected: `npm latest (cached) 0.1.9 (checked ${checkedAt}; stale: older than installed)` },
+    { latest: '0.1.14', checkedAt, expected: `npm latest (cached) 0.1.14 (checked ${checkedAt})` },
+    { latest: '0.1.15', checkedAt, expected: `npm latest (cached) 0.1.15 (checked ${checkedAt})` },
+    { latest: '0.1.14', expected: 'npm latest (cached) 0.1.14 (check time unknown)' },
+    { latest: '0.1.14', checkedAt: 'invalid', expected: 'npm latest (cached) 0.1.14 (check time unknown)' },
+  ];
+  for (const c of cases) {
+    const state = { installed: '0.1.14', latest: c.latest, checkedAt: c.checkedAt, config: { auto: false } };
+    const bytes = JSON.stringify(state, null, 2) + '\n';
+    fs.writeFileSync(stateFile, bytes);
+    const text = run(env, 'status');
+    assert.equal(text.status, 0, text.stderr);
+    assert.equal(text.stdout.split('\n')[0], `installed 0.1.14 · package 0.1.0 · ${c.expected} · auto-update off`);
+    const json = run(env, 'status', '--json');
+    assert.equal(json.status, 0, json.stderr);
+    const parsed = JSON.parse(json.stdout);
+    assert.equal(parsed.latest, c.latest);
+    assert.equal(parsed.checkedAt, c.checkedAt || null);
+    assert.equal(fs.readFileSync(stateFile, 'utf8'), bytes, 'both status formats leave saved state untouched');
+    assert.equal(fs.existsSync(path.join(env.home, 'npm-called')), false, 'status must not run an npm probe');
+  }
+});
+
+test('status reports an absent npm observation without inventing a check time', () => {
+  const env = setup();
+  const text = run(env, 'status');
+  assert.equal(text.status, 0, text.stderr);
+  assert.match(text.stdout, /npm latest: not checked/);
+  assert.doesNotMatch(text.stdout, /\(cached\)|checked \d{4}/);
+  const json = JSON.parse(run(env, 'status', '--json').stdout);
+  assert.equal(json.latest, null);
+  assert.equal(json.checkedAt, null);
+});
+
 test('vendor refuses credential-shaped strings', async () => {
   const { scanForSecrets } = await import(path.join(ROOT, 'scripts/vendor.mjs'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-scan-'));

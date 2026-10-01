@@ -64,6 +64,13 @@ effect in the next session. A version published by anyone else is named and not
 installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so.
 
+`status` reads local state without contacting npm. Its npm version is labelled
+`npm latest (cached)` with the saved check timestamp, or `check time unknown`.
+When that stable version is below the installed stable version, the line also says
+`stale: older than installed`. A newer or equal cached version is still a saved
+observation, not a live registry check. With no saved version it says
+`npm latest: not checked`; `--json` retains the raw `latest` and `checkedAt` fields.
+
 ```bash
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows
 npx @passioncode-ai/passioncode@latest update --dry-run
