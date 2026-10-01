@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.14 - 2026-10-01
+
+### Changed
+
+- Fabric Agent Adapter 0.5.5 in the set (`family.json` pins `v0.5.5`, was `v0.5.4`): its shipped
+  docs no longer call the public Fabric Agent Contract private; no behaviour changes.
+- Observatory Log 0.13.0 in the set (`family.json` pins Project Observatory `v0.10.0`, was
+  `v0.8.2`, which shipped plugin 0.12.3): the plugin's licence metadata is `AGPL-3.0-only OR
+  LicenseRef-PassionCode-Commercial`, and `handling-secrets` documents the new Cloudflare presets.
+- The README, `--help`, `family.json` and `package.json` descriptions say what is true: the
+  launcher installs the set listed in `family.json`, not every PassionCode.ai skill and plugin.
+
 ## 0.1.13 - 2026-10-01
 
 ### Changed

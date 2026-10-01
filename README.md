@@ -1,8 +1,8 @@
 # PassionCode.ai launcher
 
-The **PassionCode.ai launcher** (`@passioncode-ai/passioncode` on npm) installs and updates every
-PassionCode.ai agent skill and plugin — the Fabric Agent Adapter, Observatory Log and the
-organization's working rules — for Claude Code and every other agent on your machine, as one set.
+The **PassionCode.ai launcher** (`@passioncode-ai/passioncode` on npm) installs and updates the
+PassionCode.ai skills and plugins listed in [`family.json`](family.json) — the Fabric Agent Adapter,
+Observatory Log and the organization's working rules — for Claude Code and every other agent on your machine, as one set.
 It is how a teammate's agent gets the tools that build for Fabric, PassionCode.ai's CEO AI agent,
 and it works on its own: no Fabric install, no account, no key.
 
