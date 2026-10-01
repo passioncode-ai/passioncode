@@ -1,0 +1,25 @@
+{
+  "name": "@passioncode-ai/passioncode",
+  "version": "0.1.17",
+  "tarball": "https://registry.npmjs.org/@passioncode-ai/passioncode/-/passioncode-0.1.17.tgz",
+  "integrity": "sha512-zGGSSlOXUX/jBhvr21ZxC1dqXHG5maIbvuPic3jE95eb/x1ReMfisOuVfU0n0nFtSXkyQ3CN7vnMf2w6yiKm4A==",
+  "bytes": 136165,
+  "result": "served and verified",
+  "observed_at": "2026-10-01T18:14:46.531583+00:00",
+  "source_commit": "d65767bd2836d8d7c3b696ea0c91c237a8eed987",
+  "release_workflow": 36904444807,
+  "release_workflow_result": "success",
+  "operator_install": {
+    "command": "npx --yes @passioncode-ai/passioncode@0.1.17 update",
+    "exit_code": 0,
+    "adapter": "0.5.6",
+    "observatory_log": "0.13.0",
+    "launcher": "0.1.17",
+    "channels": [
+      "claude-plugin",
+      "agents-hub",
+      "codex"
+    ],
+    "gates": "9 frozen cases on each of 3 skills across each of 3 channels; 81 passed"
+  }
+}
