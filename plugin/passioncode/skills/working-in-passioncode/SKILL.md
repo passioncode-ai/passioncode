@@ -162,8 +162,8 @@ Fabric's workspace sync, and check the published source commit before calling it
 - The README's `## License` section uses the knowledge base wording and names the earlier
   licences: "Open source under the GNU AGPL-3.0. A commercial license is available for use that
   does not meet the AGPL's terms — contact@passioncode.ai."
-- Contributions are accepted under the repository's `CLA.md`; the PR template carries the
-  "I agree to CLA.md" box.
+- Contributions are accepted under the repository's `CLA.md`; opening a pull request is the
+  agreement, so a PR template never carries a CLA checkbox.
 - **The repository standard** (the knowledge base `repository-standard.md`): README first heading
   `# <Full name>`, `## Quick start for a new teammate` (Install, Configure, MCP — the registration
   command and one proving call verified with a real client in a temporary config — and Develop)

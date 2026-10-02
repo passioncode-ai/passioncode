@@ -27,7 +27,7 @@ for byte** from the knowledge base's `templates/` — never retyped, reflowed or
 | `CLA.md` | `templates/CLA.md`, in every repository, private ones included |
 | `SECURITY.md` | every public repository: report privately to contact@passioncode.ai |
 | `CONTRIBUTING.md` | only when the repository adds rules; says contributions are accepted under `CLA.md` |
-| `.github/pull_request_template.md` | a checkbox "I agree to CLA.md"; any existing template content is kept |
+| `.github/pull_request_template.md` | one sentence that opening the pull request means agreeing to `CLA.md` — no checkbox; any existing template content is kept |
 | `package.json` | `"license"` set to the SPDX expression; `files` ships `LICENSE` and `COMMERCIAL-LICENSE.md` |
 | `.claude-plugin/plugin.json`, marketplace entries | `"license"` set to the SPDX expression |
 | SKILL.md front matter | `license:` set to the SPDX expression |
