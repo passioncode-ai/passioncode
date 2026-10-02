@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.19 - 2026-10-02
+
+### Changed
+
+- `working-in-passioncode`: contributions are accepted under `CLA.md` by opening a pull request;
+  a PR template never carries a CLA checkbox. `CLA.md` is the knowledge-base template changed the
+  same day ("ticking the CLA box" is gone), and the publishing reference asks for one sentence in
+  the PR template instead of a box.
+
 ## 0.1.18 - 2026-10-01
 
 ### Changed
