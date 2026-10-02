@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.20 - 2026-10-02
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.6.0`:** `building-fabric-services` also makes an online
+  agent or dashboard (an `https` origin on a platform) a Fabric service — the remote placement of
+  `fabric-service/0.1`, Fabric Agent Contract DEC-0019 — with Node and Python kits, a TLS sample
+  online service and a probe that checks remote services over verified TLS.
+
 ## 0.1.19 - 2026-10-02
 
 ### Changed
