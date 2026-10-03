@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.25 - 2026-10-03
+
+### Changed
+
+- **`working-in-passioncode` follows the amended release-approval rule** (knowledge rules §11,
+  operator decision 2026-10-03): any member of `release-approvers` may approve a release run,
+  including the person who pushed the tag. Unchanged: approval is a person's act and an agent
+  never approves a release run, signing happens only in CI, admins cannot bypass, `v*` tags
+  only, and a published release is never rewritten.
+
 ## 0.1.24 - 2026-10-03
 
 ### Changed

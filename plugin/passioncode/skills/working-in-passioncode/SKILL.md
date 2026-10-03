@@ -211,10 +211,12 @@ to a public surface.
 - **Signing (knowledge rules §11).** A published build is signed only in CI, in the
   repository's protected `release` environment, through `passioncode-ai/.github@v1`
   (`apple-signing`, `notarize`, `sign-sums`, `release-publish`). A member of
-  `release-approvers` who is not the tag's author approves it. No release key lives on a
-  laptop, and a locally signed build is a debug build: never attach it. You act as the person
-  whose account you use, so never approve a release you started; start it and say whose
-  approval is pending. A published release is never rewritten. Rehearse on `vX.Y.Z-rc.N` with
+  `release-approvers` approves it, and that may be whoever pushed the tag (operator,
+  2026-10-03; `prevent_self_review: true` in `.github` `release-signing/products.json`
+  restores four eyes). Admins cannot bypass, and only `v*` tags deploy. No release key lives
+  on a laptop, and a locally signed build is a debug build: never attach it. Approval is a
+  person's act: an agent never approves a release run, even when the account it uses could;
+  start it and say whose approval is pending. A published release is never rewritten. Rehearse on `vX.Y.Z-rc.N` with
   `publish=false`.
 - **Engine** (`project-observatory-dashboard`): contributors send PRs. A `vX.Y.Z` tag on the
   reviewed release commit runs its `release.yml`, which signs and publishes in CI. Machines then
