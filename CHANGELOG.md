@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.27 - 2026-10-04
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.6.3`** (it was `v0.6.2`). `building-fabric-services`
+  and `creating-fabric-agents` say that every credential an agent or service uses comes from
+  Project Observatory, by name: `use_secret.py run --vault-only` for an agent, `use_secret.py
+  serve` for a long-running service, never a `.env` or a key file beside it.
+
 ## 0.1.26 - 2026-10-04
 
 ### Changed
