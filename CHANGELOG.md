@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.23 - 2026-10-03
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.6.2`** (it was `v0.6.1`). `building-fabric-services`
+  now says how a product behaves under a host lifecycle broker — the always-on per-user service
+  agents ask to start, stop and restart products: quit through both the platform's quit and
+  `SIGTERM`, stay in the background when opened non-activating, keep the designated requirement
+  stable, expose honest readiness.
+
 ## 0.1.22 - 2026-10-03
 
 ### Changed
