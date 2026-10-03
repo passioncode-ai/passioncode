@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.26 - 2026-10-04
+
+### Changed
+
+- **Observatory Log is pinned at `v0.15.0`** (plugin 0.15.0; it was `v0.13.0`, plugin 0.14.0),
+  the Project Observatory 0.15.0 skills. `handling-secrets` gains the header door: `use_secret.py
+  header` hands one HTTP MCP server's bearer to Claude Code's `headersHelper`, from the vault only
+  and only to the server the slot is bound to with `vault.py bind --header-for`. Agents and
+  services take every credential from Observatory by name (`use_secret.py run --vault-only`).
+
 ## 0.1.25 - 2026-10-03
 
 ### Changed
