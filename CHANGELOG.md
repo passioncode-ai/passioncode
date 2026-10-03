@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.21 - 2026-10-03
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.6.1`:** `check_service.py` no longer fails an online
+  service hosted behind a platform router. Heroku, Fly, Render and CDNs answer a foreign `Host`
+  themselves (`404`/`421`), and that now counts as the refusal it is, unless the body is the
+  well-known document.
+
 ## 0.1.20 - 2026-10-02
 
 ### Changed
