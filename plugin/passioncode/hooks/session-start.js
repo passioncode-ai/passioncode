@@ -9,7 +9,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, loadTrust } = require('./update-check');
+const { decide, loadTrust, claimProbe, releaseProbe } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
@@ -38,8 +38,9 @@ async function main() {
   const state = read(STATE, {});
   const now = Date.now();
   const age = now - Date.parse(state.checkedAt);
-  if (!Number.isFinite(age) || age < 0 || age > DAY) {
-    await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log');
+  // The marker is claimed before the spawn: sessions restored together start one probe.
+  if ((!Number.isFinite(age) || age < 0 || age > DAY) && claimProbe(DIR, now)) {
+    if (!await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
   const { lines, spawn: args, stateChanges } = decide(state, loadTrust(), now);
   if (Object.keys(stateChanges).length) {

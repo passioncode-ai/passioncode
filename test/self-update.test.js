@@ -17,6 +17,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const FAKE_NPM = `#!/usr/bin/env node
 const fs = require('fs'); const path = require('path');
 fs.appendFileSync(path.join(process.env.HOME, 'npm-calls.log'), process.argv.slice(2).join(' ') + '\\n');
+if (process.env.FAKE_NPM_SLEEP) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Number(process.env.FAKE_NPM_SLEEP));
 if (process.env.FAKE_NPM_OUT) process.stdout.write(fs.readFileSync(process.env.FAKE_NPM_OUT, 'utf8'));
 if (process.env.FAKE_NPM_ERR) process.stderr.write(process.env.FAKE_NPM_ERR);
 process.exit(Number(process.env.FAKE_NPM_CODE || 0));
@@ -49,9 +50,9 @@ const setState = (sb, state) => fs.writeFileSync(path.join(sb.stateDir, 'state.j
 const fresh = () => new Date().toISOString();
 const lines = (file) => { try { return fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
-function hook(sb) {
+function hook(sb, extra = {}) {
   // Run from a directory outside any passioncode-ai repository, so the read-first line (repo-rules.test.js) stays out of these cases.
-  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(), cwd: os.tmpdir(), input: '' });
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(extra), cwd: os.tmpdir(), input: '' });
   assert.equal(r.status, 0, r.stderr);
   return r.stdout;
 }
@@ -230,6 +231,36 @@ test('hook: a stale check starts the probe, which asks npm who publishes', async
   const until = Date.now() + 5000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
   assert.deepEqual(lines(file), ['view @passioncode-ai/passioncode version maintainers _npmUser --json']);
+});
+
+test('hook: session starts inside one probe window start one npm view, not one each (F13)', async () => {
+  const sb = sandbox();
+  setState(sb, { installed: '0.1.0', checkedAt: '2026-01-01T00:00:00.000Z' });
+  const out = path.join(sb.base, 'npm-out');
+  fs.writeFileSync(out, published('0.1.0', ['passioncode-ai'], 'passioncode-ai'));
+  // npm takes its time; three sessions restored at once all see the stale check meanwhile.
+  for (let i = 0; i < 3; i += 1) hook(sb, { FAKE_NPM_SLEEP: '1500', FAKE_NPM_OUT: out });
+  const marker = path.join(sb.stateDir, 'probe.pending');
+  assert.ok(fs.existsSync(marker), 'the marker is written before npm is asked');
+  const until = Date.now() + 8000;
+  while (fs.existsSync(marker) && Date.now() < until) await sleep(50);
+  assert.equal(fs.existsSync(marker), false, 'the probe clears its marker when it has recorded');
+  assert.equal(lines(path.join(sb.home, 'npm-calls.log')).length, 1);
+  assert.equal(stateOf(sb).latest, '0.1.0');
+});
+
+test('hook: a probe marker left by a probe that died does not stop the next check', async () => {
+  const sb = sandbox();
+  setState(sb, { installed: '0.1.0', checkedAt: '2026-01-01T00:00:00.000Z' });
+  const marker = path.join(sb.stateDir, 'probe.pending');
+  fs.writeFileSync(marker, '2026-01-01T00:00:00.000Z');
+  const old = (Date.now() - 10 * 60 * 1000) / 1000;
+  fs.utimesSync(marker, old, old);
+  hook(sb);
+  const file = path.join(sb.home, 'npm-calls.log');
+  const until = Date.now() + 5000;
+  while (!lines(file).length && Date.now() < until) await sleep(50);
+  assert.equal(lines(file).length, 1);
 });
 
 test('hook: future timestamps do not suppress probes or updates indefinitely', async () => {

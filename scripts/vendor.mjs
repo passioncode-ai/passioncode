@@ -14,6 +14,10 @@
 //   PASSIONCODE_CHECKOUT_ROOT=<dir>          a member is read from <dir>/<repo name>
 //   PASSIONCODE_CHECKOUT_<MEMBER>=<path>     one member's clone under another name
 //                                            (<MEMBER>: its name upper-cased, - as _)
+// A release also proves provenance: a member's tag names the plugin version it carries
+// (`v<version>`), or — for a member whose repository's tags version another product that
+// carries the plugin (`"refVersions": "repository"`) — family.json pins the plugin `version`
+// it expects at that tag, and the bytes must match it.
 // A checkout that does not exist falls back to the clone. PASSIONCODE_VENDOR_CLONE=1
 // is the same as --clone and ignores both; PASSIONCODE_GIT_BASE replaces
 // `git@github.com:`.
@@ -120,6 +124,14 @@ function checkTrust(pluginDir) {
   return doc.npmPublishers;
 }
 
+/** F17: a release refuses a ref whose bytes carry a plugin version the pin does not name. */
+export function provenanceProblem(m, version) {
+  const kind = m.refVersions ?? 'plugin';
+  if (kind === 'plugin') return m.ref === `v${version}` ? null : `${m.name}: ref ${m.ref} does not name the plugin version ${version} it carries; pin v${version}, or declare "refVersions": "repository" with the expected "version" when the repository's tags version another product.`;
+  if (m.version === undefined) return `${m.name}: refVersions "repository" needs the plugin "version" it expects at ${m.ref}.`;
+  return m.version === version ? null : `${m.name}: ${m.ref} carries plugin version ${version}, but family.json pins ${m.version}.`;
+}
+
 const skillsIn = (pluginDir) => {
   const dir = path.join(pluginDir, 'skills');
   return fs.existsSync(dir) ? fs.readdirSync(dir).filter((n) => fs.existsSync(path.join(dir, n, 'SKILL.md'))).sort() : [];
@@ -147,6 +159,9 @@ export function build({
   const members = [];
   try {
     for (const m of family.members) {
+      if (m.refVersions !== undefined && !['plugin', 'repository'].includes(m.refVersions)) {
+        throw new Error(`${m.name}: refVersions must be "plugin" or "repository".`);
+      }
       const dest = path.join(stage, 'plugins', m.name);
       let commit = null;
       let version;
@@ -168,6 +183,8 @@ export function build({
         if (m.kind === 'plugin') {
           fs.cpSync(src, dest, { recursive: true });
           version = JSON.parse(fs.readFileSync(path.join(dest, '.claude-plugin/plugin.json'), 'utf8')).version;
+          const problem = release ? provenanceProblem(m, version) : null;
+          if (problem) throw new Error(problem);
         } else {
           for (const skill of m.skills) {
             const s = path.join(src, skill);
@@ -186,6 +203,7 @@ export function build({
       const plugin = JSON.parse(fs.readFileSync(path.join(dest, '.claude-plugin/plugin.json'), 'utf8'));
       members.push({
         name: m.name, displayName: m.displayName ?? plugin.displayName ?? m.name, repo: m.repo ?? `${family.owner}/passioncode`, ref: m.ref ?? `v${pkg.version}`, commit, version, via,
+        ...(m.refVersions === 'repository' ? { refVersions: 'repository' } : {}),
         skills: skillsIn(dest), legacyPluginIds: m.legacyPluginIds ?? [], legacyMarketplaces: m.legacyMarketplaces ?? [], contentHash: treeHash(dest),
         description: m.description ?? plugin.description, author: m.author ?? (plugin.author && plugin.author.name ? plugin.author : AUTHOR),
         license: plugin.license ?? (m.kind === 'self' ? pkg.license : null),

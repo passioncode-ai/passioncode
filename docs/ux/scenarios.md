@@ -66,12 +66,12 @@
   1. Run a pinned update and inspect the step outcomes.
   2. Fix a reported failure and repeat the same update.
 - **Expected result:** Invalid payloads are refused before changes. Release/current failures stop dependent work. Marketplace or plugin verification failures preserve affected legacy entries. Available agent channels still receive a valid release when only Claude fails.
-- **Alt paths:** `--dry-run` plans without applying; symlinked channel directories are supported; immutable version mismatch is refused.
+- **Alt paths:** `--dry-run` plans without applying; symlinked channel directories are supported; immutable version mismatch is refused; an update while another update, restore or uninstall runs refuses with exit 1 and names the holder; releases older than the one replaced are pruned.
 - **UI elements:** Step list and exit code.
 - **States covered:** loading, error, success
 - **Errors & recovery:** Exit 1 names failed steps; follow the retry instructions in the CLI contract. Already completed work can remain applied.
 - **Status:** implemented
-- **Coverage:** `test/launcher.test.js`; the SCN-003 entries in `docs/evidence/launcher-audit.json` name exact tests.
+- **Coverage:** `test/launcher.test.js` and `test/lifecycle.test.js`; the SCN-003 entries in `docs/evidence/launcher-audit.json` name exact tests.
 - **Product:** unobserved
 
 ### SCN-004: Restore displaced entries safely
@@ -122,7 +122,7 @@
   1. Start a session.
   2. Read any update/check diagnostic; continue the session.
 - **Expected result:** Only a newer pinned version with all maintainers and its publisher known and trusted can start automatically. Probe errors cannot authorize an update.
-- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe; current version is silent.
+- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent.
 - **UI elements:** One-line hook notifications and logs.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Missing npx does not fail the session or leave a false running marker. Repair PATH and retry next session.

@@ -56,8 +56,11 @@ MCP: none — the launcher serves and calls no MCP server; it is driven by its C
 ## Local rules
 
 - One channel per agent: nothing is ever written to `~/.claude/skills`.
-- Nothing is deleted: every move goes to `~/.passioncode/quarantine/` and is undone by
+- Nothing of the person's is deleted: every move goes to `~/.passioncode/quarantine/` and is undone by
   `passioncode restore`.
+  The one exception is the launcher's own output: an update keeps the release it installed and
+  the one it replaced, and removes older `~/.passioncode/releases/<version>` directories
+  (reinstallable from npm; lifecycle contract LC-11, LC-15).
 - A release vendors tagged bytes only (`npm run vendor:release`, run by `prepublishOnly`),
   and the vendor step refuses credential-shaped strings.
 - The self-update never runs a version it has not attributed: only a pinned
@@ -84,6 +87,30 @@ MCP: none — the launcher serves and calls no MCP server; it is driven by its C
   `.agent-sync/` is git-ignored. No register here carries a "Next free ID" line, so nothing is
   reserved yet; a register that gains one is declared under `idRegisters` and taken with
   `agent_sync.py reserve <REG>`.
+
+## Lifecycle
+
+The org contract is [knowledge/lifecycle.md](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/lifecycle.md).
+
+**Background footprint (LC-09).** The launcher owns no launchd job, login item, port, MCP server
+or resident process. Everything it runs is started by a person or by Claude Code's SessionStart:
+
+| What | Started by | Cadence | Cost | With no window | Stopped by |
+|---|---|---|---|---|---|
+| `passioncode update / restore / uninstall` | a person, or the background update below | on demand | one `claude plugin` call per member (180 s cap each) | nothing | exits; `~/.passioncode/update.lock` keeps one at a time (`test/lifecycle.test.js`) |
+| SessionStart hook `plugin/passioncode/hooks/session-start.js` | Claude Code, matcher `startup` only (not resume, clear or compact) | once per new session | 0.11–0.19 s, 2 processes (node + `git remote get-url`, 2 s cap), 5 s hook timeout; measured 2026-10-03 (lifecycle audit, passioncode-adapter §4) | nothing | exits |
+| Probe `hooks/probe.js` → `npm view` | the hook, detached | at most once a day (`checkedAt` older than 24 h), one at a time (`probe.pending`) | 1 node + 1 npm, one HTTPS call, 30 s cap | runs ≤ 30 s, then exits | its own timeout |
+| Background update `npx @passioncode-ai/passioncode@<x.y.z> update --quiet` | the hook, only for a newer version from trusted publishers with auto-update on | at most once per 10 min (`updatingSince`), usually never | as `update` | runs to completion (tens of seconds) | exits; refuses if another update holds the lock |
+| Observatory Log hooks (vendored member) | Claude Code: SessionStart on every start/resume/clear/compact (15 s cap), Stop after every turn (20 s cap) | per session and per turn | owned by `passioncode-ai/project-observatory-dashboard` (`observatory/engine/skill/plugins/observatory-log/hooks/`) | nothing | exits |
+
+Idle budget: zero — no process runs between sessions except a probe or update still inside its cap.
+
+**Build retention (LC-15).** Output directories: `payload/` (written by `scripts/vendor.mjs`,
+replaced whole on each run — one copy) and `*.tgz` from `npm pack` (`scripts/smoke-pack.mjs` packs
+into a temp dir and removes it). Keep no tarball: releases live on npm and GitHub. On a machine
+the launcher installs to, `~/.passioncode/releases/` holds the current and the previous release;
+the update prunes the rest itself (`LC-15 after four updates only the current and the previous
+release remain`). Cache cap: none beyond those; clean command: `rm -rf payload *.tgz`.
 
 ## Organisation
 
