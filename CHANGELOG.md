@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.22 - 2026-10-03
+
+### Changed
+
+- **Observatory Log is pinned at `v0.13.0`** (plugin 0.14.0; it was `v0.10.0`, plugin 0.13.0),
+  the Project Observatory 0.13.0 hook and skills. The hook and the skills hand over the installed
+  engine's commands (`project-observatory full findings`, `full doctor`) instead of source-tree
+  paths, and the skills' own check runs under the interpreter `full agent install` records. In
+  `handling-secrets`, a vault `PROJECT` is the project's folder name and its registry id resolves to
+  the same folder. `use_secret.py run` takes `--env`, and `vault.py remove` deletes a slot or only
+  its retired archives.
+
 ## 0.1.21 - 2026-10-03
 
 ### Changed
