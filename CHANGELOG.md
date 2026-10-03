@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.24 - 2026-10-03
+
+### Changed
+
+- **`working-in-passioncode` carries the release-signing rule** (knowledge rules §11):
+  - a published build is signed only in CI, in the repository's `release` environment, through
+    `passioncode-ai/.github@v1`;
+  - it is approved by `release-approvers` but not by the tag's author;
+  - no release key lives on a laptop;
+  - an agent never approves a release it started;
+  - a published release is never rewritten.
+
+  The engine line now names its CI release.
+
 ## 0.1.23 - 2026-10-03
 
 ### Changed

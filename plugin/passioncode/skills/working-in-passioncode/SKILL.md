@@ -208,9 +208,17 @@ to a public surface.
   `release.yml` publish when the repository variables `RELEASE_ENABLED` and
   `PUBLISH_NPMJS` are `true`. Check `gh variable list -R passioncode-ai/<repo>` before
   pushing a tag; publishing is a release decision, not a side effect.
-- **Engine** (`project-observatory-dashboard`): contributors send PRs; releases are cut
-  with the maintainer's release tooling, which is maintainer-only. Machines then run
-  `project-observatory full update --check` and `--apply`.
+- **Signing (knowledge rules §11).** A published build is signed only in CI, in the
+  repository's protected `release` environment, through `passioncode-ai/.github@v1`
+  (`apple-signing`, `notarize`, `sign-sums`, `release-publish`). A member of
+  `release-approvers` who is not the tag's author approves it. No release key lives on a
+  laptop, and a locally signed build is a debug build: never attach it. You act as the person
+  whose account you use, so never approve a release you started; start it and say whose
+  approval is pending. A published release is never rewritten. Rehearse on `vX.Y.Z-rc.N` with
+  `publish=false`.
+- **Engine** (`project-observatory-dashboard`): contributors send PRs. A `vX.Y.Z` tag on the
+  reviewed release commit runs its `release.yml`, which signs and publishes in CI. Machines then
+  run `project-observatory full update --check` and `--apply`.
 - **Launcher** (`passioncode`): members are tagged first, `family.json` refs point at
   those tags, the payload is vendored from tags only.
 - **Contract pins.** `fabric-agent-contract` consumers carry explicit commit pins;
