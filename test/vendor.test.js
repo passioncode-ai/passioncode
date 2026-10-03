@@ -30,6 +30,8 @@ function fixture() {
   git(work, 'add', '-A');
   git(work, 'commit', '--quiet', '-m', 'v1.0.0');
   git(work, 'tag', 'v1.0.0');
+  // The same bytes under the tag of another product's release (a monorepo carrying the plugin).
+  git(work, 'tag', 'v0.9.0');
   const tagged = git(work, 'rev-parse', 'HEAD');
   writePlugin(path.join(work, 'plugins/member'), '1.1.0-dev');
   git(work, 'commit', '--quiet', '-am', 'work in progress');
@@ -123,6 +125,44 @@ test('a release refuses a branch ref, from a clone as from a checkout', async ()
   assert.throws(() => build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /ref main is not a tag/);
   assert.throws(() => build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase, env: { PASSIONCODE_CHECKOUT_MEMBER: f.work } }), /ref main is not a tag/);
   assert.equal(fs.existsSync(f.out), false, 'no payload is written');
+});
+
+test('a release refuses a tag that does not name the plugin version it carries (F17)', async (t) => {
+  const { build } = await vendor();
+  const f = fixture();
+  t.after(() => fs.rmSync(f.base, { recursive: true, force: true }));
+  f.family({ ref: 'v0.9.0' });
+  assert.throws(() => build({ release: true, root: f.root, out: f.out, gitBase: f.gitBase, env: {} }),
+    /member: ref v0\.9\.0 does not name the plugin version 1\.0\.0 it carries/);
+  assert.equal(fs.existsSync(f.out), false, 'no payload is written');
+  // Development vendoring reads branches and other refs freely.
+  assert.equal(build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }).members[0].version, '1.0.0');
+});
+
+test('a member whose repository tags another product pins the plugin version it expects (F17)', async (t) => {
+  const { build } = await vendor();
+  const f = fixture();
+  t.after(() => fs.rmSync(f.base, { recursive: true, force: true }));
+  const opts = { release: true, root: f.root, out: f.out, gitBase: f.gitBase, env: {} };
+  f.family({ ref: 'v0.9.0', refVersions: 'repository', version: '1.0.0' });
+  const member = build(opts).members.find((m) => m.name === 'member');
+  assert.equal(member.refVersions, 'repository', 'the manifest says the ref is the repository\'s release, not the plugin\'s');
+  assert.equal(member.version, '1.0.0');
+  f.family({ ref: 'v0.9.0', refVersions: 'repository', version: '2.0.0' });
+  assert.throws(() => build(opts), /member: v0\.9\.0 carries plugin version 1\.0\.0, but family\.json pins 2\.0\.0/);
+  f.family({ ref: 'v0.9.0', refVersions: 'repository' });
+  assert.throws(() => build(opts), /member: refVersions "repository" needs the plugin "version" it expects/);
+  f.family({ ref: 'v1.0.0', refVersions: 'tag?' });
+  assert.throws(() => build(opts), /member: refVersions must be "plugin" or "repository"/);
+});
+
+test('the shipped family pins every member so that a release can prove its provenance', () => {
+  const family = JSON.parse(fs.readFileSync(path.join(ROOT, 'family.json'), 'utf8'));
+  for (const m of family.members.filter((x) => x.kind !== 'self')) {
+    assert.match(m.ref, /^v\d+\.\d+\.\d+$/, m.name);
+    if (m.refVersions === 'repository') assert.match(String(m.version), /^\d+\.\d+\.\d+$/, `${m.name} pins the plugin version`);
+    else assert.equal(m.refVersions ?? 'plugin', 'plugin', m.name);
+  }
 });
 
 test('an unreachable member repository is a clear error', async () => {

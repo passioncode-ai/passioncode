@@ -23,6 +23,8 @@
       "displayName": "Observatory Log",
       "repo": "passioncode-ai/project-observatory-dashboard",
       "ref": "v0.13.0",
+      "refVersions": "repository",
+      "version": "0.14.0",
       "kind": "plugin",
       "path": "observatory/engine/skill/plugins/observatory-log",
       "legacyPluginIds": [

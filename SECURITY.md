@@ -16,7 +16,9 @@ deleted: a recovery record is written before the move in
 `~/.passioncode/quarantine/<run>/moved.json`. `restore` processes the latest batch,
 checkpoints completed entries and refuses to overwrite a conflicting user replacement.
 `uninstall` removes owned links/plugins, clears the active release and disables
-automatic updates; it retains release copies and recovery records. A failed removal
+automatic updates; it retains the current and previous release copies and recovery
+records. Each update removes the launcher's own older releases (its output, reinstallable
+from npm) and keeps the one it replaced for rollback. A failed removal
 returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.md).
 
 ## The self-update and who it trusts
