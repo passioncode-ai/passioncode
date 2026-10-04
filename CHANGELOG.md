@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.23 - 2026-10-03
+## 0.1.28 - 2026-10-04
 
 The launcher meets the organization's
 [product lifecycle contract](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/lifecycle.md):
@@ -18,12 +18,67 @@ findings F13, F14, F15 and F17 of the 2026-10-03 lifecycle audit.
   and the one it replaced, and removes older releases and partial copies left by a killed update
   (`prune` step; a dry run plans it).
 - **A release proves its provenance (F17).** `vendor --release` refuses a member whose tag does not
-  name the plugin version it carries. Observatory Log's repository tags version Project Observatory,
-  not the plugin, so `family.json` now pins it as `ref v0.13.0`, `refVersions: "repository"`,
-  `version 0.14.0`; the bytes at that tag must carry that version, and the manifest records
-  `refVersions` so the pair reads as the repository's release, not the plugin's.
+  name the plugin version it carries. A member whose repository's tags version another product
+  may declare `refVersions: "repository"` with the plugin `version` it expects; the bytes at that
+  tag must carry that version, and the manifest records `refVersions` so the pair reads as the
+  repository's release, not the plugin's. No member declares it yet: at the current pins every tag
+  names its plugin version (Observatory Log `v0.15.0` carries 0.15.0), and whether Observatory Log
+  should use it when the two diverge again is the open operator decision PC-04.
 - `AGENTS.md` gains a `## Lifecycle` section: the background footprint with the SessionStart
   hook's cost and cadence (LC-09) and build retention (LC-15).
+
+## 0.1.27 - 2026-10-04
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.6.3`** (it was `v0.6.2`). `building-fabric-services`
+  and `creating-fabric-agents` say that every credential an agent or service uses comes from
+  Project Observatory, by name: `use_secret.py run --vault-only` for an agent, `use_secret.py
+  serve` for a long-running service, never a `.env` or a key file beside it.
+
+## 0.1.26 - 2026-10-04
+
+### Changed
+
+- **Observatory Log is pinned at `v0.15.0`** (plugin 0.15.0; it was `v0.13.0`, plugin 0.14.0),
+  the Project Observatory 0.15.0 skills. `handling-secrets` gains the header door: `use_secret.py
+  header` hands one HTTP MCP server's bearer to Claude Code's `headersHelper`, from the vault only
+  and only to the server the slot is bound to with `vault.py bind --header-for`. Agents and
+  services take every credential from Observatory by name (`use_secret.py run --vault-only`).
+
+## 0.1.25 - 2026-10-03
+
+### Changed
+
+- **`working-in-passioncode` follows the amended release-approval rule** (knowledge rules §11,
+  operator decision 2026-10-03): any member of `release-approvers` may approve a release run,
+  including the person who pushed the tag. Unchanged: approval is a person's act and an agent
+  never approves a release run, signing happens only in CI, admins cannot bypass, `v*` tags
+  only, and a published release is never rewritten.
+
+## 0.1.24 - 2026-10-03
+
+### Changed
+
+- **`working-in-passioncode` carries the release-signing rule** (knowledge rules §11):
+  - a published build is signed only in CI, in the repository's `release` environment, through
+    `passioncode-ai/.github@v1`;
+  - it is approved by `release-approvers` but not by the tag's author;
+  - no release key lives on a laptop;
+  - an agent never approves a release it started;
+  - a published release is never rewritten.
+
+  The engine line now names its CI release.
+
+## 0.1.23 - 2026-10-03
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.6.2`** (it was `v0.6.1`). `building-fabric-services`
+  now says how a product behaves under a host lifecycle broker — the always-on per-user service
+  agents ask to start, stop and restart products: quit through both the platform's quit and
+  `SIGTERM`, stay in the background when opened non-activating, keep the designated requirement
+  stable, expose honest readiness.
 
 ## 0.1.22 - 2026-10-03
 

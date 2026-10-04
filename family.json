@@ -8,7 +8,7 @@
       "name": "fabric-agent-adapter",
       "displayName": "Fabric Agent Adapter",
       "repo": "passioncode-ai/fabric-agent-adapter",
-      "ref": "v0.6.1",
+      "ref": "v0.6.3",
       "kind": "plugin",
       "path": "plugins/fabric-agent-adapter",
       "legacyPluginIds": [
@@ -22,9 +22,7 @@
       "name": "observatory-log",
       "displayName": "Observatory Log",
       "repo": "passioncode-ai/project-observatory-dashboard",
-      "ref": "v0.13.0",
-      "refVersions": "repository",
-      "version": "0.14.0",
+      "ref": "v0.15.0",
       "kind": "plugin",
       "path": "observatory/engine/skill/plugins/observatory-log",
       "legacyPluginIds": [
