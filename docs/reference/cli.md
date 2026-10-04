@@ -68,17 +68,26 @@ values still do not prove registry freshness. Sources: `status()` in
 4. Link supported existing agent channels, including directory symlinks. Record
    each quarantine move before applying it. Re-read state before the final write
    to retain config/probe results written while plugin subprocesses ran.
+5. Prune the launcher's own releases (`prune` step): keep the release just
+   installed and the one it replaced — the newest other release when it replaced
+   none — and remove older ones and `*.partial` copies a killed update left
+   behind. Files and links in `releases/` are never touched. A dry run plans it.
 
 Updates are **not a transaction across all agents**: a failure can leave a valid
 active release with incomplete plugin/channel work. The failed steps and exit 1
-are the receipt; fix the cause and repeat the same pinned update. Do not start
-overlapping mutating commands. State writes use atomic rename, but there is no
-cross-process transaction or installation lock.
+are the receipt; fix the cause and repeat the same pinned update. `update`,
+`restore` and `uninstall` take `~/.passioncode/update.lock` (a kernel flock on
+macOS, released when the holder dies; elsewhere a pid file whose holder must be
+alive). A second mutating command refuses with exit 1 and names the holder;
+`update --dry-run` and `status` take no lock.
 
 Evidence: `update()` in [launcher](../../lib/launcher.js); regressions named
 `a failed release copy...`, `a failed current switch...`, `marketplace failure...`,
 `a successful plugin command...`, `update preserves config...` and
-`a failure immediately after a quarantine move...` in the launcher tests.
+`a failure immediately after a quarantine move...` in the launcher tests; the lock
+and pruning in [the lifecycle tests](../../test/lifecycle.test.js)
+(`LC-03 a second update refuses while one holds the lock, and names the holder`,
+`LC-15 after four updates only the current and the previous release remain`).
 
 ## Restore safely
 
@@ -110,8 +119,8 @@ returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 
 After success, `current` is removed, `installed` becomes null, member bookkeeping
-is cleared, and automatic updates are off. Release directories and quarantines
-remain available; `restore` still works. Repeated uninstall is safe. A later
+is cleared, and automatic updates are off. The current and previous release
+directories and the quarantines remain available; `restore` still works. Repeated uninstall is safe. A later
 manual install preserves the off preference; enable it explicitly with
 `config set update.auto on` if wanted.
 
@@ -120,9 +129,11 @@ Evidence: `uninstall()` in the launcher and both `uninstall...` regressions.
 ## Background checks and trust
 
 The SessionStart hook reuses a registry observation for up to 24 hours. Missing,
-invalid, future or older check timestamps trigger a detached probe. Concurrent
-session starts can each start a probe; this is a cache interval, not a distributed
-once-per-day lock. A probe is consumed by a later hook invocation.
+invalid, future or older check timestamps trigger a detached probe. Before it
+spawns, the hook claims `~/.passioncode/probe.pending` with an exclusive create, so
+sessions started together run one `npm view`; the probe removes the marker once it
+has recorded, and a marker older than five minutes is taken over. A probe is
+consumed by a later hook invocation.
 
 Only a successful npm response with readable maintainers and publisher can
 authorize an automatic update; every identity must be trusted. The spawned

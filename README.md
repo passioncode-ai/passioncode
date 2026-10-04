@@ -53,7 +53,8 @@ out of it, even when they implement Fabric protocols.
 - Updates create no skill copies in `~/.claude/skills`: a plain copy there shadows the plugin. Such
   copies, and hub entries that pointed at a repository's working tree, are moved into
   `~/.passioncode/quarantine/` — `npx @passioncode-ai/passioncode@latest restore` puts them back.
-- Each version is an immutable release under `~/.passioncode/releases/<version>`.
+- Each version is an immutable release under `~/.passioncode/releases/<version>`; an update
+  keeps the release it replaced for rollback and removes older ones.
 
 ## Staying current
 

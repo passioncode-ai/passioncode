@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.1.28 - 2026-10-04
+
+The launcher meets the organization's
+[product lifecycle contract](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/lifecycle.md):
+findings F13, F14, F15 and F17 of the 2026-10-03 lifecycle audit.
+
+### Fixed
+
+- **One update at a time (LC-03, F14).** `update`, `restore` and `uninstall` take
+  `~/.passioncode/update.lock`; a second one refuses with exit 1 and names the holder, so a
+  background update and a manual one no longer interleave their `claude plugin` writes.
+- **One `npm view` for sessions started together (F13).** The SessionStart hook claims
+  `~/.passioncode/probe.pending` before it starts the probe; the probe removes it after recording,
+  and a marker older than five minutes is taken over.
+- **Releases no longer accumulate (LC-11, LC-15, F15).** An update keeps the release it installed
+  and the one it replaced, and removes older releases and partial copies left by a killed update
+  (`prune` step; a dry run plans it).
+- **A release proves its provenance (F17).** `vendor --release` refuses a member whose tag does not
+  name the plugin version it carries. A member whose repository's tags version another product
+  may declare `refVersions: "repository"` with the plugin `version` it expects; the bytes at that
+  tag must carry that version, and the manifest records `refVersions` so the pair reads as the
+  repository's release, not the plugin's. No member declares it yet: at the current pins every tag
+  names its plugin version (Observatory Log `v0.15.0` carries 0.15.0), and whether Observatory Log
+  should use it when the two diverge again is the open operator decision PC-04.
+- `AGENTS.md` gains a `## Lifecycle` section: the background footprint with the SessionStart
+  hook's cost and cadence (LC-09) and build retention (LC-15).
+
 ## 0.1.27 - 2026-10-04
 
 ### Changed

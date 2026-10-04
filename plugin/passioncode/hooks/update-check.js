@@ -102,6 +102,38 @@ function newer(a, b) {
   return false;
 }
 
+/**
+ * One probe at a time. The probe writes `checkedAt` only when npm answers (up to 30 s), so every
+ * session that starts meanwhile saw a stale check and started its own `npm view`. The hook now
+ * claims `probe.pending` with an exclusive create BEFORE it spawns; the probe removes it after it
+ * has recorded. A marker older than PROBE_STALE_MS (or dated in the future) belongs to a probe
+ * that died: it is moved aside atomically — so two hooks cannot both take it over — and claimed.
+ */
+const PROBE_MARKER = 'probe.pending';
+const PROBE_STALE_MS = 5 * 60 * 1000;
+
+function claimProbe(dir, now = Date.now()) {
+  const file = path.join(dir, PROBE_MARKER);
+  const create = () => { fs.writeFileSync(file, new Date(now).toISOString(), { flag: 'wx', mode: 0o600 }); return true; };
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    return create();
+  } catch (error) {
+    if (error.code !== 'EEXIST') return false;
+  }
+  let age;
+  try { age = now - fs.statSync(file).mtimeMs; } catch (_) { return false; } // just released: the next session checks
+  if (age >= 0 && age < PROBE_STALE_MS) return false;
+  const aside = `${file}.stale.${process.pid}`;
+  try { fs.renameSync(file, aside); } catch (_) { return false; } // another hook took it over
+  fs.rmSync(aside, { force: true });
+  try { return create(); } catch (_) { return false; }
+}
+
+function releaseProbe(dir) {
+  fs.rmSync(path.join(dir, PROBE_MARKER), { force: true });
+}
+
 function oneLine(text) { return String(text).replace(/\s+/g, ' ').trim().slice(0, 200); }
 
 /**
@@ -144,4 +176,4 @@ function decide(state, trust, now = Date.now()) {
   return { lines, spawn, stateChanges };
 }
 
-module.exports = { PACKAGE, OIDC_PUBLISHER, TRUST_FILE, accountName, parseView, recordProbe, loadTrust, newer, decide };
+module.exports = { PACKAGE, OIDC_PUBLISHER, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, recordProbe, loadTrust, newer, decide, claimProbe, releaseProbe };
