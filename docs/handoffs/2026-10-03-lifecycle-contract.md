@@ -29,3 +29,25 @@ payload removed afterwards.
 
 Coordinator: review and land the PR, then release 0.1.23 (tag `v0.1.23`). Pin fabric-agent-adapter 0.7.0 once
 passioncode-ai/fabric-agent-adapter#28 is released. Open F12 in project-observatory-dashboard.
+
+## Landing, 2026-10-04
+
+The sections above record the branch as written on 2026-10-03. On landing:
+
+- **Version 0.1.28, not 0.1.23.** `main` had released 0.1.23–0.1.27 meanwhile; `origin/main` was
+  merged into the branch (`09f4bcf`) and `package.json`, `plugin/passioncode/.claude-plugin/plugin.json`
+  and the CHANGELOG entry moved to 0.1.28.
+- **`family.json` keeps `main`'s pins** (fabric-agent-adapter `v0.6.3`, Observatory Log `v0.15.0`) and
+  declares no `refVersions`: at `v0.15.0` the tag names the plugin version it carries (0.15.0), so the
+  default provenance rule passes. The F17 row above ("observatory-log pinned that way") no longer
+  describes `family.json`; the check and its tests ship, and whether Observatory Log uses
+  `refVersions: "repository"` when the two diverge again is the operator decision PC-04 (open).
+- **The adapter stays at `v0.6.3`.** A release vendors tagged bytes only (`scripts/vendor.mjs`:
+  "is not a tag; a release vendors tagged bytes only") and the provenance rule wants `ref == v<version>`;
+  adapter 0.7.0 is merged on its `main` but has no `v0.7.0` tag. Re-pinning it is PC-10.
+- Checks: `npm test` → exit 0 (103 pass); `PASSIONCODE_VENDOR_CLONE=1 npm run vendor:release` → exit 0
+  (adapter 0.6.3 @ `v0.6.3`, observatory-log 0.15.0 @ `v0.15.0`, passioncode 0.1.28);
+  `claude plugin validate ./payload --strict` → passed; payload removed.
+
+Next task: release 0.1.28 through the release flow (PC-11: tag `v0.1.28`, CI, the operator's approval),
+then PC-10 once fabric-agent-adapter tags `v0.7.0` (its FAA-06).
