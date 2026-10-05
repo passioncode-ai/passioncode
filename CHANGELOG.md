@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.29 - 2026-10-05
+
+### Changed
+
+- **Observatory Log is pinned at `v0.17.3`** (plugin 0.17.3; it was `v0.16.0`). Its
+  SessionStart hook keeps Project Observatory current:
+  - for an engine at 0.17.0 or later, it schedules the engine's hourly maintenance job where
+    it is missing;
+  - for an engine from 0.7.0 to 0.16.0, which has no updater of its own, it installs the newer
+    release once a day with that engine's `full update --apply`, unless the person turned
+    automatic updates off.
+
+  Both run detached, at most every six hours or once a day, and never hold up a session.
+
 ## 0.1.28 - 2026-10-05
 
 The launcher meets the organization's
