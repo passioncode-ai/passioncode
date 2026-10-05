@@ -4,7 +4,7 @@
 
 ### Changed
 
-- **Observatory Log is pinned at `v0.17.2`** (plugin 0.17.2; it was `v0.16.0`). Its
+- **Observatory Log is pinned at `v0.17.3`** (plugin 0.17.3; it was `v0.16.0`). Its
   SessionStart hook keeps Project Observatory current:
   - for an engine at 0.17.0 or later, it schedules the engine's hourly maintenance job where
     it is missing;
