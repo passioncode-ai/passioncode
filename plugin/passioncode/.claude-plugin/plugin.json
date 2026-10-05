@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "passioncode",
   "displayName": "PassionCode.ai",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "description": "The organisation's working rules for every contributor's agent (working-in-passioncode), and a once-a-day check at session start that keeps the PassionCode.ai skill set current.",
   "author": {
     "name": "PassionCode.ai",
