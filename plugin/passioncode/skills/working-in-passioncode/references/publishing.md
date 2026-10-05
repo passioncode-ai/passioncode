@@ -14,7 +14,7 @@ change to a license, a manifest's `license` field, `CLA.md` or a PR template.
 ## The license, file by file
 
 Every repository is open source under the GNU AGPL-3.0, or available under a commercial
-license from PassionCode.ai (contact@passioncode.ai): SPDX
+license from PassionCode.ai (https://passioncode.ai/business/, commercial@passioncode.ai): SPDX
 `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric ADR-0092). The owning page is the
 knowledge base's `licensing.md`; the file list is its `repository-standard.md`, and org-index
 `scripts/check_format.py` (rules F7–F11) checks it. The three licence files are **copied byte
@@ -47,14 +47,15 @@ for byte** from the knowledge base's `templates/` — never retyped, reflowed or
   ## License
 
   Open source under the [GNU AGPL-3.0](LICENSE). A [commercial license](COMMERCIAL-LICENSE.md) is
-  available for use that does not meet the AGPL's terms — contact@passioncode.ai.
+  available for use that does not meet the AGPL's terms — [passioncode.ai/business](https://passioncode.ai/business/).
   Versions before <first AGPL version> were released under <MIT | PolyForm Noncommercial or Internal Use>.
   ```
 
 - "Source-available" and the PolyForm expression describe past releases only; never state
   them as the current licence.
 - No price or term for the commercial licence is stated anywhere; point to
-  contact@passioncode.ai.
+  https://passioncode.ai/business/ (commercial@passioncode.ai is the commercial contact). Security
+  reports stay at contact@passioncode.ai.
 - Positioning and names come from the knowledge base (`vision.md`, `principles.md` §2); do not
   restate a tagline from memory.
 
