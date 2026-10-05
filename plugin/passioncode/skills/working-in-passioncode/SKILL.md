@@ -152,16 +152,18 @@ Fabric's workspace sync, and check the published source commit before calling it
 ## 6. Licensing and the repository standard
 
 - **Every repository** is open source under the GNU AGPL-3.0, or available under a commercial
-  license from PassionCode.ai (contact@passioncode.ai):
-  `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric ADR-0092; the knowledge base
-  `licensing.md` owns it). Copyright: Siarhei Sheleh. No price or term is stated anywhere.
+  license from PassionCode.ai — the request form https://passioncode.ai/business/, or
+  commercial@passioncode.ai: `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric
+  ADR-0092; the knowledge base `licensing.md` owns it). Copyright: Siarhei Sheleh. No price or
+  term is stated anywhere; every commercial path points to the form. Security reports stay at
+  contact@passioncode.ai.
 - `LICENSE`, `COMMERCIAL-LICENSE.md` and `CLA.md` are copied **byte for byte** from the knowledge
   base's `templates/`; every manifest and SKILL.md `license:` carries the expression.
 - A version released earlier keeps its licence — MIT or PolyForm Noncommercial or Internal Use —
   and the README may say which. Never write that a released version changed.
 - The README's `## License` section uses the knowledge base wording and names the earlier
   licences: "Open source under the GNU AGPL-3.0. A commercial license is available for use that
-  does not meet the AGPL's terms — contact@passioncode.ai."
+  does not meet the AGPL's terms — [passioncode.ai/business](https://passioncode.ai/business/)."
 - Contributions are accepted under the repository's `CLA.md`; opening a pull request is the
   agreement, so a PR template never carries a CLA checkbox.
 - **The repository standard** (the knowledge base `repository-standard.md`): README first heading

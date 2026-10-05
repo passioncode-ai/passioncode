@@ -115,7 +115,7 @@ reads a member from `<dir>/<repository name>`, and `PASSIONCODE_CHECKOUT_<MEMBER
 ## License
 
 Open source under the [GNU AGPL-3.0](LICENSE). A [commercial license](COMMERCIAL-LICENSE.md) is
-available for use that does not meet the AGPL's terms — contact@passioncode.ai.
+available for use that does not meet the AGPL's terms — [passioncode.ai/business](https://passioncode.ai/business/).
 Versions before 0.1.12 were released under PolyForm Noncommercial or Internal Use (v0.1.5 to
 v0.1.11) and MIT (v0.1.4 and earlier); each keeps the licence it was released under.
 Contributions are accepted under [CLA.md](CLA.md) ([CONTRIBUTING.md](CONTRIBUTING.md)).

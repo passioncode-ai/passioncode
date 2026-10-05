@@ -39,7 +39,7 @@
       "trap": "a README still called a relicensed product source-available under PolyForm after Fabric ADR-0092, or said a released PolyForm version became AGPL",
       "request": "Update the Switchboard README's license section.",
       "expected": [
-        "uses the knowledge base wording: open source under the GNU AGPL-3.0, a commercial license for use that does not meet its terms, contact@passioncode.ai",
+        "uses the knowledge base wording: open source under the GNU AGPL-3.0, a commercial license for use that does not meet its terms, https://passioncode.ai/business/",
         "names the SPDX expression AGPL-3.0-only OR LicenseRef-PassionCode-Commercial",
         "names which earlier versions were released under PolyForm or MIT and says they keep that licence",
         "checks that LICENSE, COMMERCIAL-LICENSE.md and CLA.md are byte for byte the knowledge base templates",

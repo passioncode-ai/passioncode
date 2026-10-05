@@ -14,7 +14,7 @@ const SPDX = 'AGPL-3.0-only OR LicenseRef-PassionCode-Commercial';
 const FIRST_AGPL_VERSION = '0.1.12';
 const TEMPLATE_SHA256 = {
   LICENSE: '0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0',
-  'COMMERCIAL-LICENSE.md': '9bd2312a9dc20d13aab5af26d63d943aa03c304febf42a32160a205496a9155f',
+  'COMMERCIAL-LICENSE.md': '893b4bb9e4597b19b178ad69f56b799b4e5d468463ecb2d05ab05f0eee92804a',
   'CLA.md': 'cf44ce2b052fd75e9ef48f8124fb6eed71513c9152aac90eede0a2132951e408',
 };
 const read = (f) => fs.readFileSync(path.join(ROOT, f));
@@ -40,8 +40,9 @@ test('the README follows the standard: the name, the quick start, the licensing 
   assert.match(readme, /^## Quick start for a new teammate$/m);
   const section = readme.split(/^## License$/m)[1] || '';
   for (const needle of ['Open source under the [GNU AGPL-3.0](LICENSE).', '[commercial license](COMMERCIAL-LICENSE.md)',
-    'contact@passioncode.ai', `Versions before ${FIRST_AGPL_VERSION} were released under`]) {
+    'https://passioncode.ai/business/', `Versions before ${FIRST_AGPL_VERSION} were released under`]) {
     assert.ok(section.includes(needle), `## License carries ${JSON.stringify(needle)}`);
   }
   assert.doesNotMatch(readme, /Source-available under|license-source--available/i, 'the retired licence is not stated as current');
+  assert.ok(!section.includes('contact@passioncode.ai'), 'the commercial pointer is the business form, not the security address (operator decision 2026-10-05)');
 });

@@ -137,6 +137,9 @@ for (const name of fs.existsSync(SKILLS) ? skills() : []) {
     assert.match(flat, /before the first edit/i);
     assert.match(flat, /update the (knowledge base )?page (here )?that owns/i, 'after the work, the page that owns a changed cross-repository fact');
     assert.match(flat, /AGPL-3\.0-only OR LicenseRef-PassionCode-Commercial/, 'the licence expression, exactly');
+    assert.match(flat, /https:\/\/passioncode\.ai\/business\//, 'the commercial path is the business form (operator decision 2026-10-05)');
+    assert.match(flat, /commercial@passioncode\.ai/, 'the commercial contact address');
+    assert.doesNotMatch(flat, /PassionCode\.ai \(contact@passioncode\.ai\)/, 'contact@ is the security address, not the commercial one');
   });
 
   test(`${name}: trigger and scenario evals exist and are balanced`, () => {
