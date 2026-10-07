@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.30 - 2026-10-07
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.8.0`** (it was `v0.6.3`). Its service kit meets the
+  organization's lifecycle contract (0.7.0: a launchd install respects an operator's disable, an
+  `ExitTimeOut` default), agents can report what they spend (`make_usage_receipt`, `usage_report`,
+  Fabric Agent Contract DEC-0021), and a service may keep its MCP credential apart from the host's
+  token (DEC-0024). Bundles issued under the earlier contract revisions stay valid.
+- **Observatory Log is pinned at `v0.18.0`** (plugin 0.18.0; it was `v0.17.3`), the Project
+  Observatory 0.18.0 skills. That release installs only updates whose `SHA256SUMS` is signed by
+  the organization's release key, so the hook's daily update of an older engine now refuses an
+  unsigned or foreign-signed release instead of installing it.
+
 ## 0.1.29 - 2026-10-05
 
 ### Changed
