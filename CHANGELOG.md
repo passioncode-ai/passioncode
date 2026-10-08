@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.31 - 2026-10-08
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.8.1`** (it was `v0.8.0`). Its default contract pin moves to Fabric
+  Agent Contract `main` `623bf61` (DEC-0025 through DEC-0031: settings backups, runner routes, spending limits,
+  activity telemetry, devices — optional surfaces the kits do not emit yet), and `Mcp-Name` values outside plain
+  ASCII use the MCP 2026-07-28 Base64 sentinel. Bundles issued under the earlier contract revisions stay valid.
+
 ## 0.1.30 - 2026-10-07
 
 ### Changed
