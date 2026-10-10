@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.32 - 2026-10-10
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.8.3`** (it was `v0.8.1`). Its default contract pin moves to Fabric
+  Agent Contract `main` `52da526` (DEC-0032 through DEC-0035). `creating-fabric-agents` and
+  `adapting-projects-to-fabric` now propose an agent's own operator channel (`fabric-operator-channel/0.1`, rule
+  OC-11) once, when the agent has human stops or `notify: true` events: they list the operator's steps, record
+  the answer (`accepted`, `declined` or `later`) and never create a bot, store a token or enable the channel
+  themselves. For a channel bound in a group shared with other bots they name rules OC-14 through OC-17 (silent
+  unless addressed; a bare `/command` is not addressed). The Python service kit runs on Windows and Linux
+  (`systemd` and `task-scheduler` managers, Windows paths and token files). Bundles issued under the earlier
+  contract revisions stay valid.
+
 ## 0.1.31 - 2026-10-08
 
 ### Changed
