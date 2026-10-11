@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.33 - 2026-10-11
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.9.0`** (it was `v0.8.3`). `building-fabric-services` ships the dashboard
+  kit for `fabric-dashboard/0.1` (Fabric Agent Contract DEC-0036): one stylesheet and one script that keep a
+  service's dashboard usable from 360 CSS px inside a host pane beside the agent console, seven WCAG AA themes in
+  light and dark that follow the host's `fabric_appearance` cookie, `dashboard_kit.py`, the layout probe
+  `check_dashboard_layout.mjs` and the probe rule `dashboard.declared`. The adapter plugin gains its first hook:
+  at session start it prints one line in a repository whose dashboard has no kit or an older one, and nothing
+  elsewhere. The default contract pin moves to `a83bec6`; bundles issued under the earlier revisions stay valid.
+
 ## 0.1.32 - 2026-10-10
 
 ### Changed
