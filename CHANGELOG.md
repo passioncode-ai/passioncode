@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.35 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.11.1`** (it was `v0.10.0`). A service built with the kit can now check a
+  delegation token and an operator's approval offline, in Python and Node, with the same answers as the Fabric Agent
+  Contract's own verifier (DEC-0039). It can put a gate in front of its MCP tools, so each call names the person it
+  is for, the calling agent and the chain, and an approval is used once. The Node kit refuses small-order Ed25519
+  keys itself (Node 20 and 22 accepted a forged signature under one). The contract pin is unchanged at `8e49fbd`.
+
 ## 0.1.34 - 2026-10-11
 
 ### Changed
