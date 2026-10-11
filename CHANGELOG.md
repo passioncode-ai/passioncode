@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.36 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.12.0`** (it was `v0.11.1`). The kit follows Fabric Agent Contract up to
+  DEC-0045. The delegation verifiers are sealed as the contract specifies: the trusted issuer is required, a
+  small-order key is refused as the issuer's fault, and claims are typed strictly. The operator's own machines need no
+  token (trust tiers). The canonical JSON vectors are shared with the contract, and a provider entry may say where its
+  stdio server starts (never once per session). The contract pin is `2eb91c0`.
+
 ## 0.1.35 - 2026-10-12
 
 ### Changed
