@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.34 - 2026-10-11
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.10.0`** (it was `v0.9.0`). A security fix from Fabric Agent Contract
+  DEC-0039: a service built with the kit now ends an operator's dashboard session on the server. A session
+  ends 12 h after it was last used, 7 days after sign-in, on logout, or when the service token rotates.
+  Before, it lasted as long as a 30-day cookie, and the server checked only its signature. Operators sign in once more after a
+  service upgrades; the host does it on the page's 401. The conformance probe treats `surfaces.mcp.auth:
+  "delegation"` like `own` (DL-16) and checks the session cookie's lifetime. The default contract pin moves to
+  `8e49fbd`; bundles issued under the earlier revisions stay valid.
+
 ## 0.1.33 - 2026-10-11
 
 ### Changed
