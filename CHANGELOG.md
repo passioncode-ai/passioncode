@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.44 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.20.0`** (it was `v0.19.0`). Fabric Agent Adapter 0.20.0 (FAA-11): runner routes in both service kits — the doctor reports each runner's state with the contract's closed probe results (not-installed, not-responding, not-connected), and a service checks a runner route, the bundle a host pins and every route event against FAC-SEM-028…034, answering the contract's own rules.
+
 ## 0.1.43 - 2026-10-12
 
 ### Changed
