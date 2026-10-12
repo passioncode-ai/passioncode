@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.47 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.23.0`** (it was `v0.21.0`). It brings two adapter releases.
+  - **0.22.0 (FAA-12a)** adds the fourth skill, `working-with-fabric`, with the plugin's session hooks. A coding agent opened in a terminal can then work in a project through Fabric's project board.
+  - **0.23.0 (FAA-32)** moves the adapter's contract pin to `fe55fc6`:
+    - a service's supervisor can mark itself with an argument as well as the environment. The Task Scheduler and Project Observatory's node are now recognised, and markers that disagree stop the service before it takes its lock;
+    - a delegation key the estate record certifies follows the contract's verdict and refusal codes;
+    - an estate record may be issued up to 60 s ahead of the clock, and its passkey must sign under a `sign.<domain>` RP;
+    - Windows token files are checked against the contract's reader rule.
+
 ## 0.1.46 - 2026-10-12
 
 ### Added
