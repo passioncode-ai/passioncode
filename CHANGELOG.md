@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.42 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.18.0`** (it was `v0.17.0`). Fabric Agent Adapter 0.18.0 (FAA-21): both service kits write and install the Linux and Windows supervisors — a systemd user unit and a per-user Scheduled Task, byte-identical between the kits, never carrying a secret, an upgrade restarting what runs while the operator's off stays off. The Node kit runs on Windows: the folders, descriptor validation at parity with Python, the token file's protected ACL and a named-pipe instance lock; the two kits now exclude each other on every system and the conformance probe sees a Node service's lock.
+
 ## 0.1.41 - 2026-10-12
 
 ### Changed
