@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.41 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.17.0`** (it was `v0.16.0`). The organisation's lifecycle rules LC-19 and LC-21 are now enforced by the adapter's checks. No plugin may start a stdio MCP server in every session, and no credential may appear in argv or a URL query. The checks are in adapt_project.py check, fabric_provider.py and the adapter's own validate gate.
+
 ## 0.1.40 - 2026-10-12
 
 ### Changed
