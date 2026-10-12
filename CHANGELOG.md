@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.43 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.19.0`** (it was `v0.18.0`). Fabric Agent Adapter 0.19.0 (FAA-13): both service kits keep settings backups of what the operator decided — outside the data directory, byte-identical between the kits, restored only into a fresh database and never over a row — list every spending limit a service applies in its usage report, and send the service token in the header the descriptor declares.
+
 ## 0.1.42 - 2026-10-12
 
 ### Changed
