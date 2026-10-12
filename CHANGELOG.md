@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`update` registers the Fabric Dashboards MCP server for every agent that is present**
+  (`fabric-dashboards`, stdio, the app bundle's `bin/fabric-dashboards-mcp`): Claude Code
+  through `claude mcp add --scope user`, Codex CLI as a `["mcp_servers"."fabric-dashboards"]`
+  table appended to `~/.codex/config.toml`, Gemini CLI and Kimi Code in the `mcpServers` of
+  `~/.gemini/settings.json` and `$KIMI_CODE_HOME/mcp.json`. A machine without the app skips
+  the step; an entry that already points at the same command is left alone, and one that
+  points elsewhere, or is declared in a form the launcher does not edit, is reported and
+  kept. Each registration is journalled before the file changes and removed again by
+  `restore` and `uninstall` only while it is still exactly what the launcher wrote
+  ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md)).
+
 ## 0.1.45 - 2026-10-12
 
 ### Changed

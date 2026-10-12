@@ -55,6 +55,12 @@ out of it, even when they implement Fabric protocols.
   `~/.passioncode/quarantine/` — `npx @passioncode-ai/passioncode@latest restore` puts them back.
 - Each version is an immutable release under `~/.passioncode/releases/<version>`; an update
   keeps the release it replaced for rollback and removes older ones.
+- When the Fabric Dashboards app is installed, `update` also registers its MCP server
+  (`fabric-dashboards`) for every agent that is present — Claude Code (through
+  `claude mcp add --scope user`), Codex CLI (`~/.codex/config.toml`), Gemini CLI
+  (`~/.gemini/settings.json`) and Kimi Code (`~/.kimi-code/mcp.json`). An entry that
+  already points at the same command is left alone; one that points elsewhere is reported
+  and kept. `restore` and `uninstall` remove what the launcher added.
 
 ## Staying current
 
