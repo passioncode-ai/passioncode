@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.45 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.21.0`** (it was `v0.20.0`). Fabric Agent Adapter 0.21.0 (FAA-31): both service kits verify the operator's signed estate record (estate-record/1, contract DEC-0055) — the chain of revisions, the passkey's WebAuthn assertion checked offline, the 30-day window and the record's rules — and a delegation gate given the current record trusts a token's key only while that record certifies it. The adapter now pins contract b291bf0.
+
 ## 0.1.44 - 2026-10-12
 
 ### Changed
