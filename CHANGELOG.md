@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.38 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.14.0`** (it was `v0.13.0`). The kit's contract pin now includes DEC-0046
+  (runner and model profiles) and CT-31: a delegation token without an actor chain is refused, never thrown. The
+  contract pin is `0cacd08`.
+
 ## 0.1.37 - 2026-10-12
 
 ### Changed
