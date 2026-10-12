@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.39 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.15.0`** (it was `v0.14.0`). The dashboard kit ships Fabric's button (contract DEC-0040, FB-7). It is one floating menu button that opens Fabric on the service, with links built from the contract's grammar. It hides itself when the host draws its own and says how to get Fabric when Fabric is absent. Dashboard kit 1.1.0.
+
 ## 0.1.38 - 2026-10-12
 
 ### Changed
