@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.37 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.13.0`** (it was `v0.12.0`). The scaffolder now requires every capability's
+  effect class (`--effect`) and never defaults it. It writes the capability's idempotency and the manifest's cost
+  presets (`--cost-preset`, DEC-0037), which are fixed options a launcher offers when a run's cost varies.
+
 ## 0.1.36 - 2026-10-12
 
 ### Changed
