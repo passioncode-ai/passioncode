@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.40 - 2026-10-12
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.16.0`** (it was `v0.15.0`). Runner and model profiles in both kits (contract DEC-0046). The kit resolves the model profile in the contract's order within the project's model classes and declares what applies in the well-known configuration, with Runner and Model tiles. It checks the runner and model in the doctor and records the route on usage. The contract's credential detector is ported.
+
 ## 0.1.39 - 2026-10-12
 
 ### Changed
