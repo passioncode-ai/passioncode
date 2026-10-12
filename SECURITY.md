@@ -11,7 +11,12 @@ that replaces it is verified. For a member's old single-member marketplace
 (`legacyMarketplaces` in `family.json`), once that plugin is verified and nothing else
 installed comes from it, it also moves the `extraKnownMarketplaces` entry out of
 `~/.claude/settings.json` (a copy of the file is kept in the quarantine) and runs
-`claude plugin marketplace remove <name>`. Displaced files are moved rather than
+`claude plugin marketplace remove <name>`. When the Fabric Dashboards app is installed it
+also registers a `fabric-dashboards` MCP entry for every agent that is present: through
+`claude mcp add --scope user` for Claude Code (it never writes `~/.claude.json` itself),
+and in `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`,
+copying each existing file into the quarantine first; an entry that already exists is
+left alone and reported. Displaced files are moved rather than
 deleted: a recovery record is written before the move in
 `~/.passioncode/quarantine/<run>/moved.json`. `restore` processes the latest batch,
 checkpoints completed entries and refuses to overwrite a conflicting user replacement.

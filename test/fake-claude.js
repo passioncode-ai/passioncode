@@ -5,6 +5,9 @@
 //   marketplace add <dir|owner/repo>  registers it AND declares it in settings.json
 //   marketplace remove <name>         drops both; "not found" (exit 1) when unregistered
 //   marketplace list --json           [{ name, source, ... }]
+//   mcp add --scope user <name> -- <command>   writes { type: 'stdio', command, args, env } to
+//                                              ~/.claude.json mcpServers, keeping the rest
+//   mcp remove --scope user <name>             drops it; exit 1 when there is none
 const fs = require('fs');
 const path = require('path');
 const home = process.env.HOME;
@@ -20,6 +23,21 @@ const readSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFil
 const writeSettings = (v) => { if (v) fs.writeFileSync(settingsFile, JSON.stringify(v, null, 2)); };
 if (args[0] === '--version') { console.log('2.1.0 (Claude Code)'); process.exit(0); }
 if (process.env.FAKE_CLAUDE_FAIL && args.join(' ').includes(process.env.FAKE_CLAUDE_FAIL)) { console.error('simulated failure'); process.exit(1); }
+if (args[0] === 'mcp') {
+  const claudeJson = path.join(home, '.claude.json');
+  const doc = (() => { try { return JSON.parse(fs.readFileSync(claudeJson, 'utf8')); } catch (_) { return {}; } })();
+  const rest = args.slice(2).filter((x, i, all) => x !== '--scope' && all[i - 1] !== '--scope');
+  if (args[1] === 'add') {
+    const [name, dash, command, ...cmdArgs] = rest;
+    if (dash !== '--' || !command) { console.error('usage'); process.exit(1); }
+    doc.mcpServers = { ...(doc.mcpServers || {}), [name]: { type: 'stdio', command, args: cmdArgs, env: {} } };
+  } else if (args[1] === 'remove') {
+    if (!doc.mcpServers || !doc.mcpServers[rest[0]]) { console.error(`No MCP server found with name: ${rest[0]}`); process.exit(1); }
+    delete doc.mcpServers[rest[0]];
+  }
+  fs.writeFileSync(claudeJson, JSON.stringify(doc, null, 2));
+  process.exit(0);
+}
 const known = read('known_marketplaces.json', {});
 const installed = read('installed_plugins.json', { version: 2, plugins: {} });
 const [, verb, a, b] = args;

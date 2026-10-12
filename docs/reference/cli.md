@@ -14,8 +14,8 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 |---|---|---|---|
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
-| `restore` | `--json` | Array of restored paths/marketplace descriptions | Restore the latest quarantine batch; retry unfinished entries |
-| `uninstall` | `--json` | Array of removed links/plugin IDs | Remove owned links/plugins, clear active release, disable auto-update |
+| `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
+| `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
