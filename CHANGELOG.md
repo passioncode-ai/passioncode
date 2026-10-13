@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.50 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.26.0`** (it was `v0.25.0`). Fabric Agent Adapter 0.26.0 (FAA-35, FAA-37): a service's feed events can carry machine-readable data next to their sentence. That data is refused if it holds a credential. A service can also list the protocol revisions it accepts, and refuses any other revision with `schema-unsupported`. The contract pin stays a046f57.
+
 ## 0.1.49 - 2026-10-13
 
 ### Changed
