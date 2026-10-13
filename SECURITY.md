@@ -3,7 +3,7 @@
 Report vulnerabilities privately to contact@passioncode.ai. Do not open an issue that
 carries credentials or a working exploit.
 
-What `passioncode update` touches: `~/.passioncode/` (releases, state, quarantine,
+What `passioncode update` touches (setup and doctor: [below](#what-setup-and-doctor-touch)): `~/.passioncode/` (releases, state, quarantine,
 logs); Claude Code's plugin registry through the `claude plugin` CLI only;
 `~/.agents/skills/<member skill>` and `<agent channel>/<member skill>` links; and
 `~/.claude/skills/<member skill>`, which it moves into the quarantine once the plugin
@@ -11,8 +11,9 @@ that replaces it is verified. For a member's old single-member marketplace
 (`legacyMarketplaces` in `family.json`), once that plugin is verified and nothing else
 installed comes from it, it also moves the `extraKnownMarketplaces` entry out of
 `~/.claude/settings.json` (a copy of the file is kept in the quarantine) and runs
-`claude plugin marketplace remove <name>`. When the Fabric Dashboards app is installed it
-also registers a `fabric-dashboards` MCP entry for every agent that is present: through
+`claude plugin marketplace remove <name>`. For each installed app with an MCP server in its
+bundle (Fabric Dashboards, Fabric, Fabric Switchboard) it also registers that entry for every
+agent that is present: through
 `claude mcp add --scope user` for Claude Code (it never writes `~/.claude.json` itself),
 and in `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`,
 copying each existing file into the quarantine first; an entry that already exists is
@@ -25,6 +26,25 @@ automatic updates; it retains the current and previous release copies and recove
 records. Each update removes the launcher's own older releases (its output, reinstallable
 from npm) and keeps the one it replaced for rollback. A failed removal
 returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.md).
+
+## What `setup` and `doctor` touch
+
+`doctor` reads: `~/.claude.json`, `~/.codex/config.toml`, `~/.gemini/settings.json`,
+`~/.kimi-code/mcp.json` (entry names, commands and arguments; environment values are passed to
+the server it starts and never printed), the Fabric service descriptors (never their token
+files), the apps' `Info.plist`, and the GitHub releases API. It starts each registered stdio MCP
+server for one proving call and stops it, and writes only `~/.passioncode/doctor.json` and a
+release cache.
+
+`setup` also downloads releases from GitHub into `~/.passioncode/downloads/` (removed after
+each app), copies a verified app into `/Applications`, moves an app it replaces into `~/.Trash/`,
+runs `update` (above), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
+descriptor names launchd and that does not answer, and opens the apps it installed. It never
+stops or kills a process, never replaces a running app, never asks for or stores a secret, and
+never installs a byte whose signature, checksum, team or notarization does not verify. The trust
+root is the release key bundled at `lib/release-key.asc`, pinned by fingerprint in
+`lib/openpgp.js`; a new key needs a launcher release. `PASSIONCODE_RELEASE_KEY` replaces it for
+tests and is named in setup's output whenever it is set.
 
 ## The self-update and who it trusts
 

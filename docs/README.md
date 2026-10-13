@@ -4,12 +4,13 @@
 |---|---|---|
 | Install and run | [Project README](../README.md) | `bin/passioncode.js`, `family.json` |
 | Command results, failure recovery, state | [CLI contract](reference/cli.md) | `lib/launcher.js`, `test/launcher.test.js` |
+| Set up or check a computer: setup, doctor, the copy-prompt | [CLI contract — setup and doctor](reference/cli.md#setup-and-doctor), [README](../README.md#set-it-up-with-your-coding-agent) | `lib/setup.js`, `lib/doctor.js`, `test/setup.test.js` |
 | Automatic-update trust and filesystem effects | [Security](../SECURITY.md) | `plugin/passioncode/hooks/`, `trust.json` |
 | Contribute or release | [Contributing](../CONTRIBUTING.md) | Tests and `.github/workflows/` |
 | User paths and wording | [Scenarios](ux/scenarios.md), [copy pack](brand/README.md) | Named regression coverage and CLI source |
 | Coordinate work | [Generated coordination snapshot](AGENT_SYNC.md) | `.claude/agent-sync.json` and the live tool |
 | Resume the latest audit | [Audit handoff](handoffs/2026-10-01-launcher-audit.md) | Exact source commits and command receipts |
-| Understand architecture decisions | [Launcher shape](adr/0001-launcher-shape.md), [publisher trust](adr/0002-self-update-trusts-named-publishers.md) | Append-only historical decisions |
+| Understand architecture decisions | [Launcher shape](adr/0001-launcher-shape.md), [publisher trust](adr/0002-self-update-trusts-named-publishers.md), [MCP registration](adr/0003-fabric-dashboards-mcp-registration.md), [setup and doctor](adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md) | Append-only historical decisions |
 
 Current operational docs are README, SECURITY, CONTRIBUTING, this index and the
 CLI contract. Historical ADRs and dated handoffs describe the state at their

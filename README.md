@@ -1,38 +1,63 @@
 # PassionCode.ai launcher
 
-The **PassionCode.ai launcher** (`@passioncode-ai/passioncode` on npm) installs and updates the
-PassionCode.ai skills and plugins listed in [`family.json`](family.json) — the Fabric Agent Adapter,
-Observatory Log and the organization's working rules — for Claude Code and every other agent on your machine, as one set.
-It is how a teammate's agent gets the tools that build for Fabric, PassionCode.ai's CEO AI agent,
-and it works on its own: no Fabric install, no account, no key.
+The **PassionCode.ai launcher** (`@passioncode-ai/passioncode` on npm) sets up PassionCode.ai on a
+computer with one command: the apps (Fabric, Fabric Switchboard, Fabric Dashboards, Fabric Inbox,
+Project Observatory) from their signed releases, their MCP servers for every coding agent on it,
+and the PassionCode.ai skills listed in [`family.json`](family.json). Run the same command on a
+computer that is already set up, and it checks everything, repairs what is wrong and tells you
+what changed.
 
 ```bash
-npx @passioncode-ai/passioncode@latest update
+npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
+npx @passioncode-ai/passioncode@latest doctor    # check only; changes nothing
 ```
 
 | Member | Skills |
 |---|---|
 | Fabric Agent Adapter | `creating-fabric-agents`, `adapting-projects-to-fabric`, `building-fabric-services` |
 | Observatory Log | `explaining-changes`, `handling-secrets`, `tracking-resources` (+ its session hooks) |
-| passioncode | `working-in-passioncode` (the organisation's working rules, for every contributor's agent) and the once-a-day update check |
+| passioncode | `setting-up-passioncode` (set up and check a computer), `working-in-passioncode` (the organisation's working rules, for every contributor's agent) and the once-a-day update check |
 
 Only PassionCode.ai products are members. Agents that people build for themselves stay
 out of it, even when they implement Fabric protocols.
 
+## Set it up with your coding agent
+
+Paste this into Claude Code, Codex or another coding agent:
+
+> Set up PassionCode.ai on this computer, or check and repair it if it is already set up. Run
+> `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` (it needs Node 18 or newer)
+> and read its JSON: it installs the missing apps from their signed releases, the skills and
+> every MCP server, repairs whatever is wrong, and checks everything again. Do not download or
+> install anything by hand, and never stop or kill a running app. Then run each product
+> onboarding step it lists that an agent may run, never ask me for a key or password in the
+> chat (the tools open their own hidden prompts), and finish with
+> `npx --yes @passioncode-ai/passioncode@latest doctor`. Tell me briefly what you set up or
+> fixed, what still fails, and the numbered steps only I can do, such as signing in, and
+> remind me to restart you so the new skills and MCP servers load.
+
+Once the skills are installed, "set me up" or "check my setup" is enough: the
+`setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
+secret into a product's own hidden prompt, starting Docker for Fabric, and restarting your agent.
+
 ## Quick start for a new teammate
 
 1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
-   `npx @passioncode-ai/passioncode@latest update`, then restart your agents. Check it with
-   `npx @passioncode-ai/passioncode@latest status` (every member `claude: plugin · hub: n/n`) and
-   `claude plugin list` (the plugins listed in `family.json`, under `@passioncode`).
-   Always call the scoped package shown above.
+   `npx @passioncode-ai/passioncode@latest setup`, then restart your agents. In a terminal it asks
+   one question per app; `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
+   (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`), `--no-apps` sets up the skills
+   and MCP only, `--dry-run` shows the plan. Apps are installed on macOS; on other systems setup
+   names each download page. Skills only: `npx @passioncode-ai/passioncode@latest update`.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
-   `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off.
-3. **MCP:** none today, and not planned. The launcher installs skills and session hooks and is
-   driven by its CLI (`update`, `status`, `restore`, `uninstall`, `config`); it neither serves nor
-   calls an MCP server. The products it installs for, and the ones that serve MCP (Fabric
-   Switchboard, Fabric Inbox, Fabric Dashboards), document their own registration and proving
-   call; the Fabric Agent Adapter's quick start builds and calls one.
+   `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. Each app's
+   own onboarding (sign-ins, Fabric Inbox's server, Observatory's projects) is listed by `setup`.
+3. **MCP:** the launcher serves no MCP server of its own. It registers the apps' servers —
+   `fabric-dashboards`, `fabric` (`fabric-mcp --runner <agent>`) and `switchboard`
+   (`switchboard mcp`) — for Claude Code, Codex CLI, Gemini CLI and Kimi Code, and `doctor` proves
+   each one with a real call: `initialize`, `tools/list`, then `list_services`,
+   `switchboard_accounts` or `observatory_status` (Fabric: `initialize` only — your agent's
+   `fabric_whoami` is the first real call). Project Observatory and Fabric Inbox register their
+   own servers through their onboarding; `doctor` checks those too.
 4. **Develop:** clone, then `npm test` — there are no dependencies and no lockfile, so there is
    nothing to install (`npm ci` refuses to run here). `npm run vendor` builds `payload/` from the
    members pinned in `family.json`; `claude plugin validate ./payload --strict` checks it. Start
@@ -55,12 +80,33 @@ out of it, even when they implement Fabric protocols.
   `~/.passioncode/quarantine/` — `npx @passioncode-ai/passioncode@latest restore` puts them back.
 - Each version is an immutable release under `~/.passioncode/releases/<version>`; an update
   keeps the release it replaced for rollback and removes older ones.
-- When the Fabric Dashboards app is installed, `update` also registers its MCP server
-  (`fabric-dashboards`) for every agent that is present — Claude Code (through
-  `claude mcp add --scope user`), Codex CLI (`~/.codex/config.toml`), Gemini CLI
-  (`~/.gemini/settings.json`) and Kimi Code (`~/.kimi-code/mcp.json`). An entry that
-  already points at the same command is left alone; one that points elsewhere is reported
-  and kept. `restore` and `uninstall` remove what the launcher added.
+- `update` (and therefore `setup`) registers the MCP server inside each installed app — Fabric
+  Dashboards (`fabric-dashboards`), Fabric (`fabric`, with each agent's own `--runner`) and Fabric
+  Switchboard (`switchboard`, unless Claude Code already gets it from the `switchboard` plugin) —
+  for every agent that is present: Claude Code (through `claude mcp add --scope user`), Codex CLI
+  (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
+  (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
+  is reported and kept. `restore` and `uninstall` remove what the launcher added
+  ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
+  [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
+
+## Setup and doctor
+
+`setup` checks first, then installs the absent apps you chose, repairs what the checks found,
+checks again and prints a before → after table and the steps that stay yours. On a healthy
+computer it changes nothing and exits 0. An app is installed only after its release's
+`SHA256SUMS.asc` verifies against the PassionCode.ai release key bundled in this package
+(fingerprint `63B3 0DC3 24BD 6974 87AA 3194 4FAF B8AE C803 B6A7`), the file matches the signed
+checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35UYYL22`, has its
+notarization ticket stapled and is accepted by Gatekeeper. An outdated or damaged app is
+reinstalled only when it is not running; the old one goes to the Trash. A family service that
+does not answer is started through launchd (`launchctl kickstart`, never a kill).
+
+`doctor` changes nothing. It reads prerequisites, the skill set, each app's version, signature
+and team, each agent's MCP entries with one proving call per server, and the Fabric services of
+the family; each line names its state and its fix. Exit codes: **0** no check failed, **1** a
+check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without
+installing new apps. Details: the [CLI contract](docs/reference/cli.md#setup-and-doctor).
 
 ## Staying current
 

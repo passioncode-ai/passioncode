@@ -128,6 +128,60 @@
       "file": "test/launcher.test.js",
       "test": "uninstall refuses a successful CLI result that leaves the plugin registered",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-22",
+      "file": "test/setup.test.js",
+      "test": "a new machine: setup --yes installs the verified apps, the skills and every MCP server, then lists the person\\'s steps",
+      "scenario": "SCN-008"
+    },
+    {
+      "id": "AUD-23",
+      "file": "test/setup.test.js",
+      "test": "without a terminal and without --yes, setup prints the plan and changes nothing",
+      "scenario": "SCN-008"
+    },
+    {
+      "id": "AUD-24",
+      "file": "test/setup.test.js",
+      "test": "an existing broken setup: setup repairs, checks again and prints before → after",
+      "scenario": "SCN-009"
+    },
+    {
+      "id": "AUD-25",
+      "file": "test/setup.test.js",
+      "test": "doctor is read-only and exits 1 on a problem; doctor --fix repairs but installs and opens nothing",
+      "scenario": "SCN-010"
+    },
+    {
+      "id": "AUD-26",
+      "file": "test/setup.test.js",
+      "test": "a proving call that fails is a failed check that names the fix",
+      "scenario": "SCN-010"
+    },
+    {
+      "id": "AUD-27",
+      "file": "test/openpgp.test.js",
+      "test": "one changed byte in SHA256SUMS fails the signature",
+      "scenario": "SCN-011"
+    },
+    {
+      "id": "AUD-28",
+      "file": "test/openpgp.test.js",
+      "test": "a well-formed signature by any other key is refused and names the signer",
+      "scenario": "SCN-011"
+    },
+    {
+      "id": "AUD-29",
+      "file": "test/skill.test.js",
+      "test": "setting-up-passioncode drives the launcher, never a hand-made install",
+      "scenario": "SCN-012"
+    },
+    {
+      "id": "AUD-30",
+      "file": "test/self-update.test.js",
+      "test": "session start names the failures of the last saved setup check, and is silent when it passed",
+      "scenario": "SCN-013"
     }
   ]
 }
