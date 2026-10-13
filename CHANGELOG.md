@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.52 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.28.0`** (it was `v0.27.0`). Fabric Agent Adapter 0.28.0 (FAA-12b, FAA-40) gives the service kits a client for Fabric's project board, so a service can answer requests other projects send it. The kits also check a project directory page before they look a project up. The adapter now pins contract f00a768.
+
 ## 0.1.51 - 2026-10-13
 
 ### Changed
