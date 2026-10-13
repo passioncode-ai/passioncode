@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.48 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.24.0`** (it was `v0.23.0`). Fabric Agent Adapter 0.24.0 (FAA-34) lets both service kits read and write three new kinds of service descriptor:
+  - an app's own descriptor, for a desktop app a person starts: installed, never running, with no port;
+  - a service Project Observatory's node supervises;
+  - a service offered to others.
+
+  The kits now say who installed a service by role, never by name, and how its model calls sign in, as a kind and never a credential. A host refuses a request above an offered service's highest data class. Fabric's button shows only while Fabric itself is installed. The contract pin stays `fe55fc6`.
+
 ## 0.1.47 - 2026-10-13
 
 ### Changed
