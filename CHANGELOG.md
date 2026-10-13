@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.49 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.25.0`** (it was `v0.24.0`). Fabric Agent Adapter 0.25.0 (FAA-39): both service kits treat two spellings of one identifier as the same identifier, by its normal form (contract DEC-0076). This covers routes, bindings, route events, estate share grants and their revocations, and a provider entry's provider id. The kits also write the identifiers they create in that normal form. The adapter now pins contract a046f57.
+
 ## 0.1.48 - 2026-10-13
 
 ### Changed
