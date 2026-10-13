@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.30.0`** (it was `v0.29.0`). The Node service kit now installs and uninstalls a launchd job the way the Python kit does: `launchdPlist`, `launchdInstall` and `launchdUninstall`. A service's plist comes out the same from either kit. The service probe (`check_service.py`) gains a rule, `lifecycle.supervisor-marker`: it fails a launchd job whose plist does not tell the service that launchd supervises it. Without that marker, a second copy that finds the lock held exits at once and launchd restarts it every few seconds.
+
 ## 0.2.0 - 2026-10-13
 
 ### Added
