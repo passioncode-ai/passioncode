@@ -331,6 +331,9 @@ test('session start names the failures of the last saved setup check, and is sil
   assert.match(out, /\[passioncode\] the setup check of 2026-10-13 found 2 problem\(s\) \(mcp\.claude\.switchboard, skills\.passioncode\); `npx @passioncode-ai\/passioncode@latest setup` repairs them/);
   fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T11:00:00.000Z', summary: { ok: 12, warn: 1, fail: 0, info: 0 }, failed: [] }));
   assert.doesNotMatch(hook(sb), /setup check/);
+  fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T10:00:00.000Z', summary: { ok: 9, warn: 0, fail: 2, info: 0 }, failed: ['mcp.claude.switchboard'] }));
+  setState(sb, { checkedAt: fresh(), latest: null, installedAt: '2026-10-13T12:00:00.000Z' });
+  assert.doesNotMatch(hook(sb), /setup check/, 'an update after the check makes it stale');
   fs.writeFileSync(doctorFile, 'not json');
   assert.doesNotMatch(hook(sb), /setup check/, 'a damaged file is ignored');
   assert.equal(lines(path.join(sb.home, 'npx-calls.log')).filter((l) => /doctor|setup/.test(l)).length, 0, 'the hook runs neither');

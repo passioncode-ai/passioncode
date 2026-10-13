@@ -203,7 +203,7 @@
 - **Steps:**
   1. Run doctor.
   2. Read one line per check, grouped by area — prerequisites, skills, apps, MCP, services — each with its state and, when not ok, its fix.
-- **Expected result:** Nothing is installed, registered, started, stopped or opened. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool (Fabric: `initialize` only). The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
+- **Expected result:** Nothing is installed, registered, started, stopped or opened. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does.
 - **UI elements:** Grouped text lines or JSON; exit code.
 - **States covered:** success, error

@@ -62,8 +62,8 @@ Work through `humanSteps` and the remaining `fail` and `warn` checks:
   follow it. Where it asks for a secret, it opens its own **hidden prompt** for the person; never
   ask for a key, token or password in the chat and never put one on a command line.
 - **Fabric's MCP server**: after the person opens Fabric and finishes its first run, call
-  `fabric_whoami` once. It names the project and proves the server answers (doctor stops at
-  `initialize`, because this call enrols the session).
+  `fabric_whoami` once. It names the project and proves the server answers. Doctor never starts
+  Fabric's server, because starting it enrols a session.
 - **Restart**: skills and MCP servers load when a session starts. Tell the person to restart
   their coding agents after a run that changed them; you cannot use the new tools until then.
 

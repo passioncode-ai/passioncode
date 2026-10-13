@@ -45,9 +45,12 @@ and checksums from GitHub's asset digests and checks no signature.
 3. **macOS installs apps; every system gets the rest.** Apps are installed on macOS; on other
    systems setup does the skills and MCP and names each app's download page.
 4. **MCP registration generalises ADR-0003** to every stdio server inside an installed app
-   bundle — `fabric-dashboards`, `fabric` (`fabric-mcp --runner <claude-code|codex|kimi-code>`;
-   Fabric has no Gemini runner) and `switchboard` (`switchboard mcp`; skipped for Claude Code when
-   the `switchboard` plugin already serves it) — with ADR-0003's rules unchanged: absent means
+   bundle — `fabric-dashboards`, `switchboard` (`switchboard mcp`; skipped for Claude Code when the
+   `switchboard` plugin already serves it) and `fabric` (`fabric-mcp --runner
+   <claude-code|codex|kimi-code>`; Fabric has no Gemini runner). Fabric is an early preview, and
+   every coding session in a Fabric project starts its server, which asks the person for
+   consent: so only `setup` (and `doctor --fix`) registers it, never `update` alone, which the
+   background self-update runs. An entry matches only with the same command and arguments — with ADR-0003's rules unchanged: absent means
    skipped, Claude Code through its CLI, never clobber, journalled and reversible. Observatory
    (a server in its own virtualenv) and Fabric Inbox (a remote server per person, its key in the
    keychain) register through their own `onboard`; setup lists that step and doctor checks it.
@@ -55,7 +58,9 @@ and checksums from GitHub's asset digests and checks no signature.
    against its latest release, its signature and Team ID, the Fabric service descriptors of family
    products and their `/.well-known/fabric-service`, each agent's MCP entry for each installed
    product, one proving call per distinct registered stdio command (`initialize`, `tools/list`,
-   then one read-only tool; Fabric `initialize` only, because `fabric_whoami` enrols a session),
+   then one read-only tool). Fabric's server is never started: `fabric-mcp` enrols a session with
+   Fabric's hub as soon as it starts, so doctor checks its entry and binary, and the agent's own
+   `fabric_whoami` is its proving call (corrected 2026-10-13 after the seam review of PR #92),
    and the skill set (members, hub links, shadows). Every line names its state and the exact fix;
    exit 1 when a check fails. It is what a button and an agent run. **`doctor --fix` is setup's
    repair half**: the same update, replace and kickstart, with no new app installed and nothing

@@ -21,9 +21,13 @@
   version, signature and team, each agent's MCP entries with one real proving call per server,
   and the family's Fabric services. Every line names its state and its fix; exit 0 means no check
   failed. `doctor --fix` runs setup's repairs without installing new apps.
-- **`update` registers the MCP servers of Fabric (`fabric-mcp --runner <agent>`) and Fabric
-  Switchboard (`switchboard mcp`)** next to Fabric Dashboards', under the same never-clobber,
-  reversible rules (ADR-0004).
+- **`update` registers Fabric Switchboard's MCP server (`switchboard mcp`)** next to Fabric
+  Dashboards', under the same never-clobber, reversible rules; an entry counts as the same only
+  with the same command and arguments. **`setup` also registers Fabric's (`fabric-mcp --runner
+  <agent>`)**: an early preview, it is never added by a background update (ADR-0004).
+- **Safer installs and removals**: an app is copied beside its target and swapped in with two
+  renames, after a second check that nothing runs from it; uninstall keeps a Codex entry that
+  gained settings since it was written; a dry run copies no config file.
 - **The `setting-up-passioncode` skill**: "set me up" or "check my setup" makes any coding agent
   run setup or doctor, finish the steps an agent may take and hand you only sign-ins, consents
   and secrets typed into a product's own hidden prompt. The README and passioncode.ai/start/

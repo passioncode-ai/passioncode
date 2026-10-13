@@ -73,7 +73,10 @@ async function main() {
   // The last saved setup check (ADR-0004): one line while it has failures. Doctor itself never runs here.
   const last = read(path.join(DIR, 'doctor.json'), null);
   const fails = last && last.summary && Number(last.summary.fail);
-  if (fails > 0) {
+  // An update since that check may have fixed what it found: a result older than the installed
+  // release is not repeated (the next doctor or setup writes a fresh one).
+  const stale = last && Date.parse(state.installedAt) > Date.parse(last.at);
+  if (fails > 0 && !stale) {
     const ids = Array.isArray(last.failed) ? last.failed.filter((x) => typeof x === 'string').slice(0, 3) : [];
     const when = typeof last.at === 'string' ? last.at.slice(0, 10) : 'an earlier session';
     lines.push(`[passioncode] the setup check of ${when} found ${fails} problem(s)${ids.length ? ` (${ids.join(', ')}${last.failed.length > 3 ? ', …' : ''})` : ''}; \`npx @passioncode-ai/passioncode@latest setup\` repairs them, \`doctor\` shows them.`);

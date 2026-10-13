@@ -800,12 +800,26 @@ function withApps(env, names) {
   return bins;
 }
 
-test('update registers fabric with each agent its own runner, and no Gemini entry Fabric cannot serve', () => {
+// In-process update with setup's includePreview, the fake claude CLI and this test's env.
+function updateInProcess(env, opts) {
+  const keys = { PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_APPLICATIONS: env.extra.PASSIONCODE_APPLICATIONS, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp') };
+  const saved = Object.fromEntries(Object.keys(keys).map((k) => [k, process.env[k]]));
+  Object.assign(process.env, keys);
+  const claude = { available: () => true, run: (args, o = {}) => { const r = spawnSync(process.execPath, [FAKE, ...args], { encoding: 'utf8', cwd: o.cwd, env: { ...process.env, HOME: env.home } }); return { code: r.status, out: `${r.stdout}${r.stderr}`.trim() }; } };
+  try { return require('../lib/launcher').update({ home: env.home, claude, ...opts }); } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+}
+
+test('fabric (an early preview) is registered by setup with each agent its own runner, never by a plain update, and no Gemini entry', () => {
   const env = setup();
   withAgents(env);
   const bins = withApps(env, ['fabric']);
-  const r = run(env, 'update', '--json');
-  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const plain = run(env, 'update', '--json');
+  assert.equal(plain.status, 0, plain.stderr + plain.stdout);
+  assert.ok(JSON.parse(plain.stdout).steps.some((s) => s.kind === 'mcp' && /Fabric is an early preview: fabric is registered by `passioncode setup`/.test(s.detail)));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers.fabric, undefined, 'the background update registers no preview server');
+  const r = { status: 0, stdout: JSON.stringify(updateInProcess(env, { includePreview: true })), stderr: '' };
   const fabric = (file) => JSON.parse(fs.readFileSync(path.join(env.home, file), 'utf8')).mcpServers.fabric;
   assert.deepEqual(fabric('.claude.json'), { type: 'stdio', command: bins.fabric, args: ['--runner', 'claude-code'], env: {} });
   assert.ok(calls(env.home).includes(`mcp add --scope user fabric -- ${bins.fabric} --runner claude-code`));
@@ -815,7 +829,7 @@ test('update registers fabric with each agent its own runner, and no Gemini entr
   const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric '));
   assert.ok(steps.some((s) => s.outcome === 'skipped' && /no Gemini CLI runner/.test(s.detail)), JSON.stringify(steps));
   // A second run changes nothing and uninstall takes out exactly what was added.
-  const again = JSON.parse(run(env, 'update', '--json').stdout).steps.filter((s) => s.kind === 'mcp' && s.outcome === 'done');
+  const again = updateInProcess(env, { includePreview: true }).steps.filter((s) => s.kind === 'mcp' && s.outcome === 'done');
   assert.equal(again.length, 0, JSON.stringify(again));
   assert.equal(run(env, 'uninstall').status, 0);
   assert.equal(fabric('.kimi-code/mcp.json'), undefined);
@@ -835,4 +849,37 @@ test('switchboard is not added for Claude Code when its plugin already serves it
   assert.equal((JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers || {}).switchboard, undefined);
   assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'mcp' && /from its switchboard plugin/.test(s.detail)));
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.home, '.gemini/settings.json'), 'utf8')).mcpServers.switchboard, { command: bins.switchboard, args: ['mcp'], env: {} });
+});
+
+test('a dry run copies no agent config into a quarantine', () => {
+  const env = setup();
+  withAgents(env);
+  withFakeMcp(env);
+  assert.equal(run(env, 'update', '--dry-run', '--json').status, 0);
+  assert.equal(fs.existsSync(path.join(env.home, '.passioncode', 'quarantine')), false);
+});
+
+test('an entry with the same command but other arguments is the person\'s and is kept', () => {
+  const env = setup();
+  withAgents(env);
+  const bins = withApps(env, ['switchboard']);
+  const gemini = path.join(env.home, '.gemini', 'settings.json');
+  fs.writeFileSync(gemini, JSON.stringify({ mcpServers: { switchboard: { command: bins.switchboard, args: ['mcp', '--mine'] } } }));
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => /Gemini CLI has its own switchboard entry .*with arguments \["mcp","--mine"\]\); it was kept/.test(s.detail)));
+  assert.deepEqual(JSON.parse(fs.readFileSync(gemini, 'utf8')).mcpServers.switchboard.args, ['mcp', '--mine']);
+});
+
+test('uninstall keeps a Codex entry that gained a sub-table or other arguments since the launcher wrote it', () => {
+  const env = setup();
+  withAgents(env);
+  withApps(env, ['switchboard']);
+  assert.equal(run(env, 'update').status, 0);
+  const conf = path.join(env.home, '.codex', 'config.toml');
+  fs.appendFileSync(conf, '\n[mcp_servers.switchboard.env]\nDEBUG = "1"\n');
+  assert.equal(run(env, 'uninstall').status, 0);
+  const text = fs.readFileSync(conf, 'utf8');
+  assert.match(text, /\["mcp_servers"\."switchboard"\]\ncommand = /, 'the entry stays with its sub-table');
+  assert.match(text, /\[mcp_servers\.switchboard\.env\]/);
 });

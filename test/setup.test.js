@@ -255,3 +255,45 @@ test('a proving call that fails is a failed check that names the fix', async (t)
     assert.match(c.fix, /open Fabric Dashboards/);
   } finally { delete process.env.FAKE_MCP_BROKEN; }
 });
+
+test('a bundle that comes into use while its release downloads is not moved', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  const dash = installApp(m, catalog.byId('dashboards'), { version: '1.0.0' });
+  process.env.FAKE_BUSY_DURING_DOWNLOAD = dash;
+  try {
+    const r = await cli(m, api, 'setup', '--yes', '--with', 'dashboards', '--json');
+    assert.equal(r.status, 1);
+    assert.match(r.json.actions.find((a) => a.product === 'dashboards').error, /came into use while it downloaded/);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dash, 'Contents/Info.plist'), 'utf8')).CFBundleShortVersionString, '1.0.0');
+    assert.equal(fs.existsSync(path.join(m.home, '.Trash')), false);
+  } finally { delete process.env.FAKE_BUSY_DURING_DOWNLOAD; }
+});
+
+test('a copy cut off halfway leaves the old app in place and no partial bundle', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  const dash = installApp(m, catalog.byId('dashboards'), { version: '1.0.0' });
+  process.env.FAKE_DITTO_COPY_FAIL = '1';
+  try {
+    const r = await cli(m, api, 'setup', '--yes', '--with', 'dashboards', '--json');
+    assert.equal(r.status, 1);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(dash, 'Contents/Info.plist'), 'utf8')).CFBundleShortVersionString, '1.0.0', 'the old bundle never moved');
+    assert.deepEqual(fs.readdirSync(m.apps), ['Fabric Dashboards.app'], 'no .partial copy is left in Applications');
+  } finally { delete process.env.FAKE_DITTO_COPY_FAIL; }
+});
+
+test('doctor never starts Fabric\'s MCP server: starting it enrols a session', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  installApp(m, catalog.byId('fabric'));
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers.fabric.args, ['--runner', 'claude-code'], 'setup registers the preview server');
+  try { fs.rmSync(path.join(m.home, 'fake-mcp.log')); } catch (_) { /* none yet */ }
+  const r = await cli(m, api, 'doctor', '--json');
+  const c = r.json.checks.find((x) => x.id === 'mcp.claude.fabric');
+  assert.equal(c.state, 'ok');
+  assert.match(c.detail, /doctor does not start it/);
+  const started = (() => { try { return fs.readFileSync(path.join(m.home, 'fake-mcp.log'), 'utf8'); } catch (_) { return ''; } })();
+  assert.doesNotMatch(started, /^fabric /m, 'fabric-mcp was never started');
+});

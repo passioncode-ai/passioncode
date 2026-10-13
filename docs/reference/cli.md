@@ -73,14 +73,14 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | prerequisites | Node ≥ 18; coding agents present; Docker answering and the Supabase CLI when Fabric is installed | Node too old; Docker or the Supabase CLI missing (a stopped Docker is a warning) |
 | skills | `status`: the set installed, each member's plugin, hub links, shadows, legacy copies | the set is missing or broken |
 | apps (macOS) | each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
-| mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
+| mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`. `mode` is `new` (no skill set and no
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
-`replace` (an outdated or damaged app nobody is running) and `kickstart` (a
+`replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
 launchd service that does not answer), each with the check ids that caused it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
@@ -101,7 +101,7 @@ passes `codesign --verify --strict`, carries team `KJ35UYYL22`, passes
 `xcrun stapler validate` and `spctl --assess --type execute` (source
 Notarized Developer ID). The download lives under
 `~/.passioncode/downloads/<app>-<version>/` and is removed whatever happens. A
-replaced app is moved to `~/.Trash/` and moved back if the copy fails.
+new app is copied beside the target (`<App>.app.passioncode-<pid>.partial`), checked again for use, then swapped in with two same-volume renames; the replaced app is moved to `~/.Trash/` and moved back if the swap fails, and the staged copy is always removed. Only `setup` and `doctor --fix` register the early-preview Fabric server; `update` alone never does.
 
 Evidence: `lib/setup.js`, `lib/doctor.js`, `lib/releases.js`; `test/setup.test.js`
 and `test/openpgp.test.js`.

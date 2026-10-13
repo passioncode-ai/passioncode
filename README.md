@@ -55,8 +55,10 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
    `fabric-dashboards`, `fabric` (`fabric-mcp --runner <agent>`) and `switchboard`
    (`switchboard mcp`) — for Claude Code, Codex CLI, Gemini CLI and Kimi Code, and `doctor` proves
    each one with a real call: `initialize`, `tools/list`, then `list_services`,
-   `switchboard_accounts` or `observatory_status` (Fabric: `initialize` only — your agent's
-   `fabric_whoami` is the first real call). Project Observatory and Fabric Inbox register their
+   `switchboard_accounts` or `observatory_status`. Fabric's server is never started by doctor,
+   because it enrols a session as it starts: doctor checks its entry, and your agent's first
+   `fabric_whoami` is the proving call. Fabric is an early preview, so only `setup` registers it,
+   never a background update. Project Observatory and Fabric Inbox register their
    own servers through their onboarding; `doctor` checks those too.
 4. **Develop:** clone, then `npm test` — there are no dependencies and no lockfile, so there is
    nothing to install (`npm ci` refuses to run here). `npm run vendor` builds `payload/` from the
@@ -81,8 +83,9 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
 - Each version is an immutable release under `~/.passioncode/releases/<version>`; an update
   keeps the release it replaced for rollback and removes older ones.
 - `update` (and therefore `setup`) registers the MCP server inside each installed app — Fabric
-  Dashboards (`fabric-dashboards`), Fabric (`fabric`, with each agent's own `--runner`) and Fabric
-  Switchboard (`switchboard`, unless Claude Code already gets it from the `switchboard` plugin) —
+  Dashboards (`fabric-dashboards`), Fabric Switchboard (`switchboard`, unless Claude Code already
+  gets it from the `switchboard` plugin) and, from `setup` only because it is an early preview,
+  Fabric (`fabric`, with each agent's own `--runner`) —
   for every agent that is present: Claude Code (through `claude mcp add --scope user`), Codex CLI
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere

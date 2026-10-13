@@ -45,7 +45,14 @@ switch (tool) {
   case 'plutil': { try { out(JSON.parse(fs.readFileSync(args[args.length - 1], 'utf8')).CFBundleShortVersionString); process.exit(0); } catch (_) { process.exit(1); } }
   case 'pgrep': { const at = args[1].replace(/\/Contents\/MacOS\/$/, ''); process.exit(has(at, 'RUNNING') ? 0 : 1); }
   case 'ditto': {
-    if (args[0] === '-x') { makeApp(args[2], args[3]); process.exit(0); }
+    if (args[0] === '-x') {
+      makeApp(args[2], args[3]);
+      // An agent session starts the app's MCP server while the release downloads.
+      if (process.env.FAKE_BUSY_DURING_DOWNLOAD) fs.writeFileSync(path.join(process.env.FAKE_BUSY_DURING_DOWNLOAD, 'RUNNING'), '');
+      process.exit(0);
+    }
+    // A copy cut off halfway: part of the bundle written, then a failure.
+    if (process.env.FAKE_DITTO_COPY_FAIL) { fs.mkdirSync(path.join(args[1], 'Contents'), { recursive: true }); err('ditto: interrupted'); process.exit(1); }
     fs.cpSync(args[0], args[1], { recursive: true }); process.exit(0);
   }
   case 'hdiutil': {
