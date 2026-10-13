@@ -6,6 +6,9 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
+// No test reads the machine's own /Applications: an app installed there would add MCP steps.
+process.env.PASSIONCODE_APPLICATIONS = require('node:path').join(require('node:os').tmpdir(), 'pc-no-applications');
+
 const ROOT = path.resolve(__dirname, '..');
 const BIN = path.join(ROOT, 'bin/passioncode.js');
 const FAKE = path.join(__dirname, 'fake-claude.js');
@@ -640,7 +643,7 @@ test('MCP registration is idempotent: a second update changes nothing', () => {
   const before = files.map((f) => fs.readFileSync(f, 'utf8'));
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.ok(mcp.length === 4 && mcp.every((s) => s.outcome === 'skipped' && s.detail.includes('already runs')), JSON.stringify(mcp));
   assert.deepEqual(files.map((f) => fs.readFileSync(f, 'utf8')), before);
 });
@@ -669,7 +672,7 @@ test('without the Fabric Dashboards binary nothing is registered', () => {
   const before = fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8');
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.equal(mcp.length, 1);
   assert.equal(mcp[0].outcome, 'skipped');
   assert.match(mcp[0].detail, /no Fabric Dashboards MCP/);
@@ -684,7 +687,7 @@ test('an agent that is not on the machine gets no registration and no invented c
   env.extra.PASSIONCODE_CLAUDE = path.join(env.home, 'no-claude');
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.equal(mcp.filter((s) => s.outcome === 'done').length, 1);
   assert.equal(mcp.filter((s) => s.outcome === 'skipped' && s.detail.includes('not found')).length, 3);
   assert.equal(fs.existsSync(path.join(env.home, '.claude.json')), false);
@@ -778,9 +781,58 @@ test('a dry run plans the MCP registrations and writes no agent config', () => {
   const before = fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8');
   const r = run(env, 'update', '--dry-run', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.equal(mcp.filter((s) => s.outcome === 'planned').length, 4, JSON.stringify(mcp));
   assert.equal(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8'), before);
   assert.equal(fs.existsSync(path.join(env.home, '.gemini', 'settings.json')), false);
   assert.ok(!calls(env.home).some((l) => l.startsWith('mcp ')));
+});
+
+// ADR-0004: every stdio server inside an installed app bundle, with each agent's own arguments.
+function withApps(env, names) {
+  const apps = path.join(env.home, 'Applications');
+  const bins = {
+    fabric: path.join(apps, 'Fabric.app/Contents/Resources/bin/fabric-mcp'),
+    switchboard: path.join(apps, 'Fabric Switchboard.app/Contents/MacOS/switchboard'),
+  };
+  for (const n of names) { fs.mkdirSync(path.dirname(bins[n]), { recursive: true }); fs.writeFileSync(bins[n], '#!/bin/sh\n'); }
+  env.extra = { ...(env.extra || {}), PASSIONCODE_APPLICATIONS: apps };
+  return bins;
+}
+
+test('update registers fabric with each agent its own runner, and no Gemini entry Fabric cannot serve', () => {
+  const env = setup();
+  withAgents(env);
+  const bins = withApps(env, ['fabric']);
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const fabric = (file) => JSON.parse(fs.readFileSync(path.join(env.home, file), 'utf8')).mcpServers.fabric;
+  assert.deepEqual(fabric('.claude.json'), { type: 'stdio', command: bins.fabric, args: ['--runner', 'claude-code'], env: {} });
+  assert.ok(calls(env.home).includes(`mcp add --scope user fabric -- ${bins.fabric} --runner claude-code`));
+  assert.deepEqual(fabric('.kimi-code/mcp.json'), { command: bins.fabric, args: ['--runner', 'kimi-code'], env: {} });
+  assert.match(fs.readFileSync(path.join(env.home, '.codex/config.toml'), 'utf8'), /\["mcp_servers"\."fabric"\]\ncommand = "[^"]+fabric-mcp"\nargs = \["--runner", "codex"\]\n/);
+  assert.equal(fs.existsSync(path.join(env.home, '.gemini/settings.json')), false, 'nothing was written for Gemini');
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric '));
+  assert.ok(steps.some((s) => s.outcome === 'skipped' && /no Gemini CLI runner/.test(s.detail)), JSON.stringify(steps));
+  // A second run changes nothing and uninstall takes out exactly what was added.
+  const again = JSON.parse(run(env, 'update', '--json').stdout).steps.filter((s) => s.kind === 'mcp' && s.outcome === 'done');
+  assert.equal(again.length, 0, JSON.stringify(again));
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fabric('.kimi-code/mcp.json'), undefined);
+  assert.doesNotMatch(fs.readFileSync(path.join(env.home, '.codex/config.toml'), 'utf8'), /"fabric"/);
+});
+
+test('switchboard is not added for Claude Code when its plugin already serves it', () => {
+  const env = setup();
+  withAgents(env);
+  const bins = withApps(env, ['switchboard']);
+  const plugins = path.join(env.home, '.claude/plugins/installed_plugins.json');
+  const doc = JSON.parse(fs.readFileSync(plugins, 'utf8'));
+  doc.plugins['switchboard@switchboard'] = [{ scope: 'user', installPath: '/x', version: '0.6.0' }];
+  fs.writeFileSync(plugins, JSON.stringify(doc));
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.equal((JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers || {}).switchboard, undefined);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'mcp' && /from its switchboard plugin/.test(s.detail)));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.home, '.gemini/settings.json'), 'utf8')).mcpServers.switchboard, { command: bins.switchboard, args: ['mcp'], env: {} });
 });

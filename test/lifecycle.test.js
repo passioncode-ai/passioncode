@@ -10,6 +10,9 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
+// No test reads the machine's own /Applications: an app installed there would add MCP steps.
+process.env.PASSIONCODE_APPLICATIONS = require('node:path').join(require('node:os').tmpdir(), 'pc-no-applications');
+
 const ROOT = path.resolve(__dirname, '..');
 const BIN = path.join(ROOT, 'bin/passioncode.js');
 const LAUNCHER = path.join(ROOT, 'lib/launcher.js');
