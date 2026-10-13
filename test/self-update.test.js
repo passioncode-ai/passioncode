@@ -320,3 +320,18 @@ test('npm 12 singleton view metadata preserves the publisher trust decision', ()
     assert.equal(u.decide({ installed: '0.1.0', ...u.parseView(JSON.stringify([identity])) }, u.loadTrust()).spawn, null);
   }
 });
+
+// ADR-0004: the hook repeats the last saved doctor result while it has failures; it never runs doctor.
+test('session start names the failures of the last saved setup check, and is silent when it passed', () => {
+  const sb = sandbox();
+  setState(sb, { checkedAt: fresh(), latest: null });
+  const doctorFile = path.join(sb.stateDir, 'doctor.json');
+  fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T10:00:00.000Z', summary: { ok: 9, warn: 1, fail: 2, info: 0 }, failed: ['mcp.claude.switchboard', 'skills.passioncode'] }));
+  const out = hook(sb);
+  assert.match(out, /\[passioncode\] the setup check of 2026-10-13 found 2 problem\(s\) \(mcp\.claude\.switchboard, skills\.passioncode\); `npx @passioncode-ai\/passioncode@latest setup` repairs them/);
+  fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T11:00:00.000Z', summary: { ok: 12, warn: 1, fail: 0, info: 0 }, failed: [] }));
+  assert.doesNotMatch(hook(sb), /setup check/);
+  fs.writeFileSync(doctorFile, 'not json');
+  assert.doesNotMatch(hook(sb), /setup check/, 'a damaged file is ignored');
+  assert.equal(lines(path.join(sb.home, 'npx-calls.log')).filter((l) => /doctor|setup/.test(l)).length, 0, 'the hook runs neither');
+});

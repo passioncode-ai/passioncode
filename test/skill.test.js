@@ -77,8 +77,20 @@ test('the strict front-matter reader rejects what a YAML reader rejects', () => 
   assert.equal(parseFrontMatter('---\ndescription: >-\n  a: b\n  c\n---\n').doc.description, 'a: b c');
 });
 
-test('the self plugin ships the working-in-passioncode skill', () => {
+test('the self plugin ships the working-in-passioncode and setting-up-passioncode skills', () => {
   assert.ok(skills().includes('working-in-passioncode'));
+  assert.ok(skills().includes('setting-up-passioncode'));
+});
+
+test('setting-up-passioncode drives the launcher, never a hand-made install', () => {
+  const text = fs.readFileSync(path.join(SKILLS, 'setting-up-passioncode', 'SKILL.md'), 'utf8').replace(/\s+/g, ' ');
+  assert.match(text, /npx --yes @passioncode-ai\/passioncode@latest setup --yes --json/);
+  assert.match(text, /npx --yes @passioncode-ai\/passioncode@latest doctor --json/);
+  assert.match(text, /humanSteps/);
+  assert.match(text, /never (kill|stop)/i);
+  assert.match(text, /hidden prompt/);
+  assert.match(text, /fabric_whoami/);
+  assert.doesNotMatch(text, /curl [^`]*\| *(ba)?sh/, 'no pipe-to-shell install');
 });
 
 for (const name of fs.existsSync(SKILLS) ? skills() : []) {
@@ -123,13 +135,14 @@ for (const name of fs.existsSync(SKILLS) ? skills() : []) {
     }
   });
 
-  test(`${name}: routes backlog work to one canonical owner`, () => {
+  // The contributor rules below are working-in-passioncode's job; setting-up-passioncode serves people setting up a machine.
+  if (name === 'working-in-passioncode') test(`${name}: routes backlog work to one canonical owner`, () => {
     assert.match(text, /docs\/backlog-sources\.json/);
     assert.match(text, /knowledge\/backlog\.md/);
     assert.match(text, /Never edit generated task status/);
   });
 
-  test(`${name}: says the knowledge base protocol — read first, update last`, () => {
+  if (name === 'working-in-passioncode') test(`${name}: says the knowledge base protocol — read first, update last`, () => {
     const { body } = parseFrontMatter(text);
     const flat = body.replace(/\s+/g, ' ');
     assert.match(flat, /fabric-workspace\/knowledge\//, 'names the local copy of the knowledge base');
