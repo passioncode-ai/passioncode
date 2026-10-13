@@ -17,19 +17,84 @@ function cachedNpmStatus({ latest, checkedAt, installed }) {
   return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''})`;
 }
 
-const HELP = `passioncode — the PassionCode.ai skill set (family.json), for every agent on this machine
+const HELP = `passioncode — set up and check PassionCode.ai on this machine: the apps, their MCP servers, the skills
 
-  npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]     install or update the whole set
+  npx @passioncode-ai/passioncode@latest setup [--yes] [--with ids] [--without ids] [--no-apps] [--no-open] [--dry-run] [--json]
+        a new machine: install and configure everything; an existing one: check, repair, check again
+  npx @passioncode-ai/passioncode@latest doctor [--fix] [--json]        check everything (read-only); --fix repairs as setup does
+  npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]     install or update the skill set and the apps' MCP registrations
   npx @passioncode-ai/passioncode@latest status [--json]                 what is installed where
   npx @passioncode-ai/passioncode@latest restore                         put back what the last update moved aside
   npx @passioncode-ai/passioncode@latest config set update.auto on|off   background updates at session start
   npx @passioncode-ai/passioncode@latest uninstall                       remove the set (quarantined items stay restorable)
 
-Claude Code gets plugins from the local "passioncode" marketplace; other agents get
-the same skills through ~/.agents/skills. Restart your agent after an update.`;
+App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed,
+1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local
+"passioncode" marketplace; other agents get the same skills through ~/.agents/skills.
+Restart your agent after a change.`;
 
-function main(argv) {
+const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric'];
+
+/** Flags of setup and doctor: booleans, plus --with/--without taking a comma list. Null when invalid. */
+function parseSetupArgs(cmd, rest) {
+  const allowed = cmd === 'doctor' ? ['--fix', '--json', '--offline'] : ['--yes', '-y', '--json', '--offline', '--no-apps', '--no-open', '--dry-run'];
+  const o = { flags: new Set(), withIds: null, withoutIds: [] };
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    const m = /^--(with|without)(?:=(.*))?$/.exec(arg);
+    if (m && cmd !== 'doctor') {
+      const value = m[2] !== undefined ? m[2] : rest[++i];
+      const ids = String(value || '').split(',').map((x) => x.trim()).filter(Boolean);
+      if (!ids.length || ids.some((x) => !IDS.includes(x))) return null;
+      if (m[1] === 'with') o.withIds = [...(o.withIds || []), ...ids]; else o.withoutIds.push(...ids);
+    } else if (allowed.includes(arg)) o.flags.add(arg === '-y' ? '--yes' : arg);
+    else return null;
+  }
+  return o;
+}
+
+function asker() {
+  if (!process.stdin.isTTY || !process.stderr.isTTY) return null;
+  const readline = require('readline');
+  return (question) => new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+    rl.question(question, (answer) => { rl.close(); resolve(answer); });
+  });
+}
+
+async function setupOrDoctor(cmd, rest) {
+  const o = parseSetupArgs(cmd, rest);
+  if (!o) {
+    process.stderr.write(`passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}.\n`);
+    return 2;
+  }
+  const json = o.flags.has('--json');
+  const online = !o.flags.has('--offline');
+  if (cmd === 'doctor' && !o.flags.has('--fix')) {
+    const D = require('../lib/doctor');
+    const r = await D.doctor({ online });
+    process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : D.render(r) + '\n');
+    return r.ok ? 0 : 1;
+  }
+  const S = require('../lib/setup');
+  const repairOnly = cmd === 'doctor';
+  const log = json ? () => {} : (line) => process.stderr.write(`${line}\n`);
+  const r = await S.setup({
+    yes: repairOnly || o.flags.has('--yes'), withIds: o.withIds, withoutIds: o.withoutIds, noApps: o.flags.has('--no-apps'),
+    noOpen: o.flags.has('--no-open'), dryRun: o.flags.has('--dry-run'), repairOnly, online, ask: json ? null : asker(), log,
+  });
+  process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : S.render(r, { repairOnly }) + '\n');
+  return r.planOnly ? 0 : r.ok ? 0 : 1;
+}
+
+async function main(argv) {
   const [cmd = 'help', ...rest] = argv;
+  if (cmd === 'setup' || cmd === 'onboard' || cmd === 'doctor') {
+    try { return await setupOrDoctor(cmd === 'onboard' ? 'setup' : cmd, rest); } catch (error) {
+      process.stderr.write(`passioncode: ${error.message}\n`);
+      return 1;
+    }
+  }
   const json = rest.includes('--json');
   const quiet = rest.includes('--quiet');
   const out = (value, text) => process.stdout.write(json ? JSON.stringify(value, null, 2) + '\n' : text + '\n');
@@ -89,4 +154,4 @@ function main(argv) {
   }
 }
 
-process.exit(main(process.argv.slice(2)));
+main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
