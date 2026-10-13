@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.53 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.29.0`** (it was `v0.28.0`). The update teaches `working-with-fabric` a new rule: a lane, subagent or session that stops on a usage or session limit is restarted at once, from where it stopped, instead of waiting for the stated reset. It backs off 2, 5, 10, then 15 minutes only if the restart stops again, and spend or billing limits stay the operator's. The rule comes from fabric-workspace principle 10, item 6.
+
 ## 0.1.52 - 2026-10-13
 
 ### Changed
