@@ -1,4 +1,4 @@
-# ADR-0004 — `setup` installs verified apps and registers their MCP; `doctor` checks and fixes only what `update` may
+# ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only
 
 Status: accepted · 2026-10-13 · brief: [docs/tasks/2026-10-13-setup-doctor.md](../tasks/2026-10-13-setup-doctor.md)
 
@@ -20,9 +20,21 @@ and checksums from GitHub's asset digests and checks no signature.
 
 ## Decision
 
-1. **`setup` (alias `onboard`)** plans, asks, then applies, in this order: prerequisites and agents
-   detected → absent apps installed → the skill set (`update`) → MCP registrations → apps it
-   installed opened → one list of the steps that stay a person's.
+1. **`setup` (alias `onboard`) is one idempotent command for a new machine and an existing setup**
+   (operator, 2026-10-13: "if it is a new setup — set it up; if an old one — check that everything
+   is set up correctly and fix the problems"). It always runs the doctor's checks first, plans,
+   asks, applies, checks again, and prints a before → after table and one list of the steps that
+   stay a person's. What it may apply:
+   - **install** an absent app the person chose (all of them with `--yes`; Fabric only when its
+     prerequisites are present or it is asked for with `--with fabric`), then open it once;
+   - **update**: the skill set and the bundled MCP registrations (`passioncode update`);
+   - **replace** an app that is outdated or fails its signature checks **and is not running**,
+     from its latest verified release; the old bundle is moved to the person's Trash, never
+     deleted, and put back if the copy fails; a running app is never touched — the person quits it
+     or accepts the app's own update;
+   - **kickstart** a family service that does not answer and whose descriptor names a launchd
+     label: `launchctl kickstart gui/<uid>/<label>` (no `-k`: it starts, it never kills).
+   On a healthy machine the plan is empty, nothing changes, and it exits 0.
 2. **No unverified bytes.** An app is installed only after all of: `SHA256SUMS.asc` verifies
    against the release key bundled in the package (`lib/release-key.asc`, pinned by fingerprint
    `63B30DC324BD697487AA31944FAFB8AEC803B6A7`, checked in pure Node — no gpg); the asset's SHA-256
@@ -30,10 +42,8 @@ and checksums from GitHub's asset digests and checks no signature.
    `codesign --verify --strict`, names Team ID `KJ35UYYL22`, and passes `xcrun stapler validate` and
    `spctl --assess --type execute`. A failure removes the download and installs nothing. Sigstore
    attestations are not checked (that needs `gh`); the chain above does not depend on them.
-3. **Absent apps only.** An app already in `/Applications` is never replaced or moved: each
-   product updates itself through its own signed updater; `doctor` reports it outdated. Apps are
-   installed on macOS only; on other systems setup does the skills and MCP and names the
-   download page.
+3. **macOS installs apps; every system gets the rest.** Apps are installed on macOS; on other
+   systems setup does the skills and MCP and names each app's download page.
 4. **MCP registration generalises ADR-0003** to every stdio server inside an installed app
    bundle — `fabric-dashboards`, `fabric` (`fabric-mcp --runner <claude-code|codex|kimi-code>`;
    Fabric has no Gemini runner) and `switchboard` (`switchboard mcp`; skipped for Claude Code when
@@ -41,16 +51,16 @@ and checksums from GitHub's asset digests and checks no signature.
    skipped, Claude Code through its CLI, never clobber, journalled and reversible. Observatory
    (a server in its own virtualenv) and Fabric Inbox (a remote server per person, its key in the
    keychain) register through their own `onboard`; setup lists that step and doctor checks it.
-5. **`doctor [--fix] [--json]`** reads: prerequisites, each app's installed version against its
-   latest release, its signature and Team ID, the Fabric service descriptors of family products
-   and their `/.well-known/fabric-service`, each agent's MCP entry for each installed product,
-   one proving call per distinct registered stdio command (`initialize`, `tools/list`, then one
-   read-only tool; Fabric `initialize` only, because `fabric_whoami` enrols a session), and the
-   skill set (members, hub links, shadows). Every line names its state and the exact fix.
-   `--fix` applies only what `update` may already change — the skill set and missing MCP
-   registrations — then checks again. It never installs or replaces an app and never starts,
-   stops or kills a process: an on-demand app that is not running is information, and the fix
-   line names the documented way to open it.
+5. **`doctor [--json]` reads, and changes nothing**: prerequisites, each app's installed version
+   against its latest release, its signature and Team ID, the Fabric service descriptors of family
+   products and their `/.well-known/fabric-service`, each agent's MCP entry for each installed
+   product, one proving call per distinct registered stdio command (`initialize`, `tools/list`,
+   then one read-only tool; Fabric `initialize` only, because `fabric_whoami` enrols a session),
+   and the skill set (members, hub links, shadows). Every line names its state and the exact fix;
+   exit 1 when a check fails. It is what a button and an agent run. **`doctor --fix` is setup's
+   repair half**: the same update, replace and kickstart, with no new app installed and nothing
+   opened. Neither ever stops or kills a process; an on-demand app that is not running is
+   information, and its line names the documented way to open it.
 6. **Agents know it.** The self plugin carries `setting-up-passioncode`; doctor saves its last
    result to `~/.passioncode/doctor.json`, and the SessionStart hook prints one line when that
    result has failures. The hook never runs doctor.
@@ -64,4 +74,6 @@ and checksums from GitHub's asset digests and checks no signature.
   pinned team ID and Apple's notarization; a new release key means a launcher release.
 - `doctor` spawns the registered MCP commands, as an agent does at session start, and stops
   them when the proving call returns.
+- Running `setup` again is the answer to "is my setup still right?": a new person and a returning
+  one type the same command.
 - The launcher still serves no MCP server of its own.
