@@ -883,3 +883,14 @@ test('uninstall keeps a Codex entry that gained a sub-table or other arguments s
   assert.match(text, /\["mcp_servers"\."switchboard"\]\ncommand = /, 'the entry stays with its sub-table');
   assert.match(text, /\[mcp_servers\.switchboard\.env\]/);
 });
+
+test('a key of the same name in another TOML table does not keep the launcher\'s entry on uninstall', () => {
+  const env = setup();
+  withAgents(env, { codexConf: '[profiles.work]\nswitchboard = true\n' });
+  withApps(env, ['switchboard']);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'uninstall').status, 0);
+  const text = fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8');
+  assert.doesNotMatch(text, /\["mcp_servers"\."switchboard"\]/, 'removed');
+  assert.match(text, /\[profiles\.work\]\nswitchboard = true/, 'the other table is untouched');
+});

@@ -297,3 +297,29 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', a
   const started = (() => { try { return fs.readFileSync(path.join(m.home, 'fake-mcp.log'), 'utf8'); } catch (_) { return ''; } })();
   assert.doesNotMatch(started, /^fabric /m, 'fabric-mcp was never started');
 });
+
+test('setup saves its after-check later than the release it installed, so the session hook shows what still fails', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
+  process.env.FAKE_MCP_BROKEN = 'fabric-dashboards';
+  try {
+    assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 1);
+  } finally { delete process.env.FAKE_MCP_BROKEN; }
+  const saved = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'));
+  const state = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8'));
+  assert.ok(Date.parse(saved.at) >= Date.parse(state.installedAt), `${saved.at} vs installedAt ${state.installedAt}`);
+  assert.ok(saved.failed.includes('mcp.claude.fabric-dashboards'));
+  const hook = require('node:child_process').spawnSync(process.execPath, [path.join(__dirname, '../plugin/passioncode/hooks/session-start.js')], { encoding: 'utf8', cwd: os.tmpdir(), input: '', env: { ...process.env, HOME: m.home, PASSIONCODE_HOME: path.join(m.home, '.passioncode'), PATH: m.bin } });
+  assert.match(hook.stdout, /the setup check of .* found 2 problem\(s\) \(mcp\.claude\.fabric-dashboards, mcp\.codex\.fabric-dashboards\)/);
+});
+
+test('a staged copy left by a killed run is removed before the next install', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  const leftover = path.join(m.apps, 'Fabric Dashboards.app.passioncode-999999.partial');
+  fs.mkdirSync(path.join(leftover, 'Contents'), { recursive: true });
+  const r = await cli(m, api, 'setup', '--yes', '--with', 'dashboards', '--no-open');
+  assert.equal(fs.existsSync(leftover), false, r.stdout);
+  assert.ok(fs.existsSync(path.join(m.apps, 'Fabric Dashboards.app')));
+});
