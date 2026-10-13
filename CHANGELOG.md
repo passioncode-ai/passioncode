@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.51 - 2026-10-13
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.27.0`** (it was `v0.26.0`). Fabric Agent Adapter 0.27.0 (FAA-33) adds three things to the service kits:
+  - a service can report its model spend by the project it ran each call for;
+  - its usage report is checked against the contract's window of the last 31 days;
+  - a product can credit its own OpenRouter traffic to itself. This is off by default, and a user's own attribution is never overwritten.
+
 ## 0.1.50 - 2026-10-13
 
 ### Changed
