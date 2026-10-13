@@ -78,6 +78,8 @@ function machine({ tools = TOOLS } = {}) {
   const payload = path.join(home, 'payload'); makePayload(payload);
   const bin = path.join(home, 'fakebin'); fs.mkdirSync(bin);
   for (const name of tools) fs.writeFileSync(path.join(bin, name), `#!/bin/sh\nexec "${process.execPath}" "${path.join(__dirname, 'fake-tools.js')}" ${name} "$@"\n`, { mode: 0o755 });
+  // A tool left out is "not found" even where the host has one in /usr/bin (CI runners carry docker).
+  for (const name of TOOLS.filter((x) => !tools.includes(x))) fs.writeFileSync(path.join(bin, name), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
   fs.writeFileSync(path.join(home, 'key.asc'), KEY.publicArmour);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: {} }));
   fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
