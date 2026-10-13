@@ -12,7 +12,9 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
-| `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload; preserve displaced files in quarantine |
+| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--no-apps`, `--no-open`, `--dry-run`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
+| `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
+| `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
@@ -20,8 +22,9 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
-skipped steps); **1** means an operation or supported config value failed;
-**2** means an unknown command or unsupported arguments. `--quiet` suppresses
+skipped steps; `doctor` and `setup` found no failing check); **1** means an
+operation or supported config value failed, or a `doctor`/`setup` check still
+fails; **2** means an unknown command or unsupported arguments. `--quiet` suppresses
 successful update output, including JSON, but never hides failed update steps.
 `--dry-run` exists only for update/install: `uninstall --dry-run` and misspelled
 flags fail before any mutation. Runtime errors go to stderr, including with
@@ -53,6 +56,55 @@ and marks a stable cached version below installed as stale. Equal or higher cach
 values still do not prove registry freshness. Sources: `status()` in
 [launcher](../../lib/launcher.js), `cachedNpmStatus()` in
 [CLI](../../bin/passioncode.js), and status regressions in the launcher tests.
+
+## Setup and doctor
+
+`doctor` returns `{ version, platform, at, checks, summary, ok }`. Each check is
+`{ id, area, product, state, detail, fix, repair }`: `area` is `prerequisites`,
+`skills`, `apps`, `mcp` or `services`; `state` is `ok`, `warn`, `fail` or `info`;
+`fix` is the command or step that resolves it; `repair` names what `setup` may do
+about it (`update`, `replace`, `kickstart`) or is null. `ok` is false when any
+check fails. The summary and the failed ids are saved to
+`~/.passioncode/doctor.json`, which the SessionStart hook repeats while it has
+failures. Doctor writes nothing else and starts, stops or opens nothing.
+
+| Area | What is read | A failure means |
+|---|---|---|
+| prerequisites | Node ≥ 18; coding agents present; Docker answering and the Supabase CLI when Fabric is installed | Node too old; Docker or the Supabase CLI missing (a stopped Docker is a warning) |
+| skills | `status`: the set installed, each member's plugin, hub links, shadows, legacy copies | the set is missing or broken |
+| apps (macOS) | each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
+| mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
+| services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
+
+`setup` returns `{ version, platform, mode, plan, actions, before, after,
+humanSteps, planOnly, ok, keyOverride }`. `mode` is `new` (no skill set and no
+app) or `existing`. `plan` items are `install` (an absent app; `selected` false
+for Fabric without its prerequisites unless `--with fabric`), `update`,
+`replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
+launchd service that does not answer), each with the check ids that caused it.
+`actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
+and `after` are doctor results; `humanSteps` lists, once each, every remaining
+fix, each product's onboarding for apps installed in this run, and the restart.
+
+Questions are asked only on a terminal: one per absent app and one for the
+repairs. Without a terminal and without `--yes`, or with `--dry-run`, the plan
+is returned with `planOnly: true`, nothing changes, and the exit code is 0.
+`setup` exits 1 when an action failed or a check still fails after the
+repairs. `doctor --fix` is `setup --yes` with no `install` items and nothing
+opened.
+
+An app is installed or replaced only after: `SHA256SUMS.asc` verifies against
+`lib/release-key.asc` (pinned fingerprint
+`63B30DC324BD697487AA31944FAFB8AEC803B6A7`, `lib/openpgp.js`); the asset's
+SHA-256 equals its `SHA256SUMS` line and GitHub's digest; the unpacked app
+passes `codesign --verify --strict`, carries team `KJ35UYYL22`, passes
+`xcrun stapler validate` and `spctl --assess --type execute` (source
+Notarized Developer ID). The download lives under
+`~/.passioncode/downloads/<app>-<version>/` and is removed whatever happens. A
+new app is copied beside the target (`<App>.app.passioncode-<pid>.partial`), checked again for use, then swapped in with two same-volume renames; the replaced app is moved to `~/.Trash/` and moved back if the swap fails, and the staged copy is always removed. Only `setup` and `doctor --fix` register the early-preview Fabric server; `update` alone never does.
+
+Evidence: `lib/setup.js`, `lib/doctor.js`, `lib/releases.js`; `test/setup.test.js`
+and `test/openpgp.test.js`.
 
 ## Update and failure boundaries
 
@@ -158,6 +210,12 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing |
+| `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |
+| `PASSIONCODE_GITHUB_API` | GitHub API base for release lookups (default `https://api.github.com`) |
+| `PASSIONCODE_RELEASE_KEY` | An armoured key file that replaces the bundled release key, for tests; setup names it in its output whenever it is set |
+| `PASSIONCODE_PLATFORM` | Treat the system as this platform (tests) |
+| `PASSIONCODE_SERVICES_DIR` | Fabric service descriptors directory (else `FABRIC_SERVICES_DIR`, else the platform default) |
+| `~/.passioncode/{doctor.json,releases-cache.json,downloads/}` | Last check summary, 30-minute release cache, transient downloads |
 
 These overrides are trusted local configuration, not a sandbox. The isolated
 test harness supplies a temporary home and fake Claude/npm/npx executables;

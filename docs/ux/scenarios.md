@@ -13,11 +13,18 @@
 | SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-10-01 |
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
+| SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
+| SCN-009 | Check and repair an existing setup with the same command | setup | Operator | REQ-7a | implemented | 2026-10-13 |
+| SCN-010 | Check the setup without changing anything | doctor | Operator, Automation | REQ-6, REQ-8 | implemented | 2026-10-13 |
+| SCN-011 | A download that fails verification installs nothing | setup | Newcomer | REQ-2 | implemented | 2026-10-13 |
+| SCN-012 | A coding agent sets the computer up from one pasted prompt | setting-up-passioncode | Newcomer | REQ-9, REQ-10 | implemented | 2026-10-13 |
+| SCN-013 | A new session names the problems of the last setup check | session start | Operator | REQ-9 | implemented | 2026-10-13 |
 
 ## Personas
 
 - **Operator:** a person checking the installed skill set after an update.
 - **Automation:** a script reading machine-readable installation status.
+- **Newcomer:** a person setting up PassionCode.ai on a computer for the first time, usually through their coding agent.
 
 ## Scenarios
 
@@ -147,4 +154,112 @@
 - **Errors & recovery:** `uninstall --dry-run` is rejected; it never removes an installation.
 - **Status:** implemented
 - **Coverage:** `test/launcher.test.js`; SCN-007 evidence names argument and damaged-state regressions.
+- **Product:** unobserved
+
+### SCN-008: Set up a new computer with one command
+
+- **Persona:** Newcomer
+- **Feature:** setup
+- **Entry point:** `npx @passioncode-ai/passioncode@latest setup` (in a terminal), or `setup --yes --json` from a coding agent
+- **Preconditions:** Node 18+; macOS for the apps; no PassionCode.ai app or skill installed.
+- **Steps:**
+  1. Run setup. In a terminal, answer one question per app (Fabric, an early preview, defaults to no without Docker and the Supabase CLI) and one for the repairs.
+  2. Read the result: what was installed, the checks before and after, and the numbered steps that stay the person's.
+  3. Do those steps (sign-ins, consents, secrets in each product's hidden prompt), restart the coding agents.
+- **Expected result:** The chosen apps are installed from verified releases and opened once; the skill set is installed; every bundled MCP server is registered for every agent present and answers its proving call; the person's steps are listed once.
+- **Alt paths:** `--with`/`--without` choose apps; `--no-apps` sets up skills and MCP only; `--dry-run` shows the plan; without a terminal and without `--yes` the plan is printed and nothing changes; on Linux or Windows the apps are named with their download page.
+- **UI elements:** Questions on stderr; the result on stdout (text or `--json`); exit code.
+- **States covered:** empty, loading, success, error
+- **Errors & recovery:** A failed step is named with its cause and exit 1; running setup again resumes, because completed work is detected and skipped.
+- **Status:** implemented
+- **Coverage:** `test/setup.test.js`, tests beginning `a new machine:` and `without a terminal and without --yes`.
+- **Product:** unobserved
+
+### SCN-009: Check and repair an existing setup with the same command
+
+- **Persona:** Operator
+- **Feature:** setup
+- **Entry point:** `npx @passioncode-ai/passioncode@latest setup`
+- **Preconditions:** Some apps, skills or MCP registrations exist; some may be outdated, damaged, missing or not answering.
+- **Steps:**
+  1. Run setup. It checks first and lists the repairs.
+  2. Accept. It repairs, checks again and prints before → after.
+  3. Do the listed steps that stay the person's (quit a running app that needs an update, start Docker, a product's own onboarding).
+- **Expected result:** The skill set and MCP registrations are repaired; an outdated or damaged app that is not running is reinstalled from its verified release and the old one is in the Trash; a family service launchd owns that does not answer is started with `launchctl kickstart` (no `-k`); a running app is never replaced; nothing is killed. On a healthy computer nothing changes and the exit code is 0.
+- **Alt paths:** `doctor --fix` runs the same repairs without installing new apps or opening anything.
+- **UI elements:** The before → after table by area, every check that changed state, what is still open, the person's steps.
+- **States covered:** success, error
+- **Errors & recovery:** A problem that remains keeps exit 1 and names its fix.
+- **Status:** implemented
+- **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run).
+- **Product:** unobserved
+
+### SCN-010: Check the setup without changing anything
+
+- **Persona:** Operator, Automation
+- **Feature:** doctor
+- **Entry point:** `npx @passioncode-ai/passioncode@latest doctor [--json] [--offline]`, a product's "Check setup" button, or a coding agent
+- **Preconditions:** None.
+- **Steps:**
+  1. Run doctor.
+  2. Read one line per check, grouped by area — prerequisites, skills, apps, MCP, services — each with its state and, when not ok, its fix.
+- **Expected result:** Nothing is installed, registered, started, stopped or opened. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
+- **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does.
+- **UI elements:** Grouped text lines or JSON; exit code.
+- **States covered:** success, error
+- **Errors & recovery:** Every failing line names the command or the step that fixes it.
+- **Status:** implemented
+- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`.
+- **Product:** unobserved
+
+### SCN-011: A download that fails verification installs nothing
+
+- **Persona:** Newcomer
+- **Feature:** setup
+- **Entry point:** setup installing or reinstalling an app
+- **Preconditions:** A release whose checksum, signature, team or notarization does not hold.
+- **Steps:**
+  1. Run setup; the app's action fails and names the failed check.
+- **Expected result:** The app is not installed (an existing one stays as it was), the download is removed, and the exit code is 1.
+- **Alt paths:** None — there is no flag that skips a check.
+- **UI elements:** The failed action with its reason.
+- **States covered:** error
+- **Errors & recovery:** Report it to contact@passioncode.ai; retry after a new release.
+- **Status:** implemented
+- **Coverage:** `test/setup.test.js`, tests beginning `setup refuses`; `test/openpgp.test.js`.
+- **Product:** unobserved
+
+### SCN-012: A coding agent sets the computer up from one pasted prompt
+
+- **Persona:** Newcomer
+- **Feature:** setting-up-passioncode
+- **Entry point:** The copy-prompt from the README or passioncode.ai/start/, pasted into Claude Code or Codex; or "set me up" / "check my setup" once the skill is installed
+- **Preconditions:** A coding agent that can run commands; Node 18+.
+- **Steps:**
+  1. Paste the prompt.
+  2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor`, and reports.
+- **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; no secret is asked for in the chat.
+- **Alt paths:** "Don't change anything" → the agent runs doctor only.
+- **UI elements:** The agent's reply.
+- **States covered:** success, error
+- **Errors & recovery:** The agent reports a failed command with its exit code and does not fall back to manual installs.
+- **Status:** implemented
+- **Coverage:** `test/skill.test.js`, tests beginning `setting-up-passioncode`; trigger and scenario evals in `test/evals/setting-up-passioncode/`.
+- **Product:** unobserved
+
+### SCN-013: A new session names the problems of the last setup check
+
+- **Persona:** Operator
+- **Feature:** session start
+- **Entry point:** SessionStart hook
+- **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run.
+- **Steps:**
+  1. Start a session.
+- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them. The hook never runs doctor.
+- **Alt paths:** No failures or no file: silent.
+- **UI elements:** One hook line.
+- **States covered:** empty, error
+- **Errors & recovery:** A damaged file is ignored.
+- **Status:** implemented
+- **Coverage:** `test/self-update.test.js`, test beginning `session start names the failures`.
 - **Product:** unobserved

@@ -3,7 +3,8 @@
 // starts a detached probe at most once a day, and — only when a newer version is
 // out, every one of its npm publishers is in trust.json, and auto-update is on —
 // a detached `npx --yes @passioncode-ai/passioncode@<that exact version> update`. What was
-// verified is what runs; the update lands for the NEXT session.
+// verified is what runs; the update lands for the NEXT session. It also repeats the last saved
+// setup check (~/.passioncode/doctor.json) while that has failures; it never runs the check.
 'use strict';
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -69,6 +70,17 @@ async function main() {
   try { const input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); if (input && typeof input.cwd === 'string') cwd = input.cwd; } catch (_) { /* no stdin */ }
   const rules = rulesLine(cwd);
   if (rules) lines.unshift(rules);
+  // The last saved setup check (ADR-0004): one line while it has failures. Doctor itself never runs here.
+  const last = read(path.join(DIR, 'doctor.json'), null);
+  const fails = last && last.summary && Number(last.summary.fail);
+  // An update since that check may have fixed what it found: a result older than the installed
+  // release is not repeated (the next doctor or setup writes a fresh one).
+  const stale = last && Date.parse(state.installedAt) > Date.parse(last.at);
+  if (fails > 0 && !stale) {
+    const ids = Array.isArray(last.failed) ? last.failed.filter((x) => typeof x === 'string').slice(0, 3) : [];
+    const when = typeof last.at === 'string' ? last.at.slice(0, 10) : 'an earlier session';
+    lines.push(`[passioncode] the setup check of ${when} found ${fails} problem(s)${ids.length ? ` (${ids.join(', ')}${last.failed.length > 3 ? ', …' : ''})` : ''}; \`npx @passioncode-ai/passioncode@latest setup\` repairs them, \`doctor\` shows them.`);
+  }
   if (lines.length) process.stdout.write(lines.join('\n') + '\n');
 }
 main().catch(() => { /* never fail a session start */ });

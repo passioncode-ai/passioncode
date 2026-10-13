@@ -1,0 +1,26 @@
+{
+  "skill": "setting-up-passioncode",
+  "queries": [
+    {"query": "Set me up with PassionCode on this Mac.", "shouldTrigger": true},
+    {"query": "Install Fabric and the Fabric Dashboards app for me.", "shouldTrigger": true},
+    {"query": "Check my PassionCode setup — is everything configured right?", "shouldTrigger": true},
+    {"query": "Run the passioncode doctor and fix what it finds.", "shouldTrigger": true},
+    {"query": "The fabric-dashboards MCP server doesn't answer in Claude Code anymore.", "shouldTrigger": true},
+    {"query": "I just got a new laptop; get Fabric Switchboard and Project Observatory working with Codex.", "shouldTrigger": true},
+    {"query": "Is my Fabric Inbox up to date and connected to my agent?", "shouldTrigger": true},
+    {"query": "Update all the PassionCode apps and re-register their MCP servers.", "shouldTrigger": true},
+    {"query": "Установи PassionCode и всё настрой.", "shouldTrigger": true},
+    {"query": "Проверь мою установку Fabric и почини, если что-то сломано.", "shouldTrigger": true},
+    {"query": "Запусти доктор PassionCode.", "shouldTrigger": true},
+    {"query": "Open a PR in passioncode-ai/fabric-switchboard for this fix.", "shouldTrigger": false},
+    {"query": "Release the passioncode launcher and tag the next version.", "shouldTrigger": false},
+    {"query": "Create a new Fabric-compatible agent that summarizes my inbox.", "shouldTrigger": false},
+    {"query": "Make this Python service a Fabric service with a dashboard.", "shouldTrigger": false},
+    {"query": "Install the Supabase CLI with Homebrew.", "shouldTrigger": false},
+    {"query": "Set up ESLint and Prettier in this repo.", "shouldTrigger": false},
+    {"query": "Design the onboarding screen for Fabric's first run.", "shouldTrigger": false},
+    {"query": "Как в репозиториях PassionCode принято называть ветки?", "shouldTrigger": false},
+    {"query": "Настрой мне Docker Compose для этого проекта.", "shouldTrigger": false},
+    {"query": "Write the copy for the /start/ page of passioncode.ai.", "shouldTrigger": false}
+  ]
+}

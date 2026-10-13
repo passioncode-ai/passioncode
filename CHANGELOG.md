@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.2.0 - 2026-10-13
+
+### Added
+
+- **`setup` (alias `onboard`): one command for a new computer and for one that is already set up.**
+  It checks everything first, then installs the PassionCode.ai apps that are missing (Fabric
+  Switchboard, Fabric Dashboards, Project Observatory, Fabric Inbox, and Fabric as an early
+  preview when Docker and the Supabase CLI are present), installs the skills, registers every
+  app's MCP server for every coding agent present, repairs what is wrong, checks again and prints
+  a before → after table with one list of the steps that stay yours. On a healthy computer it
+  changes nothing and exits 0. In a terminal it asks one question per app; `--yes`, `--with`,
+  `--without`, `--no-apps`, `--no-open`, `--dry-run` and `--json` serve agents and scripts.
+- **No unverified byte is installed.** Each release's `SHA256SUMS.asc` is verified against the
+  PassionCode.ai release key bundled in the package (pinned by fingerprint, no gpg needed); the
+  download must match the signed checksum and GitHub's digest; the app must pass `codesign`,
+  carry team `KJ35UYYL22`, have its notarization ticket stapled and pass Gatekeeper. An outdated
+  or damaged app is reinstalled only when it is not running, and the old one goes to the Trash.
+- **`doctor`: a read-only check of the whole setup** — prerequisites, the skill set, each app's
+  version, signature and team, each agent's MCP entries with one real proving call per server,
+  and the family's Fabric services. Every line names its state and its fix; exit 0 means no check
+  failed. `doctor --fix` runs setup's repairs without installing new apps.
+- **`update` registers Fabric Switchboard's MCP server (`switchboard mcp`)** next to Fabric
+  Dashboards', under the same never-clobber, reversible rules; an entry counts as the same only
+  with the same command and arguments. **`setup` also registers Fabric's (`fabric-mcp --runner
+  <agent>`)**: an early preview, it is never added by a background update (ADR-0004).
+- **Safer installs and removals**: an app is copied beside its target and swapped in with two
+  renames, after a second check that nothing runs from it; uninstall keeps a Codex entry that
+  gained settings since it was written; a dry run copies no config file.
+- **The `setting-up-passioncode` skill**: "set me up" or "check my setup" makes any coding agent
+  run setup or doctor, finish the steps an agent may take and hand you only sign-ins, consents
+  and secrets typed into a product's own hidden prompt. The README and passioncode.ai/start/
+  carry a one-paragraph prompt to paste into Claude Code or Codex.
+- **Session start names the problems of the last setup check** while it has any; it never runs
+  the check itself.
+
 ## 0.1.53 - 2026-10-13
 
 ### Changed

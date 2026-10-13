@@ -18,9 +18,10 @@
 
 ## What this repository is
 
-PassionCode.ai launcher: `passioncode` is the npm launcher that installs the PassionCode.ai agent skills listed in `family.json` for Claude
-Code and every other agent on a machine, and keeps them current as one set
-(`npx @passioncode-ai/passioncode@latest update`). Members are vendored from their own repositories at a
+PassionCode.ai launcher: `passioncode` is the npm launcher that sets up PassionCode.ai on a computer
+with one command (`npx @passioncode-ai/passioncode@latest setup`: the apps from their verified
+releases, their MCP servers for every agent, the agent skills listed in `family.json`), checks it
+(`doctor`) and keeps the skills current as one set (`update`). Members are vendored from their own repositories at a
 pinned ref (`family.json`); Claude Code gets them from a local `passioncode` marketplace,
 other agents through the `~/.agents/skills` hub (`README.md`).
 
@@ -40,12 +41,16 @@ refuses to run here; `npm test` works on a fresh clone. Hosted workflows exist (
 runs `npm test`; `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and
 `PUBLISH_NPMJS` are `true`). The repository is public, so they run outside the organisation's
 spending cap; the local gate above is still the evidence, and a skipped run is reported as skipped.
-MCP: none — the launcher serves and calls no MCP server; it is driven by its CLI (README,
+MCP: the launcher serves no MCP server. It registers the installed apps' servers for every
+agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
 "Quick start → MCP").
 
 ## Where things live
 
-- `lib/launcher.js` (update, restore, status, uninstall), `bin/passioncode.js` (the CLI),
+- `lib/launcher.js` (update, restore, status, uninstall), `lib/setup.js` and `lib/doctor.js`
+  (setup and doctor, ADR-0004), `lib/catalog.js` (the apps: release, asset, MCP command, proving
+  call, onboarding), `lib/releases.js` and `lib/openpgp.js` (verified downloads; the release key
+  `lib/release-key.asc`), `lib/mcp-probe.js` (the proving call), `bin/passioncode.js` (the CLI),
   `scripts/vendor.mjs` (the payload), `plugin/passioncode/` (the self-update SessionStart
   hook: `hooks/update-check.js` decides, `probe.js` asks npm, `session-start.js` acts;
   `trust.json` names the npm accounts allowed to publish).
@@ -102,6 +107,7 @@ or resident process. Everything it runs is started by a person or by Claude Code
 
 | What | Started by | Cadence | Cost | With no window | Stopped by |
 |---|---|---|---|---|---|
+| `passioncode setup / doctor` | a person or their coding agent | on demand | doctor: one short-lived process per registered MCP server (20 s cap), one GitHub API call per app (cached 30 min); setup: downloads, `codesign`/`spctl`, `ditto`, `launchctl kickstart`, `open` only for apps it installed | nothing | exits; the MCP servers it started are stopped when their proving call returns |
 | `passioncode update / restore / uninstall` | a person, or the background update below | on demand | one `claude plugin` call per member (180 s cap each) | nothing | exits; `~/.passioncode/update.lock` keeps one at a time (`test/lifecycle.test.js`) |
 | SessionStart hook `plugin/passioncode/hooks/session-start.js` | Claude Code, matcher `startup` only (not resume, clear or compact) | once per new session | 0.11–0.19 s, 2 processes (node + `git remote get-url`, 2 s cap), 5 s hook timeout; measured 2026-10-03 (lifecycle audit, passioncode-adapter §4) | nothing | exits |
 | Probe `hooks/probe.js` → `npm view` | the hook, detached | at most once a day (`checkedAt` older than 24 h), one at a time (`probe.pending`) | 1 node + 1 npm, one HTTPS call, 30 s cap | runs ≤ 30 s, then exits | its own timeout |

@@ -6,6 +6,9 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
+// No test reads the machine's own /Applications: an app installed there would add MCP steps.
+process.env.PASSIONCODE_APPLICATIONS = require('node:path').join(require('node:os').tmpdir(), 'pc-no-applications');
+
 const ROOT = path.resolve(__dirname, '..');
 const BIN = path.join(ROOT, 'bin/passioncode.js');
 const FAKE = path.join(__dirname, 'fake-claude.js');
@@ -640,7 +643,7 @@ test('MCP registration is idempotent: a second update changes nothing', () => {
   const before = files.map((f) => fs.readFileSync(f, 'utf8'));
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.ok(mcp.length === 4 && mcp.every((s) => s.outcome === 'skipped' && s.detail.includes('already runs')), JSON.stringify(mcp));
   assert.deepEqual(files.map((f) => fs.readFileSync(f, 'utf8')), before);
 });
@@ -669,7 +672,7 @@ test('without the Fabric Dashboards binary nothing is registered', () => {
   const before = fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8');
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.equal(mcp.length, 1);
   assert.equal(mcp[0].outcome, 'skipped');
   assert.match(mcp[0].detail, /no Fabric Dashboards MCP/);
@@ -684,7 +687,7 @@ test('an agent that is not on the machine gets no registration and no invented c
   env.extra.PASSIONCODE_CLAUDE = path.join(env.home, 'no-claude');
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.equal(mcp.filter((s) => s.outcome === 'done').length, 1);
   assert.equal(mcp.filter((s) => s.outcome === 'skipped' && s.detail.includes('not found')).length, 3);
   assert.equal(fs.existsSync(path.join(env.home, '.claude.json')), false);
@@ -778,9 +781,116 @@ test('a dry run plans the MCP registrations and writes no agent config', () => {
   const before = fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8');
   const r = run(env, 'update', '--dry-run', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
-  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  const mcp = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
   assert.equal(mcp.filter((s) => s.outcome === 'planned').length, 4, JSON.stringify(mcp));
   assert.equal(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8'), before);
   assert.equal(fs.existsSync(path.join(env.home, '.gemini', 'settings.json')), false);
   assert.ok(!calls(env.home).some((l) => l.startsWith('mcp ')));
+});
+
+// ADR-0004: every stdio server inside an installed app bundle, with each agent's own arguments.
+function withApps(env, names) {
+  const apps = path.join(env.home, 'Applications');
+  const bins = {
+    fabric: path.join(apps, 'Fabric.app/Contents/Resources/bin/fabric-mcp'),
+    switchboard: path.join(apps, 'Fabric Switchboard.app/Contents/MacOS/switchboard'),
+  };
+  for (const n of names) { fs.mkdirSync(path.dirname(bins[n]), { recursive: true }); fs.writeFileSync(bins[n], '#!/bin/sh\n'); }
+  env.extra = { ...(env.extra || {}), PASSIONCODE_APPLICATIONS: apps };
+  return bins;
+}
+
+// In-process update with setup's includePreview, the fake claude CLI and this test's env.
+function updateInProcess(env, opts) {
+  const keys = { PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_APPLICATIONS: env.extra.PASSIONCODE_APPLICATIONS, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp') };
+  const saved = Object.fromEntries(Object.keys(keys).map((k) => [k, process.env[k]]));
+  Object.assign(process.env, keys);
+  const claude = { available: () => true, run: (args, o = {}) => { const r = spawnSync(process.execPath, [FAKE, ...args], { encoding: 'utf8', cwd: o.cwd, env: { ...process.env, HOME: env.home } }); return { code: r.status, out: `${r.stdout}${r.stderr}`.trim() }; } };
+  try { return require('../lib/launcher').update({ home: env.home, claude, ...opts }); } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+}
+
+test('fabric (an early preview) is registered by setup with each agent its own runner, never by a plain update, and no Gemini entry', () => {
+  const env = setup();
+  withAgents(env);
+  const bins = withApps(env, ['fabric']);
+  const plain = run(env, 'update', '--json');
+  assert.equal(plain.status, 0, plain.stderr + plain.stdout);
+  assert.ok(JSON.parse(plain.stdout).steps.some((s) => s.kind === 'mcp' && /Fabric is an early preview: fabric is registered by `passioncode setup`/.test(s.detail)));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers.fabric, undefined, 'the background update registers no preview server');
+  const r = { status: 0, stdout: JSON.stringify(updateInProcess(env, { includePreview: true })), stderr: '' };
+  const fabric = (file) => JSON.parse(fs.readFileSync(path.join(env.home, file), 'utf8')).mcpServers.fabric;
+  assert.deepEqual(fabric('.claude.json'), { type: 'stdio', command: bins.fabric, args: ['--runner', 'claude-code'], env: {} });
+  assert.ok(calls(env.home).includes(`mcp add --scope user fabric -- ${bins.fabric} --runner claude-code`));
+  assert.deepEqual(fabric('.kimi-code/mcp.json'), { command: bins.fabric, args: ['--runner', 'kimi-code'], env: {} });
+  assert.match(fs.readFileSync(path.join(env.home, '.codex/config.toml'), 'utf8'), /\["mcp_servers"\."fabric"\]\ncommand = "[^"]+fabric-mcp"\nargs = \["--runner", "codex"\]\n/);
+  assert.equal(fs.existsSync(path.join(env.home, '.gemini/settings.json')), false, 'nothing was written for Gemini');
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric '));
+  assert.ok(steps.some((s) => s.outcome === 'skipped' && /no Gemini CLI runner/.test(s.detail)), JSON.stringify(steps));
+  // A second run changes nothing and uninstall takes out exactly what was added.
+  const again = updateInProcess(env, { includePreview: true }).steps.filter((s) => s.kind === 'mcp' && s.outcome === 'done');
+  assert.equal(again.length, 0, JSON.stringify(again));
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fabric('.kimi-code/mcp.json'), undefined);
+  assert.doesNotMatch(fs.readFileSync(path.join(env.home, '.codex/config.toml'), 'utf8'), /"fabric"/);
+});
+
+test('switchboard is not added for Claude Code when its plugin already serves it', () => {
+  const env = setup();
+  withAgents(env);
+  const bins = withApps(env, ['switchboard']);
+  const plugins = path.join(env.home, '.claude/plugins/installed_plugins.json');
+  const doc = JSON.parse(fs.readFileSync(plugins, 'utf8'));
+  doc.plugins['switchboard@switchboard'] = [{ scope: 'user', installPath: '/x', version: '0.6.0' }];
+  fs.writeFileSync(plugins, JSON.stringify(doc));
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.equal((JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers || {}).switchboard, undefined);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => s.kind === 'mcp' && /from its switchboard plugin/.test(s.detail)));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.home, '.gemini/settings.json'), 'utf8')).mcpServers.switchboard, { command: bins.switchboard, args: ['mcp'], env: {} });
+});
+
+test('a dry run copies no agent config into a quarantine', () => {
+  const env = setup();
+  withAgents(env);
+  withFakeMcp(env);
+  assert.equal(run(env, 'update', '--dry-run', '--json').status, 0);
+  assert.equal(fs.existsSync(path.join(env.home, '.passioncode', 'quarantine')), false);
+});
+
+test('an entry with the same command but other arguments is the person\'s and is kept', () => {
+  const env = setup();
+  withAgents(env);
+  const bins = withApps(env, ['switchboard']);
+  const gemini = path.join(env.home, '.gemini', 'settings.json');
+  fs.writeFileSync(gemini, JSON.stringify({ mcpServers: { switchboard: { command: bins.switchboard, args: ['mcp', '--mine'] } } }));
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(JSON.parse(r.stdout).steps.some((s) => /Gemini CLI has its own switchboard entry .*with arguments \["mcp","--mine"\]\); it was kept/.test(s.detail)));
+  assert.deepEqual(JSON.parse(fs.readFileSync(gemini, 'utf8')).mcpServers.switchboard.args, ['mcp', '--mine']);
+});
+
+test('uninstall keeps a Codex entry that gained a sub-table or other arguments since the launcher wrote it', () => {
+  const env = setup();
+  withAgents(env);
+  withApps(env, ['switchboard']);
+  assert.equal(run(env, 'update').status, 0);
+  const conf = path.join(env.home, '.codex', 'config.toml');
+  fs.appendFileSync(conf, '\n[mcp_servers.switchboard.env]\nDEBUG = "1"\n');
+  assert.equal(run(env, 'uninstall').status, 0);
+  const text = fs.readFileSync(conf, 'utf8');
+  assert.match(text, /\["mcp_servers"\."switchboard"\]\ncommand = /, 'the entry stays with its sub-table');
+  assert.match(text, /\[mcp_servers\.switchboard\.env\]/);
+});
+
+test('a key of the same name in another TOML table does not keep the launcher\'s entry on uninstall', () => {
+  const env = setup();
+  withAgents(env, { codexConf: '[profiles.work]\nswitchboard = true\n' });
+  withApps(env, ['switchboard']);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'uninstall').status, 0);
+  const text = fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8');
+  assert.doesNotMatch(text, /\["mcp_servers"\."switchboard"\]/, 'removed');
+  assert.match(text, /\[profiles\.work\]\nswitchboard = true/, 'the other table is untouched');
 });

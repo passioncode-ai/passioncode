@@ -15,7 +15,7 @@ try {
   execFileSync('tar', ['-xzf', path.join(temp, pack.filename), '-C', temp]);
   const home = path.join(temp, 'home');
   fs.mkdirSync(path.join(home, '.codex/skills'), { recursive: true });
-  const env = { ...process.env, HOME: home, PASSIONCODE_HOME: '', PASSIONCODE_PAYLOAD: '',
+  const env = { ...process.env, HOME: home, PASSIONCODE_HOME: '', PASSIONCODE_PAYLOAD: '', PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'),
     PASSIONCODE_CLAUDE: path.join(root, 'test/fake-claude.js'),
     PATH: `${path.dirname(process.execPath)}${path.delimiter}${process.env.PATH}` };
   const cli = (args, expected = 0) => {

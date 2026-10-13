@@ -37,7 +37,7 @@
       "displayName": "PassionCode.ai",
       "kind": "self",
       "path": "plugin/passioncode",
-      "description": "The organisation's working rules for every contributor's agent (working-in-passioncode), and a once-a-day check that keeps the PassionCode.ai set current."
+      "description": "Set up and check PassionCode.ai on a computer with one command (setting-up-passioncode), the organisation's working rules for every contributor's agent (working-in-passioncode), and a once-a-day check that keeps the PassionCode.ai set current."
     }
   ]
 }
