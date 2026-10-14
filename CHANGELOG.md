@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.2 - 2026-10-14
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.32.0`** (it was `v0.30.0`).
+  - v0.31.0 added packing, signing and verifying an agent as a `fabric-package/1` folder, in both service kits and from
+    the command line (`npx @passioncode-ai/fabric-agent-adapter pack|sign|verify`). This is the adapter's part of the
+    RM-28 pilot.
+  - v0.31.1 lets this launcher vendor the kit.
+  - v0.32.0 pins contract `1636fa9`: a board responder now waits under an operator's hold, never treating it as an
+    outage, and reads the estate owner's settlement.
+
 ## 0.2.1 - 2026-10-13
 
 ### Changed
