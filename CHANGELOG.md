@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.4 - 2026-10-14
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.32.1`** (it was `v0.32.0`). v0.32.1 makes the
+  `building-fabric-services` lifecycle reference the rule its public readers follow: it states the lifecycle
+  itself (the supervisor owns the process, the descriptor, readiness) and links only public sources, where it used
+  to defer to the organization's private lifecycle contract (release iteration 1, N-12).
+- 0.2.3 was not published on its own; this release carries its changes below.
+
 ## 0.2.3 - 2026-10-14
 
 ### Changed
