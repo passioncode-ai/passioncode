@@ -141,6 +141,41 @@ turns automatic updates off. Unsupported flags are rejected before mutation.
 Repository docs describe the current source. See the [documentation index](docs/README.md)
 and dated handoffs for which changes have actually been published or installed.
 
+## With the ssheleg family
+
+The ssheleg family ([sshlg-skills](https://github.com/ssheleg/sshlg-skills), on npm as
+`sshlg-skills`) is a separate, public set of skills for coding agents: a working method with
+`task-pipeline` (gated delivery and release iterations), `agent-sync` (leases and id
+reservation), `super-ux`, `sheleg-design`, `make-skill`, `agent-stack` and others. It is not a
+member of this launcher's set, and neither set installs or vendors the other's plugins. Install
+both and update each as one set with its own command:
+
+```bash
+npx @passioncode-ai/passioncode@latest update   # this set: Fabric Agent Adapter, Observatory Log, passioncode
+npx --yes sshlg-skills@latest update            # the family; it takes no member argument
+```
+
+- **Routers.** `npx sshlg-skills routers` writes one routing block into each agent's global
+  instructions (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`, …). It says
+  which member owns which kind of work: interface behaviour, look, copy, delivery, coordination.
+  On a computer where Fabric is installed (its services directory exists) the block gains a
+  `fabric` router, which sends questions about the computer's agent services to the Fabric
+  tooling and to this set's Fabric Agent Adapter skills.
+- **The method.** Fabric principle 11 (a project moves in releases, and every run leaves a lesson)
+  takes its method from `task-pipeline`'s release iteration. Principle 10's wait rule (a wait is
+  not a stop) reaches personal repositories as the family's opt-in rule block
+  (`npx sshlg-skills config set rules.wait on`). In a passioncode-ai repository both reach the
+  agent through this plugin's session-start line and `working-in-passioncode` instead.
+- **What the family gains here.** Where Project Observatory runs, `task-pipeline` writes workflow
+  checkpoints and planned handoffs through it and records cross-project lessons in its shared
+  lesson store, as proposals; `agent-sync` takes the git leases that passioncode-ai repositories
+  declare.
+- **One channel per plugin id.** Each plugin comes from one source: this set's from the
+  `passioncode` marketplace, each family member's from its own (`<name>@<name>`). A plain skill
+  copy in `~/.claude/skills` shadows a plugin; both updaters take such copies out of the way and
+  never create one. Never update a plugin member with a bare `npx skills update <name>`: it
+  recreates that copy.
+
 ## Release (maintainers)
 
 1. Tag every member at the version to ship; set `ref` to that tag in `family.json`.

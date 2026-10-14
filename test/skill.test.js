@@ -142,6 +142,17 @@ for (const name of fs.existsSync(SKILLS) ? skills() : []) {
     assert.match(text, /Never edit generated task status/);
   });
 
+  if (name === 'working-in-passioncode') test(`${name}: §4 carries Fabric principles 10 and 11 with their anchors`, () => {
+    const { body } = parseFrontMatter(text);
+    const s4 = body.slice(body.indexOf('## 4.'), body.indexOf('## 5.')).replace(/\s+/g, ' ');
+    assert.match(s4, /principles\.md#10-a-free-agent-takes-the-next-task/);
+    assert.match(s4, /principles\.md#11-a-project-moves-in-releases-and-every-run-leaves-a-lesson-the-next-one-reads/);
+    assert.match(s4, /watcher/, 'principle 10: a wait goes on a watcher');
+    assert.match(s4, /human gate/, 'principle 10: stop only at a human gate');
+    assert.match(s4, /hotfix lane/, 'principle 11: only the hotfix lane ships alone');
+    assert.match(s4, /lesson/, 'principle 11: every run leaves a lesson');
+  });
+
   if (name === 'working-in-passioncode') test(`${name}: says the knowledge base protocol — read first, update last`, () => {
     const { body } = parseFrontMatter(text);
     const flat = body.replace(/\s+/g, ' ');

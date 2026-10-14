@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.3 - 2026-10-14
+
+### Changed
+
+- **The session-start line names Fabric principles 10 and 11.** In a passioncode-ai repository the
+  line now also says to work by principle 10, a free agent takes the next task (a wait goes on a
+  watcher, stop only at a human gate), and principle 11, a project moves in releases and every run
+  leaves a lesson the next one reads, each with its anchor in the knowledge base's `principles.md`.
+  The knowledge base's rules §4 relies on this line to reach every session, so an `AGENTS.md` need
+  not restate the rule (`test/repo-rules.test.js`).
+- **`working-in-passioncode` §4 carries both principles** in two bullets with their links, and a
+  new scenario eval (`a-wait-is-not-a-stop`) holds the behaviour.
+- **README: "With the ssheleg family"** — what the public sshlg-skills family is, how it relates to
+  this set (routers, the method, what each side adds, one channel per plugin id) and the two update
+  commands.
+
 ## 0.2.2 - 2026-10-14
 
 ### Changed

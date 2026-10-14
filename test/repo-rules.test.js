@@ -9,7 +9,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const test = require('node:test');
-const { orgOf, rulesLine, KNOWLEDGE, KNOWLEDGE_WEB } = require('../plugin/passioncode/hooks/repo-rules');
+const { orgOf, rulesLine, KNOWLEDGE, KNOWLEDGE_WEB, PRINCIPLE_10, PRINCIPLE_11 } = require('../plugin/passioncode/hooks/repo-rules');
 
 function repo(url) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-rules-'));
@@ -61,4 +61,17 @@ test('the reminder sends task edits to canonical sources and the shared backlog'
   assert.match(line, /docs\/backlog-sources\.json/);
   assert.match(line, /canonical task source/);
   assert.match(line, /workspace backlog/);
+});
+
+test('the line names Fabric principles 10 and 11 by anchor, between the read-first and the after-work parts', () => {
+  const line = rulesLine(repo('git@github.com:passioncode-ai/fabric-agent-adapter.git'));
+  assert.equal(PRINCIPLE_10, `${KNOWLEDGE}principles.md#10-a-free-agent-takes-the-next-task`);
+  assert.equal(PRINCIPLE_11, `${KNOWLEDGE}principles.md#11-a-project-moves-in-releases-and-every-run-leaves-a-lesson-the-next-one-reads`);
+  const p10 = line.indexOf('principles.md#10-');
+  const p11 = line.indexOf('principles.md#11-');
+  assert.ok(p10 > line.indexOf('before the first edit'), `principle 10 follows the read-first part: ${line}`);
+  assert.ok(p11 > p10 && line.indexOf('after the work') > p11, `principle 11 follows 10, both before the after-work part: ${line}`);
+  assert.match(line, /a free agent takes the next task/);
+  assert.match(line, /every run leaves a lesson/);
+  assert.equal(line.split('\n').length, 1);
 });
