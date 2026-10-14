@@ -124,6 +124,15 @@ Also, before the first edit:
 - **Receipts.** A claim that will be read as true carries `file:line`, a command and
   its output, or a test name. Documentation changes in the same change as the
   behaviour it describes.
+- **A free agent takes the next task** (Fabric [principle 10](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/principles.md#10-a-free-agent-takes-the-next-task)).
+  A finished unit is followed by the next task from the board or the handoff, in the same turn.
+  Every wait (a review, CI, a merge, a peer, a scheduled time) goes on a watcher that acts when it
+  clears, and one that can outlive the session goes on a durable trigger. Stop only at a human gate:
+  a sign-in, a consent, a payment, a secret a person types, spend above the limit, a recorded decision.
+- **A project moves in releases; every run leaves a lesson** (Fabric [principle 11](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/principles.md#11-a-project-moves-in-releases-and-every-run-leaves-a-lesson-the-next-one-reads)).
+  A finding gets an id in the owning register and is fixed in the next release with every other
+  open item; only the five-entry hotfix lane ships alone. Questions go out in rounds. Read the
+  retrospectives before work and write the lesson after it.
 
 agent-sync missing: `npx @ssheleg/agent-sync install`. If it cannot be installed, do
 not edit a guarded file — say which file and why you stopped.
