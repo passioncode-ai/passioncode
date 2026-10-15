@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.5 - 2026-10-15
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.33.0`** (it was `v0.32.1`). v0.33.0 pins the contract at `82e1636` and
+  reads contexts in its estate kits (DEC-0082): one agent placed on a machine for the person and for each organization
+  it serves, an organization's instance under a share grant of its context, and every estate rule total on hostile
+  JSON. It also fixes a flaky board test (FAA-43).
+
 ## 0.2.4 - 2026-10-14
 
 ### Changed
