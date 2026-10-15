@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.6 - 2026-10-15
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.34.0`** (it was `v0.33.0`). v0.34.0 pins the contract at `d8146cf` and
+  keeps a lane that reads what members, clients or the public send on an open-vendor model (DEC-0083, FAC-SEM-112):
+  its profile kits check the route and the models a project's policy leaves, `open-vendor` admits and excludes
+  nothing, and `creating-fabric-agents` asks which lanes read user content.
+
 ## 0.2.5 - 2026-10-15
 
 ### Changed
