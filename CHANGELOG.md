@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.7 - 2026-10-15
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.34.1`** (it was `v0.34.0`). v0.34.1 makes its profile and route rules
+  answer as the contract does on any JSON — strict comparisons, values shown as JavaScript writes them, numbers as
+  doubles — and the doctor's model check never raises (FAA-47).
+
 ## 0.2.6 - 2026-10-15
 
 ### Changed
