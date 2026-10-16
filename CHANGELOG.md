@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.8 - 2026-10-16
+
+### Changed
+
+- Fabric Agent Adapter is pinned at `v0.35.0` (previously `v0.34.1`), carrying
+  host-specific session hooks and their installation and verification tools.
+  See the [adapter release](https://github.com/passioncode-ai/fabric-agent-adapter/releases/tag/v0.35.0)
+  for supported hosts and activation requirements.
+
 ## 0.2.7 - 2026-10-15
 
 ### Changed
