@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.9 - 2026-10-18
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.35.2`** (it was `v0.35.0`). 0.35.1 names the Codex hook groups a removal
+  moves, stops the tests and the session hooks' spool from accumulating files, adds the `creating-fabric-agents`
+  resilience-and-autonomy reference and fixes the Hermes adapter losing a helper's answer; 0.35.2 extends the reference.
+
 ## 0.2.8 - 2026-10-16
 
 ### Changed
