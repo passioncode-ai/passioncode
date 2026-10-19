@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.13 - 2026-10-19
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.37.0`** (it was `v0.36.0`). Its `creating-fabric-agents` skill now carries
+  how to build agents that run in a personal or an organization's cloud, choose models per lane with OpenRouter keys,
+  orchestrate their work and learn from failures, with the practices production agents taught us.
+
 ## 0.2.12 - 2026-10-19
 
 ### Changed
