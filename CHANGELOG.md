@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.12 - 2026-10-19
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.36.0`** (it was `v0.35.4`), on Fabric Agent Contract `0704218`. Its kits tell a
+  caller when a provider limit stopped or paused a job and when an effect may have happened unseen (DEC-0087), check
+  share grants into an organization (DEC-0086) and the estate ceremonies' record rules and enroll tokens (DEC-0084). A
+  partner's setup for a company is documented as an org skill set that requires its agents.
+
 ## 0.2.11 - 2026-10-19
 
 ### Changed
