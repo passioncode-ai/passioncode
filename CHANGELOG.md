@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.11 - 2026-10-19
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.35.4`** (it was `v0.35.3`). Its session hooks rejoin a Fabric session at most
+  once a minute, so many agent sessions on one machine no longer spend Fabric's shared request budget on every turn;
+  the resilience reference follows the contract's job limit codes (DEC-0087).
+
 ## 0.2.10 - 2026-10-19
 
 ### Changed
