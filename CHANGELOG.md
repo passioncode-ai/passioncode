@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.10 - 2026-10-19
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.35.3`** (it was `v0.35.2`). `creating-fabric-agents` asks in its grill
+  whether a new agent writes text people read, and if so gives it the no-em-dash rule (U+2014) in its prompt and a
+  test that fails on it; the resilience reference gains its third pass.
+
 ## 0.2.9 - 2026-10-18
 
 ### Changed
