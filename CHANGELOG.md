@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.15 - 2026-10-20
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.38.0`** (it was `v0.37.1`): a quieter session start. No Fabric-service count
+  in every session; the Fabric-down line only in a project that uses Fabric, telling the agent to skip
+  `fabric_whoami`; nothing on compact or resume; the dashboard-kit notice only in a repository that owns the service,
+  as an upgrade the agent may make itself.
+
 ## 0.2.14 - 2026-10-20
 
 ### Changed
