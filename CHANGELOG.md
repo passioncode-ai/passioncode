@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.16 - 2026-10-20
+
+### Changed
+
+- **Observatory Log is pinned at `v0.26.0`** (plugin 0.26.0; it was `v0.18.0`). Its Stop hook records and asks about
+  what a turn changed, not what the working tree already held: files untracked before the session never count, and
+  the `why` is asked only for tracked content, once per record, with the session's next prompt (a new
+  `UserPromptSubmit` hook) instead of a Stop notice. The hook parses its payload once instead of starting Python
+  four times per turn (PC-05, audit F12). The tag's plugin version and the release version are the same, so
+  `family.json` still declares no `refVersions` (PC-04).
+
 ## 0.2.15 - 2026-10-20
 
 ### Changed
