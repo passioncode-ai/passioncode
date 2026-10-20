@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.14 - 2026-10-20
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.37.1`** (it was `v0.37.0`): the nearby pairing of a new machine by a
+  six-digit code and the hub's single use of an enroll token in both kits, and notes for agents that register a remote
+  service.
+
 ## 0.2.13 - 2026-10-19
 
 ### Changed
