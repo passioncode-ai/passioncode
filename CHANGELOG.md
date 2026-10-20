@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.17 - 2026-10-20
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.39.0`** (it was `v0.38.0`): the kits follow contract `c55f2d5`. A partner's
+  publisher key is trusted only in the organization contexts its scope names (FAC-SEM-122), a partner may sit innermost
+  in a delegation chain (DEC-0090), and a usage report counts calls with unknown tokens in `unmeasuredCalls`
+  (DEC-0091).
+
 ## 0.2.16 - 2026-10-20
 
 ### Changed
