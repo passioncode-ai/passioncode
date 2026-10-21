@@ -1,6 +1,6 @@
 {
   "name": "@passioncode-ai/passioncode",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "description": "Set up PassionCode.ai on a computer with one command — the apps from their verified releases, their MCP servers for every coding agent and the PassionCode.ai skills — and check and repair it with the same command or `doctor`.",
   "bin": {
     "passioncode": "bin/passioncode.js"

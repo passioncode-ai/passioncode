@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.18 - 2026-10-21
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.39.1`** (it was `v0.39.0`): fixes from a review of 0.39.0. The service
+  probe no longer crashes on a usage count that is not a number, the Python and Node kits read such counts as the
+  contract does, the documentation and the messages people read carry no em dash, and the dashboard kit is 1.1.1.
+
 ## 0.2.17 - 2026-10-20
 
 ### Changed
