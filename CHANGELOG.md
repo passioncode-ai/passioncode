@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.19 - 2026-10-21
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.40.0`** (it was `v0.39.1`): the service kit as layered modules behind
+  compatibility facades, installed into a service with `fabric_kit.py install` and checked with `fabric_kit.py status`;
+  connectors for outbound HTTP and OpenRouter (the agent's own key, a spend ceiling before every attempt, usage
+  receipts, a fallback model); a support-agent recipe. A service that copied one kit file installs the kit as a set now.
+
 ## 0.2.18 - 2026-10-21
 
 ### Changed
