@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.23 - 2026-10-22
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.44.0`** (it was `v0.43.0`): a service built with the kit can say what it
+  uses (`fabric-connections/0.1`, the Connections tab of Fabric Dashboards), and the kit's layout check exits 3 when it
+  measured nothing. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.22 - 2026-10-22
 
 ### Changed
