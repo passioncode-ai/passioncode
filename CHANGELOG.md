@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.24 - 2026-10-22
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.44.1`** (it was `v0.44.0`): two kit modules split by responsibility
+  (`fabric_interop_rules`, `fabric_package_schema`, both twins); no behaviour changed. Notes are in the adapter's
+  CHANGELOG.
+
 ## 0.2.23 - 2026-10-22
 
 ### Changed
