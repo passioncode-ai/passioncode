@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.21 - 2026-10-22
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.42.1`** (it was `v0.41.0`): the session hooks follow Fabric 0.3.9 (a
+  `/clear` keeps the Fabric session, an end from before a `--resume` is not delivered, the release says when the end
+  was observed, a rejoin Fabric answers with "no session" is not retried every turn); the kit's layout check and its
+  `pack`/`sign`/`verify` run when started through the launcher's symlinked folder. `v0.42.0` was tagged and never
+  published. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.20 - 2026-10-22
 
 ### Changed
