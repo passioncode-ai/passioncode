@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.25 - 2026-10-22
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.44.2`** (it was `v0.44.1`): the kit writes its consumed-approval file
+  owner-only on every platform (a protected ACL on Windows), and its private writer leaves no temporary file behind
+  whatever fails. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.24 - 2026-10-22
 
 ### Changed
