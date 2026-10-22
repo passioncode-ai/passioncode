@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.22 - 2026-10-22
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.43.0`** (it was `v0.42.1`): the adapter follows Fabric Agent Contract
+  `bfa9a67` (the contract review, DEC-0096 and DEC-0097, a fix to schema patterns that accepted a line separator in a
+  package path). Notes are in the adapter's CHANGELOG.
+
 ## 0.2.21 - 2026-10-22
 
 ### Changed
