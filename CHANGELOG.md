@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.26 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.45.0`** (it was `v0.44.2`): pinned to the Fabric Agent Contract's
+  `e742016`; the board kit reads the board as Fabric 0.3.9 serves it (the `answered` state, the read counts, a request
+  nobody can answer now), a peer may be `processor-hosted`, and three new protocols are known. Notes are in the
+  adapter's CHANGELOG.
+
 ## 0.2.25 - 2026-10-22
 
 ### Changed
