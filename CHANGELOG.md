@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.20 - 2026-10-22
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.41.0`** (it was `v0.40.0`): the 2026-10-22 audit closed. Session hooks that
+  survive a refused call, a wrapped `fabric-mcp` and a slow process table; a board responder that recovers a request
+  after lost answers; Python twins of the service kit that lock their stores and refuse what the Node twins refuse;
+  package and estate checks that agree across the kits; safer installers (a copy in the hub is replaced only with
+  `--force`, atomically); nightly CI with the contract at the pin, Python 3.9, Node 18, macOS and Windows. A Linux
+  service on the Node kit needs Node 22. Upgrading notes are in the adapter's CHANGELOG.
+
 ## 0.2.19 - 2026-10-21
 
 ### Changed
