@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.27 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.46.0`** (it was `v0.45.0`; `v0.45.1` is included): `working-with-fabric`
+  teaches what to do when nobody answers a board request and reads the board as Fabric 0.3.9 serves it, and the kit is
+  pinned to the Fabric Agent Contract's `0a4ce77` (a node's call queue: `queue-full`, three new protocols). Notes are
+  in the adapter's CHANGELOG.
+
 ## 0.2.26 - 2026-10-23
 
 ### Changed
