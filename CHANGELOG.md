@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.29 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.47.0`** (it was `v0.46.1`): the repin to contract `87d384f`. The kits read a
+  machine's `profile` in the estate record (DEC-0106, `FAC-SEM-134`), name `profile-forbids` and register
+  `fabric-agent-call/1`. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.28 - 2026-10-23
 
 ### Changed
