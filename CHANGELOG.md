@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.32 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.48.1`** (it was `v0.48.0`): the Python and Node usage kits round money
+  alike. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.31 - 2026-10-23
 
 ### Changed
