@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.31 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.48.0`** (it was `v0.47.1`): the re-pin to the contract's first release
+  `v0.1.0+2026-10-23`. The probe admits an identity proxy's no-token page (DEC-0109), spending limits count money
+  only, never a subscription's estimate (DEC-0110), the estate readers read the delta anchor (DEC-0107). Notes are in
+  the adapter's CHANGELOG.
+
 ## 0.2.30 - 2026-10-23
 
 ### Changed
