@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.28 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.46.1`** (it was `v0.46.0`): dashboard kit 1.1.3, whose section navigation no
+  longer leaves a half-cut link beside More and follows the current section. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.27 - 2026-10-23
 
 ### Changed
