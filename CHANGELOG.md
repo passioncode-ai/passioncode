@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.30 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.47.1`** (it was `v0.47.0`): the three risks of 0.47.0's blind reading
+  closed (a Set's membership in the Python estate reader, `profile-forbids`' 403 asserted, more vendored variants).
+  Notes are in the adapter's CHANGELOG.
+
 ## 0.2.29 - 2026-10-23
 
 ### Changed
