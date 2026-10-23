@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.33 - 2026-10-23
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.48.2`** (it was `v0.48.1`): the board responder settles a resumed request
+  whose completion answer was lost on the next tick. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.32 - 2026-10-23
 
 ### Changed
