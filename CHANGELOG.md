@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.36 - 2026-10-24
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.49.1`** (it was `v0.49.0`): the Python estate kit matches machine ids,
+  passkeys and keys as the contract's `Set` does. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.35 - 2026-10-24
 
 ### Changed
