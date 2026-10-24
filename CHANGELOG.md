@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.37 - 2026-10-24
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.49.2`** (it was `v0.49.1`): the service probe judges a remote service's
+  session cookie by its name, so a CDN edge's own cookie no longer fails the login rules. Notes are in the adapter's
+  CHANGELOG.
+
 ## 0.2.36 - 2026-10-24
 
 ### Changed
