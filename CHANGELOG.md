@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.35 - 2026-10-24
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.49.0`** (it was `v0.48.3`): the session start says one line in a folder that
+  does not use Fabric, `watch-mail` delivers the spooled turns, a resumed board handler runs once, and the OpenRouter
+  ceiling counts money only. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.34 - 2026-10-24
 
 ### Changed
