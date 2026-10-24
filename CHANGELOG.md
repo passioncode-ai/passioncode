@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.34 - 2026-10-24
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.48.3`** (it was `v0.48.2`): the Node package reader refuses a folder swapped
+  for a link while its files are read. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.33 - 2026-10-23
 
 ### Changed
