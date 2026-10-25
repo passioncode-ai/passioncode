@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.38 - 2026-10-26
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.49.3`** (it was `v0.49.2`): Fabric's button in the dashboard kit shows
+  Russian on a Russian page and takes a page's own words, with no em dash, and a remote service registers the
+  repository of its code. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.37 - 2026-10-24
 
 ### Changed
