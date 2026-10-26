@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.39 - 2026-10-26
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.50.0`** (it was `v0.49.3`): the contract release `v0.1.0+2026-10-25` with
+  dashboard action parity (every dashboard button has an agent tool, and the operator's agent relays their decision),
+  agent pages that open only in Fabric Dashboards, and new probe rules. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.38 - 2026-10-26
 
 ### Changed
