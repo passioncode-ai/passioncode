@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.41 - 2026-10-26
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.51.2`** (it was `v0.51.1`): the reminders Fabric gives on a turn (from
+  Fabric 0.3.14) reach the agent at its next prompt, once each. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.40 - 2026-10-26
 
 ### Changed
