@@ -4,7 +4,7 @@
 
 ### Changed
 
-- **Fabric Agent Adapter is pinned at `v0.51.0`** (it was `v0.50.0`): the contract release `v0.1.0+2026-10-26.2` with
+- **Fabric Agent Adapter is pinned at `v0.51.1`** (it was `v0.50.0`): the contract release `v0.1.0+2026-10-26.2` with
   the operator's mandate (one approval carried with a call, refused outside its scope with the order to follow), page
   links handed over as Fabric Dashboards links, and the A2A surface. Notes are in the adapter's CHANGELOG.
 
