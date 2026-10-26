@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.42 - 2026-10-26
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.52.0`** (it was `v0.51.2`): the contract release `v0.1.0+2026-10-26.12`,
+  with where the operator said an approval travelling with a call, a hub key per organization context, a job's
+  approval step read under the operator's mandate, and Fabric's rules for checking in every three minutes and for being
+  seen correctly. Notes are in the adapter's CHANGELOG.
+
 ## 0.2.41 - 2026-10-26
 
 ### Changed
