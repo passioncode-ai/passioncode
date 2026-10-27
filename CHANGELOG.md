@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.45 - 2026-10-27
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.55.0`** (it was `v0.54.0`): creating-fabric-agents carries what an agent
+  that answers people needs from its first release (a reference of 17 parts, each with its check), and the
+  support-agent recipe refuses a call to `answer()` from inside `on_handoff` with `ReentryError` instead of hanging.
+
 ## 0.2.44 - 2026-10-27
 
 ### Changed
