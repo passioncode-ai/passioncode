@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.44 - 2026-10-27
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.54.0`** (it was `v0.53.1`): the contract pin `v0.1.0+2026-10-27.1` (DEC-0141
+  MJ-1). A job's step under the operator's mandate is read under the job's own capability; a step no mandate can read
+  is answered `operator-decision-required` (`mandate-capability-missing`) and waits for the operator. working-with-fabric
+  names the job's capability without `actions` when it covers a job's steps.
+
 ## 0.2.43 - 2026-10-27
 
 ### Changed
