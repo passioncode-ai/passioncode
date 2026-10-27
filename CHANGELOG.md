@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.43 - 2026-10-27
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.53.1`** (it was `v0.52.0`): working-with-fabric's Stop hook names the other
+  repositories a turn touched once Fabric takes them (never on Windows), a board responder stops when the operator
+  moves its slot, and Step 4 reads Fabric 0.3.14's answer when a piece is filed. `v0.53.0` was never released. Notes
+  are in the adapter's CHANGELOG.
+
 ## 0.2.42 - 2026-10-26
 
 ### Changed
