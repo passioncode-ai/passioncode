@@ -173,3 +173,30 @@ test('PC-86: doctor on Windows names the installed apps and their versions inste
   assert.equal(app('observatory').detail, 'Project Observatory: not installed');
   assert.ok(!checks.some((c) => /run on macOS/.test(c.detail)), 'no "app checks run on macOS" on Windows');
 });
+
+// The seam reading of 2026-10-28: setup decided "new or existing" with a macOS-only rule, so a Windows
+// machine with apps but no skill set was "a new setup" while its own apps rows showed them installed.
+test('PC-86: setup on Windows calls a machine with an installed app an existing setup', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+  const { spawnSync } = require('node:child_process');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-setup-'));
+  const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(home, 'reg.txt'), REG);
+  fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
+  const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'setup', '--dry-run', '--offline', '--json'], {
+    encoding: 'utf8',
+    env: { ...process.env, HOME: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+  });
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.mode, 'existing', r.stderr);
+  assert.ok(!out.plan.some((i) => i.kind === 'install' || i.kind === 'replace'), 'setup installs no app on Windows');
+});
+
+// On the hosted Windows runner the real reg.exe answers: its output parses, and both hives a 64-bit
+// Windows always has are read.
+test('PC-86: the real reg.exe output parses and the per-user and machine hives are read', { skip: !onWindows && 'needs Windows' }, () => {
+  const releases = require('../lib/releases');
+  const { entries, unread } = W.readUninstallEntries(releases.run);
+  assert.deepEqual(unread, []);
+  assert.ok(entries.length > 0, 'a Windows runner has installed programs');
+  assert.ok(entries.every((e) => e.key.startsWith('HKEY_') && e.DisplayName));
+});

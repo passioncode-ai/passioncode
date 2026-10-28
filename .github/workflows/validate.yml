@@ -29,6 +29,7 @@ jobs:
   # replaced by the real rename that failed on the tester's machine (2026-10-28).
   windows:
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:

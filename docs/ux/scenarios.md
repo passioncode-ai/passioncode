@@ -204,12 +204,16 @@
   1. Run doctor.
   2. Read one line per check, grouped by area — prerequisites, skills, apps, MCP, services — each with its state and, when not ok, its fix.
 - **Expected result:** Nothing is installed, registered, started, stopped or opened. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
-- **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does.
+- **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
+  come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
+  one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
+  own (PC-86).
 - **UI elements:** Grouped text lines or JSON; exit code.
 - **States covered:** success, error
 - **Errors & recovery:** Every failing line names the command or the step that fixes it.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`.
+- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`;
+  `test/windows.test.js`, tests beginning `PC-86`.
 - **Product:** unobserved
 
 ### SCN-011: A download that fails verification installs nothing
