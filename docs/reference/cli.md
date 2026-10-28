@@ -100,8 +100,10 @@ instead of the latest, and the name is saved as `train` in
 when only the plan is returned; the plan still uses it). An installed app newer
 than its pin is never taken back: if it needs a reinstall (a damaged signature),
 that one comes from the latest release, as does one whose version cannot be read.
-An interactive run in which the person declines every offer saves no named
-train; `--train none` is always saved, since forgetting a train touches no app.
+The train is saved with `--yes` or after answers in a terminal; without either
+nothing changes. A person who answers no to every offer that defaulted to yes
+keeps the previous train; `--train none` is saved on any answer, since forgetting
+a train touches no app.
 `--train none` removes it. An unknown name exits 2 before anything is checked.
 On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an
 older one is `warn` with a `replace` repair (macOS; on Windows the fix names the

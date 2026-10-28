@@ -566,3 +566,32 @@ test('PC-89: an app version that is not x.y.z is never reported as the latest', 
   assert.doesNotMatch(row.detail, /\(latest\)/);
   assert.match(row.detail, /the latest is 1\.2\.0/);
 });
+
+// The fourth seam reading of PC-89: without --yes and without a terminal nothing changes, train
+// included; in a terminal, pressing Enter on an offer that defaults to no is not declining the train.
+test('PC-89: a run nobody agreed to saves no train; Enter on a default-no offer keeps the named one', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'supabase') }));
+  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  await cli(m, api, 'setup', '--json', '--yes', '--no-apps', '--no-open', '--offline');
+  const state = () => { try { return JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train; } catch (_) { return undefined; } };
+  const r = await cli(m, api, 'setup', '--json', '--no-open', '--offline', '--train', 'org-test');
+  assert.ok(r.json.plan.length && r.json.plan.every((i) => !i.selected), JSON.stringify(r.json.plan));
+  assert.equal(state(), undefined, 'no --yes and no terminal: nothing changes');
+  const script = `require(${JSON.stringify(path.join(__dirname, '../lib/setup'))}).setup({ online: false, noOpen: true, train: 'org-test', ask: async () => '' })
+    .then(() => {}, (e) => { console.error(e); process.exit(1); });`;
+  const i = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(i.status, 0, i.stderr);
+  assert.equal(state(), 'org-test');
+});
+
+test('PC-89: a macOS app whose version cannot be read is never reported as the latest', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0' });
+  const m = machine();
+  installApp(m, catalog.byId('switchboard'), { version: '1.1.0' });
+  fs.writeFileSync(path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist'), 'not a plist');
+  const doc = await cli(m, api, 'doctor', '--json');
+  const row = doc.json.checks.find((c) => c.id === 'app.switchboard');
+  assert.equal(row.state, 'warn');
+  assert.match(row.detail, /\(version unknown\); the latest is 1\.2\.0/);
+});

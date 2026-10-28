@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.50 - 2026-10-28
+## 0.2.51 - 2026-10-28
 
 ### Added
 
@@ -10,6 +10,15 @@
   in each `app.<id>` line and one `train` line, on macOS and Windows. An app ahead of its pin is
   reported and never taken back, nor is one whose version cannot be read. `setup --train none` returns to the latest releases. The first
   pins are the releases of 2026-10-28; the train's record in fabric-workspace decides later ones.
+
+## 0.2.50 - 2026-10-28
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.57.0`** (it was `v0.56.0`): the kits read the Fabric Agent Contract at
+  `3830a33` (`v0.1.0+2026-10-27.6`). A person's comparison of codes is a human step (DEC-0142), the protocol register
+  knows the peer-share and organization-adaptation revisions, and on Windows the provider writer uses the folder Fabric
+  reads (PC-90).
 
 ## 0.2.49 - 2026-10-28
 
