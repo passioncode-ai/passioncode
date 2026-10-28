@@ -33,10 +33,13 @@ returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.
 `~/.kimi-code/mcp.json` (entry names, commands and arguments; environment values are passed to
 the server it starts and never printed), the Fabric service descriptors (never their token
 files), the apps' `Info.plist` (on Windows, the apps' uninstall entries through `reg query` and their install folders),
+the launcher's own `trains/<name>.json` and the `train` it saved in `~/.passioncode/state.json`,
 and the GitHub releases API. It starts each registered stdio MCP
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
 release cache.
 
+`setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`; a train
+changes which release is downloaded (the pinned tag instead of the latest), never how it is verified.
 `setup` also downloads releases from GitHub into `~/.passioncode/downloads/` (removed after
 each app), copies a verified app into `/Applications`, moves an app it replaces into `~/.Trash/`,
 runs `update` (above), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose

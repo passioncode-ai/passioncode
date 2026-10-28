@@ -257,3 +257,28 @@ test('PC-87: a real junction on Windows reads back as the path it was made to', 
   fs.unlinkSync(t.current);
   assert.equal(fs.readFileSync(path.join(old, 'manifest.json'), 'utf8'), '0.2.44', 'removing the junction leaves its target');
 });
+
+// PC-89 on Windows: the train is compared from the installer's records; behind is the person's
+// install from the download page, never a command that plans nothing there.
+test('PC-89: doctor on Windows compares each app with the release train and names the download for one behind', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+  const { spawnSync } = require('node:child_process');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-train-'));
+  const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(home, 'reg.txt'), REG);
+  fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
+  const trainsDir = path.join(home, 'trains'); fs.mkdirSync(trainsDir);
+  fs.writeFileSync(path.join(trainsDir, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', apps: { dashboards: '0.8.15', switchboard: '0.7.0' } }));
+  fs.mkdirSync(path.join(home, '.passioncode'));
+  fs.writeFileSync(path.join(home, '.passioncode', 'state.json'), JSON.stringify({ train: 'org-test' }));
+  const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
+    encoding: 'utf8',
+    env: { ...process.env, HOME: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_TRAINS: trainsDir, PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+  });
+  const checks = JSON.parse(r.stdout).checks;
+  const row = (id) => checks.find((c) => c.id === id);
+  assert.equal(row('app.switchboard').state, 'ok');
+  assert.equal(row('app.dashboards').state, 'warn');
+  assert.equal(row('app.dashboards').fix, 'install 0.8.15 from https://passioncode.ai/dashboards/');
+  assert.equal(row('app.dashboards').repair, null);
+  assert.match(row('train').detail, /^release train org-test \(Org Test\): 1 of 2 apps at their pinned version/);
+});

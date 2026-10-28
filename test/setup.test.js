@@ -34,30 +34,36 @@ function makePayload(dir) {
 }
 
 /** A GitHub-shaped release server: latest release per repo, signed SHA256SUMS, the archives. */
-function releaseServer(t, { version = '1.2.0', tamper = null, foreign = null, team = null, broken = null } = {}) {
+function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign = null, team = null, broken = null } = {}) {
   const files = new Map(); // `${repo}/${name}` → bytes
   const releasesOf = new Map();
+  const tagged = new Map(); // `${repo}@v${version}` → release, `also` holds older releases a train may pin
   let base;
-  for (const pr of catalog.PRODUCTS) {
+  for (const v of [...also, version]) for (const pr of catalog.PRODUCTS) {
+    const version = v;
     const asset = pr.asset(version);
     const bytes = Buffer.from(JSON.stringify({ app: pr.app, version, ...(team === pr.id ? { team } : {}), ...(broken === pr.id ? { broken: true } : {}) }));
     const sums = `${crypto.createHash('sha256').update(bytes).digest('hex')}  ${asset}\n`;
     const served = tamper === pr.id ? Buffer.from(`${bytes}x`) : bytes;
     const signer = foreign === pr.id ? makeKey() : KEY;
-    files.set(`${pr.repo}/${asset}`, served);
-    files.set(`${pr.repo}/SHA256SUMS`, Buffer.from(sums));
-    files.set(`${pr.repo}/SHA256SUMS.asc`, Buffer.from(signer.sign(Buffer.from(sums))));
-    releasesOf.set(pr.repo, () => ({
+    files.set(`${pr.repo}/v${version}/${asset}`, served);
+    files.set(`${pr.repo}/v${version}/SHA256SUMS`, Buffer.from(sums));
+    files.set(`${pr.repo}/v${version}/SHA256SUMS.asc`, Buffer.from(signer.sign(Buffer.from(sums))));
+    const release = () => ({
       tag_name: `v${version}`, draft: false, prerelease: !!pr.prerelease, html_url: `https://example.invalid/${pr.repo}`,
       assets: [asset, 'SHA256SUMS', 'SHA256SUMS.asc'].map((name) => ({
-        name, size: files.get(`${pr.repo}/${name}`).length, browser_download_url: `${base}/dl/${pr.repo}/${name}`,
+        name, size: files.get(`${pr.repo}/v${version}/${name}`).length, browser_download_url: `${base}/dl/${pr.repo}/v${version}/${name}`,
         // GitHub's digest is of the published bytes; a tampered upload still differs from the signed sums.
-        digest: `sha256:${crypto.createHash('sha256').update(files.get(`${pr.repo}/${name}`)).digest('hex')}`,
+        digest: `sha256:${crypto.createHash('sha256').update(files.get(`${pr.repo}/v${version}/${name}`)).digest('hex')}`,
       })),
-    }));
+    });
+    tagged.set(`${pr.repo}@v${version}`, release);
+    releasesOf.set(pr.repo, release); // the last version written is the latest
   }
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, base);
+    const tag = /^\/repos\/([^/]+\/[^/]+)\/releases\/tags\/([^/]+)$/.exec(u.pathname);
+    if (tag && tagged.has(`${tag[1]}@${tag[2]}`)) { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(tagged.get(`${tag[1]}@${tag[2]}`)())); return; }
     let m = /^\/repos\/([^/]+\/[^/]+)\/releases\/latest$/.exec(u.pathname);
     if (m && releasesOf.has(m[1])) { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify(releasesOf.get(m[1])())); return; }
     m = /^\/repos\/([^/]+\/[^/]+)\/releases$/.exec(u.pathname);
@@ -96,6 +102,7 @@ function cli(m, api, ...args) {
     KIMI_CODE_HOME: path.join(m.home, '.kimi-code'), PASSIONCODE_FABRIC_DASHBOARDS_MCP: '', FABRIC_SERVICES_DIR: '',
   };
   delete env.PASSIONCODE_FABRIC_DASHBOARDS_MCP;
+  if (m.trains) env.PASSIONCODE_TRAINS = m.trains; else delete env.PASSIONCODE_TRAINS;
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [BIN, ...args], { env, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
@@ -322,4 +329,86 @@ test('a staged copy left by a killed run is removed before the next install', as
   const r = await cli(m, api, 'setup', '--yes', '--with', 'dashboards', '--no-open');
   assert.equal(fs.existsSync(leftover), false, r.stdout);
   assert.ok(fs.existsSync(path.join(m.apps, 'Fabric Dashboards.app')));
+});
+
+// PC-89 (organization R1, N-12): a release train pins every app at one version. A machine on a train
+// installs and reinstalls to the pinned release, never the latest; doctor compares with the pin and
+// never asks to go back to an older one (an app's data may not open in an older release).
+function onTrain(m, apps = { switchboard: '1.1.0', dashboards: '1.1.0', observatory: '1.1.0', inbox: '1.1.0', fabric: '1.1.0' }) {
+  m.trains = path.join(m.home, 'trains');
+  fs.mkdirSync(m.trains, { recursive: true });
+  fs.writeFileSync(path.join(m.trains, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', pinned: '2026-10-28', apps }));
+  return m;
+}
+
+test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--train', 'org-test');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(r.json.plan.some((i) => i.product === 'switchboard' && /pinned by release train org-test/.test(i.detail)));
+  const plist = JSON.parse(fs.readFileSync(path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist'), 'utf8'));
+  assert.equal(plist.CFBundleShortVersionString, '1.1.0');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, 'org-test');
+  const d = await cli(m, api, 'doctor', '--json', '--offline');
+  const row = (id) => d.json.checks.find((c) => c.id === id);
+  assert.equal(row('train').state, 'ok');
+  assert.match(row('train').detail, /^release train org-test \(Org Test, pinned 2026-10-28\): 4 of 5 apps at their pinned version; Fabric Switchboard 1\.1\.0/);
+  assert.equal(row('app.switchboard').state, 'ok');
+  assert.match(row('app.switchboard').detail, /^Fabric Switchboard 1\.1\.0 \(pinned by release train org-test\)$/);
+});
+
+test('PC-89: on a train an older app is reinstalled at the pin; a newer one is left alone, never downgraded', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = onTrain(machine());
+  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' });
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const d = await cli(m, api, 'doctor', '--json', '--offline');
+  const row = (id) => d.json.checks.find((c) => c.id === id);
+  assert.equal(row('app.switchboard').state, 'warn');
+  assert.match(row('app.switchboard').detail, /1\.0\.0; release train org-test pins 1\.1\.0$/);
+  assert.equal(row('app.dashboards').state, 'warn');
+  assert.match(row('app.dashboards').detail, /1\.2\.0, ahead of release train org-test \(1\.1\.0\)/);
+  assert.equal(row('app.dashboards').repair, null, 'no repair takes an app back');
+  assert.equal(row('train').state, 'warn');
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.deepEqual(r.json.plan.filter((i) => i.kind === 'replace').map((i) => i.product), ['switchboard']);
+  const v = (app) => JSON.parse(fs.readFileSync(path.join(m.apps, app, 'Contents/Info.plist'), 'utf8')).CFBundleShortVersionString;
+  assert.equal(v('Fabric Switchboard.app'), '1.1.0');
+  assert.equal(v('Fabric Dashboards.app'), '1.2.0');
+});
+
+test('PC-89: an unknown train is refused by setup and named by doctor; --train none leaves the train', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  const bad = await cli(m, api, 'setup', '--json', '--train', 'no-such-train');
+  assert.equal(bad.status, 2);
+  assert.match(bad.stderr, /no release train "no-such-train" in this launcher \(known: org-test\)/);
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const d = await cli(m, api, 'doctor', '--json', '--offline');
+  const row = d.json.checks.find((c) => c.id === 'train');
+  assert.equal(row.state, 'fail');
+  assert.equal(row.fix, 'npx @passioncode-ai/passioncode@latest setup --train none (or update the launcher)');
+  const plan = await cli(m, api, 'setup', '--json', '--dry-run', '--offline', '--train', 'none');
+  assert.equal(plan.status, 0, plan.stderr);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, 'gone', 'a dry run changes nothing');
+  assert.ok(!plan.json.before.checks.some((c) => c.id === 'train'), 'the plan is made without the train');
+  await cli(m, api, 'setup', '--json', '--yes', '--no-apps', '--no-open', '--offline', '--train', 'none');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, undefined);
+});
+
+test('PC-89: every train this launcher ships is valid and pins only known apps', () => {
+  const trains = require('../lib/trains');
+  delete process.env.PASSIONCODE_TRAINS;
+  assert.ok(trains.list().includes('organization-r1'));
+  for (const id of trains.list()) {
+    const tr = trains.load(id);
+    assert.ok(Object.keys(tr.apps).every((a) => catalog.byId(a)), id);
+  }
+  assert.throws(() => trains.load('../etc'), /not a release train name/);
 });

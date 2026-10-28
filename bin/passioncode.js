@@ -19,7 +19,7 @@ function cachedNpmStatus({ latest, checkedAt, installed }) {
 
 const HELP = `passioncode — set up and check PassionCode.ai on this machine: the apps, their MCP servers, the skills
 
-  npx @passioncode-ai/passioncode@latest setup [--yes] [--with ids] [--without ids] [--no-apps] [--no-open] [--dry-run] [--json]
+  npx @passioncode-ai/passioncode@latest setup [--yes] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
   npx @passioncode-ai/passioncode@latest doctor [--fix] [--json]        check everything (read-only); --fix repairs as setup does
   npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]     install or update the skill set and the apps' MCP registrations
@@ -38,11 +38,16 @@ const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric'];
 /** Flags of setup and doctor: booleans, plus --with/--without taking a comma list. Null when invalid. */
 function parseSetupArgs(cmd, rest) {
   const allowed = cmd === 'doctor' ? ['--fix', '--json', '--offline'] : ['--yes', '-y', '--json', '--offline', '--no-apps', '--no-open', '--dry-run'];
-  const o = { flags: new Set(), withIds: null, withoutIds: [] };
+  const o = { flags: new Set(), withIds: null, withoutIds: [], train: undefined };
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
     const m = /^--(with|without)(?:=(.*))?$/.exec(arg);
-    if (m && cmd !== 'doctor') {
+    const tr = /^--train(?:=(.*))?$/.exec(arg);
+    if (tr && cmd !== 'doctor') {
+      const value = tr[1] !== undefined ? tr[1] : rest[++i];
+      if (!value || o.train !== undefined) return null;
+      o.train = value === 'none' ? null : value; // PC-89: a release train's pinned versions instead of the latest
+    } else if (m && cmd !== 'doctor') {
       const value = m[2] !== undefined ? m[2] : rest[++i];
       const ids = String(value || '').split(',').map((x) => x.trim()).filter(Boolean);
       if (!ids.length || ids.some((x) => !IDS.includes(x))) return null;
@@ -68,6 +73,9 @@ async function setupOrDoctor(cmd, rest) {
     process.stderr.write(`passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}.\n`);
     return 2;
   }
+  if (o.train) {
+    try { require('../lib/trains').load(o.train); } catch (error) { process.stderr.write(`passioncode: ${error.message}.\n`); return 2; }
+  }
   const json = o.flags.has('--json');
   const online = !o.flags.has('--offline');
   if (cmd === 'doctor' && !o.flags.has('--fix')) {
@@ -81,7 +89,7 @@ async function setupOrDoctor(cmd, rest) {
   const log = json ? () => {} : (line) => process.stderr.write(`${line}\n`);
   const r = await S.setup({
     yes: repairOnly || o.flags.has('--yes'), withIds: o.withIds, withoutIds: o.withoutIds, noApps: o.flags.has('--no-apps'),
-    noOpen: o.flags.has('--no-open'), dryRun: o.flags.has('--dry-run'), repairOnly, online, ask: json ? null : asker(), log,
+    noOpen: o.flags.has('--no-open'), dryRun: o.flags.has('--dry-run'), repairOnly, online, ask: json ? null : asker(), log, train: o.train,
   });
   process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : S.render(r, { repairOnly }) + '\n');
   return r.planOnly ? 0 : r.ok ? 0 : 1;

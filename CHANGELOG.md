@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.50 - 2026-10-28
+
+### Added
+
+- Release trains (PC-89, organization R1 N-12): `setup --train organization-r1` installs and
+  reinstalls each app at the version the train pins (`trains/organization-r1.json`) instead of its
+  latest release, and remembers the train; `doctor` compares every app with its pin, offline too,
+  in each `app.<id>` line and one `train` line, on macOS and Windows. An app ahead of its pin is
+  reported and never taken back. `setup --train none` returns to the latest releases. The first
+  pins are the releases of 2026-10-28; the train's record in fabric-workspace decides later ones.
+
 ## 0.2.49 - 2026-10-28
 
 ### Fixed
