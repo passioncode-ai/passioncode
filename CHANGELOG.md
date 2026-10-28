@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.50 - 2026-10-28
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.57.0`** (it was `v0.56.0`): the kits read the Fabric Agent Contract at
+  `3830a33` (`v0.1.0+2026-10-27.6`). A person's comparison of codes is a human step (DEC-0142), the protocol register
+  knows the peer-share and organization-adaptation revisions, and on Windows the provider writer uses the folder Fabric
+  reads (PC-90).
+
 ## 0.2.49 - 2026-10-28
 
 ### Fixed
