@@ -1,6 +1,6 @@
 'use strict';
 // Windows acceptance of 2026-10-28 (fabric-workspace docs/reports/2026-10-28-windows-acceptance): the
-// launcher's two defects there, PC-85 and PC-86. Every test runs on any OS; on Windows itself the
+// launcher's two defects there, PC-85 and PC-86, and PC-87 found beside them. Every test runs on any OS; on Windows itself the
 // rename below is the real one, so the hosted Windows job proves PC-85 on the file system it is about.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -217,4 +217,43 @@ test('PC-88: doctor on Windows sends a stale MCP entry of a missing app to its d
   assert.ok(row, r.stderr);
   assert.equal(row.state, 'fail');
   assert.equal(row.fix, 'download Project Observatory from https://passioncode.ai/observatory/, or remove that entry from Claude Code');
+});
+
+// PC-87: a symbolic link to a directory needs an administrator or Developer Mode on Windows (the tester
+// had the first), a junction needs neither. Every link the launcher makes there is a junction.
+test('PC-87: on Windows every link the launcher makes is a junction with an absolute target', () => {
+  const t = tree();
+  const old = t.release('0.2.44');
+  const next = t.release('0.2.45');
+  const made = [];
+  const symlink = (target, at, type) => { made.push({ target, at: path.basename(at), type }); fs.symlinkSync(target, at); };
+  L.makeLink(path.join('releases', '0.2.44'), t.current, { platform: 'win32', symlink });
+  assert.deepEqual(made.pop(), { target: old, at: 'current', type: 'junction' }, 'a relative target is made absolute');
+  fs.unlinkSync(t.current);
+  L.symlinkAtomic(old, t.current, { platform: 'win32', rename: windowsRename, symlink });
+  const refuses = (from, to) => { throw Object.assign(new Error(`EPERM: rename '${from}' -> '${to}'`), { code: 'EPERM' }); };
+  assert.throws(() => L.symlinkAtomic(next, t.current, { platform: 'win32', rename: refuses, symlink }), /EPERM/);
+  assert.deepEqual(made.map((m) => m.type), ['junction', 'junction', 'junction'], 'the temporary links and the put-back one');
+  assert.ok(made.every((m) => path.isAbsolute(m.target)));
+  assert.equal(fs.readFileSync(path.join(t.current, 'manifest.json'), 'utf8'), '0.2.44');
+  made.length = 0;
+  L.makeLink(old, path.join(t.state, 'off-windows'), { platform: 'darwin', symlink });
+  assert.equal(made[0].type, undefined, 'elsewhere it stays a symbolic link');
+});
+
+// On the hosted Windows runner the real junction: made, read back in the form the launcher compares
+// (no `\\?\`, no trailing separator), swapped by a second update, removed without touching its target.
+test('PC-87: a real junction on Windows reads back as the path it was made to', { skip: !onWindows && 'needs Windows' }, () => {
+  const t = tree();
+  const old = t.release('0.2.44');
+  const next = t.release('0.2.45');
+  L.symlinkAtomic(old, t.current);
+  assert.equal(L.linkTarget(t.current), path.resolve(old));
+  assert.ok(fs.lstatSync(t.current).isSymbolicLink());
+  L.symlinkAtomic(next, t.current);
+  assert.equal(L.linkTarget(t.current), path.resolve(next));
+  assert.equal(fs.readFileSync(path.join(t.current, 'manifest.json'), 'utf8'), '0.2.45');
+  assert.deepEqual(leftovers(t.state), []);
+  fs.unlinkSync(t.current);
+  assert.equal(fs.readFileSync(path.join(old, 'manifest.json'), 'utf8'), '0.2.44', 'removing the junction leaves its target');
 });
