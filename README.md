@@ -116,7 +116,7 @@ installing new apps. Details: the [CLI contract](docs/reference/cli.md#setup-and
 each app's latest release: `setup --train organization-r1` installs and reinstalls the apps at
 the versions in [`trains/organization-r1.json`](trains/organization-r1.json), remembers the train,
 and `doctor` then compares every app with its pin (offline too) in an `app.<id>` line per app and
-one `train` line. An app newer than its pin is reported and left alone (a damaged one is reinstalled from the latest
+one `train` line. An app newer than its pin is reported and left alone (a damaged one, or one whose version cannot be read, is reinstalled from the latest
 release): the train never takes an app back, because its data may not open in an older release. `setup --train none` returns to the
 latest releases. The skills are pinned by the launcher release itself (`family.json`). Which
 version each app pins is the train's record in fabric-workspace

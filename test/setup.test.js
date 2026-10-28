@@ -94,7 +94,7 @@ function machine({ tools = TOOLS } = {}) {
   return { home, payload, bin, apps: path.join(home, 'Applications') };
 }
 
-function cli(m, api, ...args) {
+function cliEnv(m, api) {
   const env = {
     ...process.env, HOME: m.home, PATH: `${m.bin}:${path.dirname(process.execPath)}:/usr/bin:/bin:/usr/sbin:/sbin`, PASSIONCODE_PAYLOAD: m.payload, PASSIONCODE_HOME: '',
     PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_APPLICATIONS: m.apps, PASSIONCODE_GITHUB_API: api,
@@ -103,6 +103,11 @@ function cli(m, api, ...args) {
   };
   delete env.PASSIONCODE_FABRIC_DASHBOARDS_MCP;
   if (m.trains) env.PASSIONCODE_TRAINS = m.trains; else delete env.PASSIONCODE_TRAINS;
+  return env;
+}
+
+function cli(m, api, ...args) {
+  const env = cliEnv(m, api);
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [BIN, ...args], { env, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
@@ -450,4 +455,63 @@ test('PC-89: an unusable saved train touches no app until a train or none is nam
   const v = JSON.parse(fs.readFileSync(path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist'), 'utf8')).CFBundleShortVersionString;
   assert.equal(v, '1.1.0');
   assert.ok(r.json.humanSteps.includes('npx @passioncode-ai/passioncode@latest setup --train none (or update the launcher)'), JSON.stringify(r.json.humanSteps));
+});
+
+// The second seam reading of PC-89: a bundle whose version cannot be read (its Info.plist is sealed by
+// the signature, so a damaged one often breaks both) may be ahead of the pin; it is never taken back.
+test('PC-89: a damaged app whose version cannot be read is reinstalled from the latest, never the pin', async (t) => {
+  const api = await releaseServer(t, { version: '1.3.0', also: ['1.1.0', '1.2.0'] });
+  const m = onTrain(machine());
+  for (const id of ['switchboard', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0', broken: true });
+  fs.writeFileSync(path.join(m.apps, 'Fabric Dashboards.app/Contents/Info.plist'), 'not a plist');
+  const save = await cli(m, api, 'setup', '--json', '--yes', '--no-apps', '--no-open', '--offline', '--train', 'org-test');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, 'org-test', save.stderr + save.stdout);
+  const doc = await cli(m, api, 'doctor', '--json', '--offline');
+  const row = doc.json.checks.find((c) => c.id === 'app.dashboards');
+  assert.match(row.detail, /version unknown/);
+  assert.doesNotMatch(row.fix, /github\.com/, 'macOS never sends a person to download an app by hand');
+  const r = await cli(m, api, 'doctor', '--fix', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const item = r.json.plan.find((i) => i.kind === 'replace' && i.product === 'dashboards');
+  assert.ok(item && !/pinned by release train/.test(item.detail), JSON.stringify(r.json.plan));
+  const v = JSON.parse(fs.readFileSync(path.join(m.apps, 'Fabric Dashboards.app/Contents/Info.plist'), 'utf8')).CFBundleShortVersionString;
+  assert.equal(v, '1.3.0');
+});
+
+test('PC-89: with an unusable saved train doctor promises no app reinstall', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = onTrain(machine());
+  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const doc = await cli(m, api, 'doctor', '--json');
+  const apps = doc.json.checks.filter((c) => /^app\.[^.]+(\.signature)?$/.test(c.id));
+  assert.ok(apps.length);
+  assert.ok(apps.every((c) => !c.repair), JSON.stringify(apps.filter((c) => c.repair)));
+  const out = apps.find((c) => c.id === 'app.switchboard');
+  assert.match(out.fix, /^first make the release train usable: .*setup --train none/);
+});
+
+test('PC-89: declining every offer in an interactive run saves no train', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' });
+  // An interactive run, in a child so the launcher reads this machine's environment: every answer is no.
+  const script = `require(${JSON.stringify(path.join(__dirname, '../lib/setup'))}).setup({ online: false, noApps: true, train: 'org-test', ask: async () => 'n' })
+    .then((r) => process.stdout.write(JSON.stringify(r.plan)), (e) => { console.error(e); process.exit(1); });`;
+  const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const plan = JSON.parse(r.stdout);
+  assert.ok(plan.length && plan.every((i) => !i.selected), r.stdout);
+  assert.equal(fs.existsSync(path.join(m.home, '.passioncode/state.json')) && JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, false);
+});
+
+test('PC-89: versions that are not x.y.z[-pre] are neither newer nor older; Windows 1.2.3.0 reads as 1.2.3', () => {
+  const D = require('../lib/doctor');
+  assert.equal(D.newer('1.1.0', 'undefined'), false);
+  assert.equal(D.newer('1.2.1', '1.2'), false);
+  assert.equal(D.newer('0.2.50', '0.2.50-rc.1'), true);
+  assert.equal(D.normVersion('1.2.3.0'), '1.2.3');
+  assert.equal(D.normVersion('1.2'), null);
 });
