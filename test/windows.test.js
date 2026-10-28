@@ -270,10 +270,11 @@ test('PC-89: doctor on Windows compares each app with the release train and name
   fs.writeFileSync(path.join(trainsDir, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', apps: { dashboards: '0.8.15', switchboard: '0.6.83' } }));
   fs.mkdirSync(path.join(home, '.passioncode'));
   fs.writeFileSync(path.join(home, '.passioncode', 'state.json'), JSON.stringify({ train: 'org-test' }));
-  const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
+  const doctor = () => spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
     encoding: 'utf8',
     env: { ...process.env, HOME: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_TRAINS: trainsDir, PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
+  const r = doctor();
   const checks = JSON.parse(r.stdout).checks;
   const row = (id) => checks.find((c) => c.id === id);
   assert.equal(row('app.switchboard').state, 'warn');
@@ -283,4 +284,10 @@ test('PC-89: doctor on Windows compares each app with the release train and name
   assert.equal(row('app.dashboards').fix, 'install 0.8.15 from https://github.com/passioncode-ai/fabric-dashboards/releases/tag/v0.8.15');
   assert.equal(row('app.dashboards').repair, null);
   assert.match(row('train').detail, /^release train org-test \(Org Test\): 0 of 2 apps at their pinned version/);
+  // A saved train this launcher cannot use leaves the hand download alone: it is outside the launcher.
+  fs.writeFileSync(path.join(home, '.passioncode', 'state.json'), JSON.stringify({ train: 'gone' }));
+  const gone = doctor();
+  const goneChecks = JSON.parse(gone.stdout).checks;
+  assert.equal(goneChecks.find((c) => c.id === 'train').state, 'fail');
+  assert.equal(goneChecks.find((c) => c.id === 'app.observatory').fix, 'download it from https://passioncode.ai/observatory/');
 });

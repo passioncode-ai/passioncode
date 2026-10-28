@@ -100,14 +100,16 @@ instead of the latest, and the name is saved as `train` in
 when only the plan is returned; the plan still uses it). An installed app newer
 than its pin is never taken back: if it needs a reinstall (a damaged signature),
 that one comes from the latest release, as does one whose version cannot be read.
-A run in which the person declines every offer saves no train.
+An interactive run in which the person declines every offer saves no named
+train; `--train none` is always saved, since forgetting a train touches no app.
 `--train none` removes it. An unknown name exits 2 before anything is checked.
 On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an
 older one is `warn` with a `replace` repair (macOS; on Windows the fix names the
 pinned version's download page), a newer one is `warn` with no repair. One
 `train` check counts the apps at their pin; a saved train this launcher does not
 ship is `fail` with the fix `setup --train none`, and while it is, no app check
-offers a repair (setup touches no app until a train or `none` is named).
+offers to install or reinstall it (setup touches no app until a train or `none`
+is named); the skill-set update and a Windows download page stay.
 
 An app is installed or replaced only after: `SHA256SUMS.asc` verifies against
 `lib/release-key.asc` (pinned fingerprint

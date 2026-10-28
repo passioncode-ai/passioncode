@@ -515,3 +515,54 @@ test('PC-89: versions that are not x.y.z[-pre] are neither newer nor older; Wind
   assert.equal(D.normVersion('1.2.3.0'), '1.2.3');
   assert.equal(D.normVersion('1.2'), null);
 });
+
+// The third seam reading of PC-89: a run that goes ahead saves the train even when its plan holds only
+// offers that default to no, and `--train none` always clears a saved one (the way out of an unusable train).
+test('PC-89: a run that goes ahead saves the train; --train none always clears one', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'supabase') }));
+  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  await cli(m, api, 'setup', '--json', '--yes', '--no-apps', '--no-open', '--offline');
+  const state = () => { try { return JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train; } catch (_) { return undefined; } };
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--offline', '--train', 'org-test');
+  assert.ok(r.json.plan.every((i) => !i.selected), JSON.stringify(r.json.plan));
+  assert.equal(state(), 'org-test', r.stderr);
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')), train: 'gone' }));
+  await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--offline', '--train', 'none');
+  assert.equal(state(), undefined);
+  const doc = await cli(m, api, 'doctor', '--json', '--offline');
+  assert.ok(!doc.json.checks.some((c) => c.id === 'train'));
+  // Interactive: answering no to an unrelated install still forgets the train.
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ ...JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')), train: 'gone' }));
+  const script = `require(${JSON.stringify(path.join(__dirname, '../lib/setup'))}).setup({ online: false, train: null, ask: async () => 'n' })
+    .then(() => {}, (e) => { console.error(e); process.exit(1); });`;
+  const i = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(i.status, 0, i.stderr);
+  assert.equal(state(), undefined);
+});
+
+test('PC-89: an unusable saved train leaves the update repair and Windows downloads; no app install is promised', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  installApp(m, catalog.byId('dashboards'), { version: '1.1.0' });
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const switchboard = catalog.byId('switchboard');
+  fs.writeFileSync(path.join(m.home, '.claude.json'), JSON.stringify({ mcpServers: { [switchboard.mcp.name]: { command: path.join(m.apps, switchboard.app, switchboard.mcp.bin), args: [] } } }));
+  const doc = await cli(m, api, 'doctor', '--json', '--offline');
+  assert.ok(!doc.json.checks.some((c) => c.fix && /setup --with/.test(c.fix)), JSON.stringify(doc.json.checks.filter((c) => c.fix && /setup --with/.test(c.fix))));
+  const stale = doc.json.checks.find((c) => c.id === 'mcp.claude.switchboard');
+  assert.ok(stale && stale.state === 'fail' && /first make the release train usable/.test(stale.fix), JSON.stringify(stale));
+  assert.ok(doc.json.checks.some((c) => c.repair && c.repair.kind === 'update'), 'the update repair still runs');
+});
+
+test('PC-89: an app version that is not x.y.z is never reported as the latest', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0' });
+  const m = machine();
+  installApp(m, catalog.byId('switchboard'), { version: '1.1' });
+  const doc = await cli(m, api, 'doctor', '--json');
+  const row = doc.json.checks.find((c) => c.id === 'app.switchboard');
+  assert.equal(row.state, 'warn');
+  assert.doesNotMatch(row.detail, /\(latest\)/);
+  assert.match(row.detail, /the latest is 1\.2\.0/);
+});
