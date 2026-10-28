@@ -283,7 +283,7 @@
 - **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan and saves nothing.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
-- **Errors & recovery:** An unknown train exits 2 before anything changes; a saved train this launcher no longer ships is a `fail` line whose fix is `setup --yes --train none`.
+- **Errors & recovery:** An unknown train exits 2 before anything changes; a saved train this launcher no longer ships is a `fail` line whose fix is `setup --yes --no-apps --train none`.
 - **Status:** implemented
 - **Coverage:** `test/setup.test.js` tests beginning `PC-89`; `test/windows.test.js` test beginning `PC-89`.
 - **Product:** unobserved

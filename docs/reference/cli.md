@@ -77,7 +77,8 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
-humanSteps, planOnly, ok, keyOverride }`. `mode` is `new` (no skill set and no
+humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
+`none`) when a run named a train but was only a plan. `mode` is `new` (no skill set and no
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
 `replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
@@ -103,14 +104,14 @@ that one comes from the latest release, as does one whose version cannot be read
 The train is saved with `--yes` or after answers in a terminal; without either
 the run is a plan (`planOnly: true`) and nothing changes. A person who answers
 no to every offer that defaulted to yes keeps the previous train (the run is
-then a plan too); `--train none` is saved on any answer, since forgetting a
+then a plan too, and exits 0 like one); `--train none` is saved on any answer, since forgetting a
 train touches no app.
 `--train none` removes it. An unknown name exits 2 before anything is checked.
 On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an
 older one is `warn` with a `replace` repair (macOS; on Windows the fix names the
 pinned version's download page), a newer one is `warn` with no repair. One
 `train` check counts the apps at their pin; a saved train this launcher does not
-ship is `fail` with the fix `setup --yes --train none`, and while it is, no app check
+ship is `fail` with the fix `setup --yes --no-apps --train none`, and while it is, no app check
 offers to install or reinstall it (setup touches no app until a train or `none`
 is named); the skill-set update and a Windows download page stay.
 

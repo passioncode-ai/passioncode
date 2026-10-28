@@ -398,7 +398,7 @@ test('PC-89: an unknown train is refused by setup and named by doctor; --train n
   const d = await cli(m, api, 'doctor', '--json', '--offline');
   const row = d.json.checks.find((c) => c.id === 'train');
   assert.equal(row.state, 'fail');
-  assert.equal(row.fix, 'npx @passioncode-ai/passioncode@latest setup --yes --train none (or update the launcher)');
+  assert.equal(row.fix, 'npx @passioncode-ai/passioncode@latest setup --yes --no-apps --train none (or update the launcher)');
   const plan = await cli(m, api, 'setup', '--json', '--dry-run', '--offline', '--train', 'none');
   assert.equal(plan.status, 0, plan.stderr);
   assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, 'gone', 'a dry run changes nothing');
@@ -454,7 +454,7 @@ test('PC-89: an unusable saved train touches no app until a train or none is nam
   assert.deepEqual(r.json.plan.filter((i) => i.kind === 'replace' || i.kind === 'install'), []);
   const v = JSON.parse(fs.readFileSync(path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist'), 'utf8')).CFBundleShortVersionString;
   assert.equal(v, '1.1.0');
-  assert.ok(r.json.humanSteps.includes('npx @passioncode-ai/passioncode@latest setup --yes --train none (or update the launcher)'), JSON.stringify(r.json.humanSteps));
+  assert.ok(r.json.humanSteps.includes('npx @passioncode-ai/passioncode@latest setup --yes --no-apps --train none (or update the launcher)'), JSON.stringify(r.json.humanSteps));
 });
 
 // The second seam reading of PC-89: a bundle whose version cannot be read (its Info.plist is sealed by
@@ -490,7 +490,7 @@ test('PC-89: with an unusable saved train doctor promises no app reinstall', asy
   assert.ok(apps.length);
   assert.ok(apps.every((c) => !c.repair), JSON.stringify(apps.filter((c) => c.repair)));
   const out = apps.find((c) => c.id === 'app.switchboard');
-  assert.match(out.fix, /^first make the release train usable: .*setup --yes --train none/);
+  assert.match(out.fix, /^first make the release train usable: .*setup --yes --no-apps --train none/);
 });
 
 test('PC-89: declining every offer in an interactive run saves no train', async (t) => {
@@ -611,5 +611,23 @@ test('PC-89: setup --train without --yes or a terminal is a plan; doctor.json ke
   assert.equal(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'), saved, 'the plan saves no checks');
   assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, 'gone');
   const hook = require('child_process').spawnSync(process.execPath, [path.join(__dirname, '../plugin/passioncode/hooks/session-start.js')], { env: cliEnv(m, api), input: '{}', encoding: 'utf8' });
-  assert.match(hook.stdout, /setup --yes --train none/, hook.stdout + hook.stderr);
+  assert.match(hook.stdout, /setup --yes --no-apps --train none/, hook.stdout + hook.stderr);
+});
+
+// The sixth seam reading of PC-89: the way out of an unusable train installs nothing, and a text run
+// that withheld a train change says so.
+test('PC-89: the unusable-train fix plans no install; a withheld train is named in text output', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const doc = await cli(m, api, 'doctor', '--json', '--offline');
+  const fix = doc.json.checks.find((c) => c.id === 'train').fix;
+  const args = fix.replace(/ \(or update the launcher\)$/, '').split(' ').slice(2); // after `npx <package>`
+  const r = await cli(m, api, ...args, '--json', '--offline', '--no-open');
+  assert.ok(!r.json.plan.some((i) => i.kind === 'install' && i.selected), JSON.stringify(r.json.plan));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, undefined);
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const text = await cli(m, api, 'setup', '--offline', '--train', 'none');
+  assert.match(text.stdout, /release train \(none\) was not saved: run it with --yes/);
 });
