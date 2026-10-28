@@ -78,7 +78,8 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
-`none`) when a run named a train but was only a plan. `mode` is `new` (no skill set and no
+`none`) when a run named a train but was only a plan. A run that changes the
+saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set and no
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
 `replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
@@ -101,8 +102,8 @@ instead of the latest, and the name is saved as `train` in
 when only the plan is returned; the plan still uses it). An installed app newer
 than its pin is never taken back: if it needs a reinstall (a damaged signature),
 that one comes from the latest release, as does one whose version cannot be read.
-The train is saved with `--yes` or after answers in a terminal; without either
-the run is a plan (`planOnly: true`) and nothing changes. A person who answers
+The train is saved with `--yes` or in a terminal (after its answers, or at once
+when it has nothing to ask); without either the run is a plan (`planOnly: true`) and nothing changes. A person who answers
 no to every offer that defaulted to yes keeps the previous train (the run is
 then a plan too, and exits 0 like one); `--train none` is saved on any answer, since forgetting a
 train touches no app.

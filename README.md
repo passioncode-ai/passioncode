@@ -118,7 +118,8 @@ the versions in [`trains/organization-r1.json`](trains/organization-r1.json), re
 and `doctor` then compares every app with its pin (offline too) in an `app.<id>` line per app and
 one `train` line. An app newer than its pin is reported and left alone (a damaged one, or one whose version cannot be read, is reinstalled from the latest
 release): the train never takes an app back, because its data may not open in an older release. `setup --train none` returns to the
-latest releases. The skills are pinned by the launcher release itself (`family.json`). Which
+latest releases. Either change is saved with `--yes` or in a terminal; without both it is only
+shown as a plan. The skills are pinned by the launcher release itself (`family.json`). Which
 version each app pins is the train's record in fabric-workspace
 ([SD-4](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/roadmap.md#sd-4)); a
 change to the file is a launcher release.

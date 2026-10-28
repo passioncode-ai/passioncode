@@ -631,3 +631,20 @@ test('PC-89: the unusable-train fix plans no install; a withheld train is named 
   const text = await cli(m, api, 'setup', '--offline', '--train', 'none');
   assert.match(text.stdout, /release train \(none\) was not saved: run it with --yes/);
 });
+
+// The seventh seam reading of PC-89: changing the saved train is a change, reported in actions and text.
+test('PC-89: a run that only changes the saved train reports it', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const text = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--no-open', '--train', 'none');
+  assert.doesNotMatch(text.stdout, /nothing was changed/);
+  assert.match(text.stdout, /forgot release train gone/);
+  const j = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--no-open', '--json', '--train', 'org-test');
+  assert.ok(j.json.actions.some((a) => a.kind === 'train' && /saved release train org-test/.test(a.detail)), JSON.stringify(j.json.actions));
+  const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--no-open', '--json', '--train', 'org-test');
+  assert.ok(!again.json.actions.some((a) => a.kind === 'train'), 'the same train again changes nothing');
+  const dry = await cli(m, api, 'setup', '--dry-run', '--json', '--offline', '--train', 'none');
+  assert.equal(dry.json.trainNotSaved, 'none');
+});
