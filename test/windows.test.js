@@ -267,7 +267,7 @@ test('PC-89: doctor on Windows compares each app with the release train and name
   fs.writeFileSync(path.join(home, 'reg.txt'), REG);
   fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
   const trainsDir = path.join(home, 'trains'); fs.mkdirSync(trainsDir);
-  fs.writeFileSync(path.join(trainsDir, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', apps: { dashboards: '0.8.15', switchboard: '0.7.0' } }));
+  fs.writeFileSync(path.join(trainsDir, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', apps: { dashboards: '0.8.15', switchboard: '0.6.83' } }));
   fs.mkdirSync(path.join(home, '.passioncode'));
   fs.writeFileSync(path.join(home, '.passioncode', 'state.json'), JSON.stringify({ train: 'org-test' }));
   const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
@@ -276,9 +276,11 @@ test('PC-89: doctor on Windows compares each app with the release train and name
   });
   const checks = JSON.parse(r.stdout).checks;
   const row = (id) => checks.find((c) => c.id === id);
-  assert.equal(row('app.switchboard').state, 'ok');
+  assert.equal(row('app.switchboard').state, 'warn');
+  assert.match(row('app.switchboard').detail, /0\.7\.0 in .*, ahead of release train org-test \(0\.6\.83\)/);
+  assert.equal(row('app.switchboard').fix, null, 'nothing takes an app back');
   assert.equal(row('app.dashboards').state, 'warn');
-  assert.equal(row('app.dashboards').fix, 'install 0.8.15 from https://passioncode.ai/dashboards/');
+  assert.equal(row('app.dashboards').fix, 'install 0.8.15 from https://github.com/passioncode-ai/fabric-dashboards/releases/tag/v0.8.15');
   assert.equal(row('app.dashboards').repair, null);
-  assert.match(row('train').detail, /^release train org-test \(Org Test\): 1 of 2 apps at their pinned version/);
+  assert.match(row('train').detail, /^release train org-test \(Org Test\): 0 of 2 apps at their pinned version/);
 });

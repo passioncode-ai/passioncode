@@ -412,3 +412,42 @@ test('PC-89: every train this launcher ships is valid and pins only known apps',
   }
   assert.throws(() => trains.load('../etc'), /not a release train name/);
 });
+
+// The unit reading of PC-89: an app ahead of its pin whose signature fails is reinstalled, but from the
+// latest release; the train's pin would take it back to an older one.
+test('PC-89: a damaged app ahead of its pin is reinstalled from the latest release, never the older pin', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = onTrain(machine());
+  for (const id of ['switchboard', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0', broken: true });
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--train', 'org-test');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const item = r.json.plan.find((i) => i.kind === 'replace' && i.product === 'dashboards');
+  assert.ok(item && /from its latest signed release/.test(item.detail), JSON.stringify(r.json.plan));
+  const v = JSON.parse(fs.readFileSync(path.join(m.apps, 'Fabric Dashboards.app/Contents/Info.plist'), 'utf8')).CFBundleShortVersionString;
+  assert.equal(v, '1.2.0');
+});
+
+test('PC-89: a plan shown and not acted on saves no train', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  const r = await cli(m, api, 'setup', '--json', '--offline', '--train', 'org-test');
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.json.planOnly, true);
+  assert.equal(fs.existsSync(path.join(m.home, '.passioncode/state.json')) && JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, false);
+});
+
+// The seam reading of PC-89: a saved train this launcher no longer ships (renamed or retired in a later
+// release) must not move every app to its latest release; apps wait for the person's choice.
+test('PC-89: an unusable saved train touches no app until a train or none is named', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = onTrain(machine());
+  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open');
+  assert.deepEqual(r.json.plan.filter((i) => i.kind === 'replace' || i.kind === 'install'), []);
+  const v = JSON.parse(fs.readFileSync(path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist'), 'utf8')).CFBundleShortVersionString;
+  assert.equal(v, '1.1.0');
+  assert.ok(r.json.humanSteps.includes('npx @passioncode-ai/passioncode@latest setup --train none (or update the launcher)'), JSON.stringify(r.json.humanSteps));
+});
