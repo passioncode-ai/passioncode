@@ -71,7 +71,7 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   The one exception is the launcher's own output: an update keeps the release it installed and
   the one it replaced, and removes older `~/.passioncode/releases/<version>` directories
   (reinstallable from npm; lifecycle contract LC-11, LC-15), and the `<link>.<pid>.lnk` temporary links a
-  failed update left beside a link it replaces (PC-84).
+  failed update left beside a link it replaces (PC-85).
 - A release vendors tagged bytes only (`npm run vendor:release`, run by `prepublishOnly`),
   and the vendor step refuses credential-shaped strings.
 - The self-update never runs a version it has not attributed: only a pinned

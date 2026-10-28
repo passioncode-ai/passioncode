@@ -1,7 +1,7 @@
 'use strict';
 // Windows acceptance of 2026-10-28 (fabric-workspace docs/reports/2026-10-28-windows-acceptance): the
-// launcher's two defects there, PC-84 and PC-85. Every test runs on any OS; on Windows itself the
-// rename below is the real one, so the hosted Windows job proves PC-84 on the file system it is about.
+// launcher's two defects there, PC-85 and PC-86. Every test runs on any OS; on Windows itself the
+// rename below is the real one, so the hosted Windows job proves PC-85 on the file system it is about.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -26,7 +26,7 @@ function tree() {
 }
 const leftovers = (state) => fs.readdirSync(state).filter((n) => /^current\..+\.lnk$/.test(n));
 
-test('PC-84: on Windows a second update moves `current` to the new release and leaves no link behind', () => {
+test('PC-85: on Windows a second update moves `current` to the new release and leaves no link behind', () => {
   const t = tree();
   const old = t.release('0.2.44');
   const next = t.release('0.2.45');
@@ -40,7 +40,7 @@ test('PC-84: on Windows a second update moves `current` to the new release and l
   assert.equal(fs.readdirSync(t.state).filter((n) => n.startsWith('current')).length, 1, 'one `current`, nothing beside it');
 });
 
-test('PC-84: if the second rename fails too, the old link is put back and no temporary link is left', () => {
+test('PC-85: if the second rename fails too, the old link is put back and no temporary link is left', () => {
   const t = tree();
   const old = t.release('0.2.44');
   const next = t.release('0.2.45');
@@ -53,7 +53,18 @@ test('PC-84: if the second rename fails too, the old link is put back and no tem
   assert.deepEqual(leftovers(t.state), []);
 });
 
-test('PC-84: off Windows a refused rename is still an error, and the temporary link is removed', () => {
+test('PC-85: if the old link cannot be removed, the temporary link is removed and the old link stays', () => {
+  const t = tree();
+  const old = t.release('0.2.44');
+  const next = t.release('0.2.45');
+  L.symlinkAtomic(old, t.current, { platform: 'win32', rename: windowsRename });
+  const busy = (at) => { throw Object.assign(new Error(`EBUSY: resource busy or locked, unlink '${at}'`), { code: 'EBUSY' }); };
+  assert.throws(() => L.symlinkAtomic(next, t.current, { platform: 'win32', rename: windowsRename, unlink: busy }), /EBUSY/);
+  assert.equal(fs.readFileSync(path.join(t.current, 'manifest.json'), 'utf8'), '0.2.44');
+  assert.deepEqual(leftovers(t.state), []);
+});
+
+test('PC-85: off Windows a refused rename is still an error, and the temporary link is removed', () => {
   const t = tree();
   const old = t.release('0.2.44');
   const next = t.release('0.2.45');
@@ -64,7 +75,7 @@ test('PC-84: off Windows a refused rename is still an error, and the temporary l
   assert.deepEqual(leftovers(t.state), []);
 });
 
-test('PC-84: a plain directory at `current` is never removed to make room for the link', () => {
+test('PC-85: a plain directory at `current` is never removed to make room for the link', () => {
   const t = tree();
   const next = t.release('0.2.45');
   fs.mkdirSync(t.current);
@@ -91,7 +102,7 @@ const REG = [
   '',
 ].join('\r\n');
 
-test('PC-85: the uninstall entries name each app and its version; "Fabric" never matches another product', () => {
+test('PC-86: the uninstall entries name each app and its version; "Fabric" never matches another product', () => {
   const entries = W.parseUninstall(REG);
   assert.equal(entries.length, 3);
   const dash = W.findWindowsApp(catalog.byId('dashboards'), { entries, env: {}, home: os.tmpdir() });
@@ -102,7 +113,33 @@ test('PC-85: the uninstall entries name each app and its version; "Fabric" never
   assert.equal(W.findWindowsApp(catalog.byId('fabric'), { entries, env: { LOCALAPPDATA: path.join(os.tmpdir(), 'pc-none') }, home: os.tmpdir() }), null);
 });
 
-test('PC-85: without an uninstall entry the per-user folder still shows the app, version unknown', () => {
+test('PC-86: an MSI entry names no folder; the folder of the app is found on disk, or the location is left out', () => {
+  const msi = W.parseUninstall([
+    'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{0F1A2B3C-4D5E-6F70-8192-A3B4C5D6E7F8}',
+    '    DisplayName    REG_SZ    Project Observatory',
+    '    DisplayVersion    REG_SZ    0.30.0',
+    '    UninstallString    REG_EXPAND_SZ    MsiExec.exe /X{0F1A2B3C-4D5E-6F70-8192-A3B4C5D6E7F8}',
+  ].join('\r\n'));
+  const none = path.join(os.tmpdir(), 'pc-none');
+  assert.deepEqual(W.findWindowsApp(catalog.byId('observatory'), { entries: msi, env: { LOCALAPPDATA: none }, home: os.tmpdir() }), { at: null, version: '0.30.0', source: 'registry' });
+  const local = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-local-'));
+  fs.mkdirSync(path.join(local, 'Project Observatory'), { recursive: true });
+  fs.writeFileSync(path.join(local, 'Project Observatory', 'project-observatory.exe'), '');
+  assert.equal(W.findWindowsApp(catalog.byId('observatory'), { entries: msi, env: { LOCALAPPDATA: local }, home: os.tmpdir() }).at, path.join(local, 'Project Observatory'));
+});
+
+test('PC-86: a hive reg cannot read is named, so "not installed" is not taken as certain; a missing hive is not', () => {
+  const run = (cmd, args) => {
+    if (args[1].startsWith('HKCU')) return { code: 0, out: REG, err: '' };
+    if (args[1].includes('WOW6432Node')) return { code: 1, out: '', err: 'ERROR: The system was unable to find the specified registry key or value.' };
+    return { code: 124, out: '', err: 'reg timed out after 15 s' };
+  };
+  const { entries, unread } = W.readUninstallEntries(run);
+  assert.equal(entries.length, 3);
+  assert.deepEqual(unread, [{ hive: W.HIVES[1], why: 'reg timed out after 15 s' }]);
+});
+
+test('PC-86: without an uninstall entry the per-user folder still shows the app, version unknown', () => {
   const local = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-local-'));
   fs.mkdirSync(path.join(local, 'Programs', 'Fabric Inbox'), { recursive: true });
   fs.writeFileSync(path.join(local, 'Programs', 'Fabric Inbox', 'Fabric Inbox.exe'), '');
@@ -114,7 +151,7 @@ test('PC-85: without an uninstall entry the per-user folder still shows the app,
 
 // The whole command on a Windows machine, as the tester ran it: `doctor` reads each app, offline.
 // A stand-in `reg` answers the per-user hive; it is a shell script, so this one runs off Windows.
-test('PC-85: doctor on Windows names the installed apps and their versions instead of "run on macOS"', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+test('PC-86: doctor on Windows names the installed apps and their versions instead of "run on macOS"', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
   const { spawnSync } = require('node:child_process');
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-doctor-'));
   const bin = path.join(home, 'bin'); fs.mkdirSync(bin);

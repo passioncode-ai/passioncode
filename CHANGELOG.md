@@ -1,18 +1,27 @@
 # Changelog
 
-## 0.2.46 - 2026-10-28
+## 0.2.47 - 2026-10-28
 
 ### Fixed
 
-- **`update` on Windows moves `current` to the new release** (PC-84, the Windows acceptance of 2026-10-28): Windows
+- **`update` on Windows moves `current` to the new release** (PC-85, the Windows acceptance of 2026-10-28): Windows
   refuses a rename over a directory link (`EPERM ... rename 'current.<pid>.lnk' -> 'current'`), so an update stopped
   halfway, kept the old release and left a `current.<pid>.lnk` per attempt. There the old link is now removed first
   (the link itself, never what it points at) and put back if the rename fails again; the temporary link never outlives
   the call, and the ones a failed update left are removed by the next one.
-- **`doctor` checks the apps on Windows** (PC-85): it reads each app's uninstall entry (`reg query`, the name and
+- **`doctor` checks the apps on Windows** (PC-86): it reads each app's uninstall entry (`reg query`, the name and
   version its installer wrote) or finds it in `%LOCALAPPDATA%\Programs\<name>`, `%LOCALAPPDATA%\<name>` or Program
   Files, and says which version is installed and whether a newer one is out, instead of "app checks run on macOS".
   Setup still installs apps on macOS only.
+
+## 0.2.46 - 2026-10-28
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.56.0`** (it was `v0.55.0`): stability and Windows. working-with-fabric names
+  the repositories a Windows turn touched; the board responder recovers from a refused slot, leaves within 3 s when
+  idle and logs its notices at `warning` with a subject; the reference service can take a moved slot back; a spend
+  gate fails closed.
 
 ## 0.2.45 - 2026-10-27
 

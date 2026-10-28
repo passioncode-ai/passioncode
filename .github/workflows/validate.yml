@@ -25,7 +25,7 @@ jobs:
           node-version: "22"
       - run: npm test
 
-  # PC-84 and PC-85 are Windows defects: their tests run on Windows itself, where `current` is
+  # PC-85 and PC-86 are Windows defects: their tests run on Windows itself, where `current` is
   # replaced by the real rename that failed on the tester's machine (2026-10-28).
   windows:
     runs-on: windows-latest
