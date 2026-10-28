@@ -5,7 +5,7 @@ carries credentials or a working exploit.
 
 What `passioncode update` touches (setup and doctor: [below](#what-setup-and-doctor-touch)): `~/.passioncode/` (releases, state, quarantine,
 logs); Claude Code's plugin registry through the `claude plugin` CLI only;
-`~/.agents/skills/<member skill>` and `<agent channel>/<member skill>` links; and
+`~/.agents/skills/<member skill>` and `<agent channel>/<member skill>` links (junctions on Windows); and
 `~/.claude/skills/<member skill>`, which it moves into the quarantine once the plugin
 that replaces it is verified. For a member's old single-member marketplace
 (`legacyMarketplaces` in `family.json`), once that plugin is verified and nothing else

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.49 - 2026-10-28
+
+### Fixed
+
+- On Windows the launcher makes its links (`current`, the skill hub and each agent's channel) as
+  junctions instead of symbolic links, so a member without an administrator session or Developer
+  Mode can install and update the skill set; a junction's target is read back in the same form the
+  launcher compares (PC-87).
+
 ## 0.2.48 - 2026-10-28
 
 ### Fixed

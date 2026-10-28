@@ -76,7 +76,8 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   comes from it.
 - **Every other agent** (Cursor, Codex, Gemini, OpenCode, Kiro, Windsurf, Goose, …) gets
   the same skills through `~/.agents/skills`, linked from each channel that exists on
-  the machine.
+  the machine. On Windows these links (and `~/.passioncode/current`) are junctions, which
+  need neither an administrator session nor Developer Mode.
 - Updates create no skill copies in `~/.claude/skills`: a plain copy there shadows the plugin. Such
   copies, and hub entries that pointed at a repository's working tree, are moved into
   `~/.passioncode/quarantine/` — `npx @passioncode-ai/passioncode@latest restore` puts them back.
