@@ -97,7 +97,8 @@ Reply in the person's language, briefly:
 - **The command fails to start** (npm error, registry down): report the error with its exit code
   and stop. Do not fall back to manual installs.
 - **Not macOS**: the result names each app's download page; the person installs apps from there,
-  then runs `setup` again for the MCP servers.
+  then runs `setup` again for the MCP servers. On Windows `doctor` reads which apps are installed
+  and their versions; a fix that names a download page is the person's install, not a command.
 
 ## Gotchas
 

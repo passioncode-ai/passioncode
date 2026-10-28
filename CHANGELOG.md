@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.48 - 2026-10-28
+
+### Fixed
+
+- `doctor` on Windows no longer tells you to run `setup --with <app>` for an MCP entry whose app is
+  not installed: `setup` installs apps only on macOS, so the fix names the app's download page (or
+  removing the entry). The `setting-up-passioncode` skill says the same (PC-88).
+
 ## 0.2.47 - 2026-10-28
 
 ### Fixed

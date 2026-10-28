@@ -200,3 +200,21 @@ test('PC-86: the real reg.exe output parses and the per-user and machine hives a
   assert.ok(entries.length > 0, 'a Windows runner has installed programs');
   assert.ok(entries.every((e) => e.key.startsWith('HKEY_') && e.DisplayName));
 });
+
+// PC-88: on Windows `setup --with` installs no app, so a stale MCP entry of an app that is not installed
+// is fixed from its download page, never by a command that plans nothing.
+test('PC-88: doctor on Windows sends a stale MCP entry of a missing app to its download page', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+  const { spawnSync } = require('node:child_process');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-mcp-'));
+  const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, 'reg'), '#!/bin/sh\necho "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: { observatory: { command: path.join(home, 'gone', 'project-observatory.exe'), args: ['mcp'] } } }));
+  const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
+    encoding: 'utf8',
+    env: { ...process.env, HOME: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+  });
+  const row = JSON.parse(r.stdout).checks.find((c) => c.id === 'mcp.claude.observatory');
+  assert.ok(row, r.stderr);
+  assert.equal(row.state, 'fail');
+  assert.equal(row.fix, 'download Project Observatory from https://passioncode.ai/observatory/, or remove that entry from Claude Code');
+});
