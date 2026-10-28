@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.46 - 2026-10-28
+
+### Fixed
+
+- **`update` on Windows moves `current` to the new release** (PC-84, the Windows acceptance of 2026-10-28): Windows
+  refuses a rename over a directory link (`EPERM ... rename 'current.<pid>.lnk' -> 'current'`), so an update stopped
+  halfway, kept the old release and left a `current.<pid>.lnk` per attempt. There the old link is now removed first
+  (the link itself, never what it points at) and put back if the rename fails again; the temporary link never outlives
+  the call, and the ones a failed update left are removed by the next one.
+- **`doctor` checks the apps on Windows** (PC-85): it reads each app's uninstall entry (`reg query`, the name and
+  version its installer wrote) or finds it in `%LOCALAPPDATA%\Programs\<name>`, `%LOCALAPPDATA%\<name>` or Program
+  Files, and says which version is installed and whether a newer one is out, instead of "app checks run on macOS".
+  Setup still installs apps on macOS only.
+
 ## 0.2.45 - 2026-10-27
 
 ### Changed

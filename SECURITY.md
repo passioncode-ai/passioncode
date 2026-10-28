@@ -32,7 +32,8 @@ returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.
 `doctor` reads: `~/.claude.json`, `~/.codex/config.toml`, `~/.gemini/settings.json`,
 `~/.kimi-code/mcp.json` (entry names, commands and arguments; environment values are passed to
 the server it starts and never printed), the Fabric service descriptors (never their token
-files), the apps' `Info.plist`, and the GitHub releases API. It starts each registered stdio MCP
+files), the apps' `Info.plist` (on Windows, the apps' uninstall entries through `reg query` and their install folders),
+and the GitHub releases API. It starts each registered stdio MCP
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
 release cache.
 

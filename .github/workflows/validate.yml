@@ -24,3 +24,16 @@ jobs:
         with:
           node-version: "22"
       - run: npm test
+
+  # PC-84 and PC-85 are Windows defects: their tests run on Windows itself, where `current` is
+  # replaced by the real rename that failed on the tester's machine (2026-10-28).
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test test/windows.test.js

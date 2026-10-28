@@ -47,7 +47,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
    one question per app; `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
    (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`), `--no-apps` sets up the skills
    and MCP only, `--dry-run` shows the plan. Apps are installed on macOS; on other systems setup
-   names each download page. Skills only: `npx @passioncode-ai/passioncode@latest update`.
+   names each download page, and on Windows `doctor` reads which version of each app is installed. Skills only: `npx @passioncode-ai/passioncode@latest update`.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
    `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. Each app's
    own onboarding (sign-ins, Fabric Inbox's server, Observatory's projects) is listed by `setup`.
