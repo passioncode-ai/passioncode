@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.46 - 2026-10-28
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.56.0`** (it was `v0.55.0`): stability and Windows. working-with-fabric names
+  the repositories a Windows turn touched; the board responder recovers from a refused slot, leaves within 3 s when
+  idle and logs its notices at `warning` with a subject; the reference service can take a moved slot back; a spend
+  gate fails closed.
+
 ## 0.2.45 - 2026-10-27
 
 ### Changed
