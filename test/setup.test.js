@@ -645,6 +645,10 @@ test('PC-89: a run that only changes the saved train reports it', async (t) => {
   assert.ok(j.json.actions.some((a) => a.kind === 'train' && /saved release train org-test/.test(a.detail)), JSON.stringify(j.json.actions));
   const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--no-open', '--json', '--train', 'org-test');
   assert.ok(!again.json.actions.some((a) => a.kind === 'train'), 'the same train again changes nothing');
+  const healthy = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--no-open', '--json', '--train', 'org-test');
+  assert.deepEqual(healthy.json.actions, [], 'a healthy machine on its train: empty actions');
+  const named = await cli(m, api, 'setup', '--json', '--no-apps', '--offline', '--train', 'org-test');
+  assert.equal(named.json.trainNotSaved, undefined, 'naming the saved train without --yes is not a pending change');
   const dry = await cli(m, api, 'setup', '--dry-run', '--json', '--offline', '--train', 'none');
   assert.equal(dry.json.trainNotSaved, 'none');
 });

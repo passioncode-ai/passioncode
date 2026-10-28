@@ -10,6 +10,8 @@
   in each `app.<id>` line and one `train` line, on macOS and Windows. An app ahead of its pin is
   reported and never taken back, nor is one whose version cannot be read. `setup --train none` returns to the latest releases. The first
   pins are the releases of 2026-10-28; the train's record in fabric-workspace decides later ones.
+  In `setup --json`, a change of train is an action of kind `train`, and a run that named a new
+  train but was only a plan carries `trainNotSaved`.
 
 ## 0.2.50 - 2026-10-28
 
