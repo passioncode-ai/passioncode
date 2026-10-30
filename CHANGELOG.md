@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.2.51 - 2026-10-28
+## 0.2.51 - 2026-10-30
+
+### Fixed
+
+- `setup` finds an app one folder down in its zip, as Fabric Switchboard's archive holds it
+  (`Fabric-Switchboard-<v>-macos-universal/Fabric Switchboard.app`, 0.6.83 to 0.7.1); before, it
+  refused the release with "holds no Fabric Switchboard.app". Two copies in one archive are refused.
+- A release download or a GitHub API read whose connection drops before any answer is tried once
+  more after a second, instead of failing the install with "fetch failed".
 
 ### Added
 

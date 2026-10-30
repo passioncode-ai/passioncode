@@ -20,7 +20,7 @@ const has = (app, f) => fs.existsSync(path.join(app, f));
 
 function makeApp(archive, destDir) {
   const spec = JSON.parse(fs.readFileSync(archive, 'utf8'));
-  const app = path.join(destDir, spec.app);
+  const app = path.join(destDir, spec.folder || '', spec.app); // a zip may hold the app inside one folder
   fs.mkdirSync(path.join(app, 'Contents', 'MacOS'), { recursive: true });
   fs.writeFileSync(path.join(app, 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: spec.version }));
   if (spec.broken) fs.writeFileSync(path.join(app, 'BROKEN'), '');

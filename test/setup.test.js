@@ -34,7 +34,7 @@ function makePayload(dir) {
 }
 
 /** A GitHub-shaped release server: latest release per repo, signed SHA256SUMS, the archives. */
-function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign = null, team = null, broken = null } = {}) {
+function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign = null, team = null, broken = null, nested = null } = {}) {
   const files = new Map(); // `${repo}/${name}` → bytes
   const releasesOf = new Map();
   const tagged = new Map(); // `${repo}@v${version}` → release, `also` holds older releases a train may pin
@@ -42,7 +42,7 @@ function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign
   for (const v of [...also, version]) for (const pr of catalog.PRODUCTS) {
     const version = v;
     const asset = pr.asset(version);
-    const bytes = Buffer.from(JSON.stringify({ app: pr.app, version, ...(team === pr.id ? { team } : {}), ...(broken === pr.id ? { broken: true } : {}) }));
+    const bytes = Buffer.from(JSON.stringify({ app: pr.app, version, ...(team === pr.id ? { team } : {}), ...(broken === pr.id ? { broken: true } : {}), ...(nested === pr.id ? { folder: asset.replace(/\.zip$/, '') } : {}) }));
     const sums = `${crypto.createHash('sha256').update(bytes).digest('hex')}  ${asset}\n`;
     const served = tamper === pr.id ? Buffer.from(`${bytes}x`) : bytes;
     const signer = foreign === pr.id ? makeKey() : KEY;
@@ -482,14 +482,15 @@ test('PC-89: a damaged app whose version cannot be read is reinstalled from the 
 test('PC-89: with an unusable saved train doctor promises no app reinstall', async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const m = onTrain(machine());
-  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  for (const id of ['dashboards', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  installApp(m, catalog.byId('switchboard'), { version: '1.1.0', broken: true }); // its fix names setup with or without the network
   fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
   fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
   const doc = await cli(m, api, 'doctor', '--json');
   const apps = doc.json.checks.filter((c) => /^app\.[^.]+(\.signature)?$/.test(c.id));
   assert.ok(apps.length);
   assert.ok(apps.every((c) => !c.repair), JSON.stringify(apps.filter((c) => c.repair)));
-  const out = apps.find((c) => c.id === 'app.switchboard');
+  const out = apps.find((c) => c.id === 'app.switchboard.signature');
   assert.match(out.fix, /^first make the release train usable: .*setup --yes --no-apps --train none/);
 });
 
@@ -667,4 +668,42 @@ test('PC-89: naming the saved train (or none with none saved) writes no state', 
   const named = await cli(m, api, 'setup', '--json', '--offline', '--train', 'none');
   assert.equal(named.status, plain.status, named.stderr);
   assert.equal(fs.readFileSync(file, 'utf8'), '{bad', 'the corrupt file is preserved');
+});
+
+// Fabric Switchboard's zip holds its app one folder down
+// (`Fabric-Switchboard-<v>-macos-universal/Fabric Switchboard.app`, 0.6.83 to 0.7.1, checked with unzip -l).
+test('an app one folder down in its zip is found and installed', async (t) => {
+  const api = await releaseServer(t, { nested: 'switchboard' });
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'switchboard');
+  const a = r.json.actions.find((x) => x.product === 'switchboard');
+  assert.ok(a && a.outcome === 'done', JSON.stringify(r.json.actions));
+  const plist = JSON.parse(fs.readFileSync(path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist'), 'utf8'));
+  assert.equal(plist.CFBundleShortVersionString, '1.2.0');
+});
+
+test('findBundle: the root, one folder down, none, and two copies refused', () => {
+  const { findBundle } = require('../lib/releases');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-bundle-'));
+  assert.equal(findBundle(root, 'X.app'), null);
+  fs.mkdirSync(path.join(root, 'X-1.0-macos', 'X.app'), { recursive: true });
+  fs.mkdirSync(path.join(root, '__MACOSX', 'X.app'), { recursive: true });
+  assert.equal(findBundle(root, 'X.app'), path.join(root, 'X-1.0-macos', 'X.app'));
+  fs.mkdirSync(path.join(root, 'other', 'X.app'), { recursive: true });
+  assert.throws(() => findBundle(root, 'X.app'), /2 copies of X\.app/);
+  fs.mkdirSync(path.join(root, 'X.app'));
+  assert.equal(findBundle(root, 'X.app'), path.join(root, 'X.app'));
+});
+
+test('a connection dropped before any answer is tried once more', async (t) => {
+  const http = require('http');
+  let calls = 0;
+  const server = http.createServer((req, res) => { calls += 1; if (calls === 1) { req.socket.destroy(); return; } res.end('ok'); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  t.after(() => server.close());
+  const { download } = require('../lib/releases');
+  const dest = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'pc-dl-')), 'f');
+  await download(`http://127.0.0.1:${server.address().port}/f`, dest);
+  assert.equal(fs.readFileSync(dest, 'utf8'), 'ok');
+  assert.equal(calls, 2);
 });
