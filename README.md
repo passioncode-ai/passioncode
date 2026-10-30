@@ -112,6 +112,18 @@ the family; each line names its state and its fix. Exit codes: **0** no check fa
 check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without
 installing new apps. Details: the [CLI contract](docs/reference/cli.md#setup-and-doctor).
 
+**Release trains.** An organization's machines install one set of pinned app versions instead of
+each app's latest release: `setup --train organization-r1` installs and reinstalls the apps at
+the versions in [`trains/organization-r1.json`](trains/organization-r1.json), remembers the train,
+and `doctor` then compares every app with its pin (offline too) in an `app.<id>` line per app and
+one `train` line. An app newer than its pin is reported and left alone (a damaged one, or one whose version cannot be read, is reinstalled from the latest
+release): the train never takes an app back, because its data may not open in an older release. `setup --train none` returns to the
+latest releases. Either change is saved with `--yes` or in a terminal; without both it is only
+shown as a plan. The skills are pinned by the launcher release itself (`family.json`). Which
+version each app pins is the train's record in fabric-workspace
+([SD-4](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/roadmap.md#sd-4)); a
+change to the file is a launcher release.
+
 ## Staying current
 
 At Claude Code session start the `passioncode` plugin uses a cached npm check for up

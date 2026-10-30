@@ -19,6 +19,7 @@
 | SCN-011 | A download that fails verification installs nothing | setup | Newcomer | REQ-2 | implemented | 2026-10-13 |
 | SCN-012 | A coding agent sets the computer up from one pasted prompt | setting-up-passioncode | Newcomer | REQ-9, REQ-10 | implemented | 2026-10-13 |
 | SCN-013 | A new session names the problems of the last setup check | session start | Operator | REQ-9 | implemented | 2026-10-13 |
+| SCN-014 | Follow an organization's release train | setup, doctor | Operator | PC-89 | implemented | 2026-10-28 |
 
 ## Personas
 
@@ -266,4 +267,23 @@
 - **Errors & recovery:** A damaged file is ignored.
 - **Status:** implemented
 - **Coverage:** `test/self-update.test.js`, test beginning `session start names the failures`.
+- **Product:** unobserved
+
+### SCN-014: Follow an organization's release train
+
+- **Persona:** Operator
+- **Feature:** setup, doctor
+- **Entry point:** `npx @passioncode-ai/passioncode@latest setup --train organization-r1`
+- **Preconditions:** Node 18+; the launcher ships the train; macOS for installs (on Windows `doctor` compares, the person installs).
+- **Steps:**
+  1. Run setup with the train. The plan names each app's pinned release instead of its latest.
+  2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
+  3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
+- **Expected result:** Every installed app the train pins is at its pinned version; `doctor` says how many are.
+- **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan and saves nothing.
+- **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
+- **States covered:** success, partial, error
+- **Errors & recovery:** An unknown train exits 2 before anything changes; a saved train this launcher no longer ships is a `fail` line whose fix is `setup --yes --no-apps --train none`.
+- **Status:** implemented
+- **Coverage:** `test/setup.test.js` tests beginning `PC-89`; `test/windows.test.js` test beginning `PC-89`.
 - **Product:** unobserved

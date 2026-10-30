@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.51 - 2026-10-30
+
+### Fixed
+
+- `setup` finds an app one folder down in its zip, as Fabric Switchboard's archive holds it
+  (`Fabric-Switchboard-<v>-macos-universal/Fabric Switchboard.app`, 0.6.83 to 0.7.1); before, it
+  refused the release with "holds no Fabric Switchboard.app". Two copies in one archive are refused.
+- A release download or a GitHub API read whose connection drops before any answer is tried once
+  more after a second, instead of failing the install with "fetch failed".
+
+### Added
+
+- Release trains (PC-89, organization R1 N-12): `setup --train organization-r1` installs and
+  reinstalls each app at the version the train pins (`trains/organization-r1.json`) instead of its
+  latest release, and remembers the train; `doctor` compares every app with its pin, offline too,
+  in each `app.<id>` line and one `train` line, on macOS and Windows. An app ahead of its pin is
+  reported and never taken back, nor is one whose version cannot be read. `setup --train none` returns to the latest releases. The first
+  pins are the releases of 2026-10-28; the train's record in fabric-workspace decides later ones.
+  In `setup --json`, a change of train is an action of kind `train`, and a run that named a new
+  train but was only a plan carries `trainNotSaved`.
+
 ## 0.2.50 - 2026-10-28
 
 ### Changed

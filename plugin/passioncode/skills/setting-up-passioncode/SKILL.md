@@ -96,6 +96,10 @@ Reply in the person's language, briefly:
   wait for the network.
 - **The command fails to start** (npm error, registry down): report the error with its exit code
   and stop. Do not fall back to manual installs.
+- **An organization's machine**: when the person's organization runs a release train, add
+  `--train <name>` (today `organization-r1`): the apps are installed at the train's pinned versions
+  and `doctor` then shows a `train` line. An app newer than its pin is left alone. `--train none`
+  returns to the latest releases.
 - **Not macOS**: the result names each app's download page; the person installs apps from there,
   then runs `setup` again for the MCP servers. On Windows `doctor` reads which apps are installed
   and their versions; a fix that names a download page is the person's install, not a command.

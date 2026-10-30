@@ -12,7 +12,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
-| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--no-apps`, `--no-open`, `--dry-run`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
+| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
@@ -77,7 +77,9 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
-humanSteps, planOnly, ok, keyOverride }`. `mode` is `new` (no skill set and no
+humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
+`none`) when a run named a train but was only a plan. A run that changes the
+saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set and no
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
 `replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
@@ -92,6 +94,30 @@ is returned with `planOnly: true`, nothing changes, and the exit code is 0.
 `setup` exits 1 when an action failed or a check still fails after the
 repairs. `doctor --fix` is `setup --yes` with no `install` items and nothing
 opened.
+
+`--train <name>` follows a release train (`trains/<name>.json`): `install` and
+`replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
+instead of the latest, and the name is saved as `train` in
+`~/.passioncode/state.json` once the run goes ahead (not with `--dry-run`, nor
+when only the plan is returned; the plan still uses it). An installed app newer
+than its pin is never taken back: if it needs a reinstall (a damaged signature),
+that one comes from the latest release, as does one whose version cannot be read.
+The train is saved with `--yes` or in a terminal (after its answers, or at once
+when it has nothing to ask); without either, a run that names a train other than
+the saved one is a plan (`planOnly: true`) and nothing changes. Naming the saved
+train again (or `none` with no train saved) changes nothing and runs as plain
+`setup` does. A person who answers
+no to every offer that defaulted to yes keeps the previous train (the run is
+then a plan too, and exits 0 like one); `--train none` is saved on any answer, since forgetting a
+train touches no app.
+`--train none` removes it. An unknown name exits 2 before anything is checked.
+On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an
+older one is `warn` with a `replace` repair (macOS; on Windows the fix names the
+pinned version's download page), a newer one is `warn` with no repair. One
+`train` check counts the apps at their pin; a saved train this launcher does not
+ship is `fail` with the fix `setup --yes --no-apps --train none`, and while it is, no app check
+offers to install or reinstall it (setup touches no app until a train or `none`
+is named); the skill-set update and a Windows download page stay.
 
 An app is installed or replaced only after: `SHA256SUMS.asc` verifies against
 `lib/release-key.asc` (pinned fingerprint
