@@ -652,3 +652,19 @@ test('PC-89: a run that only changes the saved train reports it', async (t) => {
   const dry = await cli(m, api, 'setup', '--dry-run', '--json', '--offline', '--train', 'none');
   assert.equal(dry.json.trainNotSaved, 'none');
 });
+
+// The ninth seam reading of PC-89: naming the train already saved writes nothing, so a run nobody
+// agreed to never creates or rewrites state.json, and a corrupt one fails no harder than plain setup.
+test('PC-89: naming the saved train (or none with none saved) writes no state', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  const file = path.join(m.home, '.passioncode/state.json');
+  await cli(m, api, 'setup', '--json', '--offline', '--train', 'none');
+  assert.equal(fs.existsSync(file), false, 'no state.json created');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, '{bad');
+  const plain = await cli(m, api, 'setup', '--json', '--offline');
+  const named = await cli(m, api, 'setup', '--json', '--offline', '--train', 'none');
+  assert.equal(named.status, plain.status, named.stderr);
+  assert.equal(fs.readFileSync(file, 'utf8'), '{bad', 'the corrupt file is preserved');
+});

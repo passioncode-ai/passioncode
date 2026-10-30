@@ -103,7 +103,10 @@ when only the plan is returned; the plan still uses it). An installed app newer
 than its pin is never taken back: if it needs a reinstall (a damaged signature),
 that one comes from the latest release, as does one whose version cannot be read.
 The train is saved with `--yes` or in a terminal (after its answers, or at once
-when it has nothing to ask); without either the run is a plan (`planOnly: true`) and nothing changes. A person who answers
+when it has nothing to ask); without either, a run that names a train other than
+the saved one is a plan (`planOnly: true`) and nothing changes. Naming the saved
+train again (or `none` with no train saved) changes nothing and runs as plain
+`setup` does. A person who answers
 no to every offer that defaulted to yes keeps the previous train (the run is
 then a plan too, and exits 0 like one); `--train none` is saved on any answer, since forgetting a
 train touches no app.
