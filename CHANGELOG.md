@@ -4,12 +4,13 @@
 
 ### Fixed
 
-- What the launcher prints for a person carries no em dash (PC-95): the `setup` install question and
-  its "Your steps" header (now "an agent can run the commands; sign-ins, consents and secrets in hidden
-  prompts need you", since some steps are commands), the `doctor` details and fixes for Node, a stopped
+- What the launcher prints for a person carries no em dash (PC-95): the `setup` install question, its
+  app verification lines and its "Your steps" header, the `doctor` details and fixes for Node, a stopped
   app, Docker, the Supabase CLI, MCP registrations and proving calls, and services, the `help` title,
-  the `update` closing line and its app verification lines, and the session-start update notices. A
-  colon, comma, semicolon or parentheses take its place; what each line says is unchanged. A test now
+  the `update` closing line, and the session-start update notices. A
+  colon, comma, semicolon or parentheses take its place. Each line keeps its meaning, except that the
+  "Your steps" header no longer says an agent cannot do any of them (some are commands an agent runs):
+  it now reads "sign-ins, consents and secrets in hidden prompts need you in person". A test now
   fails on an em dash in any string under `bin/`, `lib/` or the plugin's hooks.
 
 ## 0.2.52 - 2026-11-02
