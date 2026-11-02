@@ -83,10 +83,10 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   `~/.passioncode/quarantine/`; `npx @passioncode-ai/passioncode@latest restore` puts them back.
 - Each version is an immutable release under `~/.passioncode/releases/<version>`; an update
   keeps the release it replaced for rollback and removes older ones.
-- `update` (and therefore `setup`) registers the MCP server inside each installed app (Fabric
+- `update` (and therefore `setup`) registers the MCP server inside each installed app: Fabric
   Dashboards (`fabric-dashboards`), Fabric Switchboard (`switchboard`, unless Claude Code already
   gets it from the `switchboard` plugin) and, from `setup` only because it is an early preview,
-  Fabric (`fabric`, with each agent's own `--runner`))
+  Fabric (`fabric`, with each agent's own `--runner`). It registers them
   for every agent that is present: Claude Code (through `claude mcp add --scope user`), Codex CLI
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere

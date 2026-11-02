@@ -71,20 +71,28 @@ function docFiles(rel) {
 }
 
 function proseLines(text) {
+  // A fence closes only on the marker that opened it; a file that ends inside one hides nothing.
   const out = [];
-  let fence = false;
+  let fence = null;
+  let held = [];
   text.split('\n').forEach((line, n) => {
-    if (/^[ \t]*(```|~~~)/.test(line)) { fence = !fence; return; }
-    if (!fence) out.push([n + 1, line.replace(/`[^`]*`/g, '')]);
+    const m = /^[ \t]*(`{3,}|~{3,})/.exec(line);
+    if (m && (fence === null || m[1][0] === fence[0] && m[1].length >= fence.length)) {
+      fence = fence === null ? m[1] : null;
+      held = [];
+      return;
+    }
+    if (fence === null) out.push([n + 1, line.replace(/`[^`]*`/g, '')]);
+    else held.push([n + 1, line]);
   });
-  return out;
+  return out.concat(held);
 }
 
 test('PC-96: no em dash in the prose of the documentation a person reads', () => {
   const found = [];
   for (const file of DOCS.flatMap(docFiles)) {
     for (const [n, line] of proseLines(fs.readFileSync(path.join(ROOT, file), 'utf8'))) {
-      if (line.includes('\u2014')) found.push(`${file}:${n}`);
+      if (DASH.test(line)) found.push(`${file}:${n}`);
     }
   }
   assert.deepEqual(found, []);
@@ -93,4 +101,10 @@ test('PC-96: no em dash in the prose of the documentation a person reads', () =>
 test('PC-96: code spans and fenced blocks keep their bytes', () => {
   const sample = 'a `x \u2014 y` b\n```\nc \u2014 d\n```\ne \u2014 f\n';
   assert.deepEqual(proseLines(sample).filter(([, l]) => l.includes('\u2014')).map(([n]) => n), [5]);
+});
+
+test('PC-96: an unclosed or mismatched fence hides nothing', () => {
+  const sample = '```\na\n~~~\nb \u2014 c\n';
+  assert.deepEqual(proseLines(sample).filter(([, l]) => DASH.test(l)).map(([n]) => n), [4]);
+  assert.ok(DASH.test('{"query": "a \\u2014 b"}'));
 });

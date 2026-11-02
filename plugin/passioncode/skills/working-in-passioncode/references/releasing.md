@@ -29,7 +29,7 @@ shape they share and the order that matters.
    Actions runs, including a re-run after the spending cap is lifted.
 6. A GitHub release carries the version's CHANGELOG section:
    `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <section>`, or the title the
-   repository's release workflow sets (this repository's: "PassionCode.ai vX.Y.Z").
+   repository's release workflow sets (the launcher's, `passioncode`, is "PassionCode.ai vX.Y.Z").
 7. Write the handoff (objective, done, open, decisions, checks with exit codes, next
    task) in the same change.
 

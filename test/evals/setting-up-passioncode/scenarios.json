@@ -9,7 +9,7 @@
       "expected": [
         "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` and installs nothing by hand",
         "reports the actions and the before → after counts from the JSON",
-        "lists humanSteps as the person's numbered steps, including the restart of the coding agents",
+        "lists, numbered, the humanSteps it could not finish itself, including the restart of the coding agents",
         "says Fabric is an early preview and why it was or was not installed (Docker, Supabase CLI)"
       ]
     },
