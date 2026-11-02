@@ -163,7 +163,7 @@ test('a new machine: setup --yes installs the verified apps, the skills and ever
   const before = toolLog(m).length;
   const again = await cli(m, api, 'setup', '--yes');
   assert.equal(again.status, 0, again.stderr + again.stdout);
-  assert.match(again.stdout, /nothing was changed/);
+  assert.match(again.stdout, /Everything this command can set up is in place; nothing was changed/);
   const calls = toolLog(m).slice(before);
   assert.ok(!calls.some((l) => /^(ditto|open|launchctl|hdiutil)/.test(l)), calls.join('\n'));
 });
@@ -526,7 +526,8 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
     const r = run(opts);
     assert.equal(r.declined, true, r.text);
     // A declined run still names the command that would fix what it left: it was not that command.
-    if (opts.noApps === false || opts.train) assert.ok(r.steps.some((s) => / setup$/.test(s)), JSON.stringify(r.steps));
+    // After a declined train, the step is setup with that train: plain setup would not follow it.
+    if (opts.noApps === false || opts.train) assert.ok(r.steps.some((s) => (opts.train ? / setup --train org-test$/ : / setup$/).test(s)), JSON.stringify(r.steps));
     assert.match(r.text, /You declined every offer; nothing was changed/, r.text);
     assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
     if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
