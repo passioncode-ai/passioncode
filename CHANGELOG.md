@@ -7,7 +7,6 @@
 - `setup` in a terminal, answered "no" to every offer, says "You declined every offer; nothing was
   changed." instead of "Everything this command can set up is in place", and a release train named
   in that run is reported as not saved without the advice to answer in a terminal (PC-91).
-  `setup --json` carries `declined: true` in that case.
 
 ## 0.2.51 - 2026-10-30
 
