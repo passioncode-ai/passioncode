@@ -25,7 +25,7 @@ function files(dir) {
 function codeLines(text) {
   const out = [];
   let block = false;
-  text.split('\n').forEach((line, n) => {
+  text.split(/\r?\n/).forEach((line, n) => {
     const t = line.trim();
     if (block) { if (t.includes('*/')) block = false; return; }
     if (t.startsWith('/*')) { if (!t.includes('*/')) block = true; return; }
@@ -61,6 +61,8 @@ test('PC-95: the guard reads template lines and trailing comments as code', () =
 // blocks (a quoted command or marker keeps its bytes). History is exempt: CHANGELOG entries,
 // handoffs, task packets, ADRs and backlog rows; so are contributor-only AGENTS.md and
 // docs/AGENT_SYNC.md (generated).
+// Known blind spots: a ``` opener whose info string holds a backtick or that a tab indents (both
+// read as fences here, not in CommonMark), and double-backtick code spans (read pairwise by `).
 const DOCS = ['README.md', 'SECURITY.md', 'COMMERCIAL-LICENSE.md', 'docs/README.md', 'docs/reference', 'docs/ux', 'docs/brand',
   'plugin/passioncode/skills', 'test/evals'];
 
@@ -76,7 +78,7 @@ function proseLines(text) {
   const out = [];
   let fence = null;
   let held = [];
-  text.split('\n').forEach((line, n) => {
+  text.split(/\r?\n/).forEach((line, n) => {
     const open = /^[ \t]{0,3}(`{3,}|~{3,})/.exec(line);
     const bare = /^[ \t]{0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
     if (fence === null && open) { fence = open[1]; held = []; return; }
@@ -108,6 +110,15 @@ test('PC-96: an escape or an entity in prose counts', () => {
 });
 
 test('PC-96: a fence closes only on its own bare marker, and an unclosed one hides nothing', () => {
-  // ~~~ inside a ``` fence and ```js inside it do not close it; the bare ``` does.
-  assert.deepEqual(docDashes('```\na \u2014\n~~~\n```js\nb \u2014\n```\nc \u2014\n~~~\nd \u2014\n'), [7, 9]);
+  // Each wrong closer exposes a line: ~~~ inside ```, ``` inside ````, ```js inside ```, and a
+  // toggle on any marker; the last fence never closes, so its line counts too.
+  const sample = '```\n~~~\na \u2014\n```\n````\n```\nb \u2014\n````\nc \u2014\n```\n```js\nd \u2014\n```\ne \u2014\n~~~\nf \u2014\n';
+  assert.deepEqual(docDashes(sample), [9, 14, 16]);
+});
+
+test('PC-96: CRLF line endings read as LF (a Windows checkout)', () => {
+  const sample = '```'+'\nc \u2014 x\n```\nprose `a \u2014 b` ok\nd \u2014\n';
+  assert.deepEqual(docDashes(sample.replace(/\n/g, '\r\n')), docDashes(sample));
+  assert.deepEqual(docDashes(sample), [5]);
+  assert.deepEqual(codeLines('/* a \u2014\r\n */\r\nconst s = "b \u2014";\r\n').filter(([, l]) => DASH.test(l)).map(([n]) => n), [3]);
 });
