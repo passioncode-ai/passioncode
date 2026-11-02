@@ -38,8 +38,8 @@ claude plugin validate ./payload --strict
 
 There is nothing to install: the launcher has no dependencies and no lockfile, so `npm ci`
 refuses to run here; `npm test` works on a fresh clone. `.gitattributes` checks every text file
-out with LF on every platform (PC-99); a Windows clone made before it refreshes its files once
-with `git rm --cached -r . && git reset --hard` on a clean tree. Hosted workflows exist
+out with LF on every platform (PC-99); a Windows clone made before it refreshes its files once,
+on a clean tree, with `git rm --cached -r .` and then `git reset --hard`. Hosted workflows exist
 (`validate.yml` runs `npm test` on Linux, and on Windows `test/windows.test.js` plus six tests
 that spawn nothing: `no-em-dash`, `license`, `skill`, `docs`, `openpgp` and `pack-result`;
 `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and `PUBLISH_NPMJS` are
