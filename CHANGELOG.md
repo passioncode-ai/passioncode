@@ -7,7 +7,7 @@
 - `setup` in a terminal, answered "no" to every offer, says "You declined every offer; nothing was
   changed." instead of "Everything this command can set up is in place", and a release train named
   in that run is reported as not saved without the advice to answer in a terminal (PC-91). Such a
-  run still lists `setup` among the person's steps when a check it would fix fails
+  run still lists `setup` among the person's steps when a failing check's own fix names it
   (`setup --train <name>` when the run declined that train).
 
 ## 0.2.51 - 2026-10-30
