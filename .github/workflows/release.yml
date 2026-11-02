@@ -89,7 +89,7 @@ jobs:
           if gh release view "${{ steps.t.outputs.tag }}" >/dev/null 2>&1; then
             gh release edit "${{ steps.t.outputs.tag }}" --notes-file /tmp/notes.md
           else
-            gh release create "${{ steps.t.outputs.tag }}" --title "${{ steps.t.outputs.tag }} — PassionCode.ai" \
+            gh release create "${{ steps.t.outputs.tag }}" --title "PassionCode.ai ${{ steps.t.outputs.tag }}" \
               --notes-file /tmp/notes.md --latest
           fi
 

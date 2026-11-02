@@ -116,7 +116,7 @@ test('hook: an untrusted publisher is named and nothing is spawned', async () =>
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai', 'mallory'], publisher: 'mallory' });
   const out = hook(sb);
-  assert.equal(out, '[passioncode] @passioncode-ai/passioncode@0.2.0 is on npm but published by mallory, not a trusted PassionCode publisher — not installing; see SECURITY.md.\n');
+  assert.equal(out, '[passioncode] @passioncode-ai/passioncode@0.2.0 is on npm but published by mallory, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md.\n');
   assert.deepEqual(await npxCalls(sb), []);
   assert.equal(stateOf(sb).updatingSince, undefined);
 });
@@ -159,14 +159,14 @@ test('hook: missing npx does not fail the session or leave an update running', (
 test('hook: an empty trust list never spawns', async () => {
   const sb = sandbox({ trust: [] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });
-  assert.match(hook(sb), /published by passioncode-ai, not a trusted PassionCode publisher — not installing/);
+  assert.match(hook(sb), /published by passioncode-ai, not a trusted PassionCode publisher, so it is not installed;/);
   assert.deepEqual(await npxCalls(sb), []);
 });
 
 test('hook: unknown maintainers never spawn', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), latest: '0.2.0' }); // what a 0.1.1 probe recorded
-  assert.match(hook(sb), /who published it could not be read — not installing/);
+  assert.match(hook(sb), /who published it could not be read, so it is not installed;/);
   assert.deepEqual(await npxCalls(sb), []);
 });
 

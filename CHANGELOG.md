@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.53 - 2026-11-02
+
+### Fixed
+
+- What the launcher prints for a person carries no em dash (PC-95): the `setup` install question, its
+  app verification lines and its "Your steps" header, the `doctor` details and fixes for Node, a stopped
+  app, Docker, the Supabase CLI, MCP registrations and proving calls, and services, the `help` title,
+  the `update` closing line, and the session-start update notices. A
+  colon, comma, semicolon or parentheses take its place. Each line keeps its meaning, except that the
+  "Your steps" header no longer says an agent cannot do any of them (some are commands an agent runs):
+  it now reads "sign-ins, consents and secrets in hidden prompts need you in person". A test now
+  fails on an em dash, or its escape, in any string under `bin/`, `lib/` or the plugin's hooks. The npm
+  description and the GitHub release title (now "PassionCode.ai <tag>") carry none either.
+
 ## 0.2.52 - 2026-11-02
 
 ### Fixed

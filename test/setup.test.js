@@ -150,8 +150,8 @@ test('a new machine: setup --yes installs the verified apps, the skills and ever
   assert.equal(fs.readlinkSync(path.join(m.home, '.passioncode/current')), path.join(m.home, '.passioncode/releases/0.1.0'));
   // Every MCP server it registered answered its proving call afterwards.
   const proved = out.after.checks.filter((c) => c.area === 'mcp' && c.state === 'ok');
-  assert.ok(proved.some((c) => /switchboard — switchboard_accounts answered/.test(c.detail)), JSON.stringify(out.after.checks.filter((c) => c.area === 'mcp')));
-  assert.ok(proved.some((c) => /fabric-dashboards — list_services answered/.test(c.detail)));
+  assert.ok(proved.some((c) => /switchboard, switchboard_accounts answered/.test(c.detail)), JSON.stringify(out.after.checks.filter((c) => c.area === 'mcp')));
+  assert.ok(proved.some((c) => /fabric-dashboards, list_services answered/.test(c.detail)));
   assert.ok(toolLog(m).some((l) => l.startsWith(`open ${path.join(m.apps, 'Fabric Dashboards.app')}`)), 'opened for its first run');
   assert.ok(out.humanSteps.some((s) => /Fabric Inbox: your agent follows its onboard guide/.test(s)));
   assert.ok(out.humanSteps.some((s) => /Fabric: needs Docker/.test(s)), out.humanSteps.join('\n'));
@@ -554,6 +554,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [] };
   assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
   assert.match(render({ ...base, planOnly: true }), /Nothing to do\./);
+  assert.match(render({ ...base, humanSteps: ['open it once'] }), /\nYour steps \(sign-ins, consents and secrets in hidden prompts need you in person\):\n  1\. open it once/);
   const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
   assert.match(train, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
   assert.doesNotMatch(train, /You declined/);
