@@ -522,11 +522,11 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
     assert.equal(r.status, 0, r.stderr);
     return JSON.parse(r.stdout);
   };
-  for (const opts of [{}, { train: 'org-test' }, { noApps: false }]) {
+  for (const opts of [{}, { train: 'org-test' }, { noApps: false }, { noApps: false, train: 'org-test' }]) {
     const r = run(opts);
     assert.equal(r.declined, true, r.text);
     // A declined run still names the command that would fix what it left: it was not that command.
-    if (opts.noApps === false) assert.ok(r.steps.some((s) => / setup$/.test(s)), JSON.stringify(r.steps));
+    if (opts.noApps === false || opts.train) assert.ok(r.steps.some((s) => / setup$/.test(s)), JSON.stringify(r.steps));
     assert.match(r.text, /You declined every offer; nothing was changed/, r.text);
     assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
     if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
