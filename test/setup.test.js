@@ -516,7 +516,7 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
   const run = (opts) => {
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
       S.setup(Object.assign({ online: false, noApps: true, ask: async () => 'n' }, ${JSON.stringify(opts)}))
-        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, actions: r.actions, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
     const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
     return JSON.parse(r.stdout);
@@ -528,6 +528,23 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
     assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
     if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
   }
+  // Forgetting a saved train is a change on any answer, so that run is not reported as declined.
+  run({ yes: true, train: 'org-test' });
+  const none = run({ train: null });
+  assert.equal(none.declined, undefined, none.text);
+  assert.deepEqual(none.actions.map((a) => a.kind), ['train'], none.text);
+  assert.match(none.text, /forgot release train org-test/, none.text);
+});
+
+test('PC-91: runs that declined nothing keep their old report', () => {
+  const { render } = require('../lib/setup');
+  const empty = { summary: {}, checks: [] };
+  const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [] };
+  assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
+  assert.match(render({ ...base, planOnly: true }), /Nothing to do\./);
+  const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
+  assert.match(train, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
+  assert.doesNotMatch(train, /You declined/);
 });
 
 test('PC-89: versions that are not x.y.z[-pre] are neither newer nor older; Windows 1.2.3.0 reads as 1.2.3', () => {
