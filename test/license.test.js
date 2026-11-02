@@ -14,7 +14,7 @@ const SPDX = 'AGPL-3.0-only OR LicenseRef-PassionCode-Commercial';
 const FIRST_AGPL_VERSION = '0.1.12';
 const TEMPLATE_SHA256 = {
   LICENSE: '0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0',
-  'COMMERCIAL-LICENSE.md': '893b4bb9e4597b19b178ad69f56b799b4e5d468463ecb2d05ab05f0eee92804a',
+  'COMMERCIAL-LICENSE.md': '76366a8dad631039fd74ad3b22259c1b9c585576fe6f600c2753537b1afd709e',
   'CLA.md': 'cf44ce2b052fd75e9ef48f8124fb6eed71513c9152aac90eede0a2132951e408',
 };
 const read = (f) => fs.readFileSync(path.join(ROOT, f));

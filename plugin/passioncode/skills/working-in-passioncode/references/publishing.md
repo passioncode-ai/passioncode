@@ -18,7 +18,7 @@ license from PassionCode.ai (https://passioncode.ai/business/, commercial@passio
 `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric ADR-0092). The owning page is the
 knowledge base's `licensing.md`; the file list is its `repository-standard.md`, and org-index
 `scripts/check_format.py` (rules F7–F11) checks it. The three licence files are **copied byte
-for byte** from the knowledge base's `templates/` — never retyped, reflowed or "fixed".
+for byte** from the knowledge base's `templates/`: never retyped, reflowed or "fixed".
 
 | File | What it carries |
 |---|---|
@@ -27,14 +27,14 @@ for byte** from the knowledge base's `templates/` — never retyped, reflowed or
 | `CLA.md` | `templates/CLA.md`, in every repository, private ones included |
 | `SECURITY.md` | every public repository: report privately to contact@passioncode.ai |
 | `CONTRIBUTING.md` | only when the repository adds rules; says contributions are accepted under `CLA.md` |
-| `.github/pull_request_template.md` | one sentence that opening the pull request means agreeing to `CLA.md` — no checkbox; any existing template content is kept |
+| `.github/pull_request_template.md` | one sentence that opening the pull request means agreeing to `CLA.md`, with no checkbox; any existing template content is kept |
 | `package.json` | `"license"` set to the SPDX expression; `files` ships `LICENSE` and `COMMERCIAL-LICENSE.md` |
 | `.claude-plugin/plugin.json`, marketplace entries | `"license"` set to the SPDX expression |
 | SKILL.md front matter | `license:` set to the SPDX expression |
 | `pyproject.toml`, `Cargo.toml` | `license = "AGPL-3.0-only OR LicenseRef-PassionCode-Commercial"` |
 
-- A version released earlier keeps the licence it was released under — MIT or PolyForm
-  Noncommercial or Internal Use. Never write that it changed; the README may say which.
+- A version released earlier keeps the licence it was released under (MIT or PolyForm
+  Noncommercial or Internal Use). Never write that it changed; the README may say which.
 - Third-party code keeps its own licence and notice (vendored dependencies, imported templates).
 - The operator's own agents are outside the organization and outside this licence: their
   licence is the operator's choice, and nothing about them is published.
@@ -47,7 +47,7 @@ for byte** from the knowledge base's `templates/` — never retyped, reflowed or
   ## License
 
   Open source under the [GNU AGPL-3.0](LICENSE). A [commercial license](COMMERCIAL-LICENSE.md) is
-  available for use that does not meet the AGPL's terms — [passioncode.ai/business](https://passioncode.ai/business/).
+  available for use that does not meet the AGPL's terms: [passioncode.ai/business](https://passioncode.ai/business/).
   Versions before <first AGPL version> were released under <MIT | PolyForm Noncommercial or Internal Use>.
   ```
 
