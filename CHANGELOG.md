@@ -11,7 +11,8 @@
   colon, comma, semicolon or parentheses take its place. Each line keeps its meaning, except that the
   "Your steps" header no longer says an agent cannot do any of them (some are commands an agent runs):
   it now reads "sign-ins, consents and secrets in hidden prompts need you in person". A test now
-  fails on an em dash in any string under `bin/`, `lib/` or the plugin's hooks.
+  fails on an em dash, or its escape, in any string under `bin/`, `lib/` or the plugin's hooks. The npm
+  description and the GitHub release title (now "PassionCode.ai <tag>") carry none either.
 
 ## 0.2.52 - 2026-11-02
 

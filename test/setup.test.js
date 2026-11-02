@@ -554,6 +554,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [] };
   assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
   assert.match(render({ ...base, planOnly: true }), /Nothing to do\./);
+  assert.match(render({ ...base, humanSteps: ['open it once'] }), /\nYour steps \(sign-ins, consents and secrets in hidden prompts need you in person\):\n  1\. open it once/);
   const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
   assert.match(train, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
   assert.doesNotMatch(train, /You declined/);
