@@ -1,5 +1,5 @@
 # PC-99: every text file is checked out with LF on every platform, whatever core.autocrlf says.
 # The licence files are hashed byte for byte (test/license.test.js), the release fixture is
-# signed over its LF bytes (test/openpgp.test.js), and the tests that drive fake tools write
-# shell scripts from the checkout, so a CRLF checkout on Windows would fail them.
+# signed over its LF bytes (test/openpgp.test.js), and the process tests run the checkout's fake
+# tools (test/fake-*.js) through their shebang lines, which a CRLF checkout breaks.
 * text=auto eol=lf
