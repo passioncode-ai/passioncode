@@ -20,6 +20,7 @@ Contract: brand-contract v1
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:129 | SCN-003 | proposed | copy |
 | setup.install-question | Install ${pr.name} (early preview): ${i.note}? | lib/setup.js:140 | SCN-008 | proposed | copy |
 | setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:316 | SCN-008 | proposed | copy |
+| setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${accounts}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |
 | hook.updating | [passioncode] ${latest} is out (you have ${installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:170 | SCN-006 | proposed | copy |

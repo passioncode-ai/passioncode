@@ -71,40 +71,43 @@ function docFiles(rel) {
 }
 
 function proseLines(text) {
-  // A fence closes only on the marker that opened it; a file that ends inside one hides nothing.
+  // A fence opens on ``` or ~~~ and closes only on a bare marker of the same character and at
+  // least its length (CommonMark); a file that ends inside one hides nothing.
   const out = [];
   let fence = null;
   let held = [];
   text.split('\n').forEach((line, n) => {
-    const m = /^[ \t]*(`{3,}|~{3,})/.exec(line);
-    if (m && (fence === null || m[1][0] === fence[0] && m[1].length >= fence.length)) {
-      fence = fence === null ? m[1] : null;
-      held = [];
-      return;
-    }
+    const open = /^[ \t]{0,3}(`{3,}|~{3,})/.exec(line);
+    const bare = /^[ \t]{0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+    if (fence === null && open) { fence = open[1]; held = []; return; }
+    if (fence !== null && bare && bare[1][0] === fence[0] && bare[1].length >= fence.length) { fence = null; held = []; return; }
     if (fence === null) out.push([n + 1, line.replace(/`[^`]*`/g, '')]);
     else held.push([n + 1, line]);
   });
   return out.concat(held);
 }
 
+// The character, its escape in a JSON string, or its HTML entity, which renders as the character.
+const DOC_DASH = new RegExp(`${DASH.source}|&mdash;|&#0*8212;|&#x0*2014;`, 'i');
+const docDashes = (text) => proseLines(text).filter(([, l]) => DOC_DASH.test(l)).map(([n]) => n);
+
 test('PC-96: no em dash in the prose of the documentation a person reads', () => {
   const found = [];
   for (const file of DOCS.flatMap(docFiles)) {
-    for (const [n, line] of proseLines(fs.readFileSync(path.join(ROOT, file), 'utf8'))) {
-      if (DASH.test(line)) found.push(`${file}:${n}`);
-    }
+    for (const n of docDashes(fs.readFileSync(path.join(ROOT, file), 'utf8'))) found.push(`${file}:${n}`);
   }
   assert.deepEqual(found, []);
 });
 
 test('PC-96: code spans and fenced blocks keep their bytes', () => {
-  const sample = 'a `x \u2014 y` b\n```\nc \u2014 d\n```\ne \u2014 f\n';
-  assert.deepEqual(proseLines(sample).filter(([, l]) => l.includes('\u2014')).map(([n]) => n), [5]);
+  assert.deepEqual(docDashes('a `x \u2014 y` b\n```\nc \u2014 d\n```\ne \u2014 f\n'), [5]);
 });
 
-test('PC-96: an unclosed or mismatched fence hides nothing', () => {
-  const sample = '```\na\n~~~\nb \u2014 c\n';
-  assert.deepEqual(proseLines(sample).filter(([, l]) => DASH.test(l)).map(([n]) => n), [4]);
-  assert.ok(DASH.test('{"query": "a \\u2014 b"}'));
+test('PC-96: an escape or an entity in prose counts', () => {
+  assert.deepEqual(docDashes('{"query": "a \\u2014 b"}\nx &mdash; y\nz &#8212; w\nv &#x2014; u\nplain\n'), [1, 2, 3, 4]);
+});
+
+test('PC-96: a fence closes only on its own bare marker, and an unclosed one hides nothing', () => {
+  // ~~~ inside a ``` fence and ```js inside it do not close it; the bare ``` does.
+  assert.deepEqual(docDashes('```\na \u2014\n~~~\n```js\nb \u2014\n```\nc \u2014\n~~~\nd \u2014\n'), [7, 9]);
 });
