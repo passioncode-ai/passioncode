@@ -187,12 +187,12 @@
   2. Accept. It repairs, checks again and prints before → after.
   3. Do the listed steps that stay the person's (quit a running app that needs an update, start Docker, a product's own onboarding).
 - **Expected result:** The skill set and MCP registrations are repaired; an outdated or damaged app that is not running is reinstalled from its verified release and the old one is in the Trash; a family service launchd owns that does not answer is started with `launchctl kickstart` (no `-k`); a running app is never replaced; nothing is killed. On a healthy computer nothing changes and the exit code is 0.
-- **Alt paths:** `doctor --fix` runs the same repairs without installing new apps or opening anything. In a terminal, answering no to the repairs and to every other offer changes nothing and is reported as declined, never as "everything is in place".
+- **Alt paths:** `doctor --fix` runs the same repairs without installing new apps or opening anything (it never asks). `setup` in a terminal, answered no to the repairs and to every other offer, changes nothing, is reported as declined (never as "everything is in place") and still names `setup` among the person's steps when a check it would fix fails.
 - **UI elements:** The before → after table by area, every check that changed state, what is still open, the person's steps.
 - **States covered:** success, error
 - **Errors & recovery:** A problem that remains keeps exit 1 and names its fix.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run).
+- **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run), and `PC-91:`.
 - **Product:** unobserved
 
 ### SCN-010: Check the setup without changing anything

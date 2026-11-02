@@ -515,22 +515,27 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
   installApp(m, catalog.byId('switchboard'), { version: '1.0.0' });
   const run = (opts) => {
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
-      S.setup(Object.assign({ online: false, noApps: true, ask: async () => 'n' }, ${JSON.stringify(opts)}))
-        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, actions: r.actions, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+      let asked = 0;
+      S.setup(Object.assign({ online: false, noApps: true, ask: async () => { asked++; return 'n'; } }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, actions: r.actions, steps: r.humanSteps, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
     const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
     return JSON.parse(r.stdout);
   };
-  for (const opts of [{}, { train: 'org-test' }]) {
+  for (const opts of [{}, { train: 'org-test' }, { noApps: false }]) {
     const r = run(opts);
     assert.equal(r.declined, true, r.text);
+    // A declined run still names the command that would fix what it left: it was not that command.
+    if (opts.noApps === false) assert.ok(r.steps.some((s) => / setup$/.test(s)), JSON.stringify(r.steps));
     assert.match(r.text, /You declined every offer; nothing was changed/, r.text);
     assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
     if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
   }
   // Forgetting a saved train is a change on any answer, so that run is not reported as declined.
-  run({ yes: true, train: 'org-test' });
+  // The train is saved without the repairs, so the run below still declines offers that default to yes.
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
   const none = run({ train: null });
+  assert.ok(none.asked > 0, none.text);
   assert.equal(none.declined, undefined, none.text);
   assert.deepEqual(none.actions.map((a) => a.kind), ['train'], none.text);
   assert.match(none.text, /forgot release train org-test/, none.text);
