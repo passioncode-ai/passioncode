@@ -34,7 +34,7 @@ test('every manifest carries the expression, and the package ships the licence f
 });
 
 test('the README follows the standard: the name, the quick start, the licensing wording', () => {
-  const readme = read('README.md').toString('utf8');
+  const readme = read('README.md').toString('utf8').replace(/\r\n/g, '\n'); // PC-99
   const heading = readme.split('\n').find((l) => l.startsWith('#'));
   assert.equal(heading, '# PassionCode.ai launcher', 'the first heading is the full name (products.md)');
   assert.match(readme, /^## Quick start for a new teammate$/m);

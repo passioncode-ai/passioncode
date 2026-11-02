@@ -37,8 +37,10 @@ claude plugin validate ./payload --strict
 ```
 
 There is nothing to install: the launcher has no dependencies and no lockfile, so `npm ci`
-refuses to run here; `npm test` works on a fresh clone. Hosted workflows exist (`validate.yml`
-runs `npm test`; `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and
+refuses to run here; `npm test` works on a fresh clone. `.gitattributes` checks every text file
+out with LF on every platform (PC-99). Hosted workflows exist (`validate.yml` runs `npm test` on
+Linux, and on Windows `test/windows.test.js` plus the tests that only read files: `no-em-dash`,
+`license`, `skill` and `docs`; `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and
 `PUBLISH_NPMJS` are `true`). The repository is public, so they run outside the organisation's
 spending cap; the local gate above is still the evidence, and a skipped run is reported as skipped.
 MCP: the launcher serves no MCP server. It registers the installed apps' servers for every

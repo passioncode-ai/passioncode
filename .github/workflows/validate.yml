@@ -38,3 +38,7 @@ jobs:
         with:
           node-version: "22"
       - run: node --test test/windows.test.js
+      # PC-99: the tests that only read the repository's files run here too, so a Windows
+      # checkout is proved to read as on Linux and macOS. The rest of the suite is not yet proved
+      # on Windows: most of it drives fake POSIX tools (a shell-script claude, codesign, hdiutil).
+      - run: node --test test/no-em-dash.test.js test/license.test.js test/skill.test.js test/docs.test.js
