@@ -17,7 +17,7 @@ function cachedNpmStatus({ latest, checkedAt, installed }) {
   return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''})`;
 }
 
-const HELP = `passioncode — set up and check PassionCode.ai on this machine: the apps, their MCP servers, the skills
+const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
 
   npx @passioncode-ai/passioncode@latest setup [--yes] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
@@ -126,7 +126,7 @@ async function main(argv) {
         out(r, [
           ...r.steps.map((s) => `${s.outcome.padEnd(8)} ${s.kind.padEnd(11)} ${s.detail}${s.error ? `\n         ${s.error}` : ''}`),
           '',
-          failed.length ? `${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent — skills load at session start.`,
+          failed.length ? `${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start.`,
           r.moved.length ? `${r.moved.length} recovery entry(s) saved; use \`passioncode restore\`.` : '',
         ].filter(Boolean).join('\n'));
       }

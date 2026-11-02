@@ -72,7 +72,7 @@ The hook installs a newer version on its own only when all of these hold:
 It then runs `npx --yes @passioncode-ai/passioncode@<that exact version> update --quiet`, detached, so
 the version that was checked is the version that runs. In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
-account ("… not a trusted PassionCode publisher — not installing"); a name nobody has
+account ("… not a trusted PassionCode publisher, so it is not installed"); a name nobody has
 published (npm E404) is silent; a failed check is shown once.
 
 The current allowlist lives in [`plugin/passioncode/trust.json`](plugin/passioncode/trust.json).

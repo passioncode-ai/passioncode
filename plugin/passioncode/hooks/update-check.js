@@ -157,9 +157,9 @@ function decide(state, trust, now = Date.now()) {
     const untrusted = [...maintainers, ...(state.publisher ? [state.publisher] : [])].filter((m) => !trusted.has(m));
     if (!maintainers.length || !maintainers.every((m) => typeof m === 'string' && accountName(m) === m)
       || typeof state.publisher !== 'string' || !state.publisher || accountName(state.publisher) !== state.publisher) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read — not installing; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md.`);
     } else if (untrusted.length) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher — not installing; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md.`);
     } else {
       const auto = (state.config && state.config.auto) !== false;
       const runningAge = now - Date.parse(state.updatingSince);
@@ -167,7 +167,7 @@ function decide(state, trust, now = Date.now()) {
       if (auto && !running) {
         spawn = ['--yes', `${PACKAGE}@${latest}`, 'update', '--quiet'];
         stateChanges.updatingSince = new Date(now).toISOString();
-        lines.push(`[passioncode] ${latest} is out (you have ${state.installed}); updating in the background — it takes effect next session.`);
+        lines.push(`[passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session.`);
       } else if (!auto) {
         lines.push(`[passioncode] ${latest} is out (you have ${state.installed}): npx ${PACKAGE}@${latest} update`);
       }
