@@ -19,19 +19,20 @@ function cachedNpmStatus({ latest, checkedAt, installed }) {
 
 const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
 
-  npx @passioncode-ai/passioncode@latest setup [--yes] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--json]
+  npx @passioncode-ai/passioncode@latest setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
-  npx @passioncode-ai/passioncode@latest doctor [--fix] [--json]        check everything (read-only); --fix repairs as setup does
-  npx @passioncode-ai/passioncode@latest update [--dry-run] [--json]     install or update the skill set and the apps' MCP registrations
-  npx @passioncode-ai/passioncode@latest status [--json]                 what is installed where
-  npx @passioncode-ai/passioncode@latest restore                         put back what the last update moved aside
-  npx @passioncode-ai/passioncode@latest config set update.auto on|off   background updates at session start
-  npx @passioncode-ai/passioncode@latest uninstall                       remove the set (quarantined items stay restorable)
+  npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json]     check everything (read-only); --fix repairs as setup does
+  npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
+  npx @passioncode-ai/passioncode@latest status [--json]                         what is installed where
+  npx @passioncode-ai/passioncode@latest restore [--json]                        put back what the last update moved aside
+  npx @passioncode-ai/passioncode@latest config set update.auto on|off [--json]  background updates at session start
+  npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
 
-App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed,
-1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local
-"passioncode" marketplace; other agents get the same skills through ~/.agents/skills.
-Restart your agent after a change.`;
+onboard is another name for setup, install for update. --offline skips the check for newer app
+releases; --quiet prints nothing when an update succeeds. App ids: switchboard, dashboards,
+observatory, inbox, fabric. Exit codes: 0 nothing failed, 1 a check or a step failed, 2 bad
+arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get
+the same skills through ~/.agents/skills. Restart your agent after a change.`;
 
 const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric'];
 
