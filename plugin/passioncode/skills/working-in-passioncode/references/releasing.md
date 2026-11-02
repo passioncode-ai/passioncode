@@ -22,13 +22,14 @@ shape they share and the order that matters.
    top `CHANGELOG.md` entry. A validator or test in each repository holds them in sync.
 3. Land first, then tag the commit on `main`. A tag pushed without its branch is a
    release that a fresh clone cannot reach.
-4. A tag never moves. If `vX.Y.Z` exists — even on a commit you would not have chosen —
+4. A tag never moves. If `vX.Y.Z` exists, even on a commit you would not have chosen,
    the next release is `vX.Y.Z+1`. Check with `git ls-remote --tags origin`.
 5. Before pushing a `v*` tag, read `gh variable list -R passioncode-ai/<repo>`. With
    `RELEASE_ENABLED` and `PUBLISH_NPMJS` both `true`, the tag publishes to npm as soon as
-   Actions runs — including a re-run after the spending cap is lifted.
+   Actions runs, including a re-run after the spending cap is lifted.
 6. A GitHub release carries the version's CHANGELOG section:
-   `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <section>`.
+   `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <section>`, or the title the
+   repository's release workflow sets (this repository's: "PassionCode.ai vX.Y.Z").
 7. Write the handoff (objective, done, open, decisions, checks with exit codes, next
    task) in the same change.
 
@@ -69,7 +70,7 @@ manifests. Trigger and scenario evals change before the instructional prose they
 ## The engine (`project-observatory-dashboard`)
 
 - Contributors open PRs; `main` is protected and requires the three OS/Python checks.
-- The release itself — build, sign-off, wheel, `SHA256SUMS` — is cut by the maintainer's
+- The release itself (build, sign-off, wheel, `SHA256SUMS`) is cut by the maintainer's
   release tooling, which is maintainer-only. Do not reconstruct it.
 - The privacy gate runs before every public release:
   `python3 tools/check_public_release.py`.

@@ -51,16 +51,16 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
    `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. Each app's
    own onboarding (sign-ins, Fabric Inbox's server, Observatory's projects) is listed by `setup`.
-3. **MCP:** the launcher serves no MCP server of its own. It registers the apps' servers —
-   `fabric-dashboards`, `fabric` (`fabric-mcp --runner <agent>`) and `switchboard`
-   (`switchboard mcp`) — for Claude Code, Codex CLI, Gemini CLI and Kimi Code, and `doctor` proves
+3. **MCP:** the launcher serves no MCP server of its own. It registers the apps' servers
+   (`fabric-dashboards`, `fabric` with `fabric-mcp --runner <agent>`, and `switchboard` with
+   `switchboard mcp`) for Claude Code, Codex CLI, Gemini CLI and Kimi Code, and `doctor` proves
    each one with a real call: `initialize`, `tools/list`, then `list_services`,
    `switchboard_accounts` or `observatory_status`. Fabric's server is never started by doctor,
    because it enrols a session as it starts: doctor checks its entry, and your agent's first
    `fabric_whoami` is the proving call. Fabric is an early preview, so only `setup` registers it,
    never a background update. Project Observatory and Fabric Inbox register their
    own servers through their onboarding; `doctor` checks those too.
-4. **Develop:** clone, then `npm test` — there are no dependencies and no lockfile, so there is
+4. **Develop:** clone, then `npm test`. There are no dependencies and no lockfile, so there is
    nothing to install (`npm ci` refuses to run here). `npm run vendor` builds `payload/` from the
    members pinned in `family.json`; `claude plugin validate ./payload --strict` checks it. Start
    in `lib/launcher.js` (update, restore, status, uninstall) and `bin/passioncode.js` (the CLI);
@@ -69,7 +69,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
 ## How it installs
 
 - **Claude Code** gets plugins from a local marketplace named `passioncode` at
-  `~/.passioncode/current` — no GitHub access needed. A plugin that was installed from
+  `~/.passioncode/current`, with no GitHub access needed. A plugin that was installed from
   its old single-member marketplace (`fabric-agent-adapter@fabric-agent-adapter`,
   `observatory-log@observatory-log`) is replaced once the new one is verified, and that
   marketplace is unregistered and taken out of `settings.json` once nothing installed
@@ -80,13 +80,13 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   need neither an administrator session nor Developer Mode.
 - Updates create no skill copies in `~/.claude/skills`: a plain copy there shadows the plugin. Such
   copies, and hub entries that pointed at a repository's working tree, are moved into
-  `~/.passioncode/quarantine/` — `npx @passioncode-ai/passioncode@latest restore` puts them back.
+  `~/.passioncode/quarantine/`; `npx @passioncode-ai/passioncode@latest restore` puts them back.
 - Each version is an immutable release under `~/.passioncode/releases/<version>`; an update
   keeps the release it replaced for rollback and removes older ones.
-- `update` (and therefore `setup`) registers the MCP server inside each installed app — Fabric
+- `update` (and therefore `setup`) registers the MCP server inside each installed app (Fabric
   Dashboards (`fabric-dashboards`), Fabric Switchboard (`switchboard`, unless Claude Code already
   gets it from the `switchboard` plugin) and, from `setup` only because it is an early preview,
-  Fabric (`fabric`, with each agent's own `--runner`) —
+  Fabric (`fabric`, with each agent's own `--runner`))
   for every agent that is present: Claude Code (through `claude mcp add --scope user`), Codex CLI
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
@@ -129,7 +129,7 @@ change to the file is a launcher release.
 
 At Claude Code session start the `passioncode` plugin uses a cached npm check for up
 to 24 hours and, when a newer set is out **and every npm account that publishes it is in the
-plugin's `trust.json`**, updates to that exact version in the background — it takes
+plugin's `trust.json`**, updates to that exact version in the background; it takes
 effect in the next session. A version published by anyone else is named and not
 installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so.
@@ -196,7 +196,7 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
 2. Bump `version` in `package.json` and `plugin/passioncode/.claude-plugin/plugin.json`
    (a test holds them and the CHANGELOG in sync), add the CHANGELOG section.
 3. The npm account that publishes must be listed in `plugin/passioncode/trust.json`
-   (`npmPublishers`), and be the package's only kind of maintainer — otherwise every
+   (`npmPublishers`), and be the package's only kind of maintainer. Otherwise every
    installed hook refuses the update and says so.
 4. Merge, then tag the merge commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml`
    validates, checks the tag against both manifests, creates the GitHub release from the
@@ -211,7 +211,7 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
 5. `npx @passioncode-ai/passioncode@<version> update` on each machine; restart the agents.
 
 Vendoring clones every member from its own repository at its tag. A maintainer with
-local clones can point the vendor at them instead — `PASSIONCODE_CHECKOUT_ROOT=<dir>`
+local clones can point the vendor at them instead: `PASSIONCODE_CHECKOUT_ROOT=<dir>`
 reads a member from `<dir>/<repository name>`, and `PASSIONCODE_CHECKOUT_<MEMBER>=<path>`
 (the member's name upper-cased, `-` as `_`) names one clone kept under another name.
 `PASSIONCODE_VENDOR_CLONE=1` ignores both. `family.json` names no machine paths.
@@ -219,7 +219,7 @@ reads a member from `<dir>/<repository name>`, and `PASSIONCODE_CHECKOUT_<MEMBER
 ## License
 
 Open source under the [GNU AGPL-3.0](LICENSE). A [commercial license](COMMERCIAL-LICENSE.md) is
-available for use that does not meet the AGPL's terms — [passioncode.ai/business](https://passioncode.ai/business/).
+available for use that does not meet the AGPL's terms: [passioncode.ai/business](https://passioncode.ai/business/).
 Versions before 0.1.12 were released under PolyForm Noncommercial or Internal Use (v0.1.5 to
 v0.1.11) and MIT (v0.1.4 and earlier); each keeps the licence it was released under.
 Contributions are accepted under [CLA.md](CLA.md) ([CONTRIBUTING.md](CONTRIBUTING.md)).

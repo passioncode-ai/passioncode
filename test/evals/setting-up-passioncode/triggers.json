@@ -3,7 +3,7 @@
   "queries": [
     {"query": "Set me up with PassionCode on this Mac.", "shouldTrigger": true},
     {"query": "Install Fabric and the Fabric Dashboards app for me.", "shouldTrigger": true},
-    {"query": "Check my PassionCode setup — is everything configured right?", "shouldTrigger": true},
+    {"query": "Check my PassionCode setup: is everything configured right?", "shouldTrigger": true},
     {"query": "Run the passioncode doctor and fix what it finds.", "shouldTrigger": true},
     {"query": "The fabric-dashboards MCP server doesn't answer in Claude Code anymore.", "shouldTrigger": true},
     {"query": "I just got a new laptop; get Fabric Switchboard and Project Observatory working with Codex.", "shouldTrigger": true},

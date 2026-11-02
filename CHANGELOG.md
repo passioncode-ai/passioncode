@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.54 - 2026-11-02
+
+### Changed
+
+- The documentation a person reads carries no em dash outside code (PC-96): the README, the CLI
+  reference, the scenarios and screens, the docs index, both PassionCode.ai skills with their
+  references, and the skill evals. `COMMERCIAL-LICENSE.md` and the README's licence sentence follow
+  the knowledge base templates again (they dropped theirs). The `setting-up-passioncode` skill now
+  says `humanSteps` holds both commands an agent may run and steps that need the person, as the
+  terminal header does since 0.2.53, and the releasing reference names the title this repository's
+  release workflow sets. `docs/brand/strings.md` matches the help text and registers the strings
+  0.2.53 rewrote. The em dash test now also reads that documentation, outside code spans and fenced
+  blocks.
+
 ## 0.2.53 - 2026-11-02
 
 ### Fixed

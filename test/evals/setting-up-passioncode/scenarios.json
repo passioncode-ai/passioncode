@@ -1,6 +1,6 @@
 {
   "skill": "setting-up-passioncode",
-  "baseline": "Without the skill (2026-10-13, the operator's account of onboarding): a person was walked through the site, each app's download page, a hand-typed `claude mcp add` per app and agent, and each product's own setup — and an agent asked to help downloaded apps by URL with no checksum, signature or notarization check.",
+  "baseline": "Without the skill (2026-10-13, the operator's account of onboarding): a person was walked through the site, each app's download page, a hand-typed `claude mcp add` per app and agent, and each product's own setup; and an agent asked to help downloaded apps by URL with no checksum, signature or notarization check.",
   "scenarios": [
     {
       "id": "new-mac",

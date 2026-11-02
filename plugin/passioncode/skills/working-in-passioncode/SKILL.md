@@ -1,7 +1,7 @@
 ---
 name: working-in-passioncode
 description: >-
-  Use when working in any passioncode-ai repository — "work on a PassionCode repo", "open a PR
+  Use when working in any passioncode-ai repository: "work on a PassionCode repo", "open a PR
   in passioncode-ai", "release", "tag a version", "which repo owns this", "bump the contract
   pin", "publish this to the public repo", "what license do we use", «работаю в репозитории
   PassionCode», «как тут принято», «где записать решение», «как выпустить релиз». Covers the org
@@ -20,8 +20,8 @@ metadata:
 
 # Working in PassionCode repositories
 
-What belongs to no single repository — the vision, the principles, how to work, the rules, the
-repository standard, the products and the licence — lives in one place: the organization's
+What belongs to no single repository (the vision, the principles, how to work, the rules, the
+repository standard, the products and the licence) lives in one place: the organization's
 **knowledge base**, `fabric-workspace/knowledge/` in a clone (org-index
 `scripts/clone_all.sh` makes it), published at https://wiki.passioncode.ai/knowledge (sign-in
 required; Fabric ADR-0093). [org-index](https://github.com/passioncode-ai/org-index) (private;
@@ -31,15 +31,15 @@ those rules reach you while you work. It summarises; it does not replace. Where 
 knowledge base disagree, **the knowledge base wins**; where a repository's own `AGENTS.md` is
 stricter, **that file wins**.
 
-## 0. The protocol — before and after every piece of work
+## 0. The protocol: before and after every piece of work
 
 **Before the first edit**, read the knowledge base (at least its `README.md`, `vision.md`,
 `principles.md` and `how-to-work.md`), then the repository's `AGENTS.md`. The session-start hook
 of this plugin prints that line in every passioncode-ai repository.
 
 **After the work**, in the same run: update the repository's own docs in the change that changes
-the behaviour; if a fact that crosses repositories changed — a product, a version, a plan row, a
-principle, a rule — update the knowledge base page that owns it (`products.md`, `plans.md`, …);
+the behaviour; if a fact that crosses repositories changed (a product, a version, a plan row, a
+principle, a rule), update the knowledge base page that owns it (`products.md`, `plans.md`, …);
 land both; then publish (`node scripts/workspace.mjs sync` from a Fabric checkout) or leave it to
 the scheduled sync. A page there is read as true: every claim carries its receipt.
 
@@ -63,8 +63,8 @@ worked from it alone.
 
 Also, before the first edit:
 
-- **Read the organization's [CONTRIBUTING.md](https://github.com/passioncode-ai/.github/blob/main/CONTRIBUTING.md)**
-  — the repository's `AGENTS.md` sends you there in its *Read first* block.
+- **Read the organization's [CONTRIBUTING.md](https://github.com/passioncode-ai/.github/blob/main/CONTRIBUTING.md)**:
+  the repository's `AGENTS.md` sends you there in its *Read first* block.
 - **Names** (Fabric ADR-0090): PassionCode.ai is the organization; **Fabric** is the product,
   the CEO AI agent; Fabric's tools carry its full name before any short form (Fabric Inbox,
   Fabric Dashboards, Fabric Switchboard); the Fabric Agent Contract and Adapter make any agent
@@ -116,7 +116,7 @@ Also, before the first edit:
   record.
 - **Ids.** In a repository with `.claude/agent-sync.json`, reserve an id before writing
   it: `agent_sync.py reserve <REGISTER>` (for example `ADR` in fabric). Reading the
-  "next free id" line is not reserving it — two agents read the same number.
+  "next free id" line is not reserving it: two agents read the same number.
 - **Leases.** Every enrolled repository guards its declared shared files (its
   `docs/AGENT_SYNC.md` lists them) under a git lease, a ref under
   `refs/agent-sync/leases/` on `origin`, so both machines see it. `acquire` → edit →
@@ -135,7 +135,7 @@ Also, before the first edit:
   retrospectives before work and write the lesson after it.
 
 agent-sync missing: `npx @ssheleg/agent-sync install`. If it cannot be installed, do
-not edit a guarded file — say which file and why you stopped.
+not edit a guarded file; say which file and why you stopped.
 
 ### The common backlog
 
@@ -161,23 +161,23 @@ Fabric's workspace sync, and check the published source commit before calling it
 ## 6. Licensing and the repository standard
 
 - **Every repository** is open source under the GNU AGPL-3.0, or available under a commercial
-  license from PassionCode.ai — the request form https://passioncode.ai/business/, or
-  commercial@passioncode.ai: `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric
+  license from PassionCode.ai (the request form https://passioncode.ai/business/, or
+  commercial@passioncode.ai): `AGPL-3.0-only OR LicenseRef-PassionCode-Commercial` (Fabric
   ADR-0092; the knowledge base `licensing.md` owns it). Copyright: Siarhei Sheleh. No price or
   term is stated anywhere; every commercial path points to the form. Security reports stay at
   contact@passioncode.ai.
 - `LICENSE`, `COMMERCIAL-LICENSE.md` and `CLA.md` are copied **byte for byte** from the knowledge
   base's `templates/`; every manifest and SKILL.md `license:` carries the expression.
-- A version released earlier keeps its licence — MIT or PolyForm Noncommercial or Internal Use —
+- A version released earlier keeps its licence (MIT or PolyForm Noncommercial or Internal Use),
   and the README may say which. Never write that a released version changed.
 - The README's `## License` section uses the knowledge base wording and names the earlier
   licences: "Open source under the GNU AGPL-3.0. A commercial license is available for use that
-  does not meet the AGPL's terms — [passioncode.ai/business](https://passioncode.ai/business/)."
+  does not meet the AGPL's terms: [passioncode.ai/business](https://passioncode.ai/business/)."
 - Contributions are accepted under the repository's `CLA.md`; opening a pull request is the
   agreement, so a PR template never carries a CLA checkbox.
 - **The repository standard** (the knowledge base `repository-standard.md`): README first heading
-  `# <Full name>`, `## Quick start for a new teammate` (Install, Configure, MCP — the registration
-  command and one proving call verified with a real client in a temporary config — and Develop)
+  `# <Full name>`, `## Quick start for a new teammate` (Install, Configure, MCP with the registration
+  command and one proving call verified with a real client in a temporary config, and Develop)
   and `## License`; `AGENTS.md` opens with the template's *Read first* block and ends with
   *After work*; `CLAUDE.md` starts with `@AGENTS.md`; `SECURITY.md` in public repositories.
   org-index `python3 scripts/check_format.py` checks it (offline: siblings `org-index`,
@@ -196,7 +196,7 @@ note is public. Before it ships:
 
 - Run the repository's privacy gate. The engine's is
   `python3 tools/check_public_release.py`; a name published on purpose goes in
-  `tools/public-identifiers.json` **with a reason** — a review decision, never a way to
+  `tools/public-identifiers.json` **with a reason**: a review decision, never a way to
   silence a finding.
 - **The operator's personal agents never appear** on PassionCode.ai surfaces, examples,
   evals, docs or families. Use neutral names such as `example-agent`. The launcher's
@@ -254,7 +254,7 @@ skill's: `super-ux`, `sheleg-design` and `copywriting`.
 ## Gotchas
 
 - A private repository's hosted job "failed" in seconds: that is the spending cap, not
-  a test failure — and not a pass either.
+  a test failure, and not a pass either.
 - With the release variables on, re-running an old release workflow once Actions is
   back **publishes that old tag to npm**. Decide before re-running.
 - On macOS the system `python3` is 3.9, too old for the Observatory. Use a current

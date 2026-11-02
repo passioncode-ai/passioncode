@@ -148,8 +148,8 @@ and `test/openpgp.test.js`.
    each quarantine move before applying it. Re-read state before the final write
    to retain config/probe results written while plugin subprocesses ran.
 5. Prune the launcher's own releases (`prune` step): keep the release just
-   installed and the one it replaced — the newest other release when it replaced
-   none — and remove older ones and `*.partial` copies a killed update left
+   installed and the one it replaced (the newest other release when it replaced
+   none), and remove older ones and `*.partial` copies a killed update left
    behind. Files and links in `releases/` are never touched. A dry run plans it.
 
 Updates are **not a transaction across all agents**: a failure can leave a valid

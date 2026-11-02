@@ -203,7 +203,7 @@
 - **Preconditions:** None.
 - **Steps:**
   1. Run doctor.
-  2. Read one line per check, grouped by area — prerequisites, skills, apps, MCP, services — each with its state and, when not ok, its fix.
+  2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
 - **Expected result:** Nothing is installed, registered, started, stopped or opened. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
@@ -226,7 +226,7 @@
 - **Steps:**
   1. Run setup; the app's action fails and names the failed check.
 - **Expected result:** The app is not installed (an existing one stays as it was), the download is removed, and the exit code is 1.
-- **Alt paths:** None — there is no flag that skips a check.
+- **Alt paths:** None: there is no flag that skips a check.
 - **UI elements:** The failed action with its reason.
 - **States covered:** error
 - **Errors & recovery:** Report it to contact@passioncode.ai; retry after a new release.
