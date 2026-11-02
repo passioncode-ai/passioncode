@@ -62,7 +62,8 @@ test('PC-95: the guard reads template lines and trailing comments as code', () =
 // handoffs, task packets, ADRs and backlog rows; so are contributor-only AGENTS.md and
 // docs/AGENT_SYNC.md (generated).
 // Known blind spots: a ``` opener whose info string holds a backtick or that a tab indents (both
-// read as fences here, not in CommonMark), and double-backtick code spans (read pairwise by `).
+// read as fences here, not in CommonMark), double-backtick code spans (read pairwise by `),
+// and a code span that spans lines.
 const DOCS = ['README.md', 'SECURITY.md', 'COMMERCIAL-LICENSE.md', 'docs/README.md', 'docs/reference', 'docs/ux', 'docs/brand',
   'plugin/passioncode/skills', 'test/evals'];
 
@@ -114,6 +115,7 @@ test('PC-96: a fence closes only on its own bare marker, and an unclosed one hid
   // toggle on any marker; the last fence never closes, so its line counts too.
   const sample = '```\n~~~\na \u2014\n```\n````\n```\nb \u2014\n````\nc \u2014\n```\n```js\nd \u2014\n```\ne \u2014\n~~~\nf \u2014\n';
   assert.deepEqual(docDashes(sample), [9, 14, 16]);
+  assert.deepEqual(docDashes('```\na \u2014\n````\nb \u2014\n'), [4]); // a longer bare marker closes
 });
 
 test('PC-96: CRLF line endings read as LF (a Windows checkout)', () => {
@@ -121,4 +123,6 @@ test('PC-96: CRLF line endings read as LF (a Windows checkout)', () => {
   assert.deepEqual(docDashes(sample.replace(/\n/g, '\r\n')), docDashes(sample));
   assert.deepEqual(docDashes(sample), [5]);
   assert.deepEqual(codeLines('/* a \u2014\r\n */\r\nconst s = "b \u2014";\r\n').filter(([, l]) => DASH.test(l)).map(([n]) => n), [3]);
+  const lf = '/* a \u2014\n */\nconst s = "b \u2014";\n';
+  assert.deepEqual(codeLines(lf.replace(/\n/g, '\r\n')), codeLines(lf));
 });
