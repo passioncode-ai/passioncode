@@ -18,7 +18,8 @@ const SPDX = 'AGPL-3.0-only OR LicenseRef-PassionCode-Commercial'; // Fabric ADR
  * folded/literal block scalars, and one level of nested mapping. Anything a YAML 1.2
  * reader would reject — or silently truncate — is an error naming the line.
  */
-function parseFrontMatter(text) {
+function parseFrontMatter(raw) {
+  const text = raw.replace(/\r\n/g, '\n'); // a CRLF checkout reads like LF (PC-99)
   const m = /^---\n([\s\S]*?)\n---\n/.exec(text);
   if (!m) throw new Error('no front matter block');
   const lines = m[1].split('\n');
@@ -75,6 +76,11 @@ test('the strict front-matter reader rejects what a YAML reader rejects', () => 
   assert.throws(() => parseFrontMatter('---\nname: x\nname: y\n---\n'), /duplicate/);
   assert.throws(() => parseFrontMatter('---\nname: x\nmetadata:\n---\n'), /null/);
   assert.equal(parseFrontMatter('---\ndescription: >-\n  a: b\n  c\n---\n').doc.description, 'a: b c');
+});
+
+test('PC-99: a CRLF checkout reads like LF', () => {
+  const lf = '---\nname: x\ndescription: Use when X. NOT for Y.\n---\nbody\n';
+  assert.deepEqual(parseFrontMatter(lf.replace(/\n/g, '\r\n')), parseFrontMatter(lf));
 });
 
 test('the self plugin ships the working-in-passioncode and setting-up-passioncode skills', () => {

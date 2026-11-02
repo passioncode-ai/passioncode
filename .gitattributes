@@ -1,0 +1,5 @@
+# PC-99: every text file is checked out with LF on every platform, whatever core.autocrlf says.
+# The licence files are hashed byte for byte (test/license.test.js), the release fixture is
+# signed over its LF bytes (test/openpgp.test.js), and the process tests run test/fake-claude.js
+# as the claude CLI through its shebang line, which a CRLF checkout breaks (env: node\r).
+* text=auto eol=lf
