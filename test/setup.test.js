@@ -533,6 +533,12 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
     if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
   }
   // Forgetting a saved train is a change on any answer, so that run is not reported as declined.
+  // A running app behind its pin: its fix ("quit it, then run setup") names the declined train too.
+  fs.writeFileSync(path.join(m.apps, 'Fabric Switchboard.app', 'RUNNING'), '');
+  const running = run({ train: 'org-test' });
+  const named = running.steps.filter((s) => / setup/.test(s));
+  assert.ok(named.some((s) => /^quit /.test(s)) && named.every((s) => /setup --train org-test/.test(s)), JSON.stringify(running.steps));
+  fs.rmSync(path.join(m.apps, 'Fabric Switchboard.app', 'RUNNING'));
   // The train is saved without the repairs, so the run below still declines offers that default to yes.
   fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
   const none = run({ train: null });
