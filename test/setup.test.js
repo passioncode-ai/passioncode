@@ -508,6 +508,28 @@ test('PC-89: declining every offer in an interactive run saves no train', async 
   assert.equal(fs.existsSync(path.join(m.home, '.passioncode/state.json')) && JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, false);
 });
 
+// PC-91: "no" to every offer is reported as declined, never as a machine with nothing left to set up.
+test('PC-91: declining every offer says so, with and without a train', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' });
+  const run = (opts) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      S.setup(Object.assign({ online: false, noApps: true, ask: async () => 'n' }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  for (const opts of [{}, { train: 'org-test' }]) {
+    const r = run(opts);
+    assert.equal(r.declined, true, r.text);
+    assert.match(r.text, /You declined every offer; nothing was changed/, r.text);
+    assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
+    if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
+  }
+});
+
 test('PC-89: versions that are not x.y.z[-pre] are neither newer nor older; Windows 1.2.3.0 reads as 1.2.3', () => {
   const D = require('../lib/doctor');
   assert.equal(D.newer('1.1.0', 'undefined'), false);
