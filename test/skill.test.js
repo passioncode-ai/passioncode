@@ -78,6 +78,11 @@ test('the strict front-matter reader rejects what a YAML reader rejects', () => 
   assert.equal(parseFrontMatter('---\ndescription: >-\n  a: b\n  c\n---\n').doc.description, 'a: b c');
 });
 
+test('PC-99: a CRLF checkout reads like LF', () => {
+  const lf = '---\nname: x\ndescription: Use when X. NOT for Y.\n---\nbody\n';
+  assert.deepEqual(parseFrontMatter(lf.replace(/\n/g, '\r\n')), parseFrontMatter(lf));
+});
+
 test('the self plugin ships the working-in-passioncode and setting-up-passioncode skills', () => {
   assert.ok(skills().includes('working-in-passioncode'));
   assert.ok(skills().includes('setting-up-passioncode'));
