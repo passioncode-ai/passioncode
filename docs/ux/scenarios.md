@@ -168,12 +168,12 @@
   2. Read the result: what was installed, the checks before and after, and the numbered steps that stay the person's.
   3. Do those steps (sign-ins, consents, secrets in each product's hidden prompt), restart the coding agents.
 - **Expected result:** The chosen apps are installed from verified releases and opened once; the skill set is installed; every bundled MCP server is registered for every agent present and answers its proving call; the person's steps are listed once.
-- **Alt paths:** `--with`/`--without` choose apps; `--no-apps` sets up skills and MCP only; `--dry-run` shows the plan; without a terminal and without `--yes` the plan is printed and nothing changes; on Linux or Windows the apps are named with their download page.
+- **Alt paths:** `--with`/`--without` choose apps; `--no-apps` sets up skills and MCP only; `--dry-run` shows the plan; without a terminal and without `--yes` the plan is printed and nothing changes; answering no to every offer (at least one of them defaulting to yes) changes nothing (forgetting a train with `--train none` is a change on any answer) and says "You declined every offer; nothing was changed", with `setup` (or `setup --train <name>` when a train was declined) among the person's steps when a failing or warning check's own fix names `setup`; on Linux or Windows the apps are named with their download page.
 - **UI elements:** Questions on stderr; the result on stdout (text or `--json`); exit code.
 - **States covered:** empty, loading, success, error
 - **Errors & recovery:** A failed step is named with its cause and exit 1; running setup again resumes, because completed work is detected and skipped.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `a new machine:` and `without a terminal and without --yes`.
+- **Coverage:** `test/setup.test.js`, tests beginning `a new machine:`, `without a terminal and without --yes` and `PC-91:`.
 - **Product:** unobserved
 
 ### SCN-009: Check and repair an existing setup with the same command
@@ -187,12 +187,12 @@
   2. Accept. It repairs, checks again and prints before → after.
   3. Do the listed steps that stay the person's (quit a running app that needs an update, start Docker, a product's own onboarding).
 - **Expected result:** The skill set and MCP registrations are repaired; an outdated or damaged app that is not running is reinstalled from its verified release and the old one is in the Trash; a family service launchd owns that does not answer is started with `launchctl kickstart` (no `-k`); a running app is never replaced; nothing is killed. On a healthy computer nothing changes and the exit code is 0.
-- **Alt paths:** `doctor --fix` runs the same repairs without installing new apps or opening anything.
+- **Alt paths:** `doctor --fix` runs the same repairs without installing new apps or opening anything (it never asks). `setup` in a terminal, answered no to the repairs and to every other offer, changes nothing, is reported as declined (never as "everything is in place") and still names `setup` among the person's steps when a failing or warning check's own fix names it (a service it would start keeps that check's own fix).
 - **UI elements:** The before → after table by area, every check that changed state, what is still open, the person's steps.
 - **States covered:** success, error
 - **Errors & recovery:** A problem that remains keeps exit 1 and names its fix.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run).
+- **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run), and `PC-91:`.
 - **Product:** unobserved
 
 ### SCN-010: Check the setup without changing anything
@@ -280,10 +280,10 @@
   2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
   3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
 - **Expected result:** Every installed app the train pins is at its pinned version; `doctor` says how many are.
-- **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan and saves nothing.
+- **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan and saves nothing; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup`.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
 - **Errors & recovery:** An unknown train exits 2 before anything changes; a saved train this launcher no longer ships is a `fail` line whose fix is `setup --yes --no-apps --train none`.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js` tests beginning `PC-89`; `test/windows.test.js` test beginning `PC-89`.
+- **Coverage:** `test/setup.test.js` tests beginning `PC-89` and `PC-91:`; `test/windows.test.js` test beginning `PC-89`.
 - **Product:** unobserved

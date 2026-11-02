@@ -78,7 +78,8 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
-`none`) when a run named a train but was only a plan. A run that changes the
+`none`) when a run named a train but was only a plan (a `--json` run never asks, so the
+"declined every offer" report of a terminal run has no counterpart in it). A run that changes the
 saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set and no
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
@@ -107,7 +108,7 @@ when it has nothing to ask); without either, a run that names a train other than
 the saved one is a plan (`planOnly: true`) and nothing changes. Naming the saved
 train again (or `none` with no train saved) changes nothing and runs as plain
 `setup` does. A person who answers
-no to every offer that defaulted to yes keeps the previous train (the run is
+no to every offer (at least one of them defaulting to yes) keeps the previous train (the run is
 then a plan too, and exits 0 like one); `--train none` is saved on any answer, since forgetting a
 train touches no app.
 `--train none` removes it. An unknown name exits 2 before anything is checked.

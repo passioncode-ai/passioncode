@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.52 - 2026-11-02
+
+### Fixed
+
+- `setup` in a terminal, answered "no" to every offer (at least one of them defaulting to yes) and so
+  changing nothing, says "You declined every offer; nothing was changed." instead of "Everything this
+  command can set up is in place" (or "Nothing to do." when it named a train), and a release train named in that run is reported as not saved without the
+  advice to answer in a terminal (PC-91). Forgetting a train with `--train none` is still a change.
+  Such a run now lists `setup` among the person's steps when a failing or warning check's own fix
+  names it (`setup --train <name>` when the run declined that train).
+
 ## 0.2.51 - 2026-10-30
 
 ### Fixed

@@ -163,7 +163,7 @@ test('a new machine: setup --yes installs the verified apps, the skills and ever
   const before = toolLog(m).length;
   const again = await cli(m, api, 'setup', '--yes');
   assert.equal(again.status, 0, again.stderr + again.stdout);
-  assert.match(again.stdout, /nothing was changed/);
+  assert.match(again.stdout, /Everything this command can set up is in place; nothing was changed/);
   const calls = toolLog(m).slice(before);
   assert.ok(!calls.some((l) => /^(ditto|open|launchctl|hdiutil)/.test(l)), calls.join('\n'));
 });
@@ -506,6 +506,57 @@ test('PC-89: declining every offer in an interactive run saves no train', async 
   const plan = JSON.parse(r.stdout);
   assert.ok(plan.length && plan.every((i) => !i.selected), r.stdout);
   assert.equal(fs.existsSync(path.join(m.home, '.passioncode/state.json')) && JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, false);
+});
+
+// PC-91: "no" to every offer is reported as declined, never as a machine with nothing left to set up.
+test('PC-91: declining every offer says so, with and without a train', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine());
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' });
+  const run = (opts) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      let asked = 0;
+      S.setup(Object.assign({ online: false, noApps: true, ask: async () => { asked++; return 'n'; } }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, actions: r.actions, steps: r.humanSteps, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  for (const opts of [{}, { train: 'org-test' }, { noApps: false }, { noApps: false, train: 'org-test' }]) {
+    const r = run(opts);
+    assert.equal(r.declined, true, r.text);
+    // A declined run still names the command that would fix what it left: it was not that command.
+    // After a declined train, the step is setup with that train: plain setup would not follow it.
+    if (opts.noApps === false || opts.train) assert.ok(r.steps.some((s) => (opts.train ? / setup --train org-test$/ : / setup$/).test(s)), JSON.stringify(r.steps));
+    assert.match(r.text, /You declined every offer; nothing was changed/, r.text);
+    assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
+    if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
+  }
+  // Forgetting a saved train is a change on any answer, so that run is not reported as declined.
+  // A running app behind its pin: its fix ("quit it, then run setup") names the declined train too.
+  fs.writeFileSync(path.join(m.apps, 'Fabric Switchboard.app', 'RUNNING'), '');
+  const running = run({ train: 'org-test' });
+  const named = running.steps.filter((s) => / setup/.test(s));
+  assert.ok(named.some((s) => /^quit /.test(s)) && named.every((s) => /setup --train org-test/.test(s)), JSON.stringify(running.steps));
+  fs.rmSync(path.join(m.apps, 'Fabric Switchboard.app', 'RUNNING'));
+  // The train is saved without the repairs, so the run below still declines offers that default to yes.
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const none = run({ train: null });
+  assert.ok(none.asked > 0, none.text);
+  assert.equal(none.declined, undefined, none.text);
+  assert.deepEqual(none.actions.map((a) => a.kind), ['train'], none.text);
+  assert.match(none.text, /forgot release train org-test/, none.text);
+});
+
+test('PC-91: runs that declined nothing keep their old report', () => {
+  const { render } = require('../lib/setup');
+  const empty = { summary: {}, checks: [] };
+  const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [] };
+  assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
+  assert.match(render({ ...base, planOnly: true }), /Nothing to do\./);
+  const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
+  assert.match(train, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
+  assert.doesNotMatch(train, /You declined/);
 });
 
 test('PC-89: versions that are not x.y.z[-pre] are neither newer nor older; Windows 1.2.3.0 reads as 1.2.3', () => {
