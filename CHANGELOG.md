@@ -4,8 +4,8 @@
 
 ### Changed
 
-- **One rule for "The checks below still stand."** Every headline of `setup` and `doctor --fix` that says nothing
-  changed (declined, not installed, skipped, in place, nothing to do, nothing would change) adds it when a check below
+- **One rule for "The checks below still stand."** Each headline of `setup` and `doctor --fix` that reports, instead
+  of a plan, that nothing changed (declined, not installed, skipped, in place, nothing to do, nothing would change) adds it when a check below
   is still open, a FAIL or a WARN, and only then. It used to follow a FAIL only, and the declined, not-installed and
   skipped lines carried it even above passing checks (PC-105).
 - **A plan lists its train change as one of its lines** ("save release train <name>"), so a plan whose only change is
