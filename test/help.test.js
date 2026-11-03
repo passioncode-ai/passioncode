@@ -91,6 +91,10 @@ test('PC-110: the parser slice ends at its own closing brace, at any indentation
     "    const a = '}'; const b = \"{\"; const c = `}`; // a } in a comment, and it's",
     '    /* { */',
     "    const r = /^--(a|b)(?:=)?\\}[}/]\\{$/.exec(rest[0]);",
+    // A regular expression after each character that can stand before one, and after a comment line.
+    "    f(/\\{/, /\\{/); x = a ? /\\{/ : /\\{/; z = !/\\{/ || /\\{/ && /\\{/ && [/\\{/]; { /\\{/ } /\\{/.test(y);",
+    '    // a comment, then a regular expression',
+    "    /\\{/.test(rest[1]);",
     '    if (r) { return { r }; }',
     '  }',
     '}',

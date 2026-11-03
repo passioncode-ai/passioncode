@@ -344,6 +344,9 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
   const train = run({ planOnly: true, trainNotSaved: 'org-test' }).split('\n');
   assert.deepEqual(train.slice(train.indexOf('Plan (nothing was changed):'), train.indexOf('Plan (nothing was changed):') + 2), ['Plan (nothing was changed):', '  • save release train org-test']);
   assert.ok(train.includes('The release train (org-test) was not saved.'));
+  // PC-110: an offer that defaults to no is still asked about in a terminal, so its plan keeps the questions.
+  const offered = run({ planOnly: true, trainNotSaved: 'org-test', plan: [{ kind: 'install', product: 'fabric', detail: 'install Fabric', selected: false, checks: [] }] }).split('\n');
+  assert.ok(offered.includes('Run it with --yes to apply, or in a terminal to answer its questions.'), offered.join('\n'));
   // PC-110: a terminal asks nothing about a train alone and saves it at once: no questions are promised.
   assert.ok(train.includes('Run it with --yes, or in a terminal, to apply.'), train.join('\n'));
   assert.ok(!train.some((l) => /answer its questions/.test(l)));
@@ -904,6 +907,25 @@ test('PC-101: a declined run names the default-no offer as not installed', async
   assert.equal(plain.declined, true, plain.text);
   assert.equal(plain.notTaken, undefined, plain.text);
   assert.match(plain.text, /You declined every offer; nothing was changed/, plain.text);
+});
+
+test('PC-110: a plan with nothing to ask promises no questions; any offer or repair keeps them', () => {
+  const { render } = require('../lib/setup');
+  const empty = { summary: {}, checks: [] };
+  const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true };
+  const asks = 'Run it with --yes to apply, or in a terminal to answer its questions.';
+  const quiet = 'Run it with --yes, or in a terminal, to apply.';
+  const lines = (over) => render({ ...base, ...over }).split('\n');
+  assert.ok(lines({ trainNotSaved: 'org-test' }).includes(quiet));
+  assert.ok(lines({ trainNotSaved: 'none' }).includes(quiet));
+  const offer = { kind: 'install', product: 'fabric', selected: false, detail: 'install Fabric (early preview)', note: 'needs Docker' };
+  const repair = { kind: 'update', product: 'fabric', selected: true, detail: 'update Fabric' };
+  for (const plan of [[offer], [repair], [{ ...offer, selected: true }]]) {
+    const out = lines({ trainNotSaved: 'org-test', plan });
+    assert.ok(out.includes(asks) && !out.includes(quiet), out.join('\n'));
+  }
+  assert.ok(lines({ plan: [repair] }).includes(asks));
+  assert.ok(lines({ dryRun: true, trainNotSaved: 'org-test' }).includes('Run it without --dry-run (with --yes, or in a terminal) to apply.'));
 });
 
 test('PC-91: runs that declined nothing keep their old report', () => {
