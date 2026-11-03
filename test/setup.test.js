@@ -933,8 +933,8 @@ test('PC-108: an install answered no without a note adds no step of its own', as
 
 // PC-108: only an app that bundles an MCP server forces the update after declined repairs; one whose
 // server is external (Project Observatory) is installed without refreshing the skill set.
-test('PC-108: an app with an external MCP server forces no update after declined repairs', async (t) => {
-  const api = await releaseServer(t);
+test('PC-108: an app with an external MCP server forces no update after declined repairs; a bundled one does', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const m = machine();
   assert.ok(catalog.byId('observatory').mcp.external);
   const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
@@ -951,6 +951,39 @@ test('PC-108: an app with an external MCP server forces no update after declined
   const out = JSON.parse(run.stdout);
   assert.ok(out.plan.some((i) => i.kind === 'update' && !i.selected), run.stdout); // the repairs were answered no
   assert.deepEqual(out.actions.map((a) => `${a.kind}:${a.product}:${a.outcome}`), ['install:observatory:done'], run.stdout);
+  // A bundled one forces it, and the update makes the declined repairs: their checks pass, so no `setup` step is left.
+  const b = machine();
+  const bundled = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script.replace("['observatory']", "['switchboard']").replace('plan: r.plan', 'plan: r.plan, steps: r.humanSteps')], { env: cliEnv(b, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(bundled.status, 0, bundled.stderr);
+  const took = JSON.parse(bundled.stdout);
+  assert.ok(took.plan.some((i) => i.kind === 'update' && !i.selected), bundled.stdout);
+  assert.deepEqual(took.actions.map((a) => `${a.kind}:${a.outcome}`), ['install:done', 'update:done'], bundled.stdout);
+  assert.ok(!took.steps.some((st) => / setup$/.test(st)), bundled.stdout);
+  // A reinstall (replace) of a bundled one forces no update: only an install registers a new server.
+  const r = onTrain(machine());
+  installApp(r, catalog.byId('switchboard'), { version: '1.0.0' });
+  assert.equal((await cli(r, api, 'setup', '--yes', '--no-apps')).status, 0);
+  fs.writeFileSync(path.join(r.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const rs = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: true, noOpen: true, withIds: ['switchboard'], ask: async () => 'y' })
+      .then((x) => process.stdout.write(JSON.stringify({ actions: x.actions, plan: x.plan })), (e) => { console.error(e); process.exit(1); });`;
+  const replaced = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', rs], { env: cliEnv(r, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(replaced.status, 0, replaced.stderr);
+  const rr = JSON.parse(replaced.stdout);
+  assert.deepEqual(rr.plan.map((i) => i.kind), ['replace'], replaced.stdout);
+  assert.deepEqual(rr.actions.map((a) => `${a.kind}:${a.outcome}`), ['replace:done'], replaced.stdout);
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
