@@ -626,6 +626,7 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
     assert.match(r.text, /You declined every offer; nothing was changed/, r.text);
     assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
     if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
+    assert.doesNotMatch(r.text, /^ {2}[•–] /m, r.text); // PC-94: a declined run lists no plan lines
   }
   // Forgetting a saved train is a change on any answer, so that run is not reported as declined.
   // A running app behind its pin: its fix ("quit it, then run setup") names the declined train too.
@@ -727,6 +728,20 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   assert.ok(yes.plan.every((i) => i.kind === 'install' || i.selected), yesRun.stdout);
   assert.ok(yes.open.some((c) => c.fix === 'npx @passioncode-ai/passioncode@latest setup'), yesRun.stdout);
   assert.ok(!yes.steps.some((s) => / setup$/.test(s)), yesRun.stdout);
+  // But a declined run is never that command (PC-91), --without or not: with no repair offered at all
+  // (the skill set in place, Switchboard's reinstall left out), declining every install keeps `setup`.
+  const noRepairs = onTrain(machine());
+  installApp(noRepairs, catalog.byId('switchboard'), { version: '1.0.0' });
+  assert.equal((await cli(noRepairs, api, 'setup', '--yes', '--no-apps', '--without', 'switchboard')).status, 0);
+  fs.writeFileSync(path.join(noRepairs.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const declinedScript = yesScript.replace("ask: async (q) => (/^Install /.test(q) ? 'n' : 'y')", "ask: async () => 'n'")
+    .replace('.then((r) => process.stdout.write(JSON.stringify({ plan', '.then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, plan');
+  const declinedRun = require('child_process').spawnSync(process.execPath, ['-e', declinedScript], { env: cliEnv(noRepairs, api), encoding: 'utf8' });
+  assert.equal(declinedRun.status, 0, declinedRun.stderr);
+  const declinedOut = JSON.parse(declinedRun.stdout);
+  assert.equal(declinedOut.declined, true, declinedRun.stdout);
+  assert.ok(declinedOut.plan.every((i) => i.kind === 'install'), declinedRun.stdout);
+  assert.ok(declinedOut.steps.some((s) => / setup$/.test(s)), declinedRun.stdout);
   // A declined train is judged by its own checks: the unusable saved train's fail row does not count,
   // so the run exits 0 where plain doctor (on the saved train) exits 1.
   const g = onTrain(machine());
