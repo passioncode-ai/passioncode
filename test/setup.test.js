@@ -650,7 +650,7 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   const run = (m, opts) => {
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
       S.setup(Object.assign({ online: false, ask: async () => 'n' }, ${JSON.stringify(opts)}))
-        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, actions: r.actions, plan: r.plan, steps: r.humanSteps, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, actions: r.actions, plan: r.plan, steps: r.humanSteps, exit: S.exitCode(r), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
     const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
     return JSON.parse(r.stdout);
@@ -678,6 +678,29 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   // Without a train, the note keeps its own words (`--with fabric` is plain setup's flag).
   const plain = run(n, { noApps: false });
   assert.ok(plain.steps.some((s) => /^Fabric: .*\(--with fabric\)$/.test(s)), JSON.stringify(plain.steps));
+  // Fabric named with --with and then answered no was not installed, with or without a train.
+  for (const [opts, step] of [[{}, '--with fabric'], [{ train: 'org-test' }, 'npx @passioncode-ai/passioncode@latest setup --train org-test --with fabric']]) {
+    const asked = run(n, { noApps: false, withIds: ['fabric', 'switchboard'], ...opts });
+    assert.ok(asked.steps.every((s) => !/installed because you asked/.test(s)), JSON.stringify(asked.steps));
+    assert.ok(asked.steps.includes(`Fabric: needs Docker (OrbStack or Docker Desktop); not installed (${step})`), JSON.stringify(asked.steps));
+  }
+  // The only repair a replace (the skill set already in place): answered no, `setup` stays a step.
+  const r = onTrain(machine());
+  installApp(r, catalog.byId('switchboard'), { version: '1.0.0' });
+  assert.equal((await cli(r, api, 'setup', '--yes', '--no-apps')).status, 0);
+  fs.writeFileSync(path.join(r.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const replace = run(r, { train: null, noApps: false, online: true });
+  assert.deepEqual([...new Set(replace.plan.filter((i) => i.kind !== 'install').map((i) => i.kind))], ['replace'], JSON.stringify(replace.plan));
+  assert.ok(replace.steps.some((s) => / setup$/.test(s)), JSON.stringify(replace.steps));
+  // A declined train is judged by its own checks: the unusable saved train's fail row does not count,
+  // so the run exits 0 where plain doctor (on the saved train) exits 1.
+  const g = onTrain(machine());
+  assert.equal((await cli(g, api, 'setup', '--yes', '--no-apps')).status, 0);
+  fs.writeFileSync(path.join(g.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const gone = run(g, { train: 'org-test', noApps: false });
+  assert.equal(gone.declined, true, gone.text);
+  assert.equal(gone.exit, 0, gone.text);
+  assert.equal((await cli(g, api, 'doctor', '--json', '--offline')).status, 1);
 });
 
 // PC-92: after everything else is set up, a terminal run whose only offer defaults to no (Fabric
