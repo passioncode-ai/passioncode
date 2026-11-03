@@ -1,7 +1,8 @@
 'use strict';
 // PC-98: the help lists, on each command's own line, every flag in the argument parser's lists for
-// that command (plus --with, --without and --train, which it reads by pattern, and config's
-// --json), and names the command aliases, so no option is only discoverable elsewhere.
+// that command (plus --with, --without and --train, which it reads by pattern, and the flags
+// config's argument filter sets aside), and names the command aliases, so no option is only
+// discoverable elsewhere.
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -15,12 +16,16 @@ function accepted(source) {
   const setup = /cmd\s*===\s*['"]doctor['"]\s*\?\s*\[([^\]]*)\]\s*:\s*\[([^\]]*)\]/.exec(source);
   const options = /const options = (?:Object\.freeze\()?\{([\s\S]*?)\}\)?;/.exec(source);
   assert.ok(setup && options, 'the parser lists its flags where this test reads them');
-  // Flags setup reads by pattern (`/^--(with|without)(?:=/`, `/^--train(?:=/`) join its list.
-  const patterns = [...source.matchAll(/\/\^--(?:\(([a-z|]+)\)|([a-z-]+))\(\?:=/g)].flatMap((m) => (m[1] || m[2]).split('|').map((f) => `--${f}`));
+  // Flags setup reads by pattern join its list, in any of the forms `/^--name(?:=`, `/^--name=` and
+  // `/^--name$/`, with one name or an alternation (`/^--(with|without)(?:=/`).
+  const patterns = [...source.matchAll(/\/\^--(?:\(([a-z|]+)\)|([a-z-]+))(?:\(\?:=|=|\$\/)/g)].flatMap((m) => (m[1] || m[2]).split('|').map((f) => `--${f}`));
   assert.ok(patterns.length >= 3, 'the parser reads --with, --without and --train by pattern');
   const byCmd = { doctor: list(setup[1]), setup: [...list(setup[2]), ...patterns] };
   for (const [, cmd, flags] of options[1].matchAll(/['"]?([\w-]+)['"]?:\s*\[([^\]]*)\]/g)) byCmd[cmd] = list(flags);
-  byCmd.config = ['--json'];
+  // config takes `set <key> <value>` plus the flags its argument filter sets aside.
+  const config = /const configArgs = rest\.filter\(\(arg\) => ([^;]*)\);/.exec(source);
+  assert.ok(config, 'the parser sets the flags of config aside where this test reads them');
+  byCmd.config = list(config[1]);
   delete byCmd.install; // an alias of update, named in the help's prose
   delete byCmd.help;
   for (const k of ['--help', '-h']) delete byCmd[k];

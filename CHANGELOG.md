@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.64 - 2026-11-03
+
+### Changed
+
+- **One rule for "The checks below still stand."** Every headline of `setup` and `doctor --fix` that says nothing
+  changed (declined, not installed, skipped, in place, nothing to do, nothing would change) adds it when a check below
+  is still open, a FAIL or a WARN, and only then. It used to follow a FAIL only, and the declined, not-installed and
+  skipped lines carried it even above passing checks (PC-105).
+- **A plan whose only change is a train lists it** ("save release train <name>"), and a plan that would forget the saved
+  train with `--train none` says "forget the saved release train" and "The saved release train was not forgotten",
+  instead of naming a train "(none)" (PC-105).
+
+### Fixed
+
+- The string registry test reads each row's whole text, placeholders included, from the line it cites (it read only the
+  longest phrase, up to 40 characters), so two rows that share a phrase are told apart and a changed placeholder is
+  caught; three rows now match their code, and the plan's install line and the doctor's app label are registered. The
+  help test reads the flags `config` sets aside from the parser and every form of a pattern flag (PC-105).
+
 ## 0.2.63 - 2026-11-03
 
 ### Changed

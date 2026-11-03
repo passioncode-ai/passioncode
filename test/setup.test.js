@@ -302,9 +302,62 @@ test('PC-104: nothing to change above a failing check points at the checks and e
   } finally { delete process.env.FAKE_MCP_BROKEN; }
   const train = await cli(n, api, 'setup', '--dry-run', '--no-apps', '--train', 'org-test');
   assert.equal(train.status, 0, train.stdout);
-  assert.match(train.stdout, /Plan \(nothing was changed\):/);
+  assert.match(train.stdout, /Plan \(nothing was changed\):\n  • save release train org-test\n/);
   assert.match(train.stdout, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
   assert.doesNotMatch(train.stdout, /Nothing to do/);
+});
+
+// PC-105: one rule for "The checks below still stand.": every headline that says nothing changed adds
+// it when a check is still open (FAIL or WARN) and only then; a plan's train is one of its lines.
+test('PC-105: the checks are pointed at when one fails or warns, and a train is a plan line', async (t) => {
+  const { render } = require('../lib/setup');
+  const sum = (warn, fail) => ({ ok: 1, warn, fail, info: 0 });
+  const run = (over, warn = 0, fail = 0) => {
+    const checks = [{ id: 'x', area: 'mcp', state: fail ? 'fail' : warn ? 'warn' : 'ok', detail: 'x' }];
+    return render({ mode: 'existing', platform: 'darwin', plan: [], actions: [], humanSteps: [], planOnly: false,
+      before: { checks, summary: sum(warn, fail) }, after: { checks, summary: sum(warn, fail) }, ...over });
+  };
+  const fabric = { kind: 'install', product: 'fabric', selected: false, detail: 'install Fabric', note: null };
+  const cases = [
+    [{ planOnly: true }, 'Nothing to do.'],
+    [{}, 'Everything this command can set up is in place; nothing was changed.'],
+    [{ planOnly: true, plan: [fabric] }, 'Nothing would change: Fabric would not be installed (see the plan below).'],
+    [{ declined: true }, 'You declined every offer; nothing was changed.'],
+    [{ declined: true, notTaken: ['Fabric'] }, 'You declined every other offer, and Fabric was not installed; nothing was changed.'],
+    [{ notTaken: ['Fabric'] }, 'Nothing was changed: Fabric was offered and not installed.'],
+    [{ skipped: ['Fabric'] }, 'Nothing was changed: Fabric was not installed (see your steps below).'],
+  ];
+  for (const [over, headline] of cases) {
+    const bare = run(over).split('\n');
+    assert.ok(bare.includes(headline), `${headline} stands bare above passing checks:\n${bare.join('\n')}`);
+    for (const [warn, fail] of [[1, 0], [0, 1]]) {
+      assert.ok(run(over, warn, fail).split('\n').includes(`${headline} The checks below still stand.`), `${headline} with warn ${warn}, fail ${fail}`);
+    }
+  }
+  // A plan whose only change is a train lists it; forgetting one names no train.
+  const train = run({ planOnly: true, trainNotSaved: 'org-test' }).split('\n');
+  assert.deepEqual(train.slice(train.indexOf('Plan (nothing was changed):'), train.indexOf('Plan (nothing was changed):') + 2), ['Plan (nothing was changed):', '  • save release train org-test']);
+  assert.ok(train.includes('The release train (org-test) was not saved: run it with --yes, or answer in a terminal.'));
+  const none = run({ planOnly: true, trainNotSaved: 'none' });
+  assert.match(none, /\n  • forget the saved release train\n/);
+  assert.match(none, /\nThe saved release train was not forgotten: run it with --yes, or answer in a terminal\.\n/);
+  assert.doesNotMatch(none, /\(none\)/);
+  // A declined named train is no plan line: it was the person's answer, not what a run would do.
+  const declinedTrain = run({ planOnly: true, declined: true, trainNotSaved: 'org-test' });
+  assert.doesNotMatch(declinedTrain, /save release train/);
+  assert.match(declinedTrain, /The release train \(org-test\) was not saved\./);
+  // doctor --fix in text above a failing check it cannot repair: the pointer, and exit 1.
+  const api = await releaseServer(t);
+  const m = machine();
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0);
+  process.env.FAKE_MCP_BROKEN = 'fabric-dashboards';
+  try {
+    const fix = await cli(m, api, 'doctor', '--fix');
+    assert.equal(fix.status, 1, fix.stdout);
+    assert.match(fix.stdout, /^doctor --fix · /m);
+    assert.match(fix.stdout, /\. The checks below still stand\.$/m);
+  } finally { delete process.env.FAKE_MCP_BROKEN; }
 });
 
 test('a bundle that comes into use while its release downloads is not moved', async (t) => {
