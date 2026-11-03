@@ -305,7 +305,7 @@ test('PC-104: nothing to change above a failing check points at the checks and e
   assert.match(train.stdout, /Plan \(nothing was changed\):\n  • save release train org-test\n/);
   // PC-107: the train line says what was not saved; the footer says how to apply, and after a
   // --dry-run that is to run it without --dry-run.
-  assert.match(train.stdout, /\nThe release train \(org-test\) was not saved\.\n\nRun it without --dry-run to apply\.\n/);
+  assert.match(train.stdout, /\nThe release train \(org-test\) was not saved\.\n\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/);
   assert.doesNotMatch(train.stdout, /Nothing to do|Run it with --yes|answer in a terminal/);
 });
 
@@ -345,7 +345,7 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
   const none = run({ planOnly: true, trainNotSaved: 'none' });
   assert.match(none, /\n  • forget the saved release train\n/);
   assert.match(none, /\nThe saved release train was not forgotten\.\n\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/);
-  assert.match(run({ planOnly: true, dryRun: true, trainNotSaved: 'none' }), /\nRun it without --dry-run to apply\.\n/);
+  assert.match(run({ planOnly: true, dryRun: true, trainNotSaved: 'none' }), /\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/);
   assert.doesNotMatch(none, /\(none\)/);
   // A declined named train is no plan line: it was the person's answer, not what a run would do.
   const declinedTrain = run({ planOnly: true, declined: true, trainNotSaved: 'org-test' });
@@ -380,12 +380,24 @@ test('PC-107: warnings in the closing line, the declined label, and none reserve
   assert.ok(run({}, 1).includes(`No problems, 1 warning(s). ${doctor}`));
   assert.ok(run({}, 0, 2).includes(`2 problem(s). ${doctor}`));
   const done = { actions: [{ kind: 'update', detail: 'u', outcome: 'done' }] };
-  assert.ok(run(done, 1).includes(`No problems remain, 1 warning(s) (before: 0). ${doctor}`));
+  assert.ok(run(done, 1).includes(`No problems remain (before: 0), 1 warning(s). ${doctor}`));
   assert.ok(run({ planOnly: true }, 1).includes('Open now:'));
   assert.ok(run({ planOnly: true, declined: true, trainNotSaved: 'org-test' }, 1).includes('Still open:'));
   assert.ok(run({ declined: true }, 1).includes('Still open:'));
   const trains = require('../lib/trains');
   assert.throws(() => trains.load('none'), /"none" is not a release train name/);
+  // A launcher that ships no train says so, rather than "known: none".
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-trains-'));
+  const was = process.env.PASSIONCODE_TRAINS;
+  process.env.PASSIONCODE_TRAINS = empty;
+  try {
+    fs.writeFileSync(path.join(empty, 'none.json'), '{}');
+    assert.deepEqual(trains.list(), []);
+    assert.throws(() => trains.load('org-test'), /^Error: no release train "org-test": this launcher ships no release train$/);
+  } finally {
+    if (was === undefined) delete process.env.PASSIONCODE_TRAINS; else process.env.PASSIONCODE_TRAINS = was;
+    fs.rmSync(empty, { recursive: true, force: true });
+  }
 });
 
 test('a bundle that comes into use while its release downloads is not moved', async (t) => {
