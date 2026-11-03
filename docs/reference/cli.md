@@ -100,7 +100,7 @@ none: its items carry their notes, and nothing ran. A declined run that named a 
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
 Questions are asked only on a terminal: one per absent app (on macOS) and one for the
-repairs, if any. With `--dry-run`, or without a terminal and without `--yes` when the run would change
+repairs, if any are left after the installs (see PC-112 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
 something (an offer selected, or a train other than the saved one named, `none` included when a
 train is saved; a `--json` run never asks, so it counts as one without a terminal), the plan is returned with `planOnly: true`,
 nothing changes, and the exit code is 0; without a terminal and without `--yes` a run with nothing
@@ -133,7 +133,7 @@ answer, since forgetting a train touches no app. Any terminal run that answers n
 (an install, or forgetting a train), names `setup` among its steps where a failing or warning check's own fix names it.
 An app a run installs that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) is registered through
 the skill and MCP update, so once such an install is taken the repairs question leaves that update out and asks only
-about the rest (PC-112); the update also makes the skill-set and MCP-registration repairs (PC-108).
+about the rest, and the update runs after that install succeeds (not when it fails, PC-112); the update also makes the skill-set and MCP-registration repairs (PC-108).
 `--train none` forgets the saved train. An unknown name exits 2 before anything is checked.
 On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an
 older one is `warn` with a `replace` repair (macOS; on Windows the fix names the

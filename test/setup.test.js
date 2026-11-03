@@ -996,6 +996,29 @@ test('PC-108: an app with an external MCP server forces no update after declined
   assert.deepEqual(rr.actions.map((a) => `${a.kind}:${a.outcome}`), ['replace:done'], replaced.stdout);
 });
 
+// PC-112: the update a bundled install runs is that install's: when the install fails, the update does not run,
+// and the person, who was not asked about it, keeps `setup` among the steps.
+test('PC-112: a bundled install that fails runs no update and was not asked about it', async (t) => {
+  const api = await releaseServer(t); // serves no 9.9.9, so the pinned install fails
+  const m = onTrain(machine(), { switchboard: '9.9.9' });
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    const asked = [];
+    S.setup({ online: true, noOpen: true, train: 'org-test', withIds: ['switchboard'], ask: async (q) => { asked.push(q); return /^Install /.test(q) ? 'y' : 'n'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ asked, actions: r.actions, steps: r.humanSteps })), (e) => { console.error(e); process.exit(1); });`;
+  const run = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  assert.ok(!out.asked.some((q) => /^Apply /.test(q)), run.stdout);
+  assert.deepEqual(out.actions.filter((a) => a.kind !== 'train').map((a) => `${a.kind}:${a.outcome}`), ['install:failed'], run.stdout);
+  assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), run.stdout);
+});
+
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
 test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaults to no is still asked', async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
