@@ -95,7 +95,8 @@ Then run `doctor --json` again and report the change.
 Reply in the person's language, briefly:
 
 1. What was set up or repaired (from `actions`), what was skipped (from `skipped`, or, when there is no `skipped` (a plan,
-   or a run with any `actions`), the `plan` install items with `selected: false`), and the before → after counts.
+   or a run with any `actions`), the `plan` install items with `selected: false`), the train a plan would save or forget
+   (`trainNotSaved`, `none` meaning the saved train would be forgotten), and the before → after counts.
 2. What still fails, each with its `fix`.
 3. **Your steps**: the numbered `humanSteps` you could not finish yourself: sign-ins, consents,
    secrets in hidden prompts, starting Docker, the restart.

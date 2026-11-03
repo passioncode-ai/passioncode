@@ -10,7 +10,10 @@
   skipped lines carried it even above passing checks (PC-105).
 - **A plan lists its train change as one of its lines** ("save release train <name>"), so a plan whose only change is
   a train no longer shows an empty list, and a plan that would forget the saved train with `--train none` says "forget the saved release train" and "The saved release train was not forgotten",
-  instead of naming a train "(none)" (PC-105).
+  instead of naming a train "(none)" (PC-105). The line is in the text report; `--json` keeps the train in `trainNotSaved`,
+  and the setting-up skill now reports it from there.
+- **Agent-facing docs:** the setting-up skill says a declined terminal run is not a plan and exits by its checks, and
+  `docs/reference/cli.md` says a plan carries no `humanSteps`, a declined named train excepted (PC-105).
 
 ### Fixed
 
