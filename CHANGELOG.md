@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.59 - 2026-11-03
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.58.0`** (it was `v0.57.0`): an agent built with the adapter keeps its source
+  apart from its instance from its first commit, and `adapting-projects-to-fabric/scripts/fabric_source_check.py check`
+  finds home paths, credentials and the owner's strings in a source tree without printing any of them (PC-103).
+
 ## 0.2.58 - 2026-11-03
 
 ### Fixed
