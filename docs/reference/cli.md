@@ -96,8 +96,8 @@ launchd service that does not answer), each with the check ids that caused it.
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
 fix, each product's onboarding for apps installed in this run, and the restart.
 
-Questions are asked only on a terminal: one per absent app and one for the
-repairs. With `--dry-run`, or without a terminal and without `--yes` when the run would change
+Questions are asked only on a terminal: one per absent app (on macOS) and one for the
+repairs, if any. With `--dry-run`, or without a terminal and without `--yes` when the run would change
 something (an offer selected, or a train other than the saved one named, `none` included when a
 train is saved; a `--json` run never asks, so it counts as one without a terminal), the plan is returned with `planOnly: true`,
 nothing changes, and the exit code is 0; without a terminal and without `--yes` a run with nothing

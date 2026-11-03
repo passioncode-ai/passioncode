@@ -290,6 +290,21 @@ test('PC-104: nothing to change above a failing check points at the checks and e
     assert.equal(dry.status, 0, dry.stdout);
     assert.match(dry.stdout, /Nothing to do\. The checks below still stand\./);
   } finally { delete process.env.FAKE_MCP_BROKEN; }
+  // Through the CLI too: a plan that would leave Fabric names it and points at the failing check,
+  // and a plan whose only change is a train is shown as a plan.
+  const n = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
+  assert.equal((await cli(n, api, 'setup', '--yes')).status, 0);
+  process.env.FAKE_MCP_BROKEN = 'fabric-dashboards';
+  try {
+    const would = await cli(n, api, 'setup', '--dry-run');
+    assert.equal(would.status, 0, would.stdout);
+    assert.match(would.stdout, /Nothing would change: Fabric would not be installed \(see the plan below\)\. The checks below still stand\./);
+  } finally { delete process.env.FAKE_MCP_BROKEN; }
+  const train = await cli(n, api, 'setup', '--dry-run', '--no-apps', '--train', 'org-test');
+  assert.equal(train.status, 0, train.stdout);
+  assert.match(train.stdout, /Plan \(nothing was changed\):/);
+  assert.match(train.stdout, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
+  assert.doesNotMatch(train.stdout, /Nothing to do/);
 });
 
 test('a bundle that comes into use while its release downloads is not moved', async (t) => {
@@ -685,7 +700,8 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   const fabric = { kind: 'install', product: 'fabric', selected: false, detail: 'install Fabric (early preview)', note: 'needs Docker' };
   const would = render({ ...base, planOnly: true, plan: [fabric] });
   assert.match(would, /Nothing would change: Fabric would not be installed \(see the plan below\)\./);
-  assert.doesNotMatch(would, /Nothing to do/);
+  assert.doesNotMatch(would, /Nothing to do|still stand/);
+  assert.match(render({ ...base, planOnly: true, plan: [fabric], after: failing }), /would not be installed \(see the plan below\)\. The checks below still stand\./);
   const trainOnly = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
   assert.match(trainOnly, /Plan \(nothing was changed\):/);
   assert.doesNotMatch(trainOnly, /Nothing to do/);
