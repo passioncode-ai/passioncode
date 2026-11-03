@@ -48,7 +48,9 @@ test('every strings.md row points at the line that holds its text', () => {
     // placeholder (the "(early preview)" label inside the install question) is not such a row.
     // PC-107: on any line the longer row's text covers, not only the one it starts on.
     else if (cited.some((o) => {
-      if (o.text === r.text || !words(o.text).includes(words(r.text)) || !startsAt(o.text, o.loc)) return false;
+      if (o.text === r.text || !words(o.text).includes(words(r.text))) return false;
+      if (startsAt(o.text, r.loc)) return true; // the longer text starts on this very line
+      if (!startsAt(o.text, o.loc)) return false;
       const span = covers(o);
       const [file, line] = r.loc.split(':');
       return file === span.file && Number(line) >= span.from && Number(line) <= span.to;

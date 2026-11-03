@@ -389,6 +389,14 @@ test('PC-107: warnings in the closing line, the declined label, and none reserve
   assert.ok(run({ planOnly: true }, 1).includes('Open now:'));
   assert.ok(run({ planOnly: true, declined: true, trainNotSaved: 'org-test' }, 1).includes('Still open:'));
   assert.ok(run({ declined: true }, 1).includes('Still open:'));
+  assert.ok(run({}, 1).includes('Still open:') && run(done, 1).includes('Still open:')); // any run that is not a plan
+  // The warnings counted are the ones still open after the run, not the ones before it.
+  const moved = (bw, aw) => {
+    const at = (w) => ({ checks: [{ id: 'x', area: 'mcp', state: w ? 'warn' : 'ok', detail: 'x' }], summary: sum(w, 0) });
+    return render({ mode: 'existing', platform: 'darwin', plan: [], humanSteps: [], planOnly: false, ...done, before: at(bw), after: at(aw) }).split('\n');
+  };
+  assert.ok(moved(2, 0).includes(`No problems remain (before: 0). ${doctor}`));
+  assert.ok(moved(0, 1).includes(`No problems remain (before: 0), 1 warning(s). ${doctor}`));
   const trains = require('../lib/trains');
   assert.throws(() => trains.load('none'), /"none" is not a release train name/);
   // A launcher that ships no train says so, rather than "known: none".
