@@ -24,22 +24,27 @@ Contract: brand-contract v1
 | setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} from ${from(pr)} | lib/setup.js:70 | SCN-008 | proposed | copy |
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:71 | SCN-008, SCN-014 | proposed | copy |
 | setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:288 | SCN-009, SCN-014 | proposed | copy |
+| setup.install-note.train | ${setupStep} --with | lib/setup.js:287 | SCN-014 | proposed | copy |
 | doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:188 | SCN-009, SCN-010 | proposed | layout |
 | setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:320 | SCN-009 | proposed | copy |
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:321 | SCN-009 | proposed | copy |
 | setup.declined | You declined every offer; nothing was changed.${stand(a)} | lib/setup.js:319 | SCN-008, SCN-009 | proposed | copy |
 | setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${stand(a)} | lib/setup.js:318 | SCN-008, SCN-009 | proposed | copy |
-| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:351 | SCN-009 | proposed | copy |
+| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:354 | SCN-009 | proposed | copy |
 | setup.checks-stand |  The checks below still stand. | lib/setup.js:325 | SCN-008, SCN-009 | proposed | copy |
 | setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:340 | SCN-008 | proposed | copy |
 | setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:322 | SCN-008 | proposed | copy |
-| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:348 | SCN-008 | proposed | copy |
+| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:350 | SCN-008 | proposed | copy |
+| setup.plan-footer.dry-run | Run it without --dry-run to apply. | lib/setup.js:350 | SCN-008 | proposed | copy |
 | setup.plan-header | Plan (nothing was changed): | lib/setup.js:339 | SCN-008 | proposed | copy |
-| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved${result.declined ? '.' : ': run it with --yes, or answer in a terminal.'} | lib/setup.js:346 | SCN-008 | proposed | copy |
+| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved. | lib/setup.js:347 | SCN-008 | proposed | copy |
 | setup.plan-forget-train | forget the saved release train | lib/setup.js:327 | SCN-008 | proposed | copy |
 | setup.plan-train | save release train ${t} | lib/setup.js:327 | SCN-008 | proposed | copy |
-| setup.train-not-forgotten | The saved release train was not forgotten: run it with --yes, or answer in a terminal. | lib/setup.js:345 | SCN-008 | proposed | copy |
-| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:376 | SCN-008 | proposed | copy |
+| setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:347 | SCN-008 | proposed | copy |
+| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:379 | SCN-008 | proposed | copy |
+| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:383 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:384 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'}${warned} (before: ${b.fail}). Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:385 | SCN-008, SCN-009 | proposed | copy |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |

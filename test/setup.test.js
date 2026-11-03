@@ -303,8 +303,10 @@ test('PC-104: nothing to change above a failing check points at the checks and e
   const train = await cli(n, api, 'setup', '--dry-run', '--no-apps', '--train', 'org-test');
   assert.equal(train.status, 0, train.stdout);
   assert.match(train.stdout, /Plan \(nothing was changed\):\n  • save release train org-test\n/);
-  assert.match(train.stdout, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
-  assert.doesNotMatch(train.stdout, /Nothing to do/);
+  // PC-107: the train line says what was not saved; the footer says how to apply, and after a
+  // --dry-run that is to run it without --dry-run.
+  assert.match(train.stdout, /\nThe release train \(org-test\) was not saved\.\n\nRun it without --dry-run to apply\.\n/);
+  assert.doesNotMatch(train.stdout, /Nothing to do|Run it with --yes|answer in a terminal/);
 });
 
 // PC-105: one rule for "The checks below still stand.": every headline that says nothing changed adds
@@ -338,10 +340,12 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
   // A plan whose only change is a train lists it; forgetting one names no train.
   const train = run({ planOnly: true, trainNotSaved: 'org-test' }).split('\n');
   assert.deepEqual(train.slice(train.indexOf('Plan (nothing was changed):'), train.indexOf('Plan (nothing was changed):') + 2), ['Plan (nothing was changed):', '  • save release train org-test']);
-  assert.ok(train.includes('The release train (org-test) was not saved: run it with --yes, or answer in a terminal.'));
+  assert.ok(train.includes('The release train (org-test) was not saved.'));
+  assert.ok(train.includes('Run it with --yes to apply, or in a terminal to answer its questions.')); // PC-107: the footer advises
   const none = run({ planOnly: true, trainNotSaved: 'none' });
   assert.match(none, /\n  • forget the saved release train\n/);
-  assert.match(none, /\nThe saved release train was not forgotten: run it with --yes, or answer in a terminal\.\n/);
+  assert.match(none, /\nThe saved release train was not forgotten\.\n\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/);
+  assert.match(run({ planOnly: true, dryRun: true, trainNotSaved: 'none' }), /\nRun it without --dry-run to apply\.\n/);
   assert.doesNotMatch(none, /\(none\)/);
   // A declined named train is no plan line: it was the person's answer, not what a run would do.
   const declinedTrain = run({ planOnly: true, declined: true, trainNotSaved: 'org-test' });
@@ -359,6 +363,29 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
     assert.match(fix.stdout, /^doctor --fix · /m);
     assert.match(fix.stdout, /\. The checks below still stand\.$/m);
   } finally { delete process.env.FAKE_MCP_BROKEN; }
+});
+
+// PC-107: the closing line names warnings beside the problems; a declined run's open checks are
+// "Still open" (it is a run, as its exit code says); `none` is no train's name.
+test('PC-107: warnings in the closing line, the declined label, and none reserved', () => {
+  const { render } = require('../lib/setup');
+  const sum = (warn, fail) => ({ ok: 1, warn, fail, info: 0 });
+  const run = (over, warn = 0, fail = 0) => {
+    const checks = [{ id: 'x', area: 'mcp', state: fail ? 'fail' : warn ? 'warn' : 'ok', detail: 'x' }];
+    return render({ mode: 'existing', platform: 'darwin', plan: [], actions: [], humanSteps: [], planOnly: false,
+      before: { checks, summary: sum(warn, fail) }, after: { checks, summary: sum(warn, fail) }, ...over }).split('\n');
+  };
+  const doctor = 'Check again any time: npx @passioncode-ai/passioncode@latest doctor';
+  assert.ok(run({}).includes(`No problems. ${doctor}`));
+  assert.ok(run({}, 1).includes(`No problems, 1 warning(s). ${doctor}`));
+  assert.ok(run({}, 0, 2).includes(`2 problem(s). ${doctor}`));
+  const done = { actions: [{ kind: 'update', detail: 'u', outcome: 'done' }] };
+  assert.ok(run(done, 1).includes(`No problems remain, 1 warning(s) (before: 0). ${doctor}`));
+  assert.ok(run({ planOnly: true }, 1).includes('Open now:'));
+  assert.ok(run({ planOnly: true, declined: true, trainNotSaved: 'org-test' }, 1).includes('Still open:'));
+  assert.ok(run({ declined: true }, 1).includes('Still open:'));
+  const trains = require('../lib/trains');
+  assert.throws(() => trains.load('none'), /"none" is not a release train name/);
 });
 
 test('a bundle that comes into use while its release downloads is not moved', async (t) => {
@@ -891,7 +918,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   assert.match(render({ ...base, declined: true, notTaken: ['Fabric', 'Fabric Inbox'] }), /You declined every other offer, and Fabric and Fabric Inbox were not installed; nothing was changed\./);
   assert.match(render({ ...base, planOnly: true, declined: true, notTaken: ['Fabric'], plan: [] }), /You declined every other offer, and Fabric was not installed/);
   const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
-  assert.match(train, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
+  assert.match(train, /The release train \(org-test\) was not saved\.\n\nRun it with --yes to apply/);
   assert.doesNotMatch(train, /You declined/);
 });
 
@@ -1017,7 +1044,7 @@ test('PC-89: the unusable-train fix plans no install; a withheld train is named 
   assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, undefined);
   fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
   const text = await cli(m, api, 'setup', '--offline', '--train', 'none');
-  assert.match(text.stdout, /  • forget the saved release train\n\nThe saved release train was not forgotten: run it with --yes, or answer in a terminal\./);
+  assert.match(text.stdout, /  • forget the saved release train\n\nThe saved release train was not forgotten\.\n\nRun it with --yes to apply, or in a terminal to answer its questions\./);
   // PC-105: a plan with installs lists its train change under them, as one of its lines.
   assert.match(text.stdout, /\n  • install [^\n]*\n  • forget the saved release train\n/);
 });

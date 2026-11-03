@@ -10,8 +10,12 @@ const test = require('node:test');
 
 const ROOT = path.resolve(__dirname, '..');
 const collapse = (s) => s.replace(/\s+/g, ' ').trim();
-// A row's literal words, each placeholder (no nested braces) reduced to one marker.
-const words = (s) => s.replace(/\$\{[^{}]*\}/g, '\u0000');
+// A row's literal words, each placeholder reduced to one marker, innermost first, so a placeholder
+// that holds a template with placeholders of its own is reduced whole (PC-107).
+const words = (s) => {
+  for (let prev = null; prev !== s;) { prev = s; s = s.replace(/\$\{[^{}]*\}/g, '\u0000'); }
+  return s;
+};
 
 test('every strings.md row points at the line that holds its text', () => {
   const rows = fs.readFileSync(path.join(ROOT, 'docs/brand/strings.md'), 'utf8').split(/\r?\n/)
@@ -25,6 +29,14 @@ test('every strings.md row points at the line that holds its text', () => {
     const at = collapse(lines.slice(Number(m[2]) - 1, Number(m[2]) + 19).join('\n')).indexOf(text);
     return at >= 0 && at < collapse(lines[Number(m[2]) - 1] || '').length;
   };
+  // The lines a row's text covers, from its cited line to the line where the text ends.
+  const covers = (o) => {
+    const m = /^([\w./-]+):(\d+)$/.exec(o.loc);
+    const lines = fs.readFileSync(path.join(ROOT, m[1]), 'utf8').split(/\r?\n/);
+    let end = Number(m[2]);
+    while (end < Number(m[2]) + 19 && !collapse(lines.slice(Number(m[2]) - 1, end).join('\n')).includes(o.text)) end += 1;
+    return { file: m[1], from: Number(m[2]), to: end };
+  };
   const cited = rows.map((row) => {
     const cells = row.split(' | ');
     return { key: cells[0].slice(2), text: collapse(cells[1].replace(/\\\|/g, '|')), loc: cells[2] };
@@ -34,7 +46,13 @@ test('every strings.md row points at the line that holds its text', () => {
     // A row whose words another row's words contain is told apart by the rest: when the longer row's
     // text is the one at this line, the shorter row points at the wrong line. A row for a piece of a
     // placeholder (the "(early preview)" label inside the install question) is not such a row.
-    else if (cited.some((o) => o.text !== r.text && words(o.text).includes(words(r.text)) && startsAt(o.text, r.loc))) wrong.push(`${r.key} at ${r.loc} (a longer row's text is there)`);
+    // PC-107: on any line the longer row's text covers, not only the one it starts on.
+    else if (cited.some((o) => {
+      if (o.text === r.text || !words(o.text).includes(words(r.text)) || !startsAt(o.text, o.loc)) return false;
+      const span = covers(o);
+      const [file, line] = r.loc.split(':');
+      return file === span.file && Number(line) >= span.from && Number(line) <= span.to;
+    })) wrong.push(`${r.key} at ${r.loc} (a longer row's text is there)`);
   }
   const checked = cited.length;
   assert.ok(checked > 10, 'rows with a file:line location were checked');
