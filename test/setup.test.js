@@ -593,9 +593,12 @@ test('PC-92: a run that takes some offers does not mark the others as not taken'
 // skipped by default, whose note is among the person's steps, rather than calling the machine set up.
 test('PC-101: a re-run that asks nothing names the app it skipped, with and without --yes', async (t) => {
   const api = await releaseServer(t);
-  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
   const first = await cli(m, api, 'setup', '--yes', '--json');
   assert.equal(first.status, 0, first.stderr + first.stdout);
+  // A run that installed the other apps changed something: Fabric's note is a step, not "skipped".
+  assert.ok(JSON.parse(first.stdout).actions.length > 0, first.stdout);
+  assert.equal(JSON.parse(first.stdout).skipped, undefined, first.stdout);
   for (const args of [['--yes'], []]) {
     const r = await cli(m, api, 'setup', ...args, '--json');
     const out = JSON.parse(r.stdout);
@@ -611,6 +614,10 @@ test('PC-101: a re-run that asks nothing names the app it skipped, with and with
     assert.match(text, /Nothing was changed: Fabric was not installed \(see your steps below\)\./, text);
     assert.doesNotMatch(text, /in place|You declined|offered and not installed/, text);
   }
+  // A run whose only change is a train changed something too.
+  const train = JSON.parse((await cli(m, api, 'setup', '--yes', '--train', 'org-test', '--json')).stdout);
+  assert.ok(train.actions.some((a) => a.kind === 'train'), JSON.stringify(train.actions));
+  assert.equal(train.skipped, undefined, JSON.stringify(train.actions));
 });
 
 // PC-101: Enter on Fabric's default-no offer is not declining it, so a run that answered no to the
