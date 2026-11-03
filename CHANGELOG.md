@@ -10,14 +10,14 @@
   note asks for it with that train (`setup --train <name> --with fabric`); Fabric named with `--with fabric` without its
   prerequisites and then answered no is "not installed" in the steps, not "installed because you asked for it". A declined run lists no plan under its
   headline, which points at the checks when one is still open.
-- The em dash guard reads JavaScript as JavaScript (PC-97): strings, template literals with their `${}` nesting and
-  regular expressions (after a keyword such as `return` too) are code, so a template line that starts with `//` or `/*`
-  and code after a block comment's `*/` are checked, while a trailing comment is not; it also catches `\u{02014}` and a
-  literal `fromCharCode`/`fromCodePoint` call naming 0x2014, 8212 (or `8_212`) or 0o20024 among its arguments. The documentation guard reads code spans and fences
-  as CommonMark does: double-backtick spans, a span over two lines of one paragraph (never into a heading, a list item,
-  a table row that starts with `|`, a block quote, a thematic break or a setext underline; a JSON file pairs within a
-  line), an escaped backtick, and a ```
-  opener whose info string holds a backtick (no fence). The test header names what it still cannot see.
+- The em dash guard reads JavaScript and Markdown more as they are read (PC-97). In code: strings, template literals
+  with their `${}` nesting and regular expressions (after a keyword such as `return` too) are code, so a template line
+  that starts with `//` or `/*` and code after a block comment's `*/` are checked, while a trailing comment is not; it
+  also catches `\u{02014}` and a `fromCharCode`/`fromCodePoint` call that names 0x2014, 8212, 8_212 or 0o20024 on its
+  own line. In the documentation: double-backtick code spans, a span over lines of one paragraph that ends at a heading,
+  a list item, a block quote, a thematic break, a setext underline or a table row that starts with `|`, an escaped
+  backtick, and a ``` opener whose info string holds a backtick (no fence); a JSON file pairs spans within a line. The
+  test pins each of these, and its header names the cases it still cannot see.
 
 ## 0.2.64 - 2026-11-03
 

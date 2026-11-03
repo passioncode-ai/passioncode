@@ -5,7 +5,9 @@
 // (with their `${}` nesting) and regular expressions are code wherever they start, and a comment
 // is a `//` or `/* */` met outside them, so a template line that starts with `//` is code and so
 // is code after a block's `*/`. Known blind spots: a dash built at run time from anything but a
-// literal `fromCharCode`/`fromCodePoint` call naming 0x2014, 8212 or 0o20024 among its arguments, and a `/` the scanner reads
+// `fromCharCode`/`fromCodePoint` call that names 0x2014, 8212, 8_212 or 0o20024 on the call's own
+// line before any `;` (another spelling, such as 0x20_14 or a binary literal, or an argument on a
+// later line, is not seen), and a `/` the scanner reads
 // unlike JavaScript (after `)`, `]` or a name it reads a division, after a keyword such as
 // `return` a regular expression; a division after `++` or `--` is read as a regular expression).
 const assert = require('node:assert/strict');
@@ -17,7 +19,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DIRS = ['bin', 'lib', 'plugin/passioncode/hooks'];
 // The character itself, its escape in a JS or JSON string (zero-padded too), or a literal call
 // that builds it.
-const DASH = /\u2014|\\u2014|\\u\{0*2014\}|from(?:CharCode|CodePoint)\([^)]*\b(?:0x0*2014|8_?212|0o0*20024)\b/i;
+const DASH = /\u2014|\\u2014|\\u\{0*2014\}|from(?:CharCode|CodePoint)\([^;]*\b(?:0x0*2014|8_?212|0o0*20024)\b/i;
 
 function files(dir) {
   return fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((e) => {
@@ -39,7 +41,7 @@ function codeLines(text) {
   let i = 0;
   let prev = ''; // the last significant code character, to tell a regular expression from a division
   let word = ''; // the identifier or keyword that ends just before it, if any
-  const KEYWORDS = /^(return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)$/;
+  const KEYWORDS = /^(return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await|default|extends)$/;
   while (i < src.length) {
     const c = src[i];
     const d = src[i + 1];
@@ -99,7 +101,7 @@ test('PC-95: the guard catches the character and its escapes', () => {
   assert.ok(DASH.test("const s = `a \\u{2014} b`;"));
   assert.ok(DASH.test("const s = `a \\u{02014} b`;")); // PC-97: zero-padded
   assert.ok(DASH.test('String.fromCharCode(0x2014)') && DASH.test('String.fromCodePoint( 8212 )')); // PC-97
-  assert.ok(DASH.test('String.fromCharCode(0X2014)') && DASH.test('String.fromCharCode(97, 0x2014)'));
+  assert.ok(DASH.test('String.fromCharCode(0X2014)') && DASH.test('String.fromCharCode(97, 0x2014)') && DASH.test('String.fromCharCode(f(1), 0x2014)'));
   assert.ok(DASH.test('String.fromCharCode(8_212)') && DASH.test('String.fromCodePoint(0o20024)'));
   assert.ok(DASH.test('String.fromCharCode(0x02014)') && DASH.test('String.fromCodePoint(0o020024)')); // zero-padded
   assert.ok(!DASH.test('a: b, c; d (e)') && !DASH.test('String.fromCharCode(0x2013)'));
@@ -146,7 +148,7 @@ test('PC-97: template lines that look like comments, and code after a block comm
   const kw = 'function f(s) { return /a\\/*b/.test(s); }\nconst m = "y ' + D + '";\n// */\nconst q = typeof x / 2; const z = "w ' + D + '";\n';
   assert.deepEqual(codeLines(kw).filter(([, l]) => DASH.test(l)).map(([n]) => n), [2, 4]);
   // Every keyword that can precede a regular expression: a `//` in its class is no comment.
-  for (const k of ['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await']) {
+  for (const k of ['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await', 'default', 'extends']) {
     assert.deepEqual(codeLines(`x = ${k} /[//]/; const s = "${D}";`).filter(([, l]) => DASH.test(l)).map(([n]) => n), [1], k);
   }
 });
@@ -160,7 +162,8 @@ test('PC-95: the guard reads template lines and strings as code', () => {
 // blocks (a quoted command or marker keeps its bytes). History is exempt: CHANGELOG entries,
 // handoffs, task packets, ADRs and backlog rows; so are contributor-only AGENTS.md and
 // docs/AGENT_SYNC.md (generated).
-// PC-97: fences and code spans are read as CommonMark reads them: a ``` opener's info string holds
+// PC-97: fences and code spans are read close to how CommonMark reads them (what the tests below
+// pin, and no more): a ``` opener's info string holds
 // no backtick, a tab-indented line opens no fence, a code span opens on a run of backticks that a
 // backslash does not escape and closes on the next run of the same length, within its paragraph
 // (so it may span lines, but not into a heading, a table row that starts with `|`, a block quote,
@@ -168,7 +171,8 @@ test('PC-95: the guard reads template lines and strings as code', () => {
 // blind spots: a table row without a leading `|`, indented code blocks (a tab-indented ``` among them,
 // whose backticks may pair as a span here), HTML blocks, link destinations, and an autolink or
 // inline HTML holding a backtick (CommonMark binds those before spans) are read as prose,
-// and a fence inside a list item or a block quote opens only at the start of a line.
+// a fence inside a list item or a block quote opens only at the start of a line, and any other
+// CommonMark rule these tests do not pin.
 const DOCS = ['README.md', 'SECURITY.md', 'COMMERCIAL-LICENSE.md', 'docs/README.md', 'docs/reference', 'docs/ux', 'docs/brand',
   'plugin/passioncode/skills', 'test/evals'];
 
@@ -229,7 +233,7 @@ function proseLines(text, { json = false } = {}) {
 // runs across them.
     // A JSON file is read line by line: its strings are not a paragraph.
     const own = json || /^ {0,3}#{1,6}(\s|$)|^\s*\||^ {0,3}([-*_])([ \t]*\2){2,}[ \t]*$|^ {0,3}(=+|-+)[ \t]*$/.test(line);
-    if (own || /^ {0,3}(>|[-*+]\s|\d+[.)]\s)/.test(line)) flush();
+    if (own || /^\s*(>|[-*+]\s|\d+[.)]\s|#{1,6}(\s|$))/.test(line)) flush(); // nested ones too: a flush only splits
     par.push([n + 1, line]);
     if (own) flush();
   });
@@ -276,11 +280,12 @@ test('PC-97: code spans and fences as CommonMark reads them', () => {
   assert.deepEqual(docDashes('```a`b\n' + D + '\n```\n'), [2]);
   // A span ends at a block boundary: a heading, a list item, a table row or a block quote.
   for (const t of ['# a `b\nc ' + D + ' d `e`\n', '- a `b\n- c ' + D + ' d `e`\n', '* a `b\n* c ' + D + ' d `e`\n', '+ a `b\n+ c ' + D + ' d `e`\n',
-    '1. a `b\n2. c ' + D + ' d `e`\n', '1) a `b\n2) c ' + D + ' d `e`\n', '| a | `b |\n| c ' + D + ' | `e` |\n', '> a `b\n\n> c ' + D + ' d `e`\n']) {
+    '1. a `b\n2. c ' + D + ' d `e`\n', '1) a `b\n2) c ' + D + ' d `e`\n', '| a | `b |\n| c ' + D + ' | `e` |\n', '> a `b\n\n> c ' + D + ' d `e`\n',
+    'a `b\n> c ' + D + ' d `e`\n', 'a `b\n## c ' + D + ' `d`\n', 'a `b\n###### c ' + D + ' `d`\n', '- a\n  - b `x\n    - c ' + D + ' `y`\n']) {
     assert.deepEqual(docDashes(t), [t.split('\n').findIndex((l) => l.includes(D)) + 1], JSON.stringify(t));
   }
   // A thematic break and a setext underline end a paragraph; a JSON file pairs within a line.
-  for (const brk of ['***', '---', '___', '* * *', '***\t', '===', '===\t', '---\t']) {
+  for (const brk of ['***', '---', '___', '* * *', '***\t', '_\t_\t_', '===', '===\t', '---\t']) {
     assert.deepEqual(docDashes('a `b\n' + brk + '\nc ' + D + ' `d`\n'), [3], JSON.stringify(brk));
   }
   // Four spaces before ``` open no fence (that is indented code): the dash after it is prose.
