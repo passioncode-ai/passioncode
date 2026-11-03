@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.61 - 2026-11-03
+
+### Fixed
+
+- A `setup` re-run that asks nothing (`--yes`, or no terminal) and changes nothing no longer says
+  everything is in place when it skipped an app by default: "Nothing was changed: Fabric was not
+  installed (see your steps below)", and the JSON names it in `skipped` (PC-101). A terminal run that
+  answers no to every offer that defaulted to yes no longer counts Fabric's default-no offer as
+  declined: "You declined every other offer, and Fabric was not installed", with `notTaken`. The
+  "declined" and "in place" reports are in the string registry.
+
 ## 0.2.60 - 2026-11-03
 
 ### Fixed

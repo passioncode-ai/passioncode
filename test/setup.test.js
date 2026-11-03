@@ -163,7 +163,9 @@ test('a new machine: setup --yes installs the verified apps, the skills and ever
   const before = toolLog(m).length;
   const again = await cli(m, api, 'setup', '--yes');
   assert.equal(again.status, 0, again.stderr + again.stdout);
-  assert.match(again.stdout, /Everything this command can set up is in place; nothing was changed/);
+  // Fabric waits for Docker, so the re-run names it rather than calling everything in place (PC-101).
+  assert.match(again.stdout, /Nothing was changed: Fabric was not installed \(see your steps below\)\./);
+  assert.doesNotMatch(again.stdout, /in place/);
   const calls = toolLog(m).slice(before);
   assert.ok(!calls.some((l) => /^(ditto|open|launchctl|hdiutil)/.test(l)), calls.join('\n'));
 });
@@ -587,6 +589,59 @@ test('PC-92: a run that takes some offers does not mark the others as not taken'
   assert.doesNotMatch(out.text, /offered and not installed/, out.text);
 });
 
+// PC-101: a run that asked nothing (--yes, or no terminal) and changed nothing names the app it
+// skipped by default, whose note is among the person's steps, rather than calling the machine set up.
+test('PC-101: a re-run that asks nothing names the app it skipped, with and without --yes', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  const first = await cli(m, api, 'setup', '--yes', '--json');
+  assert.equal(first.status, 0, first.stderr + first.stdout);
+  for (const args of [['--yes'], []]) {
+    const r = await cli(m, api, 'setup', ...args, '--json');
+    const out = JSON.parse(r.stdout);
+    assert.deepEqual(out.actions, [], r.stdout);
+    assert.deepEqual(out.skipped, ['Fabric'], r.stdout);
+    assert.equal(out.notTaken, undefined, r.stdout);
+    assert.equal(out.declined, undefined, r.stdout);
+    // Not a plan: nothing would change, so the run exits by its checks (PC-104 asked for this exit).
+    assert.equal(out.planOnly, false, r.stdout);
+    assert.equal(r.status, out.ok ? 0 : 1, r.stdout);
+    assert.ok(out.humanSteps.some((x) => /^Fabric: needs Docker/.test(x)), JSON.stringify(out.humanSteps));
+    const text = require('../lib/setup').render(out);
+    assert.match(text, /Nothing was changed: Fabric was not installed \(see your steps below\)\./, text);
+    assert.doesNotMatch(text, /in place|You declined|offered and not installed/, text);
+  }
+});
+
+// PC-101: Enter on Fabric's default-no offer is not declining it, so a run that answered no to the
+// rest names Fabric as not installed instead of counting it among the declined offers.
+test('PC-101: a declined run names the default-no offer as not installed', async (t) => {
+  const api = await releaseServer(t);
+  const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
+  const run = (opts) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      S.setup(Object.assign({ online: false, ask: async () => 'n' }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, notTaken: r.notTaken, skipped: r.skipped, actions: r.actions, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  for (const opts of [{}, { train: 'org-test' }]) {
+    const out = run(opts);
+    assert.equal(out.declined, true, out.text);
+    assert.deepEqual(out.actions, [], out.text);
+    assert.deepEqual(out.notTaken, ['Fabric'], out.text);
+    assert.equal(out.skipped, undefined, out.text);
+    assert.match(out.text, /You declined every other offer, and Fabric was not installed; nothing was changed\./, out.text);
+    assert.doesNotMatch(out.text, /You declined every offer;|in place/, out.text);
+  }
+  // With no default-no offer (no apps offered), a declined run carries no notTaken.
+  const plain = run({ noApps: true });
+  assert.equal(plain.declined, true, plain.text);
+  assert.equal(plain.notTaken, undefined, plain.text);
+  assert.match(plain.text, /You declined every offer; nothing was changed/, plain.text);
+});
+
 test('PC-91: runs that declined nothing keep their old report', () => {
   const { render } = require('../lib/setup');
   const empty = { summary: {}, checks: [] };
@@ -606,6 +661,12 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   assert.match(one, /Nothing was changed: Fabric was offered and not installed\. The checks below still stand\./);
   assert.doesNotMatch(one, /in place|You declined/);
   assert.match(render({ ...base, notTaken: ['Fabric', 'Fabric Inbox'] }), /Fabric and Fabric Inbox were offered and not installed/);
+  // PC-101: skipped by a run that asked nothing; a declined run that left a default-no offer.
+  const skip = render({ ...base, skipped: ['Fabric'] });
+  assert.match(skip, /Nothing was changed: Fabric was not installed \(see your steps below\)\./);
+  assert.doesNotMatch(skip, /in place|You declined|offered/);
+  assert.match(render({ ...base, declined: true, notTaken: ['Fabric', 'Fabric Inbox'] }), /You declined every other offer, and Fabric and Fabric Inbox were not installed; nothing was changed\./);
+  assert.match(render({ ...base, planOnly: true, declined: true, notTaken: ['Fabric'], plan: [] }), /You declined every other offer, and Fabric was not installed/);
   const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
   assert.match(train, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
   assert.doesNotMatch(train, /You declined/);
