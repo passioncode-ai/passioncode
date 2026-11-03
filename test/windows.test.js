@@ -291,3 +291,30 @@ test('PC-89: doctor on Windows compares each app with the release train and name
   assert.equal(goneChecks.find((c) => c.id === 'train').state, 'fail');
   assert.equal(goneChecks.find((c) => c.id === 'app.observatory').fix, 'download it from https://passioncode.ai/observatory/');
 });
+
+// PC-108: a terminal run on Windows that answers no to its repairs changes nothing, says so, and keeps
+// `setup` among the person's steps. The real reg.exe answers on Windows; elsewhere the stand-in does.
+test('PC-108: on Windows a declined run changes nothing and keeps setup among the steps', () => {
+  const { spawnSync } = require('node:child_process');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-declined-'));
+  const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(home, 'reg.txt'), REG);
+  fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '..', 'lib', 'setup'))});
+    const asked = [];
+    S.setup({ online: false, ask: async (q) => { asked.push(q); return 'n'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, actions: r.actions, steps: r.humanSteps, exit: S.exitCode(r), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+  const r = spawnSync(process.execPath, ['-e', script], {
+    encoding: 'utf8',
+    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+  });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.ok(out.asked.length >= 1 && out.asked.every((q) => /^Apply \d+ repair\(s\)/.test(q)), JSON.stringify(out.asked)); // no install is asked on Windows
+  assert.equal(out.declined, true, out.text);
+  assert.deepEqual(out.actions, [], out.text);
+  assert.match(out.text, /You declined every offer; nothing was changed\. The checks below still stand\./, out.text);
+  assert.match(out.text, /\nStill open:\n/, out.text);
+  assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), JSON.stringify(out.steps));
+  assert.equal(out.exit, 1, out.text);
+});

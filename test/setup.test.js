@@ -771,6 +771,10 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   assert.ok(took.actions.some((a) => a.kind === 'install' && a.outcome === 'done'), mixedRun.stdout);
   assert.ok(took.plan.some((i) => i.kind !== 'install' && !i.selected), mixedRun.stdout);
   assert.ok(took.steps.some((s) => / setup$/.test(s)), mixedRun.stdout);
+  // PC-108: an app it installs still gets its MCP server registered, so the update runs though the repairs were declined.
+  const registers = took.actions.filter((a) => a.kind === 'install' && a.outcome === 'done').some((a) => { const pr = catalog.byId(a.product); return pr.mcp && !pr.mcp.external; });
+  assert.ok(registers, `an installed app here registers an MCP server: ${mixedRun.stdout}`);
+  assert.ok(took.actions.some((a) => a.kind === 'update'), mixedRun.stdout);
   // The other direction: a run that took its repairs was that command. Here the person left
   // Switchboard's reinstall out with --without, so its check stays open with the fix `setup`, and
   // the step is not repeated (it does not carry the run's --without either, PC-94).
@@ -907,6 +911,24 @@ test('PC-101: a declined run names the default-no offer as not installed', async
   assert.equal(plain.declined, true, plain.text);
   assert.equal(plain.notTaken, undefined, plain.text);
   assert.match(plain.text, /You declined every offer; nothing was changed/, plain.text);
+});
+
+// PC-108: an offer answered no that carries no note (its prerequisites are there) is not a step of its own:
+// the person said no to it, and the run's own `setup` step offers it again.
+test('PC-108: an install answered no without a note adds no step of its own', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: false, ask: async () => 'n' })
+      .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, plan: r.plan, steps: r.humanSteps })), (e) => { console.error(e); process.exit(1); });`;
+  const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.declined, true);
+  const quiet = out.plan.filter((i) => i.kind === 'install' && !i.note).map((i) => catalog.byId(i.product).name);
+  assert.ok(quiet.length >= 1, JSON.stringify(out.plan));
+  for (const name of quiet) assert.ok(!out.steps.some((s) => s.startsWith(`${name}: `)), `${name}: ${JSON.stringify(out.steps)}`);
+  assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), JSON.stringify(out.steps));
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
