@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.62 - 2026-11-03
+
+### Fixed
+
+- `setup` and `doctor --fix` no longer print a bare "Nothing to do." or "Everything ... is in place"
+  above a failing check: both add "The checks below still stand." (PC-104). A plan that would leave an
+  app out names it ("Nothing would change: Fabric would not be installed (see the plan below).") and a
+  plan whose only change is a release train is shown as a plan. The line under the plan says "answer
+  its questions", which covers the repairs question. The README, the setting-up skill and the reference name the cases more exactly.
+
 ## 0.2.61 - 2026-11-03
 
 ### Fixed
