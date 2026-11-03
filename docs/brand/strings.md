@@ -22,6 +22,9 @@ Contract: brand-contract v1
 | setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:143 | SCN-008 | proposed | copy |
 | setup.install-question.preview | (early preview) | lib/setup.js:143 | SCN-008 | proposed | copy |
 | setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:151 | SCN-008, SCN-009 | proposed | copy |
+| setup.repair-update | install or refresh the skill set and register the apps\' MCP servers for every agent | lib/setup.js:87 | SCN-008, SCN-009 | proposed | copy |
+| setup.repair-replace | reinstall ${pr.name} from ${from(pr)} (the current one goes to the Trash) | lib/setup.js:88 | SCN-009, SCN-014 | proposed | copy |
+| setup.repair-kickstart | start the ${r.label} service through launchd | lib/setup.js:89 | SCN-009 | proposed | copy |
 | setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} from ${from(pr)} | lib/setup.js:70 | SCN-008 | proposed | copy |
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:71 | SCN-008, SCN-014 | proposed | copy |
 | setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:296 | SCN-009, SCN-014 | proposed | copy |
