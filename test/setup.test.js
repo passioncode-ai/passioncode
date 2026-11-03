@@ -344,10 +344,15 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
   const train = run({ planOnly: true, trainNotSaved: 'org-test' }).split('\n');
   assert.deepEqual(train.slice(train.indexOf('Plan (nothing was changed):'), train.indexOf('Plan (nothing was changed):') + 2), ['Plan (nothing was changed):', '  • save release train org-test']);
   assert.ok(train.includes('The release train (org-test) was not saved.'));
-  assert.ok(train.includes('Run it with --yes to apply, or in a terminal to answer its questions.')); // PC-107: the footer advises
+  // PC-110: an offer that defaults to no is still asked about in a terminal, so its plan keeps the questions.
+  const offered = run({ planOnly: true, trainNotSaved: 'org-test', plan: [{ kind: 'install', product: 'fabric', detail: 'install Fabric', selected: false, checks: [] }] }).split('\n');
+  assert.ok(offered.includes('Run it with --yes to apply, or in a terminal to answer its questions.'), offered.join('\n'));
+  // PC-110: a terminal asks nothing about a train alone and saves it at once: no questions are promised.
+  assert.ok(train.includes('Run it with --yes, or in a terminal, to apply.'), train.join('\n'));
+  assert.ok(!train.some((l) => /answer its questions/.test(l)));
   const none = run({ planOnly: true, trainNotSaved: 'none' });
   assert.match(none, /\n  • forget the saved release train\n/);
-  assert.match(none, /\nThe saved release train was not forgotten\.\n\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/);
+  assert.match(none, /\nThe saved release train was not forgotten\.\n\nRun it with --yes, or in a terminal, to apply\.\n/);
   assert.match(run({ planOnly: true, dryRun: true, trainNotSaved: 'none' }), /\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/);
   assert.doesNotMatch(none, /\(none\)/);
   // A declined named train is no plan line: it was the person's answer, not what a run would do.
@@ -904,6 +909,67 @@ test('PC-101: a declined run names the default-no offer as not installed', async
   assert.match(plain.text, /You declined every offer; nothing was changed/, plain.text);
 });
 
+// PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
+test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaults to no is still asked', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const terminal = (m, opts) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      const asked = [];
+      S.setup(Object.assign({ ask: async (q) => { asked.push(q); return 'n'; } }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ asked, actions: r.actions.map((a) => a.detail) })), (e) => { console.error(e); process.exit(1); });`;
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  for (const [tools, offer] of [[TOOLS, false], [TOOLS.filter((x) => x !== 'docker'), true]]) {
+    const m = onTrain(machine({ tools }));
+    const first = await cli(m, api, 'setup', '--yes', '--json', '--train', 'org-test');
+    assert.equal(first.status, 0, first.stderr + first.stdout);
+    fs.copyFileSync(path.join(m.trains, 'org-test.json'), path.join(m.trains, 'org-two.json'));
+    const doc = JSON.parse(fs.readFileSync(path.join(m.trains, 'org-two.json'), 'utf8'));
+    fs.writeFileSync(path.join(m.trains, 'org-two.json'), JSON.stringify({ ...doc, train: 'org-two' }));
+    const plan = await cli(m, api, 'setup', '--train', 'org-two'); // no terminal: the plan
+    assert.equal(plan.status, 0, plan.stderr + plan.stdout);
+    assert.match(plan.stdout, /  • save release train org-two\n/, plan.stdout);
+    const run = terminal(m, { train: 'org-two' });
+    assert.deepEqual(run.actions, ['saved release train org-two (it was org-test)'], JSON.stringify(run));
+    if (offer) {
+      assert.match(plan.stdout, /  – install Fabric/, plan.stdout);
+      assert.match(plan.stdout, /\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/, plan.stdout);
+      assert.equal(run.asked.length, 1, JSON.stringify(run.asked));
+      assert.match(run.asked[0], /^Install Fabric/);
+    } else {
+      assert.doesNotMatch(plan.stdout, /^ {2}– /m, plan.stdout);
+      assert.match(plan.stdout, /\nRun it with --yes, or in a terminal, to apply\.\n/, plan.stdout);
+      assert.deepEqual(run.asked, [], JSON.stringify(run.asked));
+    }
+  }
+});
+
+test('PC-110: a plan with nothing to ask promises no questions; any offer or repair keeps them', () => {
+  const { render } = require('../lib/setup');
+  const empty = { summary: {}, checks: [] };
+  const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true };
+  const asks = 'Run it with --yes to apply, or in a terminal to answer its questions.';
+  const quiet = 'Run it with --yes, or in a terminal, to apply.';
+  const lines = (over) => render({ ...base, ...over }).split('\n');
+  assert.ok(lines({ trainNotSaved: 'org-test' }).includes(quiet));
+  assert.ok(lines({ trainNotSaved: 'none' }).includes(quiet));
+  const offer = { kind: 'install', product: 'fabric', selected: false, detail: 'install Fabric (early preview)', note: 'needs Docker' };
+  const repair = { kind: 'update', product: 'fabric', selected: true, detail: 'update Fabric' };
+  for (const plan of [[offer], [repair], [{ ...offer, selected: true }]]) {
+    const out = lines({ trainNotSaved: 'org-test', plan });
+    assert.ok(out.includes(asks) && !out.includes(quiet), out.join('\n'));
+  }
+  assert.ok(lines({ plan: [repair] }).includes(asks));
+  // A --dry-run only plans, with --yes or in a terminal too: its own line, whatever the plan holds.
+  const dry = 'Run it without --dry-run (with --yes, or in a terminal) to apply.';
+  for (const over of [{ trainNotSaved: 'org-test' }, { plan: [repair] }, { plan: [offer], trainNotSaved: 'org-test' }]) {
+    const out = lines({ dryRun: true, ...over });
+    assert.ok(out.includes(dry) && !out.includes(asks) && !out.includes(quiet), out.join('\n'));
+  }
+});
+
 test('PC-91: runs that declined nothing keep their old report', () => {
   const { render } = require('../lib/setup');
   const empty = { summary: {}, checks: [] };
@@ -945,7 +1011,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   assert.match(render({ ...base, declined: true, notTaken: ['Fabric', 'Fabric Inbox'] }), /You declined every other offer, and Fabric and Fabric Inbox were not installed; nothing was changed\./);
   assert.match(render({ ...base, planOnly: true, declined: true, notTaken: ['Fabric'], plan: [] }), /You declined every other offer, and Fabric was not installed/);
   const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
-  assert.match(train, /The release train \(org-test\) was not saved\.\n\nRun it with --yes to apply/);
+  assert.match(train, /The release train \(org-test\) was not saved\.\n\nRun it with --yes, or in a terminal, to apply\./); // PC-110
   assert.doesNotMatch(train, /You declined/);
 });
 

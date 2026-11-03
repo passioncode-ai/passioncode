@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.68 - 2026-11-03
+
+### Changed
+
+- **A plan with nothing to ask no longer promises questions** (PC-110). A plan with no offer and no repair, only a
+  train, asks nothing in a terminal, which saves the train at once, so it closes with "Run it with --yes, or in a
+  terminal, to apply." A plan with any offer (one that defaults to no, Fabric without Docker, included) or repair
+  keeps "Run it with --yes to apply, or in a terminal to answer its questions."
+- `docs/reference/cli.md` says a plan that names a train is judged by that train's checks, so its problem and warning
+  counts can differ from plain `doctor` on the saved train (PC-110).
+- The 0.2.67 entry's "the plan's last line" is the last line of the plan block: the checks follow it (PC-110).
+- The release train loader's errors are registered in `docs/brand/strings.md`, and the help test reads the setup
+  parser up to its own closing brace at any indentation (PC-110).
+
 ## 0.2.67 - 2026-11-03
 
 ### Changed
