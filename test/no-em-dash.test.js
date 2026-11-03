@@ -229,8 +229,8 @@ function proseLines(text, { json = false } = {}) {
     if (fence !== null) { held.push([n + 1, line]); return; }
     if (!line.trim()) { flush(); return; }
     // A heading, a table row, a block quote and a list item each start a block of their own, and a
-    // heading, a table row, a thematic break and a setext underline also end there: a code span never
-// runs across them.
+    // heading, a table row, a thematic break and a setext underline also end there: in the forms the
+    // tests below pin, a code span does not run across them (the header names what is not pinned).
     // A JSON file is read line by line: its strings are not a paragraph.
     const own = json || /^ {0,3}#{1,6}(\s|$)|^\s*\||^ {0,3}([-*_])([ \t]*\2){2,}[ \t]*$|^ {0,3}(=+|-+)[ \t]*$/.test(line);
     if (own || /^\s*(>|[-*+]\s|\d+[.)]\s|#{1,6}(\s|$))/.test(line)) flush(); // nested ones too: a flush only splits

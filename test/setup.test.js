@@ -711,6 +711,22 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   assert.ok(took.actions.some((a) => a.kind === 'install' && a.outcome === 'done'), mixedRun.stdout);
   assert.ok(took.plan.some((i) => i.kind !== 'install' && !i.selected), mixedRun.stdout);
   assert.ok(took.steps.some((s) => / setup$/.test(s)), mixedRun.stdout);
+  // The other direction: a run that took its repairs was that command. Here the person left
+  // Switchboard's reinstall out with --without, so its check stays open with the fix `setup`, and
+  // the step is not repeated (it does not carry the run's --without either, PC-94).
+  const yesRepairs = onTrain(machine());
+  installApp(yesRepairs, catalog.byId('switchboard'), { version: '1.0.0' });
+  fs.mkdirSync(path.join(yesRepairs.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(yesRepairs.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const yesScript = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: false, noOpen: true, withoutIds: ['switchboard'], ask: async (q) => (/^Install /.test(q) ? 'n' : 'y') })
+      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, steps: r.humanSteps, open: r.after.checks.filter((c) => c.state === 'fail' || c.state === 'warn') })), (e) => { console.error(e); process.exit(1); });`;
+  const yesRun = require('child_process').spawnSync(process.execPath, ['-e', yesScript], { env: cliEnv(yesRepairs, api), encoding: 'utf8' });
+  assert.equal(yesRun.status, 0, yesRun.stderr);
+  const yes = JSON.parse(yesRun.stdout);
+  assert.ok(yes.plan.every((i) => i.kind === 'install' || i.selected), yesRun.stdout);
+  assert.ok(yes.open.some((c) => c.fix === 'npx @passioncode-ai/passioncode@latest setup'), yesRun.stdout);
+  assert.ok(!yes.steps.some((s) => / setup$/.test(s)), yesRun.stdout);
   // A declined train is judged by its own checks: the unusable saved train's fail row does not count,
   // so the run exits 0 where plain doctor (on the saved train) exits 1.
   const g = onTrain(machine());
