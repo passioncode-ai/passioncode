@@ -9,13 +9,16 @@ const path = require('node:path');
 const test = require('node:test');
 
 const BIN = path.resolve(__dirname, '..', 'bin', 'passioncode.js');
-const list = (text) => [...text.matchAll(/['"](--?[a-z][a-z-]*)['"]/g)].map((m) => m[1]);
+const list = (text) => [...text.matchAll(/[`'"](--?[A-Za-z0-9][\w-]*)[`'"]/g)].map((m) => m[1]);
 
 function accepted(source) {
   const setup = /cmd\s*===\s*['"]doctor['"]\s*\?\s*\[([^\]]*)\]\s*:\s*\[([^\]]*)\]/.exec(source);
   const options = /const options = (?:Object\.freeze\()?\{([\s\S]*?)\}\)?;/.exec(source);
   assert.ok(setup && options, 'the parser lists its flags where this test reads them');
-  const byCmd = { doctor: list(setup[1]), setup: [...list(setup[2]), '--with', '--without', '--train'] };
+  // Flags setup reads by pattern (`/^--(with|without)(?:=/`, `/^--train(?:=/`) join its list.
+  const patterns = [...source.matchAll(/\/\^--(?:\(([a-z|]+)\)|([a-z-]+))\(\?:=/g)].flatMap((m) => (m[1] || m[2]).split('|').map((f) => `--${f}`));
+  assert.ok(patterns.length >= 3, 'the parser reads --with, --without and --train by pattern');
+  const byCmd = { doctor: list(setup[1]), setup: [...list(setup[2]), ...patterns] };
   for (const [, cmd, flags] of options[1].matchAll(/['"]?([\w-]+)['"]?:\s*\[([^\]]*)\]/g)) byCmd[cmd] = list(flags);
   byCmd.config = ['--json'];
   delete byCmd.install; // an alias of update, named in the help's prose
@@ -35,5 +38,11 @@ test('PC-98: each command line of the help names every flag the parser accepts f
     for (const f of flags) if (!new RegExp(`[\\[|]${f}[\\]| ]`).test(line)) missing.push(`${cmd} ${f}`);
   }
   assert.deepEqual(missing, []);
-  for (const alias of ['onboard', 'install']) assert.match(help, new RegExp(`\\b${alias} is another name|, ${alias} for`));
+  // Every alias the dispatcher routes (`if (cmd === 'a' || cmd === 'b' ...)`, each name after the
+  // first; doctor shares setup's branch but is a command) is named in the help's prose.
+  const source = fs.readFileSync(BIN, 'utf8');
+  const aliases = [...source.matchAll(/if \((cmd === '\w+'(?: \|\| cmd === '\w+')+)\)/g)]
+    .flatMap((m) => [...m[1].matchAll(/'(\w+)'/g)].map((n) => n[1]).slice(1)).filter((a) => a !== 'doctor');
+  assert.deepEqual(aliases.sort(), ['install', 'onboard']);
+  for (const alias of aliases) assert.match(help, new RegExp(`\\b${alias} is another name|, ${alias} for`));
 });

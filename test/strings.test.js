@@ -1,7 +1,7 @@
 'use strict';
 // The string registry (docs/brand/strings.md) points every row at the line that prints it. Code moves
-// those lines; this keeps each Location honest: the cited line holds at least one literal run of the
-// row's text between placeholders (six to 40 characters; a row of placeholders only is skipped).
+// those lines; this keeps each Location honest: the cited line holds the longest literal run of the
+// row's text between placeholders (up to 40 characters; a row with no run of six is skipped).
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -21,7 +21,8 @@ test('every strings.md row points at the line that holds its text', () => {
     if (!m) continue;
     const line = fs.readFileSync(path.join(ROOT, m[1]), 'utf8').split(/\r?\n/)[Number(m[2]) - 1] || '';
     const pieces = text.split(/\$\{[^}]*\}/).map((p) => p.trim().slice(0, 40)).filter((p) => p.length >= 6);
-    if (pieces.length && !pieces.some((p) => line.includes(p))) wrong.push(`${key} at ${loc}: none of ${JSON.stringify(pieces)}`);
+    const longest = pieces.sort((a, b) => b.length - a.length)[0];
+    if (longest && !line.includes(longest)) wrong.push(`${key} at ${loc}: ${JSON.stringify(longest)}`);
   }
   assert.deepEqual(wrong, []);
 });
