@@ -300,6 +300,9 @@ test('PC-104: nothing to change above a failing check points at the checks and e
     assert.equal(would.status, 0, would.stdout);
     assert.match(would.stdout, /Nothing would change: Fabric would not be installed \(see the plan below\)\. The checks below still stand\./);
   } finally { delete process.env.FAKE_MCP_BROKEN; }
+  // PC-107: the JSON result says a --dry-run was one; a run that applies does not carry the key.
+  assert.equal((await cli(n, api, 'setup', '--dry-run', '--no-apps', '--json')).json.dryRun, true);
+  assert.equal((await cli(n, api, 'setup', '--yes', '--no-apps', '--json')).json.dryRun, undefined);
   const train = await cli(n, api, 'setup', '--dry-run', '--no-apps', '--train', 'org-test');
   assert.equal(train.status, 0, train.stdout);
   assert.match(train.stdout, /Plan \(nothing was changed\):\n  • save release train org-test\n/);
