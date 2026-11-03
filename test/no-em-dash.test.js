@@ -7,7 +7,7 @@
 // is code after a block's `*/`. Known blind spots: a dash built at run time from anything but a
 // literal `fromCharCode`/`fromCodePoint` call with 0x2014 or 8212, and a `/` the scanner reads
 // unlike JavaScript (after `)`, `]` or a name it reads a division, after a keyword such as
-// `return` a regular expression).
+// `return` a regular expression; a division after `++` or `--` is read as a regular expression).
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -99,6 +99,7 @@ test('PC-95: the guard catches the character and its escapes', () => {
   assert.ok(DASH.test("const s = `a \\u{2014} b`;"));
   assert.ok(DASH.test("const s = `a \\u{02014} b`;")); // PC-97: zero-padded
   assert.ok(DASH.test('String.fromCharCode(0x2014)') && DASH.test('String.fromCodePoint( 8212 )')); // PC-97
+  assert.ok(DASH.test('String.fromCharCode(0X2014)'));
   assert.ok(!DASH.test('a: b, c; d (e)') && !DASH.test('String.fromCharCode(0x2013)'));
 });
 
@@ -111,7 +112,7 @@ test('PC-97: template lines that look like comments, and code after a block comm
     '/* nor this ' + D, // 4: inside a template, and it hides nothing after it
     '`;', // 5
     'const u = `x ${`y ${"z"} ' + D + '`} w`;', // 6: a template nested in ${}
-    'const r = /\\/\\* not a comment/; const v = "c ' + D + '";', // 7: a regex holding /*
+    'const r = /[/*]/; const v = "c ' + D + '";', // 7: a regex holding /*
     'const w = a / b; const x = "d ' + D + '"; // e ' + D, // 8: a division, and a trailing comment
     '/* f ' + D, // 9: a block comment
     ' */ const y = "g ' + D + '";', // 10: code after it closes
@@ -119,6 +120,23 @@ test('PC-97: template lines that look like comments, and code after a block comm
   ].join('\n');
   assert.deepEqual(codeLines(sample).filter(([, l]) => DASH.test(l)).map(([n]) => n), [1, 3, 4, 6, 7, 8, 10]);
   assert.doesNotMatch(codeLines(sample).find(([n]) => n === 8)[1], /e \u2014/, 'a trailing comment is a comment');
+  // One line for each rule of the scanner: an escaped quote, an object literal inside `${}`, a class
+  // holding `/`, a division after `)`, a lone CR, and a quote inside a regular expression.
+  const more = [
+    'const a = "x \\" // " + "' + D + '";', // 1: an escaped quote keeps the string open
+    'const b = `${ { k: 1 }.k } ' + D + '`;', // 2: braces of an object inside ${}
+    'const c = /[/]/; const d = "' + D + '";', // 3: a class holding /
+    'const e = (x) / 2 + "//" + "' + D + '";', // 4: a division after )
+    'const f = /["\']/; const g = "' + D + '";', // 5: quotes inside a regular expression
+  ].join('\r');
+  assert.deepEqual(codeLines(more).filter(([, l]) => DASH.test(l)).map(([n]) => n), [1, 2, 3, 4, 5]);
+  // And what is a comment stays one: after a division by `(x)`, and after a template whose `${}`
+  // holds an object and a string with a backtick.
+  const quiet = [
+    'const h = (x) / 2 + "a/b"; // ' + D, // a division, so `/b"` opens no regular expression
+    'const k = `a ${ { k: 1 }.k + "`" } b`; // ' + D, // the object's } does not close the ${}
+  ].join('\n');
+  assert.deepEqual(codeLines(quiet).filter(([, l]) => DASH.test(l)), []);
   // After a keyword a `/` starts a regular expression, even one that holds `/*`.
   const kw = 'function f(s) { return /a\\/*b/.test(s); }\nconst m = "y ' + D + '";\n// */\nconst q = typeof x / 2; const z = "w ' + D + '";\n';
   assert.deepEqual(codeLines(kw).filter(([, l]) => DASH.test(l)).map(([n]) => n), [2, 4]);
@@ -136,8 +154,10 @@ test('PC-95: the guard reads template lines and strings as code', () => {
 // PC-97: fences and code spans are read as CommonMark reads them: a ``` opener's info string holds
 // no backtick, a tab-indented line opens no fence, a code span opens on a run of backticks that a
 // backslash does not escape and closes on the next run of the same length, within its paragraph
-// (so it may span lines, but not into a heading, a table row, a block quote or a new list item). Known blind spots: indented code blocks (a tab-indented ``` among them,
-// whose backticks may pair as a span here), HTML blocks and link destinations are read as prose,
+// (so it may span lines, but not into a heading, a table row, a block quote, a thematic break, a
+// setext underline or a new list item; a JSON file pairs within a line). Known blind spots: indented code blocks (a tab-indented ``` among them,
+// whose backticks may pair as a span here), HTML blocks, link destinations, and an autolink or
+// inline HTML holding a backtick (CommonMark binds those before spans) are read as prose,
 // and a fence inside a list item or a block quote opens only at the start of a line.
 const DOCS = ['README.md', 'SECURITY.md', 'COMMERCIAL-LICENSE.md', 'docs/README.md', 'docs/reference', 'docs/ux', 'docs/brand',
   'plugin/passioncode/skills', 'test/evals'];
@@ -174,7 +194,7 @@ function stripSpans(par) {
   return out;
 }
 
-function proseLines(text) {
+function proseLines(text, { json = false } = {}) {
   // A fence opens on ``` (an info string without a backtick) or ~~~, indented at most three spaces,
   // and closes only on a bare marker of the same character and at least its length (CommonMark);
   // a file that ends inside one hides nothing.
@@ -195,8 +215,10 @@ function proseLines(text) {
     if (fence !== null) { held.push([n + 1, line]); return; }
     if (!line.trim()) { flush(); return; }
     // A heading, a table row, a block quote and a list item each start a block of their own, and a
-    // heading or a table row also ends there: a code span never runs across them.
-    const own = /^ {0,3}#{1,6}(\s|$)|^\s*\|/.test(line);
+    // heading, a table row, a thematic break and a setext underline also end there: a code span never
+// runs across them.
+    // A JSON file is read line by line: its strings are not a paragraph.
+    const own = json || /^ {0,3}#{1,6}(\s|$)|^\s*\||^ {0,3}([-*_])( *\2){2,} *$|^ {0,3}(=+|-+) *$/.test(line);
     if (own || /^ {0,3}(>|[-*+]\s|\d+[.)]\s)/.test(line)) flush();
     par.push([n + 1, line]);
     if (own) flush();
@@ -207,12 +229,12 @@ function proseLines(text) {
 
 // The character, its escape in a JSON string, or its HTML entity, which renders as the character.
 const DOC_DASH = new RegExp(`${DASH.source}|&mdash;|&#0*8212;|&#x0*2014;`, 'i');
-const docDashes = (text) => proseLines(text).filter(([, l]) => DOC_DASH.test(l)).map(([n]) => n);
+const docDashes = (text, opts) => proseLines(text, opts).filter(([, l]) => DOC_DASH.test(l)).map(([n]) => n);
 
 test('PC-96: no em dash in the prose of the documentation a person reads', () => {
   const found = [];
   for (const file of DOCS.flatMap(docFiles)) {
-    for (const n of docDashes(fs.readFileSync(path.join(ROOT, file), 'utf8'))) found.push(`${file}:${n}`);
+    for (const n of docDashes(fs.readFileSync(path.join(ROOT, file), 'utf8'), { json: file.endsWith('.json') })) found.push(`${file}:${n}`);
   }
   assert.deepEqual(found, []);
 });
@@ -246,6 +268,15 @@ test('PC-97: code spans and fences as CommonMark reads them', () => {
   for (const t of ['# a `b\nc ' + D + ' d `e`\n', '- a `b\n- c ' + D + ' d `e`\n', '| a | `b |\n| c ' + D + ' | `e` |\n', '> a `b\n\n> c ' + D + ' d `e`\n']) {
     assert.deepEqual(docDashes(t), [t.split('\n').findIndex((l) => l.includes(D)) + 1], JSON.stringify(t));
   }
+  // A thematic break and a setext underline end a paragraph; a JSON file pairs within a line.
+  assert.deepEqual(docDashes('a `b\n***\nc ' + D + ' `d`\n'), [3]);
+  assert.deepEqual(docDashes('a `b\n---\nc ' + D + ' `d`\n'), [3]);
+  assert.deepEqual(docDashes('{\n "a": "the ` key",\n "b": "x ' + D + ' y",\n "c": "`z`"\n}\n', { json: true }), [3]);
+  // A fence ends the paragraph before it: a backtick above it pairs with nothing below it.
+  assert.deepEqual(docDashes('a `b\n```\nx\n```\nc ' + D + ' `d`\n'), [5]);
+  // A span closes only on a run of exactly its length; a tab-indented ``` opens no fence.
+  assert.deepEqual(docDashes('a ``b ``` c ' + D + '`` d\ne ' + D + '\n'), [2]);
+  assert.deepEqual(docDashes('\t```\n' + D + '\n'), [2]);
   // A run with no closer of its length is literal: the dash after it is prose.
   assert.deepEqual(docDashes('a `` b ' + D + ' ` c\n'), [1]);
 });

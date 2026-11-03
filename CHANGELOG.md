@@ -9,11 +9,12 @@
   After a declined train, Fabric's note asks for it with that train (`setup --train <name> --with fabric`). A declined
   run lists no plan under its headline, which points at the checks.
 - The em dash guard reads JavaScript as JavaScript (PC-97): strings, template literals with their `${}` nesting and
-  regular expressions are code wherever they start, so a template line that starts with `//` or `/*` and code after a
-  block comment's `*/` are checked, while a trailing comment is not; it also catches `\u{02014}` and a literal
-  `fromCharCode`/`fromCodePoint` call with 0x2014 or 8212. The documentation guard reads code spans and fences as
-  CommonMark does: double-backtick spans, spans over two lines of a paragraph, an escaped backtick, and a ``` opener
-  whose info string holds a backtick (no fence).
+  regular expressions (after a keyword such as `return` too) are code, so a template line that starts with `//` or `/*`
+  and code after a block comment's `*/` are checked, while a trailing comment is not; it also catches `\u{02014}` and a
+  literal `fromCharCode`/`fromCodePoint` call with 0x2014 or 8212. The documentation guard reads code spans and fences
+  as CommonMark does: double-backtick spans, a span over two lines of one paragraph (never into a heading, a list item,
+  a table row, a block quote or a thematic break; a JSON file pairs within a line), an escaped backtick, and a ```
+  opener whose info string holds a backtick (no fence). The test header names what it still cannot see.
 
 ## 0.2.64 - 2026-11-03
 
