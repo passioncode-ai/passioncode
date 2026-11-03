@@ -27,8 +27,8 @@ skipped steps; `doctor` and `setup` found no failing check, or `setup` only retu
 operation or supported config value failed, or a `doctor`/`setup` check still
 fails; **2** means an unknown command or unsupported arguments. `--quiet` suppresses
 successful update output, including JSON, but never hides failed update steps.
-`--dry-run` exists only for update/install: `uninstall --dry-run` and misspelled
-flags fail before any mutation. Runtime errors go to stderr, including with
+`--dry-run` exists for setup/onboard and update/install: `doctor --dry-run`,
+`uninstall --dry-run` and misspelled flags fail before any mutation. Runtime errors go to stderr, including with
 `--json`; consumers must check the exit code before parsing stdout.
 
 Evidence: [CLI dispatch](../../bin/passioncode.js), `unsupported flags are rejected
@@ -109,7 +109,7 @@ when only the plan is returned; the plan still uses it). An installed app newer
 than its pin is never taken back: if it needs a reinstall (a damaged signature),
 that one comes from the latest release, as does one whose version cannot be read.
 The train is saved with `--yes` or in a terminal (after its answers, or at once
-when it has nothing to ask); without either, a run that names a train other than
+when it has nothing to ask; a `--json` run never asks, so without `--yes` it is a plan); without either, a run that names a train other than
 the saved one is a plan (`planOnly: true`) and nothing changes. Naming the saved
 train again (or `none` with no train saved) changes nothing and runs as plain
 `setup` does. A person who answers
