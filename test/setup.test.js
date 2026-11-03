@@ -270,6 +270,28 @@ test('a proving call that fails is a failed check that names the fix', async (t)
   } finally { delete process.env.FAKE_MCP_BROKEN; }
 });
 
+// PC-104: with a check failing that setup cannot repair, a run that has nothing to change neither
+// says "nothing to do" nor calls the machine set up without pointing at the checks; it exits by them.
+test('PC-104: nothing to change above a failing check points at the checks and exits by them', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0);
+  process.env.FAKE_MCP_BROKEN = 'fabric-dashboards';
+  try {
+    const run = await cli(m, api, 'setup', '--no-apps', '--json'); // no terminal, nothing to change
+    const out = JSON.parse(run.stdout);
+    assert.equal(out.planOnly, false, run.stdout);
+    assert.deepEqual(out.actions, [], run.stdout);
+    assert.ok(out.after.summary.fail > 0, run.stdout);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(require('../lib/setup').render(out), /in place; nothing was changed\. The checks below still stand\./);
+    const dry = await cli(m, api, 'setup', '--no-apps', '--dry-run');
+    assert.equal(dry.status, 0, dry.stdout);
+    assert.match(dry.stdout, /Nothing to do\. The checks below still stand\./);
+  } finally { delete process.env.FAKE_MCP_BROKEN; }
+});
+
 test('a bundle that comes into use while its release downloads is not moved', async (t) => {
   const api = await releaseServer(t);
   const m = machine();
@@ -654,6 +676,20 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   const empty = { summary: {}, checks: [] };
   const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [] };
   assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
+  // PC-104: the checks are pointed at only when one fails; an empty plan names the apps it would leave,
+  // and a plan whose only change is a train is a plan.
+  const failing = { summary: { fail: 1 }, checks: [] };
+  assert.doesNotMatch(render({ ...base }), /still stand/);
+  assert.match(render({ ...base, after: failing }), /in place; nothing was changed\. The checks below still stand\./);
+  assert.match(render({ ...base, planOnly: true, after: failing }), /Nothing to do\. The checks below still stand\./);
+  const fabric = { kind: 'install', product: 'fabric', selected: false, detail: 'install Fabric (early preview)', note: 'needs Docker' };
+  const would = render({ ...base, planOnly: true, plan: [fabric] });
+  assert.match(would, /Nothing would change: Fabric would not be installed \(see the plan below\)\./);
+  assert.doesNotMatch(would, /Nothing to do/);
+  const trainOnly = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
+  assert.match(trainOnly, /Plan \(nothing was changed\):/);
+  assert.doesNotMatch(trainOnly, /Nothing to do/);
+  assert.match(render({ ...base, planOnly: true, plan: [{ ...fabric, selected: true }] }), /Run it with --yes to apply, or in a terminal to answer its questions\./);
   // PC-93: a plan exits 0; a declined run, plan-shaped or not, exits by its checks.
   const { exitCode } = require('../lib/setup');
   assert.match(fs.readFileSync(path.join(__dirname, '../bin/passioncode.js'), 'utf8'), /return S\.exitCode\(r\);/, 'setup and doctor --fix exit through exitCode');

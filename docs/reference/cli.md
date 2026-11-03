@@ -83,7 +83,7 @@ humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
 A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
 `notTaken` names the apps whose offer defaulted to no (Fabric without its prerequisites), since leaving those is not
 declining them. A terminal run that changed nothing without declining names them in `notTaken` alone. Both come only
-from a terminal run, so `--json` output never carries them; `skipped` is its counterpart. A run that asked
+from a terminal run, so `--json` output never carries them; in a run that asked nothing, `skipped` takes the place of `notTaken`. A run that asked
 nothing (`--yes`, or no terminal, which includes every `--json` run), changed nothing and was not a plan (`planOnly`
 false) names the install offers it skipped by default in `skipped`; their notes are among `humanSteps`. A plan shows the
 same apps as `install` items with `selected` false and their note. A run that changes the

@@ -25,8 +25,12 @@ Contract: brand-contract v1
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below). The checks below still stand. | lib/setup.js:310 | SCN-009 | proposed | copy |
 | setup.declined | You declined every offer; nothing was changed. The checks below still stand. | lib/setup.js:308 | SCN-008, SCN-009 | proposed | copy |
 | setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed. The checks below still stand. | lib/setup.js:307 | SCN-008, SCN-009 | proposed | copy |
-| setup.in-place | Everything this command can set up is in place; nothing was changed. | lib/setup.js:325 | SCN-009 | proposed | copy |
-| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:350 | SCN-008 | proposed | copy |
+| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:331 | SCN-009 | proposed | copy |
+| setup.checks-stand |  The checks below still stand. | lib/setup.js:313 | SCN-008, SCN-009 | proposed | copy |
+| setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:325 | SCN-008 | proposed | copy |
+| setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below). | lib/setup.js:311 | SCN-008 | proposed | copy |
+| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:328 | SCN-008 | proposed | copy |
+| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:356 | SCN-008 | proposed | copy |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${accounts}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |

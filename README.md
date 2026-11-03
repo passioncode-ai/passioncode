@@ -44,7 +44,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
 
 1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
    `npx @passioncode-ai/passioncode@latest setup`, then restart your agents. In a terminal it asks
-   one question per app and one for the repairs (a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
+   one question per absent app (on macOS) and one for the repairs, if any (a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
    (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`), `--no-apps` sets up the skills
    and MCP only, `--dry-run` shows the plan. Apps are installed on macOS; on other systems setup
    names each download page, and on Windows `doctor` reads which version of each app is installed. Skills only: `npx @passioncode-ai/passioncode@latest update`.
@@ -118,7 +118,7 @@ the versions in [`trains/organization-r1.json`](trains/organization-r1.json), re
 and `doctor` then compares every app with its pin (offline too) in an `app.<id>` line per app and
 one `train` line. An app newer than its pin is reported and left alone (a damaged one, or one whose version cannot be read, is reinstalled from the latest
 release): the train never takes an app back, because its data may not open in an older release. `setup --train none` returns to the
-latest releases. Either change is saved with `--yes` or in a terminal (after its answers, or at once when there is nothing to ask; a `--json` run never asks); without either it is only shown as a plan. A named
+latest releases. Either change is saved with `--yes` or in a terminal, never with `--dry-run` (after its answers, or at once when there is nothing to ask; a `--json` run never asks); without either it is only shown as a plan. A named
 train is not saved when every offer in the terminal (at least one of them defaulting to yes) is
 answered no, while `--train none` is saved on any answer. The skills are pinned by the launcher release itself (`family.json`). Which
 version each app pins is the train's record in fabric-workspace
