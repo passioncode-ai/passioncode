@@ -344,10 +344,12 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
   const train = run({ planOnly: true, trainNotSaved: 'org-test' }).split('\n');
   assert.deepEqual(train.slice(train.indexOf('Plan (nothing was changed):'), train.indexOf('Plan (nothing was changed):') + 2), ['Plan (nothing was changed):', '  • save release train org-test']);
   assert.ok(train.includes('The release train (org-test) was not saved.'));
-  assert.ok(train.includes('Run it with --yes to apply, or in a terminal to answer its questions.')); // PC-107: the footer advises
+  // PC-110: a terminal asks nothing about a train alone and saves it at once: no questions are promised.
+  assert.ok(train.includes('Run it with --yes, or in a terminal, to apply.'), train.join('\n'));
+  assert.ok(!train.some((l) => /answer its questions/.test(l)));
   const none = run({ planOnly: true, trainNotSaved: 'none' });
   assert.match(none, /\n  • forget the saved release train\n/);
-  assert.match(none, /\nThe saved release train was not forgotten\.\n\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/);
+  assert.match(none, /\nThe saved release train was not forgotten\.\n\nRun it with --yes, or in a terminal, to apply\.\n/);
   assert.match(run({ planOnly: true, dryRun: true, trainNotSaved: 'none' }), /\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/);
   assert.doesNotMatch(none, /\(none\)/);
   // A declined named train is no plan line: it was the person's answer, not what a run would do.
@@ -945,7 +947,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   assert.match(render({ ...base, declined: true, notTaken: ['Fabric', 'Fabric Inbox'] }), /You declined every other offer, and Fabric and Fabric Inbox were not installed; nothing was changed\./);
   assert.match(render({ ...base, planOnly: true, declined: true, notTaken: ['Fabric'], plan: [] }), /You declined every other offer, and Fabric was not installed/);
   const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
-  assert.match(train, /The release train \(org-test\) was not saved\.\n\nRun it with --yes to apply/);
+  assert.match(train, /The release train \(org-test\) was not saved\.\n\nRun it with --yes, or in a terminal, to apply\./); // PC-110
   assert.doesNotMatch(train, /You declined/);
 });
 
