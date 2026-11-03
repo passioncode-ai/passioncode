@@ -387,6 +387,8 @@ test('PC-107: warnings in the closing line, the declined label, and none reserve
   const done = { actions: [{ kind: 'update', detail: 'u', outcome: 'done' }] };
   assert.ok(run(done, 1).includes(`No problems remain (before: 0), 1 warning(s). ${doctor}`));
   assert.ok(run({ planOnly: true }, 1).includes('Open now:'));
+  assert.ok(run({ planOnly: true, trainNotSaved: 'org-test' }, 1).includes('Open now:')); // a train plan, not declined
+  assert.ok(run({}, 2).includes(`No problems, 2 warning(s). ${doctor}`));
   assert.ok(run({ planOnly: true, declined: true, trainNotSaved: 'org-test' }, 1).includes('Still open:'));
   assert.ok(run({ declined: true }, 1).includes('Still open:'));
   assert.ok(run({}, 1).includes('Still open:') && run(done, 1).includes('Still open:')); // any run that is not a plan
