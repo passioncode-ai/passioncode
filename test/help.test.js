@@ -18,7 +18,10 @@ function accepted(source) {
   assert.ok(setup && options, 'the parser lists its flags where this test reads them');
   // Flags setup reads by pattern join its list, in any of the forms `/^--name(?:=`, `/^--name=` and
   // `/^--name$/`, with one name or an alternation (`/^--(with|without)(?:=/`).
-  const patterns = [...source.matchAll(/\/\^--(?:\(([a-z|]+)\)|([a-z-]+))(?:\(\?:=|=|\$\/)/g)].flatMap((m) => (m[1] || m[2]).split('|').map((f) => `--${f}`));
+  // Only parseSetupArgs reads setup's flags (PC-107): a pattern flag of another command is not setup's.
+  const setupParser = /function parseSetupArgs\([\s\S]*?\n\}\n/.exec(source);
+  assert.ok(setupParser, 'the setup parser is where this test reads it');
+  const patterns = [...setupParser[0].matchAll(/\/\^--(?:\(([a-z|]+)\)|([a-z-]+))(?:\(\?:=|=|\$\/)/g)].flatMap((m) => (m[1] || m[2]).split('|').map((f) => `--${f}`));
   assert.ok(patterns.length >= 3, 'the parser reads --with, --without and --train by pattern');
   const byCmd = { doctor: list(setup[1]), setup: [...list(setup[2]), ...patterns] };
   for (const [, cmd, flags] of options[1].matchAll(/['"]?([\w-]+)['"]?:\s*\[([^\]]*)\]/g)) byCmd[cmd] = list(flags);
