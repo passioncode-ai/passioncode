@@ -8,8 +8,8 @@
   changed (declined, not installed, skipped, in place, nothing to do, nothing would change) adds it when a check below
   is still open, a FAIL or a WARN, and only then. It used to follow a FAIL only, and the declined, not-installed and
   skipped lines carried it even above passing checks (PC-105).
-- **A plan whose only change is a train lists it** ("save release train <name>"), and a plan that would forget the saved
-  train with `--train none` says "forget the saved release train" and "The saved release train was not forgotten",
+- **A plan lists its train change as one of its lines** ("save release train <name>"), so a plan whose only change is
+  a train no longer shows an empty list, and a plan that would forget the saved train with `--train none` says "forget the saved release train" and "The saved release train was not forgotten",
   instead of naming a train "(none)" (PC-105).
 
 ### Fixed

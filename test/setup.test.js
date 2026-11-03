@@ -744,7 +744,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   const empty = { summary: {}, checks: [] };
   const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [] };
   assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
-  // PC-104: the checks are pointed at only when one fails; an empty plan names the apps it would leave,
+  // PC-104: the checks are pointed at only when one fails or warns (PC-105); an empty plan names the apps it would leave,
   // and a plan whose only change is a train is a plan.
   const failing = { summary: { fail: 1 }, checks: [] };
   assert.doesNotMatch(render({ ...base }), /still stand/);
@@ -907,6 +907,8 @@ test('PC-89: the unusable-train fix plans no install; a withheld train is named 
   fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
   const text = await cli(m, api, 'setup', '--offline', '--train', 'none');
   assert.match(text.stdout, /  • forget the saved release train\n\nThe saved release train was not forgotten: run it with --yes, or answer in a terminal\./);
+  // PC-105: a plan with installs lists its train change under them, as one of its lines.
+  assert.match(text.stdout, /\n  • install [^\n]*\n  • forget the saved release train\n/);
 });
 
 // The seventh seam reading of PC-89: changing the saved train is a change, reported in actions and text.
