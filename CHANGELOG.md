@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.70 - 2026-11-03
+
+### Changed
+
+- **The repairs question asks only what a no stops** (PC-112). When a run installs an app that bundles an MCP server
+  (Fabric Switchboard, Fabric Dashboards, Fabric), that install registers it through the skill and MCP update, which
+  runs whatever the repairs answer. The repairs question now leaves that update out and asks only about the rest (no
+  question when nothing else is left), and the update is listed as taken. It runs after that install succeeds; an
+  install that fails runs no update, and the update is then listed as not taken. The question is registered in
+  `docs/brand/strings.md`.
+
 ## 0.2.69 - 2026-11-03
 
 ### Changed
