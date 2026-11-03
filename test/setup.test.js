@@ -1230,7 +1230,10 @@ test('PC-89: setup --train without --yes or a terminal is a plan; doctor.json ke
   assert.equal(r.json.planOnly, true);
   assert.equal(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'), saved, 'the plan saves no checks');
   assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, 'gone');
+  // A fresh check time: the hook starts no detached npm probe that would outlive the test run (PC-115).
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone', checkedAt: new Date().toISOString() }));
   const hook = require('child_process').spawnSync(process.execPath, [path.join(__dirname, '../plugin/passioncode/hooks/session-start.js')], { env: cliEnv(m, api), input: '{}', encoding: 'utf8' });
+  assert.ok(!fs.existsSync(path.join(m.home, '.passioncode/logs/probe.log')), 'no probe was started');
   assert.match(hook.stdout, /setup --yes --no-apps --train none/, hook.stdout + hook.stderr);
 });
 

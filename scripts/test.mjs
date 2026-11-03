@@ -20,7 +20,8 @@ try {
   if (result.error) console.error(result.error.message);
   status = result.status ?? 1;
 } finally {
-  fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  try { fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
+  catch (error) { console.error(error.message); } // a file held open (Windows) is named below, not thrown
 }
 if (fs.existsSync(scratch)) {
   console.error(`The test run's temporary folder could not be removed: ${scratch}`);

@@ -40,7 +40,8 @@ Node 18, whose test runner does not expand quoted globs. It also gives the run a
 temporary folder of its own (`TMPDIR`, `TMP` and `TEMP`, inherited by every process
 the tests start) and removes it when the run ends, so a run leaves nothing in the
 system's temporary folder (PC-115, `test/tmp.test.js`). A test file run directly with
-`node --test` has no such folder and leaves its temporary folders behind. Packed smoke uses the
+`node --test` has no such folder and leaves its temporary folders behind, and a process
+a test leaves running after the run (none does today) could still write there. Packed smoke uses the
 Node executable that runs it and a fake Claude CLI; it does not test a live
 Claude installation or npm publication.
 
