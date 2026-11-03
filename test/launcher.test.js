@@ -286,7 +286,7 @@ test('unsupported flags are rejected before uninstall or restore can mutate anyt
   const env = setup();
   assert.equal(run(env, 'update').status, 0);
   const before = fs.readFileSync(path.join(env.home, '.passioncode/state.json'), 'utf8');
-  for (const args of [['uninstall', '--dry-run'], ['restore', '--dry-run'], ['update', '--dryrun'], ['status', 'extra'], ['config', 'set', 'update.auto', 'off', 'extra']]) {
+  for (const args of [['uninstall', '--dry-run'], ['restore', '--dry-run'], ['doctor', '--dry-run'], ['update', '--dryrun'], ['status', 'extra'], ['config', 'set', 'update.auto', 'off', 'extra']]) {
     const r = run(env, ...args);
     assert.equal(r.status, 2, args.join(' '));
     assert.match(r.stderr, /arguments/i);
