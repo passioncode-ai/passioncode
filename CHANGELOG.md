@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The em dash guard reads JavaScript as JavaScript (PC-97): strings, template literals with their `${}` nesting and
+  regular expressions are code wherever they start, so a template line that starts with `//` or `/*` and code after a
+  block comment's `*/` are checked, while a trailing comment is not; it also catches `\u{02014}` and a literal
+  `fromCharCode`/`fromCodePoint` call with 0x2014 or 8212. The documentation guard reads code spans and fences as
+  CommonMark does: double-backtick spans, spans over two lines of a paragraph, an escaped backtick, and a ``` opener
+  whose info string holds a backtick (no fence).
+
 ## 0.2.64 - 2026-11-03
 
 ### Changed
