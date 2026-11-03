@@ -110,8 +110,8 @@ when it has nothing to ask); without either, a run that names a train other than
 the saved one is a plan (`planOnly: true`) and nothing changes. Naming the saved
 train again (or `none` with no train saved) changes nothing and runs as plain
 `setup` does. A person who answers
-no to every offer (at least one of them defaulting to yes) keeps the previous train (the run is
-then a plan too, and exits 0 like one); `--train none` is saved on any answer, since forgetting a
+no to every offer (at least one of them defaulting to yes) keeps the previous train (the run reports `planOnly: true` and
+`declined`, and exits by its checks like any declined run, PC-93); `--train none` is saved on any answer, since forgetting a
 train touches no app.
 `--train none` removes it. An unknown name exits 2 before anything is checked.
 On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an

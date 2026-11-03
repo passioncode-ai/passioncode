@@ -594,6 +594,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
   // PC-93: a plan exits 0; a declined run, plan-shaped or not, exits by its checks.
   const { exitCode } = require('../lib/setup');
+  assert.match(fs.readFileSync(path.join(__dirname, '../bin/passioncode.js'), 'utf8'), /return S\.exitCode\(r\);/, 'setup and doctor --fix exit through exitCode');
   assert.equal(exitCode({ planOnly: true, ok: false }), 0);
   assert.equal(exitCode({ planOnly: true, declined: true, ok: false }), 1);
   assert.equal(exitCode({ declined: true, ok: false }), 1);

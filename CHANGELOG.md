@@ -5,9 +5,9 @@
 ### Fixed
 
 - A terminal `setup` that declined every offer (PC-91) exits by its checks, 1 when a check still
-  fails, whether or not it named a release train (PC-93). Before, naming a train made it exit 0 as
-  a plan does, and without one it exited by its checks, though in both the person changed nothing.
-  A plan (no terminal and no `--yes`, or `--dry-run`) still exits 0.
+  fails, whether or not it named a release train (PC-93). Before, naming a train other than the
+  saved one made it exit 0 as a plan does, and otherwise it exited by its checks, though in both
+  the person changed nothing. A plan (no terminal and no `--yes`, or `--dry-run`) still exits 0.
 
 ## 0.2.56 - 2026-11-03
 
