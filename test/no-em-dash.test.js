@@ -5,7 +5,7 @@
 // (with their `${}` nesting) and regular expressions are code wherever they start, and a comment
 // is a `//` or `/* */` met outside them, so a template line that starts with `//` is code and so
 // is code after a block's `*/`. Known blind spots: a dash built at run time from anything but a
-// literal `fromCharCode`/`fromCodePoint` call with 0x2014 or 8212, and a `/` the scanner reads
+// literal `fromCharCode`/`fromCodePoint` call naming 0x2014, 8212 or 0o20024 among its arguments, and a `/` the scanner reads
 // unlike JavaScript (after `)`, `]` or a name it reads a division, after a keyword such as
 // `return` a regular expression; a division after `++` or `--` is read as a regular expression).
 const assert = require('node:assert/strict');
@@ -17,7 +17,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DIRS = ['bin', 'lib', 'plugin/passioncode/hooks'];
 // The character itself, its escape in a JS or JSON string (zero-padded too), or a literal call
 // that builds it.
-const DASH = /\u2014|\\u2014|\\u\{0*2014\}|from(?:CharCode|CodePoint)\(\s*(?:0x0*2014|8212)\s*\)/i;
+const DASH = /\u2014|\\u2014|\\u\{0*2014\}|from(?:CharCode|CodePoint)\([^)]*\b(?:0x0*2014|8_?212|0o0*20024)\b/i;
 
 function files(dir) {
   return fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((e) => {
@@ -77,7 +77,7 @@ function codeLines(text) {
     }
     if (stack.length && c === '{') stack[stack.length - 1] += 1;
     if (stack.length && c === '}') stack[stack.length - 1] -= 1;
-    if (!/\s/.test(c)) { word = /[\w$]/.test(c) ? (/[\w$]/.test(prev) ? word : '') + c : ''; prev = c; }
+    if (!/\s/.test(c)) { word = /[\w$]/.test(c) ? (/[\w$]/.test(src[i - 1] || '') ? word : '') + c : ''; prev = c; }
     keep(c); i += 1;
   }
   return kept.map((l, n) => [n + 1, l]).filter(([, l]) => l.trim());
@@ -99,7 +99,8 @@ test('PC-95: the guard catches the character and its escapes', () => {
   assert.ok(DASH.test("const s = `a \\u{2014} b`;"));
   assert.ok(DASH.test("const s = `a \\u{02014} b`;")); // PC-97: zero-padded
   assert.ok(DASH.test('String.fromCharCode(0x2014)') && DASH.test('String.fromCodePoint( 8212 )')); // PC-97
-  assert.ok(DASH.test('String.fromCharCode(0X2014)'));
+  assert.ok(DASH.test('String.fromCharCode(0X2014)') && DASH.test('String.fromCharCode(97, 0x2014)'));
+  assert.ok(DASH.test('String.fromCharCode(8_212)') && DASH.test('String.fromCodePoint(0o20024)'));
   assert.ok(!DASH.test('a: b, c; d (e)') && !DASH.test('String.fromCharCode(0x2013)'));
 });
 
@@ -128,13 +129,16 @@ test('PC-97: template lines that look like comments, and code after a block comm
     'const c = /[/]/; const d = "' + D + '";', // 3: a class holding /
     'const e = (x) / 2 + "//" + "' + D + '";', // 4: a division after )
     'const f = /["\']/; const g = "' + D + '";', // 5: quotes inside a regular expression
+    'const z = /[/]//2 + "' + D + '";', // 6: a regular expression divided by 2, no comment
+    'function f(s) {\n  const a = 1, b = a\n  return /[//]/.test(s) ? "' + D + '" : "";\n}', // 7-10: return after a line break
   ].join('\r');
-  assert.deepEqual(codeLines(more).filter(([, l]) => DASH.test(l)).map(([n]) => n), [1, 2, 3, 4, 5]);
+  assert.deepEqual(codeLines(more).filter(([, l]) => DASH.test(l)).map(([n]) => n), [1, 2, 3, 4, 5, 6, 9]);
   // And what is a comment stays one: after a division by `(x)`, and after a template whose `${}`
   // holds an object and a string with a backtick.
   const quiet = [
     'const h = (x) / 2 + "a/b"; // ' + D, // a division, so `/b"` opens no regular expression
     'const k = `a ${ { k: 1 }.k + "`" } b`; // ' + D, // the object's } does not close the ${}
+    'const re = /[/"]/; // a note ' + D, // a class holding / and a quote: the quote opens no string
   ].join('\n');
   assert.deepEqual(codeLines(quiet).filter(([, l]) => DASH.test(l)), []);
   // After a keyword a `/` starts a regular expression, even one that holds `/*`.
@@ -276,7 +280,8 @@ test('PC-97: code spans and fences as CommonMark reads them', () => {
   assert.deepEqual(docDashes('a `b\n```\nx\n```\nc ' + D + ' `d`\n'), [5]);
   // A span closes only on a run of exactly its length; a tab-indented ``` opens no fence.
   assert.deepEqual(docDashes('a ``b ``` c ' + D + '`` d\ne ' + D + '\n'), [2]);
-  assert.deepEqual(docDashes('\t```\n' + D + '\n'), [2]);
+  assert.deepEqual(docDashes('`a``` ' + D + ' `\n'), []); // one span: three backticks do not close a single one
+  assert.deepEqual(docDashes('\t```\n' + D + '\n```\n'), [2]); // indented code, prose, then an unclosed fence
   // A run with no closer of its length is literal: the dash after it is prose.
   assert.deepEqual(docDashes('a `` b ' + D + ' ` c\n'), [1]);
 });
