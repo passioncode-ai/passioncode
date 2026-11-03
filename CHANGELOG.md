@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.63 - 2026-11-03
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.59.0`** (it was `v0.58.0`): a new agent is portable from its first commit.
+  The intake asks its uptime category (A, a cloud host from the first release; B, local only), the kind of its data
+  (U or O) and its copyright holder. A new agent gets a data home of its own, a new private agent gets a `LICENSE`
+  naming its holder, and every release runs the transfer audit (PC-106).
+
 ## 0.2.62 - 2026-11-03
 
 ### Fixed
