@@ -771,6 +771,10 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   assert.ok(took.actions.some((a) => a.kind === 'install' && a.outcome === 'done'), mixedRun.stdout);
   assert.ok(took.plan.some((i) => i.kind !== 'install' && !i.selected), mixedRun.stdout);
   assert.ok(took.steps.some((s) => / setup$/.test(s)), mixedRun.stdout);
+  // PC-108: an app it installs still gets its MCP server registered, so the update runs though the repairs were declined.
+  const registers = took.actions.filter((a) => a.kind === 'install' && a.outcome === 'done').some((a) => { const pr = catalog.byId(a.product); return pr.mcp && !pr.mcp.external; });
+  assert.ok(registers, `an installed app here registers an MCP server: ${mixedRun.stdout}`);
+  assert.ok(took.actions.some((a) => a.kind === 'update'), mixedRun.stdout);
   // The other direction: a run that took its repairs was that command. Here the person left
   // Switchboard's reinstall out with --without, so its check stays open with the fix `setup`, and
   // the step is not repeated (it does not carry the run's --without either, PC-94).
@@ -907,6 +911,79 @@ test('PC-101: a declined run names the default-no offer as not installed', async
   assert.equal(plain.declined, true, plain.text);
   assert.equal(plain.notTaken, undefined, plain.text);
   assert.match(plain.text, /You declined every offer; nothing was changed/, plain.text);
+});
+
+// PC-108: an offer answered no that carries no note (its prerequisites are there) is not a step of its own:
+// the person said no to it, and the run's own `setup` step offers it again.
+test('PC-108: an install answered no without a note adds no step of its own', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: false, ask: async () => 'n' })
+      .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, plan: r.plan, steps: r.humanSteps })), (e) => { console.error(e); process.exit(1); });`;
+  const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.declined, true);
+  const quiet = out.plan.filter((i) => i.kind === 'install' && !i.note).map((i) => catalog.byId(i.product).name);
+  assert.ok(quiet.length >= 1, JSON.stringify(out.plan));
+  for (const name of quiet) assert.ok(!out.steps.some((s) => s.startsWith(`${name}: `)), `${name}: ${JSON.stringify(out.steps)}`);
+  assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), JSON.stringify(out.steps));
+});
+
+// PC-108: only an app that bundles an MCP server forces the update after declined repairs; one whose
+// server is external (Project Observatory) is installed without refreshing the skill set.
+test('PC-108: an app with an external MCP server forces no update after declined repairs; a bundled one does', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = machine();
+  assert.ok(catalog.byId('observatory').mcp.external);
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: true, noOpen: true, withIds: ['observatory'], ask: async (q) => (/^Install /.test(q) ? 'y' : 'n') })
+      .then((r) => process.stdout.write(JSON.stringify({ actions: r.actions, plan: r.plan })), (e) => { console.error(e); process.exit(1); });`;
+  const run = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  assert.ok(out.plan.some((i) => i.kind === 'update' && !i.selected), run.stdout); // the repairs were answered no
+  assert.deepEqual(out.actions.map((a) => `${a.kind}:${a.product}:${a.outcome}`), ['install:observatory:done'], run.stdout);
+  // A bundled one forces it, and the update makes the declined repairs: their checks pass, so no `setup` step is left.
+  const b = machine();
+  const bundled = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script.replace("['observatory']", "['switchboard']").replace('plan: r.plan', 'plan: r.plan, steps: r.humanSteps')], { env: cliEnv(b, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(bundled.status, 0, bundled.stderr);
+  const took = JSON.parse(bundled.stdout);
+  assert.ok(took.plan.some((i) => i.kind === 'update' && !i.selected), bundled.stdout);
+  assert.deepEqual(took.actions.map((a) => `${a.kind}:${a.outcome}`), ['install:done', 'update:done'], bundled.stdout);
+  assert.ok(!took.steps.some((st) => / setup$/.test(st)), bundled.stdout);
+  // A reinstall (replace) of a bundled one forces no update: only an install registers a new server.
+  const r = onTrain(machine());
+  installApp(r, catalog.byId('switchboard'), { version: '1.0.0' });
+  assert.equal((await cli(r, api, 'setup', '--yes', '--no-apps')).status, 0);
+  fs.writeFileSync(path.join(r.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const rs = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: true, noOpen: true, withIds: ['switchboard'], ask: async () => 'y' })
+      .then((x) => process.stdout.write(JSON.stringify({ actions: x.actions, plan: x.plan })), (e) => { console.error(e); process.exit(1); });`;
+  const replaced = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', rs], { env: cliEnv(r, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(replaced.status, 0, replaced.stderr);
+  const rr = JSON.parse(replaced.stdout);
+  assert.deepEqual(rr.plan.map((i) => i.kind), ['replace'], replaced.stdout);
+  assert.deepEqual(rr.actions.map((a) => `${a.kind}:${a.outcome}`), ['replace:done'], replaced.stdout);
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
