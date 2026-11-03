@@ -280,10 +280,10 @@
   2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
   3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
 - **Expected result:** Every installed app the train pins is at its pinned version; `doctor` says how many are.
-- **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (when it names a train other than the saved one, its last line is "save release train <name>") and saves nothing; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup`.
+- **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (when it names a train other than the saved one, its last line is "save release train <name>") and saves nothing; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), the report lists no plan under its headline, and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup` (and `setup --train <name> --with fabric` for Fabric without its prerequisites); `--train none` in a terminal is saved on any answer, and when the repairs are answered no, `setup` stays among the person's steps.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
 - **Errors & recovery:** An unknown train exits 2 before anything changes; a saved train this launcher no longer ships is a `fail` line whose fix is `setup --yes --no-apps --train none`.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js` tests beginning `PC-89`, `PC-91:` and `PC-105:`; `test/windows.test.js` test beginning `PC-89`.
+- **Coverage:** `test/setup.test.js` tests beginning `PC-89`, `PC-91:`, `PC-94:` and `PC-105:`; `test/windows.test.js` test beginning `PC-89`.
 - **Product:** unobserved

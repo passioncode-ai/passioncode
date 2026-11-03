@@ -1,9 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.2.65 - 2026-11-03
 
 ### Fixed
 
+- **Your steps after a declined answer** (PC-94). A terminal run that forgets the saved train (`--train none`) and answers
+  no to the repairs keeps `setup` among the person's steps; it used to count as that command because the train was saved.
+  After a declined train, Fabric's note asks for it with that train (`setup --train <name> --with fabric`). A declined
+  run lists no plan under its headline, which points at the checks.
 - The em dash guard reads JavaScript as JavaScript (PC-97): strings, template literals with their `${}` nesting and
   regular expressions are code wherever they start, so a template line that starts with `//` or `/*` and code after a
   block comment's `*/` are checked, while a trailing comment is not; it also catches `\u{02014}` and a literal

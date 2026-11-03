@@ -123,8 +123,11 @@ the saved one is a plan (`planOnly: true`) and nothing changes. Naming the saved
 train again (or `none` with no train saved) changes nothing and runs as plain
 `setup` does. A person who answers
 no to every offer (at least one of them defaulting to yes) keeps the previous train (the train is not saved, the report says
-so, and the run exits by its checks like any declined run, PC-93); `--train none` is saved on any answer, since forgetting a
-train touches no app.
+so, and the run exits by its checks like any declined run, PC-93); those checks are the named train's, so when the saved
+train is one this launcher cannot use, declining a usable one exits 0 while plain `doctor` (on the saved train) exits 1.
+Its steps name `setup --train <name>` and, for an app that needs asking for, `setup --train <name> --with <id>`
+(PC-94). `--train none` is saved on any answer, since forgetting a train touches no app; a run that does so and answers no
+to the repairs still names `setup` among its steps.
 `--train none` removes it. An unknown name exits 2 before anything is checked.
 On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an
 older one is `warn` with a `replace` repair (macOS; on Windows the fix names the
