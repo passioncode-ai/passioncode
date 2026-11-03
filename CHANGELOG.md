@@ -7,8 +7,8 @@
 - `help` lists every flag each command accepts and the command aliases (PC-98): `--offline` for
   `setup` and `doctor`, `-y` for `setup`, `--quiet` for `update`, `--json` for `restore`,
   `uninstall` and `config`, and that `onboard` is another name for `setup` and `install` for
-  `update`. It also says what `--offline` and `--quiet` do. A test fails when a flag the parser
-  accepts is missing from its command's line.
+  `update`. It also says what `--offline` and `--quiet` do. A test fails when a flag in the parser's
+  lists is missing from its command's line.
 
 ## 0.2.54 - 2026-11-02
 
