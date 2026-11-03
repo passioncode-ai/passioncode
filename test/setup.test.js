@@ -548,6 +548,28 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
   assert.match(none.text, /forgot release train org-test/, none.text);
 });
 
+// PC-92: after everything else is set up, a terminal run whose only offer defaults to no (Fabric
+// without Docker) and is not taken names it, rather than calling the machine set up.
+test('PC-92: an untaken default-no offer is named, not reported as everything in place', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  const first = await cli(m, api, 'setup', '--yes', '--json');
+  assert.equal(first.status, 0, first.stderr + first.stdout);
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    const asked = [];
+    S.setup({ online: false, ask: async (q) => { asked.push(q); return 'n'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, notTaken: r.notTaken, actions: r.actions, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+  const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.deepEqual(out.asked.map((q) => /^Install Fabric /.test(q)), [true], JSON.stringify(out.asked));
+  assert.equal(out.declined, undefined, out.text);
+  assert.deepEqual(out.actions, [], out.text);
+  assert.deepEqual(out.notTaken, ['Fabric'], out.text);
+  assert.match(out.text, /Nothing was changed: Fabric was offered and not installed\./, out.text);
+  assert.doesNotMatch(out.text, /in place|You declined/, out.text);
+});
+
 test('PC-91: runs that declined nothing keep their old report', () => {
   const { render } = require('../lib/setup');
   const empty = { summary: {}, checks: [] };
@@ -555,6 +577,11 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
   assert.match(render({ ...base, planOnly: true }), /Nothing to do\./);
   assert.match(render({ ...base, humanSteps: ['open it once'] }), /\nYour steps \(sign-ins, consents and secrets in hidden prompts need you in person\):\n  1\. open it once/);
+  // PC-92: an untaken default-no offer is named, neither "in place" nor "declined".
+  const one = render({ ...base, notTaken: ['Fabric'] });
+  assert.match(one, /Nothing was changed: Fabric was offered and not installed\. The checks below still stand\./);
+  assert.doesNotMatch(one, /in place|You declined/);
+  assert.match(render({ ...base, notTaken: ['Fabric', 'Fabric Inbox'] }), /Fabric and Fabric Inbox were offered and not installed/);
   const train = render({ ...base, planOnly: true, trainNotSaved: 'org-test' });
   assert.match(train, /The release train \(org-test\) was not saved: run it with --yes, or answer in a terminal\./);
   assert.doesNotMatch(train, /You declined/);
