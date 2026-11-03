@@ -94,7 +94,8 @@ Questions are asked only on a terminal: one per absent app and one for the
 repairs. Without a terminal and without `--yes`, or with `--dry-run`, the plan
 is returned with `planOnly: true`, nothing changes, and the exit code is 0.
 `setup` exits 1 when an action failed or a check still fails after the
-repairs. `doctor --fix` is `setup --yes` with no `install` items and nothing
+repairs. A terminal run that declined every offer (PC-91) exits by its checks the
+same way, 1 when a check still fails, whether or not it named a train (PC-93). `doctor --fix` is `setup --yes` with no `install` items and nothing
 opened.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
@@ -109,8 +110,8 @@ when it has nothing to ask); without either, a run that names a train other than
 the saved one is a plan (`planOnly: true`) and nothing changes. Naming the saved
 train again (or `none` with no train saved) changes nothing and runs as plain
 `setup` does. A person who answers
-no to every offer (at least one of them defaulting to yes) keeps the previous train (the run is
-then a plan too, and exits 0 like one); `--train none` is saved on any answer, since forgetting a
+no to every offer (at least one of them defaulting to yes) keeps the previous train (the train is not saved, the report says
+so, and the run exits by its checks like any declined run, PC-93); `--train none` is saved on any answer, since forgetting a
 train touches no app.
 `--train none` removes it. An unknown name exits 2 before anything is checked.
 On a train, `doctor` compares each pinned app with its pin: equal is `ok`, an
