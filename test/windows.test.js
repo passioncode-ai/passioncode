@@ -184,7 +184,7 @@ test('PC-86: setup on Windows calls a machine with an installed app an existing 
   fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
   const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'setup', '--dry-run', '--offline', '--json'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+    env: { ...process.env, HOME: home, PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'), PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
   const out = JSON.parse(r.stdout);
   assert.equal(out.mode, 'existing', r.stderr);
@@ -306,11 +306,12 @@ test('PC-108: on Windows a declined run changes nothing and keeps setup among th
       .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, actions: r.actions, steps: r.humanSteps, exit: S.exitCode(r), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
   const r = spawnSync(process.execPath, ['-e', script], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+    env: { ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'), PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
   assert.equal(r.status, 0, r.stderr);
   const out = JSON.parse(r.stdout);
-  assert.ok(out.asked.length >= 1 && out.asked.every((q) => /^Apply \d+ repair\(s\)/.test(q)), JSON.stringify(out.asked)); // no install is asked on Windows
+  // No install is asked on Windows, though no app is installed (an empty applications folder, not this host's).
+  assert.ok(out.asked.length >= 1 && out.asked.every((q) => /^Apply \d+ repair\(s\)/.test(q)), JSON.stringify(out.asked));
   assert.equal(out.declined, true, out.text);
   assert.deepEqual(out.actions, [], out.text);
   assert.match(out.text, /You declined every offer; nothing was changed\. The checks below still stand\./, out.text);
