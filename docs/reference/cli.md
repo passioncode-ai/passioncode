@@ -22,7 +22,8 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
-skipped steps; `doctor` and `setup` found no failing check); **1** means an
+skipped steps; `doctor` and `setup` found no failing check, or `setup` only returned a plan,
+`planOnly: true`); **1** means an
 operation or supported config value failed, or a `doctor`/`setup` check still
 fails; **2** means an unknown command or unsupported arguments. `--quiet` suppresses
 successful update output, including JSON, but never hides failed update steps.
