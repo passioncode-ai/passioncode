@@ -10,6 +10,7 @@
   keeps "Run it with --yes to apply, or in a terminal to answer its questions."
 - `docs/reference/cli.md` says a plan that names a train is judged by that train's checks, so its problem and warning
   counts can differ from plain `doctor` on the saved train (PC-110).
+- The 0.2.67 entry's "the plan's last line" is the last line of the plan block: the checks follow it (PC-110).
 - The release train loader's errors are registered in `docs/brand/strings.md`, and the help test reads the setup
   parser up to its own closing brace at any indentation (PC-110).
 
@@ -18,8 +19,8 @@
 ### Changed
 
 - **A plan says how to apply it once** (PC-107). The train line says only what was not saved ("The release train
-  (<name>) was not saved.", "The saved release train was not forgotten."), and the last line of the plan block (the checks follow
-  it) says how to apply it, also when the only change is a train; after a `--dry-run`, which only plans with `--yes` or in a terminal too, it
+  (<name>) was not saved.", "The saved release train was not forgotten."), and the plan's last line says how to apply
+  it, also when the only change is a train; after a `--dry-run`, which only plans with `--yes` or in a terminal too, it
   says "Run it without --dry-run (with --yes, or in a terminal) to apply." The `--json` result carries `dryRun: true` on a `--dry-run`.
 - **The closing line names warnings** (PC-107): "No problems, 1 warning(s)." where it used to say "No problems." while
   warnings were open. A declined run's open checks are "Still open:", as after any run.

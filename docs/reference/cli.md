@@ -125,8 +125,9 @@ train again (or `none` with no train saved) changes nothing and runs as plain
 no to every offer (at least one of them defaulting to yes) keeps the previous train (the train is not saved, the report says
 so, and the run exits by its checks like any declined run, PC-93); those checks are the named train's, so the saved
 train's fail row does not count: when the saved train is one this launcher cannot use, declining a usable one can exit 0
-while plain `doctor` (on the saved train) exits 1. A plan that names a train is judged the same way: its checks, and so its
-closing line's problems and warnings, are the named train's, and can differ from plain `doctor` on the saved train (PC-110). When its checks call for `setup`, its steps name `setup --train <name>`,
+while plain `doctor` (on the saved train) exits 1. A plan that names a train counts the same checks: its
+closing line's problems and warnings are the named train's, and can differ from plain `doctor` on the saved train; a plan
+still exits 0 (PC-110). When its checks call for `setup`, its steps name `setup --train <name>`,
 and an app that needs asking for is named with `setup --train <name> --with <id>` (PC-94). `--train none` is saved on any
 answer, since forgetting a train touches no app. Any terminal run that answers no to its repairs, whatever else it took
 (an install, or forgetting a train), names `setup` among its steps where a failing or warning check's own fix names it.

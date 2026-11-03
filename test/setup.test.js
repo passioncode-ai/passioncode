@@ -909,6 +909,43 @@ test('PC-101: a declined run names the default-no offer as not installed', async
   assert.match(plain.text, /You declined every offer; nothing was changed/, plain.text);
 });
 
+// PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
+test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaults to no is still asked', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const terminal = (m, opts) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      const asked = [];
+      S.setup(Object.assign({ ask: async (q) => { asked.push(q); return 'n'; } }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ asked, actions: r.actions.map((a) => a.detail) })), (e) => { console.error(e); process.exit(1); });`;
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  for (const [tools, offer] of [[TOOLS, false], [TOOLS.filter((x) => x !== 'docker'), true]]) {
+    const m = onTrain(machine({ tools }));
+    const first = await cli(m, api, 'setup', '--yes', '--json', '--train', 'org-test');
+    assert.equal(first.status, 0, first.stderr + first.stdout);
+    fs.copyFileSync(path.join(m.trains, 'org-test.json'), path.join(m.trains, 'org-two.json'));
+    const doc = JSON.parse(fs.readFileSync(path.join(m.trains, 'org-two.json'), 'utf8'));
+    fs.writeFileSync(path.join(m.trains, 'org-two.json'), JSON.stringify({ ...doc, train: 'org-two' }));
+    const plan = await cli(m, api, 'setup', '--train', 'org-two'); // no terminal: the plan
+    assert.equal(plan.status, 0, plan.stderr + plan.stdout);
+    assert.match(plan.stdout, /  • save release train org-two\n/, plan.stdout);
+    const run = terminal(m, { train: 'org-two' });
+    assert.deepEqual(run.actions, ['saved release train org-two (it was org-test)'], JSON.stringify(run));
+    if (offer) {
+      assert.match(plan.stdout, /  – install Fabric/, plan.stdout);
+      assert.match(plan.stdout, /\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/, plan.stdout);
+      assert.equal(run.asked.length, 1, JSON.stringify(run.asked));
+      assert.match(run.asked[0], /^Install Fabric/);
+    } else {
+      assert.doesNotMatch(plan.stdout, /^ {2}– /m, plan.stdout);
+      assert.match(plan.stdout, /\nRun it with --yes, or in a terminal, to apply\.\n/, plan.stdout);
+      assert.deepEqual(run.asked, [], JSON.stringify(run.asked));
+    }
+  }
+});
+
 test('PC-110: a plan with nothing to ask promises no questions; any offer or repair keeps them', () => {
   const { render } = require('../lib/setup');
   const empty = { summary: {}, checks: [] };
