@@ -94,7 +94,8 @@ Questions are asked only on a terminal: one per absent app and one for the
 repairs. Without a terminal and without `--yes`, or with `--dry-run`, the plan
 is returned with `planOnly: true`, nothing changes, and the exit code is 0.
 `setup` exits 1 when an action failed or a check still fails after the
-repairs. `doctor --fix` is `setup --yes` with no `install` items and nothing
+repairs. A terminal run that declined every offer (PC-91) exits by its checks the
+same way, 1 when a check still fails, whether or not it named a train (PC-93). `doctor --fix` is `setup --yes` with no `install` items and nothing
 opened.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and

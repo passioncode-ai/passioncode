@@ -517,7 +517,7 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
       let asked = 0;
       S.setup(Object.assign({ online: false, noApps: true, ask: async () => { asked++; return 'n'; } }, ${JSON.stringify(opts)}))
-        .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, actions: r.actions, steps: r.humanSteps, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+        .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, ok: r.ok, exit: S.exitCode(r), actions: r.actions, steps: r.humanSteps, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
     const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
     return JSON.parse(r.stdout);
@@ -525,6 +525,8 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
   for (const opts of [{}, { train: 'org-test' }, { noApps: false }, { noApps: false, train: 'org-test' }]) {
     const r = run(opts);
     assert.equal(r.declined, true, r.text);
+    // PC-93: a declined run exits by its checks, with or without a named train (not 0 as a plan).
+    assert.equal(r.exit, r.ok ? 0 : 1, r.text);
     // A declined run still names the command that would fix what it left: it was not that command.
     // After a declined train, the step is setup with that train: plain setup would not follow it.
     if (opts.noApps === false || opts.train) assert.ok(r.steps.some((s) => (opts.train ? / setup --train org-test$/ : / setup$/).test(s)), JSON.stringify(r.steps));
@@ -590,6 +592,12 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   const empty = { summary: {}, checks: [] };
   const base = { mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [] };
   assert.match(render({ ...base }), /Everything this command can set up is in place; nothing was changed\./);
+  // PC-93: a plan exits 0; a declined run, plan-shaped or not, exits by its checks.
+  const { exitCode } = require('../lib/setup');
+  assert.equal(exitCode({ planOnly: true, ok: false }), 0);
+  assert.equal(exitCode({ planOnly: true, declined: true, ok: false }), 1);
+  assert.equal(exitCode({ declined: true, ok: false }), 1);
+  assert.equal(exitCode({ planOnly: true, declined: true, ok: true }), 0);
   assert.match(render({ ...base, planOnly: true }), /Nothing to do\./);
   assert.match(render({ ...base, humanSteps: ['open it once'] }), /\nYour steps \(sign-ins, consents and secrets in hidden prompts need you in person\):\n  1\. open it once/);
   // PC-92: an untaken default-no offer is named, neither "in place" nor "declined".

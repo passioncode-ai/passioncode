@@ -93,7 +93,7 @@ async function setupOrDoctor(cmd, rest) {
     noOpen: o.flags.has('--no-open'), dryRun: o.flags.has('--dry-run'), repairOnly, online, ask: json ? null : asker(), log, train: o.train,
   });
   process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : S.render(r, { repairOnly }) + '\n');
-  return r.planOnly ? 0 : r.ok ? 0 : 1;
+  return S.exitCode(r);
 }
 
 async function main(argv) {
