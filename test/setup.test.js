@@ -790,11 +790,12 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   fs.writeFileSync(path.join(yesRepairs.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
   const yesScript = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
     S.setup({ online: false, noOpen: true, withoutIds: ['switchboard'], ask: async (q) => (/^Install /.test(q) ? 'n' : 'y') })
-      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, steps: r.humanSteps, open: r.after.checks.filter((c) => c.state === 'fail' || c.state === 'warn') })), (e) => { console.error(e); process.exit(1); });`;
+      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, actions: r.actions.map((a) => a.kind + ':' + a.outcome), steps: r.humanSteps, open: r.after.checks.filter((c) => c.state === 'fail' || c.state === 'warn') })), (e) => { console.error(e); process.exit(1); });`;
   const yesRun = require('child_process').spawnSync(process.execPath, ['-e', yesScript], { env: cliEnv(yesRepairs, api), encoding: 'utf8' });
   assert.equal(yesRun.status, 0, yesRun.stderr);
   const yes = JSON.parse(yesRun.stdout);
   assert.ok(yes.plan.every((i) => i.kind === 'install' || i.selected), yesRun.stdout);
+  assert.ok(yes.actions.includes('update:done'), yesRun.stdout); // PC-112: repairs answered yes run the update, no install needed
   assert.ok(yes.open.some((c) => c.fix === 'npx @passioncode-ai/passioncode@latest setup'), yesRun.stdout);
   assert.ok(!yes.steps.some((s) => / setup$/.test(s)), yesRun.stdout);
   // But a declined run is never that command (PC-91), --without or not: with no repair offered at all
@@ -1004,7 +1005,7 @@ test('PC-112: a bundled install that fails runs no update and was not asked abou
   const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
     const asked = [];
     S.setup({ online: true, noOpen: true, train: 'org-test', withIds: ['switchboard'], ask: async (q) => { asked.push(q); return /^Install /.test(q) ? 'y' : 'n'; } })
-      .then((r) => process.stdout.write(JSON.stringify({ asked, actions: r.actions, steps: r.humanSteps })), (e) => { console.error(e); process.exit(1); });`;
+      .then((r) => process.stdout.write(JSON.stringify({ asked, actions: r.actions, plan: r.plan, steps: r.humanSteps })), (e) => { console.error(e); process.exit(1); });`;
   const run = await new Promise((resolve) => {
     const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
@@ -1017,6 +1018,7 @@ test('PC-112: a bundled install that fails runs no update and was not asked abou
   assert.ok(!out.asked.some((q) => /^Apply /.test(q)), run.stdout);
   assert.deepEqual(out.actions.filter((a) => a.kind !== 'train').map((a) => `${a.kind}:${a.outcome}`), ['install:failed'], run.stdout);
   assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), run.stdout);
+  assert.ok(out.plan.some((i) => i.kind === 'update' && !i.selected), run.stdout); // the plan says what ran
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.

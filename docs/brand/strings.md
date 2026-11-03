@@ -27,31 +27,31 @@ Contract: brand-contract v1
 | setup.repair-kickstart | start the ${r.label} service through launchd | lib/setup.js:89 | SCN-009 | proposed | copy |
 | setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} from ${from(pr)} | lib/setup.js:70 | SCN-008 | proposed | copy |
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:71 | SCN-008, SCN-014 | proposed | copy |
-| setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:296 | SCN-009, SCN-014 | proposed | copy |
-| setup.install-note.train | ${setupStep} --with | lib/setup.js:295 | SCN-014 | proposed | copy |
+| setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:299 | SCN-009, SCN-014 | proposed | copy |
+| setup.install-note.train | ${setupStep} --with | lib/setup.js:298 | SCN-014 | proposed | copy |
 | doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:188 | SCN-009, SCN-010 | proposed | layout |
-| setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:328 | SCN-009 | proposed | copy |
-| setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:329 | SCN-009 | proposed | copy |
-| setup.declined | You declined every offer; nothing was changed.${stand(a)} | lib/setup.js:327 | SCN-008, SCN-009 | proposed | copy |
-| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${stand(a)} | lib/setup.js:326 | SCN-008, SCN-009 | proposed | copy |
-| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:366 | SCN-009 | proposed | copy |
-| setup.checks-stand |  The checks below still stand. | lib/setup.js:333 | SCN-008, SCN-009 | proposed | copy |
-| setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:348 | SCN-008 | proposed | copy |
-| setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:330 | SCN-008 | proposed | copy |
-| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:362 | SCN-008 | proposed | copy |
-| setup.plan-footer.dry-run | Run it without --dry-run (with --yes, or in a terminal) to apply. | lib/setup.js:361 | SCN-008 | proposed | copy |
-| setup.plan-footer.train | Run it with --yes, or in a terminal, to apply. | lib/setup.js:362 | SCN-008, SCN-014 | proposed | copy |
-| setup.plan-header | Plan (nothing was changed): | lib/setup.js:347 | SCN-008 | proposed | copy |
-| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved. | lib/setup.js:356 | SCN-008 | proposed | copy |
-| setup.plan-forget-train | forget the saved release train | lib/setup.js:335 | SCN-008 | proposed | copy |
-| setup.plan-train | save release train ${t} | lib/setup.js:335 | SCN-008 | proposed | copy |
-| setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:356 | SCN-008 | proposed | copy |
-| setup.open-now | Open now: | lib/setup.js:387 | SCN-008 | proposed | layout |
-| setup.still-open | Still open: | lib/setup.js:387 | SCN-009 | proposed | layout |
-| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:391 | SCN-008 | proposed | copy |
-| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:395 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:396 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:397 | SCN-008, SCN-009 | proposed | copy |
+| setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:331 | SCN-009 | proposed | copy |
+| setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:332 | SCN-009 | proposed | copy |
+| setup.declined | You declined every offer; nothing was changed.${stand(a)} | lib/setup.js:330 | SCN-008, SCN-009 | proposed | copy |
+| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${stand(a)} | lib/setup.js:329 | SCN-008, SCN-009 | proposed | copy |
+| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:369 | SCN-009 | proposed | copy |
+| setup.checks-stand |  The checks below still stand. | lib/setup.js:336 | SCN-008, SCN-009 | proposed | copy |
+| setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:351 | SCN-008 | proposed | copy |
+| setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:333 | SCN-008 | proposed | copy |
+| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:365 | SCN-008 | proposed | copy |
+| setup.plan-footer.dry-run | Run it without --dry-run (with --yes, or in a terminal) to apply. | lib/setup.js:364 | SCN-008 | proposed | copy |
+| setup.plan-footer.train | Run it with --yes, or in a terminal, to apply. | lib/setup.js:365 | SCN-008, SCN-014 | proposed | copy |
+| setup.plan-header | Plan (nothing was changed): | lib/setup.js:350 | SCN-008 | proposed | copy |
+| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved. | lib/setup.js:359 | SCN-008 | proposed | copy |
+| setup.plan-forget-train | forget the saved release train | lib/setup.js:338 | SCN-008 | proposed | copy |
+| setup.plan-train | save release train ${t} | lib/setup.js:338 | SCN-008 | proposed | copy |
+| setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:359 | SCN-008 | proposed | copy |
+| setup.open-now | Open now: | lib/setup.js:390 | SCN-008 | proposed | layout |
+| setup.still-open | Still open: | lib/setup.js:390 | SCN-009 | proposed | layout |
+| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:394 | SCN-008 | proposed | copy |
+| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:398 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:399 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:400 | SCN-008, SCN-009 | proposed | copy |
 | trains.not-a-name | "${id}" is not a release train name | lib/trains.js:19 | SCN-014 | proposed | copy |
 | trains.unknown | no release train "${id}" in this launcher (known: ${list().join(', ')}) | lib/trains.js:22 | SCN-014 | proposed | copy |
 | trains.none-shipped | no release train "${id}": this launcher ships no release train | lib/trains.js:22 | SCN-014 | proposed | copy |
