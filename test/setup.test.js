@@ -351,6 +351,8 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
   const declinedTrain = run({ planOnly: true, declined: true, trainNotSaved: 'org-test' });
   assert.doesNotMatch(declinedTrain, /save release train/);
   assert.match(declinedTrain, /The release train \(org-test\) was not saved\./);
+  assert.doesNotMatch(declinedTrain, /Run it/); // PC-107: a declined run is no plan to apply
+  assert.doesNotMatch(run({ planOnly: true, dryRun: true }), /Run it/); // nothing to apply, no footer
   // doctor --fix in text above a failing check it cannot repair: the pointer, and exit 1.
   const api = await releaseServer(t);
   const m = machine();
