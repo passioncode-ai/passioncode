@@ -770,7 +770,7 @@ test('PC-91: runs that declined nothing keep their old report', () => {
   assert.match(render({ ...base, humanSteps: ['open it once'] }), /\nYour steps \(sign-ins, consents and secrets in hidden prompts need you in person\):\n  1\. open it once/);
   // PC-92: an untaken default-no offer is named, neither "in place" nor "declined".
   const one = render({ ...base, notTaken: ['Fabric'] });
-  assert.match(one, /Nothing was changed: Fabric was offered and not installed\. The checks below still stand\./);
+  assert.match(one, /Nothing was changed: Fabric was offered and not installed\.\n/); // no check open: no pointer (PC-105)
   assert.doesNotMatch(one, /in place|You declined/);
   assert.match(render({ ...base, notTaken: ['Fabric', 'Fabric Inbox'] }), /Fabric and Fabric Inbox were offered and not installed/);
   // PC-101: skipped by a run that asked nothing; a declined run that left a default-no offer.
@@ -906,7 +906,7 @@ test('PC-89: the unusable-train fix plans no install; a withheld train is named 
   assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8')).train, undefined);
   fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
   const text = await cli(m, api, 'setup', '--offline', '--train', 'none');
-  assert.match(text.stdout, /release train \(none\) was not saved: run it with --yes/);
+  assert.match(text.stdout, /  • forget the saved release train\n\nThe saved release train was not forgotten: run it with --yes, or answer in a terminal\./);
 });
 
 // The seventh seam reading of PC-89: changing the saved train is a change, reported in actions and text.
