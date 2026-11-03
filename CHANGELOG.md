@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.65 - 2026-11-03
+
+### Fixed
+
+- **Your steps after a declined answer** (PC-94). A terminal run that answers no to its repairs keeps `setup` among the
+  person's steps (where a failing or warning check's fix names it), whatever else it took: an install, or forgetting the
+  saved train with `--train none`, which used to make the run count as that command. After a declined train, Fabric's
+  note asks for it with that train (`setup --train <name> --with fabric`); Fabric named with `--with fabric` without its
+  prerequisites and then answered no is "not installed" in the steps, not "installed because you asked for it". A declined run lists no plan under its
+  headline, which points at the checks when one is still open.
+- The em dash guard reads JavaScript and Markdown more as they are read (PC-97). In code: strings, template literals
+  with their `${}` nesting and regular expressions (after a keyword such as `return` too) are code, so a template line
+  that starts with `//` or `/*` and code after a block comment's `*/` are checked, while a trailing comment is not; it
+  also catches `\u{02014}` and a `fromCharCode`/`fromCodePoint` call that names 0x2014, 8212, 8_212 or 0o20024 on its
+  own line. In the documentation: double-backtick code spans, a span over lines of one paragraph that ends at a heading,
+  a list item, a block quote, a thematic break, a setext underline or a table row that starts with `|`, an escaped
+  backtick, and a ``` opener whose info string holds a backtick (no fence); a JSON file pairs spans within a line. The
+  test pins each of these, and its header names the cases it still cannot see.
+
 ## 0.2.64 - 2026-11-03
 
 ### Changed

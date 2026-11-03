@@ -626,6 +626,7 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
     assert.match(r.text, /You declined every offer; nothing was changed/, r.text);
     assert.doesNotMatch(r.text, /in place|Nothing to do|run it with --yes/, r.text);
     if (opts.train) assert.match(r.text, /The release train \(org-test\) was not saved\./, r.text);
+    assert.doesNotMatch(r.text, /^ {2}[•–] /m, r.text); // PC-94: a declined run lists no plan lines
   }
   // Forgetting a saved train is a change on any answer, so that run is not reported as declined.
   // A running app behind its pin: its fix ("quit it, then run setup") names the declined train too.
@@ -641,6 +642,115 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
   assert.equal(none.declined, undefined, none.text);
   assert.deepEqual(none.actions.map((a) => a.kind), ['train'], none.text);
   assert.match(none.text, /forgot release train org-test/, none.text);
+});
+
+// PC-94: the edges PC-91 left. A run that forgets a train but answers no to its repairs was not
+// `setup`; after a declined train, asking for an app is setup with that train; a declined run lists no plan.
+test('PC-94: steps after declined repairs and a declined train, and no plan under a declined headline', async (t) => {
+  const api = await releaseServer(t);
+  const run = (m, opts) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      S.setup(Object.assign({ online: false, ask: async () => 'n' }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, actions: r.actions, plan: r.plan, steps: r.humanSteps, exit: S.exitCode(r), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  // A saved train and an app behind its pin: forgetting the train saves it on any answer, and the
+  // repairs answered no still leave `setup` among the steps (it used to read as "this run was setup").
+  const m = onTrain(machine());
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' });
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const none = run(m, { train: null, noApps: false });
+  assert.equal(none.declined, undefined, none.text);
+  assert.deepEqual(none.actions.map((a) => a.kind), ['train'], none.text);
+  assert.ok(none.plan.some((i) => i.kind !== 'install' && !i.selected), JSON.stringify(none.plan));
+  assert.ok(none.steps.some((s) => / setup$/.test(s)), JSON.stringify(none.steps));
+  // A declined train on a Mac without Docker: Fabric's note asks for it with that train, and the
+  // declined headline stands above the checks with no plan lines under it.
+  const n = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
+  installApp(n, catalog.byId('switchboard'), { version: '1.0.0' });
+  const declined = run(n, { train: 'org-test', noApps: false });
+  assert.equal(declined.declined, true, declined.text);
+  assert.ok(declined.steps.some((s) => /^Fabric: .*\(npx @passioncode-ai\/passioncode@latest setup --train org-test --with fabric\)$/.test(s)), JSON.stringify(declined.steps));
+  assert.doesNotMatch(declined.text, /^ {2}[•–] /m, declined.text);
+  assert.match(declined.text, /You declined every other offer, and Fabric was not installed; nothing was changed\./, declined.text);
+  // Without a train, the note keeps its own words (`--with fabric` is plain setup's flag).
+  const plain = run(n, { noApps: false });
+  assert.ok(plain.steps.some((s) => /^Fabric: .*\(--with fabric\)$/.test(s)), JSON.stringify(plain.steps));
+  // Fabric named with --with and then answered no was not installed, with or without a train.
+  for (const [opts, step] of [[{}, '--with fabric'], [{ train: 'org-test' }, 'npx @passioncode-ai/passioncode@latest setup --train org-test --with fabric']]) {
+    const asked = run(n, { noApps: false, withIds: ['fabric', 'switchboard'], ...opts });
+    assert.ok(asked.steps.every((s) => !/installed because you asked/.test(s)), JSON.stringify(asked.steps));
+    assert.ok(asked.steps.includes(`Fabric: needs Docker (OrbStack or Docker Desktop); not installed (${step})`), JSON.stringify(asked.steps));
+  }
+  // The only repair a replace (the skill set already in place): answered no, `setup` stays a step.
+  const r = onTrain(machine());
+  installApp(r, catalog.byId('switchboard'), { version: '1.0.0' });
+  assert.equal((await cli(r, api, 'setup', '--yes', '--no-apps')).status, 0);
+  fs.writeFileSync(path.join(r.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const replace = run(r, { train: null, noApps: false, online: true });
+  assert.deepEqual([...new Set(replace.plan.filter((i) => i.kind !== 'install').map((i) => i.kind))], ['replace'], JSON.stringify(replace.plan));
+  assert.ok(replace.steps.some((s) => / setup$/.test(s)), JSON.stringify(replace.steps));
+  // An install taken and the repairs answered no: the run changed something, and `setup` stays a step.
+  const mixed = onTrain(machine());
+  installApp(mixed, catalog.byId('switchboard'), { version: '1.0.0' });
+  const mixedScript = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: true, noOpen: true, withIds: ['dashboards', 'switchboard'], ask: async (q) => (/^Install /.test(q) ? 'y' : 'n') })
+      .then((r) => process.stdout.write(JSON.stringify({ actions: r.actions, plan: r.plan, steps: r.humanSteps })), (e) => { console.error(e); process.exit(1); });`;
+  // Asynchronous: the release server answers from this process, which spawnSync would block.
+  const mixedRun = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', mixedScript], { env: cliEnv(mixed, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(mixedRun.status, 0, mixedRun.stderr);
+  const took = JSON.parse(mixedRun.stdout);
+  assert.ok(took.actions.some((a) => a.kind === 'install' && a.outcome === 'done'), mixedRun.stdout);
+  assert.ok(took.plan.some((i) => i.kind !== 'install' && !i.selected), mixedRun.stdout);
+  assert.ok(took.steps.some((s) => / setup$/.test(s)), mixedRun.stdout);
+  // The other direction: a run that took its repairs was that command. Here the person left
+  // Switchboard's reinstall out with --without, so its check stays open with the fix `setup`, and
+  // the step is not repeated (it does not carry the run's --without either, PC-94).
+  const yesRepairs = onTrain(machine());
+  installApp(yesRepairs, catalog.byId('switchboard'), { version: '1.0.0' });
+  fs.mkdirSync(path.join(yesRepairs.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(yesRepairs.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const yesScript = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: false, noOpen: true, withoutIds: ['switchboard'], ask: async (q) => (/^Install /.test(q) ? 'n' : 'y') })
+      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, steps: r.humanSteps, open: r.after.checks.filter((c) => c.state === 'fail' || c.state === 'warn') })), (e) => { console.error(e); process.exit(1); });`;
+  const yesRun = require('child_process').spawnSync(process.execPath, ['-e', yesScript], { env: cliEnv(yesRepairs, api), encoding: 'utf8' });
+  assert.equal(yesRun.status, 0, yesRun.stderr);
+  const yes = JSON.parse(yesRun.stdout);
+  assert.ok(yes.plan.every((i) => i.kind === 'install' || i.selected), yesRun.stdout);
+  assert.ok(yes.open.some((c) => c.fix === 'npx @passioncode-ai/passioncode@latest setup'), yesRun.stdout);
+  assert.ok(!yes.steps.some((s) => / setup$/.test(s)), yesRun.stdout);
+  // But a declined run is never that command (PC-91), --without or not: with no repair offered at all
+  // (the skill set in place, Switchboard's reinstall left out), declining every install keeps `setup`.
+  const noRepairs = onTrain(machine());
+  installApp(noRepairs, catalog.byId('switchboard'), { version: '1.0.0' });
+  assert.equal((await cli(noRepairs, api, 'setup', '--yes', '--no-apps', '--without', 'switchboard')).status, 0);
+  fs.writeFileSync(path.join(noRepairs.home, '.passioncode/state.json'), JSON.stringify({ train: 'org-test' }));
+  const declinedScript = yesScript.replace("ask: async (q) => (/^Install /.test(q) ? 'n' : 'y')", "ask: async () => 'n'")
+    .replace('.then((r) => process.stdout.write(JSON.stringify({ plan', '.then((r) => process.stdout.write(JSON.stringify({ declined: r.declined, plan');
+  const declinedRun = require('child_process').spawnSync(process.execPath, ['-e', declinedScript], { env: cliEnv(noRepairs, api), encoding: 'utf8' });
+  assert.equal(declinedRun.status, 0, declinedRun.stderr);
+  const declinedOut = JSON.parse(declinedRun.stdout);
+  assert.equal(declinedOut.declined, true, declinedRun.stdout);
+  assert.ok(declinedOut.plan.every((i) => i.kind === 'install'), declinedRun.stdout);
+  assert.ok(declinedOut.steps.some((s) => / setup$/.test(s)), declinedRun.stdout);
+  // A declined train is judged by its own checks: the unusable saved train's fail row does not count,
+  // so the run exits 0 where plain doctor (on the saved train) exits 1.
+  const g = onTrain(machine());
+  assert.equal((await cli(g, api, 'setup', '--yes', '--no-apps')).status, 0);
+  fs.writeFileSync(path.join(g.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const gone = run(g, { train: 'org-test', noApps: false });
+  assert.equal(gone.declined, true, gone.text);
+  assert.equal(gone.exit, 0, gone.text);
+  assert.equal((await cli(g, api, 'doctor', '--json', '--offline')).status, 1);
 });
 
 // PC-92: after everything else is set up, a terminal run whose only offer defaults to no (Fabric
