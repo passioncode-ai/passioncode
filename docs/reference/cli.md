@@ -79,7 +79,7 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
-`none`) when a run named a train but was only a plan (a `--json` run never asks, so the
+`none` when a train is saved) when a run named a train other than the saved one but was only a plan (a `--json` run never asks, so the
 "declined every offer" and "offered and not installed" reports of a terminal run have no
 counterpart in it). A run that changes the
 saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set and no

@@ -32,6 +32,10 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   repairs what is wrong (skills, MCP registrations, an outdated or damaged app that is not
   running, a stopped service its supervisor owns), checks again and returns JSON.
 - A healthy machine: an empty `actions` list, exit 0. Running it again is always safe.
+- Exit 0: no step and no check failed; 1: a step or a check failed; 2: bad arguments. A plan
+  (`planOnly: true`: `--dry-run`, or a run without `--yes` that would change something, since a
+  `--json` run never asks) changes nothing and exits 0 even when a check fails: read
+  `after.summary` and `plan`, not the exit code alone.
 - Use `--with <ids>` / `--without <ids>` for a subset (`switchboard`, `dashboards`,
   `observatory`, `inbox`, `fabric`), `--no-apps` for skills and MCP only, `--dry-run` to show
   the plan first. Fabric is an early preview and needs Docker (or OrbStack) and the Supabase CLI;
