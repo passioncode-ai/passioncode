@@ -13,7 +13,8 @@
   instead of naming a train "(none)" (PC-105). The line is in the text report; `--json` keeps the train in `trainNotSaved`,
   and the setting-up skill now reports it from there.
 - **Agent-facing docs:** the setting-up skill says a declined terminal run is not a plan and exits by its checks, and
-  `docs/reference/cli.md` says a plan carries no `humanSteps`, a declined named train excepted (PC-105).
+  `docs/reference/cli.md` says a plan carries no `humanSteps`, and that a declined run that named a train is the
+  person's answer, not a plan, so its steps name `setup --train <name>` (PC-105).
 
 ### Fixed
 

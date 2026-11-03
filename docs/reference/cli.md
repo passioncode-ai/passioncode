@@ -79,7 +79,8 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
-`none` when a train is saved) when a run named a train other than the saved one but was only a plan.
+`none` when a train is saved) when a run named a train other than the saved one but was only a plan, or was a declined
+terminal run that named one.
 A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
 `notTaken` names the apps whose offer defaulted to no (Fabric without its prerequisites), since leaving those is not
 declining them. A terminal run that changed nothing without declining names them in `notTaken` alone. Both come only
