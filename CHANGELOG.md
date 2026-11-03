@@ -15,7 +15,8 @@
   and code after a block comment's `*/` are checked, while a trailing comment is not; it also catches `\u{02014}` and a
   literal `fromCharCode`/`fromCodePoint` call naming 0x2014, 8212 (or `8_212`) or 0o20024 among its arguments. The documentation guard reads code spans and fences
   as CommonMark does: double-backtick spans, a span over two lines of one paragraph (never into a heading, a list item,
-  a table row, a block quote or a thematic break; a JSON file pairs within a line), an escaped backtick, and a ```
+  a table row that starts with `|`, a block quote, a thematic break or a setext underline; a JSON file pairs within a
+  line), an escaped backtick, and a ```
   opener whose info string holds a backtick (no fence). The test header names what it still cannot see.
 
 ## 0.2.64 - 2026-11-03

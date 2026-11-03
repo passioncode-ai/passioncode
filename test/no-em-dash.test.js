@@ -101,6 +101,7 @@ test('PC-95: the guard catches the character and its escapes', () => {
   assert.ok(DASH.test('String.fromCharCode(0x2014)') && DASH.test('String.fromCodePoint( 8212 )')); // PC-97
   assert.ok(DASH.test('String.fromCharCode(0X2014)') && DASH.test('String.fromCharCode(97, 0x2014)'));
   assert.ok(DASH.test('String.fromCharCode(8_212)') && DASH.test('String.fromCodePoint(0o20024)'));
+  assert.ok(DASH.test('String.fromCharCode(0x02014)') && DASH.test('String.fromCodePoint(0o020024)')); // zero-padded
   assert.ok(!DASH.test('a: b, c; d (e)') && !DASH.test('String.fromCharCode(0x2013)'));
 });
 
@@ -144,6 +145,10 @@ test('PC-97: template lines that look like comments, and code after a block comm
   // After a keyword a `/` starts a regular expression, even one that holds `/*`.
   const kw = 'function f(s) { return /a\\/*b/.test(s); }\nconst m = "y ' + D + '";\n// */\nconst q = typeof x / 2; const z = "w ' + D + '";\n';
   assert.deepEqual(codeLines(kw).filter(([, l]) => DASH.test(l)).map(([n]) => n), [2, 4]);
+  // Every keyword that can precede a regular expression: a `//` in its class is no comment.
+  for (const k of ['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await']) {
+    assert.deepEqual(codeLines(`x = ${k} /[//]/; const s = "${D}";`).filter(([, l]) => DASH.test(l)).map(([n]) => n), [1], k);
+  }
 });
 
 test('PC-95: the guard reads template lines and strings as code', () => {
@@ -158,8 +163,9 @@ test('PC-95: the guard reads template lines and strings as code', () => {
 // PC-97: fences and code spans are read as CommonMark reads them: a ``` opener's info string holds
 // no backtick, a tab-indented line opens no fence, a code span opens on a run of backticks that a
 // backslash does not escape and closes on the next run of the same length, within its paragraph
-// (so it may span lines, but not into a heading, a table row, a block quote, a thematic break, a
-// setext underline or a new list item; a JSON file pairs within a line). Known blind spots: indented code blocks (a tab-indented ``` among them,
+// (so it may span lines, but not into a heading, a table row that starts with `|`, a block quote,
+// a thematic break, a setext underline or a new list item; a JSON file pairs within a line). Known
+// blind spots: a table row without a leading `|`, indented code blocks (a tab-indented ``` among them,
 // whose backticks may pair as a span here), HTML blocks, link destinations, and an autolink or
 // inline HTML holding a backtick (CommonMark binds those before spans) are read as prose,
 // and a fence inside a list item or a block quote opens only at the start of a line.
@@ -222,7 +228,7 @@ function proseLines(text, { json = false } = {}) {
     // heading, a table row, a thematic break and a setext underline also end there: a code span never
 // runs across them.
     // A JSON file is read line by line: its strings are not a paragraph.
-    const own = json || /^ {0,3}#{1,6}(\s|$)|^\s*\||^ {0,3}([-*_])( *\2){2,} *$|^ {0,3}(=+|-+) *$/.test(line);
+    const own = json || /^ {0,3}#{1,6}(\s|$)|^\s*\||^ {0,3}([-*_])([ \t]*\2){2,}[ \t]*$|^ {0,3}(=+|-+)[ \t]*$/.test(line);
     if (own || /^ {0,3}(>|[-*+]\s|\d+[.)]\s)/.test(line)) flush();
     par.push([n + 1, line]);
     if (own) flush();
@@ -269,12 +275,16 @@ test('PC-97: code spans and fences as CommonMark reads them', () => {
   // A ``` line whose info string holds a backtick is no fence.
   assert.deepEqual(docDashes('```a`b\n' + D + '\n```\n'), [2]);
   // A span ends at a block boundary: a heading, a list item, a table row or a block quote.
-  for (const t of ['# a `b\nc ' + D + ' d `e`\n', '- a `b\n- c ' + D + ' d `e`\n', '| a | `b |\n| c ' + D + ' | `e` |\n', '> a `b\n\n> c ' + D + ' d `e`\n']) {
+  for (const t of ['# a `b\nc ' + D + ' d `e`\n', '- a `b\n- c ' + D + ' d `e`\n', '* a `b\n* c ' + D + ' d `e`\n', '+ a `b\n+ c ' + D + ' d `e`\n',
+    '1. a `b\n2. c ' + D + ' d `e`\n', '1) a `b\n2) c ' + D + ' d `e`\n', '| a | `b |\n| c ' + D + ' | `e` |\n', '> a `b\n\n> c ' + D + ' d `e`\n']) {
     assert.deepEqual(docDashes(t), [t.split('\n').findIndex((l) => l.includes(D)) + 1], JSON.stringify(t));
   }
   // A thematic break and a setext underline end a paragraph; a JSON file pairs within a line.
-  assert.deepEqual(docDashes('a `b\n***\nc ' + D + ' `d`\n'), [3]);
-  assert.deepEqual(docDashes('a `b\n---\nc ' + D + ' `d`\n'), [3]);
+  for (const brk of ['***', '---', '___', '* * *', '***\t', '===', '===\t', '---\t']) {
+    assert.deepEqual(docDashes('a `b\n' + brk + '\nc ' + D + ' `d`\n'), [3], JSON.stringify(brk));
+  }
+  // Four spaces before ``` open no fence (that is indented code): the dash after it is prose.
+  assert.deepEqual(docDashes('    ```\n' + D + '\n```\nx\n```\n'), [2]);
   assert.deepEqual(docDashes('{\n "a": "the ` key",\n "b": "x ' + D + ' y",\n "c": "`z`"\n}\n', { json: true }), [3]);
   // A fence ends the paragraph before it: a backtick above it pairs with nothing below it.
   assert.deepEqual(docDashes('a `b\n```\nx\n```\nc ' + D + ' `d`\n'), [5]);
