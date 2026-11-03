@@ -603,7 +603,7 @@ test('PC-101: a re-run that asks nothing names the app it skipped, with and with
     assert.deepEqual(out.skipped, ['Fabric'], r.stdout);
     assert.equal(out.notTaken, undefined, r.stdout);
     assert.equal(out.declined, undefined, r.stdout);
-    // Not a plan: nothing would change, so the run exits by its checks (PC-104 asked for this exit).
+    // Not a plan: nothing would change, so the run exits by its checks (all pass here; a failing check is PC-104).
     assert.equal(out.planOnly, false, r.stdout);
     assert.equal(r.status, out.ok ? 0 : 1, r.stdout);
     assert.ok(out.humanSteps.some((x) => /^Fabric: needs Docker/.test(x)), JSON.stringify(out.humanSteps));

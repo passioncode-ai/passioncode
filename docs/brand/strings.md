@@ -23,8 +23,8 @@ Contract: brand-contract v1
 | setup.install-question.preview | (early preview) | lib/setup.js:140 | SCN-008 | proposed | copy |
 | setup.not-taken | Nothing was changed: ${were(names)} offered and not installed. The checks below still stand. | lib/setup.js:309 | SCN-009 | proposed | copy |
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below). The checks below still stand. | lib/setup.js:310 | SCN-009 | proposed | copy |
-| setup.declined | You declined every offer; nothing was changed. The checks below still stand. | lib/setup.js:308 | SCN-009 | proposed | copy |
-| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed. The checks below still stand. | lib/setup.js:307 | SCN-009 | proposed | copy |
+| setup.declined | You declined every offer; nothing was changed. The checks below still stand. | lib/setup.js:308 | SCN-008, SCN-009 | proposed | copy |
+| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed. The checks below still stand. | lib/setup.js:307 | SCN-008, SCN-009 | proposed | copy |
 | setup.in-place | Everything this command can set up is in place; nothing was changed. | lib/setup.js:325 | SCN-009 | proposed | copy |
 | setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:350 | SCN-008 | proposed | copy |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |

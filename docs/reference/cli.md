@@ -80,11 +80,12 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `trainNotSaved` (the train, or
 `none` when a train is saved) when a run named a train other than the saved one but was only a plan.
-A terminal run that answered no to every offer that defaulted to yes is `declined: true`; its `notTaken` names the apps
-whose offer defaulted to no (Fabric without its prerequisites), since leaving those is not declining them. A terminal run
-that changed nothing without declining names them in `notTaken` alone. A run that asked nothing (`--yes`, or no terminal,
-which includes every `--json` run) and changed nothing names the install offers it skipped by default in `skipped`; their
-notes are among `humanSteps`. A run that changes the
+A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
+`notTaken` names the apps whose offer defaulted to no (Fabric without its prerequisites), since leaving those is not
+declining them. A terminal run that changed nothing without declining names them in `notTaken` alone. A run that asked
+nothing (`--yes`, or no terminal, which includes every `--json` run), changed nothing and was not a plan (`planOnly`
+false) names the install offers it skipped by default in `skipped`; their notes are among `humanSteps`. A plan shows the
+same apps as `install` items with `selected` false and their note. A run that changes the
 saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set and no
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
