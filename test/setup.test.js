@@ -570,6 +570,21 @@ test('PC-92: an untaken default-no offer is named, not reported as everything in
   assert.doesNotMatch(out.text, /in place|You declined/, out.text);
 });
 
+// PC-92: a run that took other offers and left Fabric is not "nothing was changed".
+test('PC-92: a run that takes some offers does not mark the others as not taken', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: false, ask: async (q) => (/^Install Fabric /.test(q) ? 'n' : 'y') })
+      .then((r) => process.stdout.write(JSON.stringify({ notTaken: r.notTaken, actions: r.actions.length, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+  const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.ok(out.actions > 0, out.text);
+  assert.equal(out.notTaken, undefined, out.text);
+  assert.doesNotMatch(out.text, /offered and not installed/, out.text);
+});
+
 test('PC-91: runs that declined nothing keep their old report', () => {
   const { render } = require('../lib/setup');
   const empty = { summary: {}, checks: [] };

@@ -8,7 +8,7 @@
   offered without Docker (an offer that defaults to no), says "Nothing was changed: Fabric was
   offered and not installed. The checks below still stand." instead of "Everything this command can
   set up is in place" (PC-92). It does not say "declined": pressing Enter on an offer that defaults
-  to no is not declining (PC-89). A run that answered no to every offer, at least one of them
+  to no is not declining (PC-89, as its test `a run nobody agreed to saves no train` holds). A run that answered no to every offer, at least one of them
   defaulting to yes, still says "You declined every offer" (PC-91).
 
 ## 0.2.55 - 2026-11-03
