@@ -692,6 +692,25 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
   const replace = run(r, { train: null, noApps: false, online: true });
   assert.deepEqual([...new Set(replace.plan.filter((i) => i.kind !== 'install').map((i) => i.kind))], ['replace'], JSON.stringify(replace.plan));
   assert.ok(replace.steps.some((s) => / setup$/.test(s)), JSON.stringify(replace.steps));
+  // An install taken and the repairs answered no: the run changed something, and `setup` stays a step.
+  const mixed = onTrain(machine());
+  installApp(mixed, catalog.byId('switchboard'), { version: '1.0.0' });
+  const mixedScript = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: true, noOpen: true, withIds: ['dashboards', 'switchboard'], ask: async (q) => (/^Install /.test(q) ? 'y' : 'n') })
+      .then((r) => process.stdout.write(JSON.stringify({ actions: r.actions, plan: r.plan, steps: r.humanSteps })), (e) => { console.error(e); process.exit(1); });`;
+  // Asynchronous: the release server answers from this process, which spawnSync would block.
+  const mixedRun = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', mixedScript], { env: cliEnv(mixed, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(mixedRun.status, 0, mixedRun.stderr);
+  const took = JSON.parse(mixedRun.stdout);
+  assert.ok(took.actions.some((a) => a.kind === 'install' && a.outcome === 'done'), mixedRun.stdout);
+  assert.ok(took.plan.some((i) => i.kind !== 'install' && !i.selected), mixedRun.stdout);
+  assert.ok(took.steps.some((s) => / setup$/.test(s)), mixedRun.stdout);
   // A declined train is judged by its own checks: the unusable saved train's fail row does not count,
   // so the run exits 0 where plain doctor (on the saved train) exits 1.
   const g = onTrain(machine());
