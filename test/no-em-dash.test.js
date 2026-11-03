@@ -5,8 +5,9 @@
 // (with their `${}` nesting) and regular expressions are code wherever they start, and a comment
 // is a `//` or `/* */` met outside them, so a template line that starts with `//` is code and so
 // is code after a block's `*/`. Known blind spots: a dash built at run time from anything but a
-// literal `fromCharCode`/`fromCodePoint` call with 0x2014 or 8212, and a `/` the scanner reads as
-// a regular expression where JavaScript reads a division (after `)` or `]` it reads a division).
+// literal `fromCharCode`/`fromCodePoint` call with 0x2014 or 8212, and a `/` the scanner reads
+// unlike JavaScript (after `)`, `]` or a name it reads a division, after a keyword such as
+// `return` a regular expression).
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -37,6 +38,8 @@ function codeLines(text) {
   const stack = []; // open template literals, each with the brace depth of its `${}`
   let i = 0;
   let prev = ''; // the last significant code character, to tell a regular expression from a division
+  let word = ''; // the identifier or keyword that ends just before it, if any
+  const KEYWORDS = /^(return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)$/;
   while (i < src.length) {
     const c = src[i];
     const d = src[i + 1];
@@ -60,7 +63,7 @@ function codeLines(text) {
       if (src[i] === '`') { keep(src[i++]); prev = '`'; } else if (i < src.length) { keep(src[i++]); keep(src[i++]); stack.push(0); prev = '{'; }
       continue;
     }
-    if (c === '/' && !/[\w$)\]'"`]/.test(prev)) {
+    if (c === '/' && (!/[\w$)\]'"`]/.test(prev) || KEYWORDS.test(word))) {
       keep(c); i += 1;
       let cls = false;
       while (i < src.length && src[i] !== '\n' && (cls || src[i] !== '/')) {
@@ -70,11 +73,11 @@ function codeLines(text) {
         if (i < src.length) keep(src[i++]);
       }
       if (i < src.length && src[i] === '/') keep(src[i++]);
-      prev = 'x'; continue;
+      prev = 'x'; word = ''; continue;
     }
     if (stack.length && c === '{') stack[stack.length - 1] += 1;
     if (stack.length && c === '}') stack[stack.length - 1] -= 1;
-    if (!/\s/.test(c)) prev = c;
+    if (!/\s/.test(c)) { word = /[\w$]/.test(c) ? (/[\w$]/.test(prev) ? word : '') + c : ''; prev = c; }
     keep(c); i += 1;
   }
   return kept.map((l, n) => [n + 1, l]).filter(([, l]) => l.trim());
@@ -116,6 +119,9 @@ test('PC-97: template lines that look like comments, and code after a block comm
   ].join('\n');
   assert.deepEqual(codeLines(sample).filter(([, l]) => DASH.test(l)).map(([n]) => n), [1, 3, 4, 6, 7, 8, 10]);
   assert.doesNotMatch(codeLines(sample).find(([n]) => n === 8)[1], /e \u2014/, 'a trailing comment is a comment');
+  // After a keyword a `/` starts a regular expression, even one that holds `/*`.
+  const kw = 'function f(s) { return /a\\/*b/.test(s); }\nconst m = "y ' + D + '";\n// */\nconst q = typeof x / 2; const z = "w ' + D + '";\n';
+  assert.deepEqual(codeLines(kw).filter(([, l]) => DASH.test(l)).map(([n]) => n), [2, 4]);
 });
 
 test('PC-95: the guard reads template lines and strings as code', () => {
@@ -130,7 +136,7 @@ test('PC-95: the guard reads template lines and strings as code', () => {
 // PC-97: fences and code spans are read as CommonMark reads them: a ``` opener's info string holds
 // no backtick, a tab-indented line opens no fence, a code span opens on a run of backticks that a
 // backslash does not escape and closes on the next run of the same length, within its paragraph
-// (so it may span lines). Known blind spots: indented code blocks (a tab-indented ``` among them,
+// (so it may span lines, but not into a heading, a table row, a block quote or a new list item). Known blind spots: indented code blocks (a tab-indented ``` among them,
 // whose backticks may pair as a span here), HTML blocks and link destinations are read as prose,
 // and a fence inside a list item or a block quote opens only at the start of a line.
 const DOCS = ['README.md', 'SECURITY.md', 'COMMERCIAL-LICENSE.md', 'docs/README.md', 'docs/reference', 'docs/ux', 'docs/brand',
@@ -188,7 +194,12 @@ function proseLines(text) {
     if (fence !== null && bare && bare[1][0] === fence[0] && bare[1].length >= fence.length) { fence = null; held = []; return; }
     if (fence !== null) { held.push([n + 1, line]); return; }
     if (!line.trim()) { flush(); return; }
+    // A heading, a table row, a block quote and a list item each start a block of their own, and a
+    // heading or a table row also ends there: a code span never runs across them.
+    const own = /^ {0,3}#{1,6}(\s|$)|^\s*\|/.test(line);
+    if (own || /^ {0,3}(>|[-*+]\s|\d+[.)]\s)/.test(line)) flush();
     par.push([n + 1, line]);
+    if (own) flush();
   });
   flush();
   return out.concat(held);
@@ -231,6 +242,10 @@ test('PC-97: code spans and fences as CommonMark reads them', () => {
   assert.deepEqual(docDashes('a \\` ' + D + ' `b`\n'), [1]);
   // A ``` line whose info string holds a backtick is no fence.
   assert.deepEqual(docDashes('```a`b\n' + D + '\n```\n'), [2]);
+  // A span ends at a block boundary: a heading, a list item, a table row or a block quote.
+  for (const t of ['# a `b\nc ' + D + ' d `e`\n', '- a `b\n- c ' + D + ' d `e`\n', '| a | `b |\n| c ' + D + ' | `e` |\n', '> a `b\n\n> c ' + D + ' d `e`\n']) {
+    assert.deepEqual(docDashes(t), [t.split('\n').findIndex((l) => l.includes(D)) + 1], JSON.stringify(t));
+  }
   // A run with no closer of its length is literal: the dash after it is prose.
   assert.deepEqual(docDashes('a `` b ' + D + ' ` c\n'), [1]);
 });
