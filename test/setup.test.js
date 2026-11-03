@@ -931,6 +931,28 @@ test('PC-108: an install answered no without a note adds no step of its own', as
   assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), JSON.stringify(out.steps));
 });
 
+// PC-108: only an app that bundles an MCP server forces the update after declined repairs; one whose
+// server is external (Project Observatory) is installed without refreshing the skill set.
+test('PC-108: an app with an external MCP server forces no update after declined repairs', async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  assert.ok(catalog.byId('observatory').mcp.external);
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ online: true, noOpen: true, withIds: ['observatory'], ask: async (q) => (/^Install /.test(q) ? 'y' : 'n') })
+      .then((r) => process.stdout.write(JSON.stringify({ actions: r.actions, plan: r.plan })), (e) => { console.error(e); process.exit(1); });`;
+  const run = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  assert.ok(out.plan.some((i) => i.kind === 'update' && !i.selected), run.stdout); // the repairs were answered no
+  assert.deepEqual(out.actions.map((a) => `${a.kind}:${a.product}:${a.outcome}`), ['install:observatory:done'], run.stdout);
+});
+
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
 test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaults to no is still asked', async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });

@@ -4,9 +4,10 @@
 
 ### Changed
 
-- `docs/reference/cli.md` and SCN-009 say that an app a run installs still gets its MCP server registered when the
-  person answered no to the repairs, and that this update also refreshes the skill set (PC-108). An app answered no
-  that has no note is no step of its own: the run's `setup` step offers it again.
+- `docs/reference/cli.md` and SCN-009 say that an app a run installs that bundles an MCP server (Fabric Switchboard,
+  Fabric Dashboards, Fabric) still gets it registered when the person answered no to the repairs, and that this update
+  also refreshes the skill set (PC-108). An app answered no that has no note is no step of its own: running `setup`
+  again offers it.
 - Tests (PC-108): a declined terminal run on Windows (no install is asked there; nothing changes, `setup` stays a
   step, exit 1 while a check fails), an install answered no without a note, and the update an install forces after
   declined repairs.
