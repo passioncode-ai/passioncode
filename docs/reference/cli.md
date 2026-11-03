@@ -22,7 +22,8 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
-skipped steps; `doctor` and `setup` found no failing check); **1** means an
+skipped steps; `doctor` and `setup` found no failing check, or `setup` only returned a plan,
+`planOnly: true`); **1** means an
 operation or supported config value failed, or a `doctor`/`setup` check still
 fails; **2** means an unknown command or unsupported arguments. `--quiet` suppresses
 successful update output, including JSON, but never hides failed update steps.
@@ -91,8 +92,10 @@ and `after` are doctor results; `humanSteps` lists, once each, every remaining
 fix, each product's onboarding for apps installed in this run, and the restart.
 
 Questions are asked only on a terminal: one per absent app and one for the
-repairs. Without a terminal and without `--yes`, or with `--dry-run`, the plan
-is returned with `planOnly: true`, nothing changes, and the exit code is 0.
+repairs. With `--dry-run`, or without a terminal and without `--yes` when the run would change
+something (an offer selected or a new train named), the plan is returned with `planOnly: true`,
+nothing changes, and the exit code is 0; without a terminal and without `--yes` a run with nothing
+to change runs as `setup` does and exits by its checks.
 `setup` exits 1 when an action failed or a check still fails after the
 repairs. A terminal run that declined every offer (PC-91) exits by its checks the
 same way, 1 when a check still fails, whether or not it named a train (PC-93). `doctor --fix` is `setup --yes` with no `install` items and nothing

@@ -108,8 +108,8 @@ does not answer is started through launchd (`launchctl kickstart`, never a kill)
 
 `doctor` changes nothing. It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of
-the family; each line names its state and its fix. Exit codes: **0** no check failed, **1** a
-check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without
+the family; each line names its state and its fix. Exit codes: **0** no check failed (or `setup`
+only showed its plan), **1** a check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without
 installing new apps. Details: the [CLI contract](docs/reference/cli.md#setup-and-doctor).
 
 **Release trains.** An organization's machines install one set of pinned app versions instead of

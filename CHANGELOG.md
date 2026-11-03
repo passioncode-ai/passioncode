@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.58 - 2026-11-03
+
+### Fixed
+
+- `help` says that exit code 0 also means only a plan was shown, and `docs/reference/cli.md` says
+  when a run without a terminal and without `--yes` is a plan: only when it would change something;
+  otherwise it exits by its checks (PC-100). The setup and doctor variant of "unsupported
+  arguments" is in the string registry. The help test now reads the flags setup parses by pattern
+  and the command aliases from the parser itself, and the string registry test requires each
+  location to hold the longest literal run of its text.
+
 ## 0.2.57 - 2026-11-03
 
 ### Fixed
