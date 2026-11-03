@@ -13,7 +13,9 @@ const BIN = path.resolve(__dirname, '..', 'bin', 'passioncode.js');
 const list = (text) => [...text.matchAll(/[`'"](--?[A-Za-z0-9][\w-]*)[`'"]/g)].map((m) => m[1]);
 
 // PC-110: a function's source up to the brace that closes it, at any indentation. Braces inside
-// strings, templates, regular expressions and comments do not count.
+// strings, templates, regular expressions and comments do not count. Read as a regular expression: a `/` after
+// one of ( = , : ! & | ? ; { } [ only (after `)` or a keyword such as `return` it is read as division), and a
+// template's `${}` holding a backtick is not followed; parseSetupArgs uses neither.
 function functionBody(source, name) {
   const start = source.search(new RegExp(`function ${name}\\(`));
   if (start < 0) return null;
@@ -93,6 +95,7 @@ test('PC-110: the parser slice ends at its own closing brace, at any indentation
     "    const r = /^--(a|b)(?:=)?\\}[}/]\\{$/.exec(rest[0]);",
     // A regular expression after each character that can stand before one, and after a comment line.
     "    f(/\\{/, /\\{/); x = a ? /\\{/ : /\\{/; z = !/\\{/ || /\\{/ && /\\{/ && [/\\{/]; { /\\{/ } /\\{/.test(y);",
+    "    z = /\\/{/; /* } */{}",
     '    // a comment, then a regular expression',
     "    /\\{/.test(rest[1]);",
     '    if (r) { return { r }; }',

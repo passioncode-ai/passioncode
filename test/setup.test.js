@@ -962,7 +962,12 @@ test('PC-110: a plan with nothing to ask promises no questions; any offer or rep
     assert.ok(out.includes(asks) && !out.includes(quiet), out.join('\n'));
   }
   assert.ok(lines({ plan: [repair] }).includes(asks));
-  assert.ok(lines({ dryRun: true, trainNotSaved: 'org-test' }).includes('Run it without --dry-run (with --yes, or in a terminal) to apply.'));
+  // A --dry-run only plans, with --yes or in a terminal too: its own line, whatever the plan holds.
+  const dry = 'Run it without --dry-run (with --yes, or in a terminal) to apply.';
+  for (const over of [{ trainNotSaved: 'org-test' }, { plan: [repair] }, { plan: [offer], trainNotSaved: 'org-test' }]) {
+    const out = lines({ dryRun: true, ...over });
+    assert.ok(out.includes(dry) && !out.includes(asks) && !out.includes(quiet), out.join('\n'));
+  }
 });
 
 test('PC-91: runs that declined nothing keep their old report', () => {
