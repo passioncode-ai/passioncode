@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.66 - 2026-11-03
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.60.0`** (it was `v0.59.0`): a board responder finds a slot the operator moves
+  back to it, once Fabric offers that move, and claims it without a take-back; `pack`, `sign` and `verify` say why a
+  provider manifest is refused; working-with-fabric reads a filed row's answer and says when an accepted request is
+  left behind by a move; Python's package kit refuses `NaN` and `Infinity` as the Node kit does (PC-109).
+
 ## 0.2.65 - 2026-11-03
 
 ### Fixed
