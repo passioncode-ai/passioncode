@@ -280,7 +280,7 @@
   2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
   3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
 - **Expected result:** Every installed app the train pins is at its pinned version; `doctor` says how many are.
-- **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (its last line is "save release train <name>") and saves nothing; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup`.
+- **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (when it names a train other than the saved one, its last line is "save release train <name>") and saves nothing; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup`.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
 - **Errors & recovery:** An unknown train exits 2 before anything changes; a saved train this launcher no longer ships is a `fail` line whose fix is `setup --yes --no-apps --train none`.

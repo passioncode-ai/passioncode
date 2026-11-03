@@ -323,7 +323,7 @@ test('PC-105: the checks are pointed at when one fails or warns, and a train is 
     [{}, 'Everything this command can set up is in place; nothing was changed.'],
     [{ planOnly: true, plan: [fabric] }, 'Nothing would change: Fabric would not be installed (see the plan below).'],
     [{ declined: true }, 'You declined every offer; nothing was changed.'],
-    [{ planOnly: true, declined: true }, 'You declined every offer; nothing was changed.'],
+    [{ planOnly: true, declined: true, trainNotSaved: 'org-test' }, 'You declined every offer; nothing was changed.'],
     [{ declined: true, notTaken: ['Fabric'] }, 'You declined every other offer, and Fabric was not installed; nothing was changed.'],
     [{ notTaken: ['Fabric'] }, 'Nothing was changed: Fabric was offered and not installed.'],
     [{ skipped: ['Fabric'] }, 'Nothing was changed: Fabric was not installed (see your steps below).'],

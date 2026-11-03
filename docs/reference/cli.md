@@ -95,8 +95,8 @@ launchd service that does not answer), each with the check ids that caused it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
 fix, each product's onboarding for apps installed in this run, and the restart. A plan lists
-none: its items carry their notes, and nothing ran. The one exception is a declined run that named a train
-(`planOnly` and `declined` both true), whose steps name `setup --train <name>` when its checks call for `setup`.
+none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
+the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
 Questions are asked only on a terminal: one per absent app (on macOS) and one for the
 repairs, if any. With `--dry-run`, or without a terminal and without `--yes` when the run would change
