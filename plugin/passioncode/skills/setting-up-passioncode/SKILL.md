@@ -92,7 +92,8 @@ Then run `doctor --json` again and report the change.
 
 Reply in the person's language, briefly:
 
-1. What was set up or repaired (from `actions`), what was skipped (from `skipped`), and the before → after counts.
+1. What was set up or repaired (from `actions`), what was skipped (from `skipped`, or the `plan` install items
+   with `selected: false` when the run changed something), and the before → after counts.
 2. What still fails, each with its `fix`.
 3. **Your steps**: the numbered `humanSteps` you could not finish yourself: sign-ins, consents,
    secrets in hidden prompts, starting Docker, the restart.
