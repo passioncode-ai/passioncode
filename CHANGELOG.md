@@ -6,9 +6,9 @@
 
 - The `setting-up-passioncode` skill states setup's exit codes: a step or a check that failed exits 1,
   and a plan (`--dry-run`, or a run without `--yes` that would change something; a `--json` run never
-  asks) exits 0 even when a check fails, so an agent reads `after.summary` and `plan` (PC-102). The
-  README says a `--json` run never asks, where it names the terminal questions and where it says
-  when a train is saved. `doctor --dry-run` is refused with exit 2 before any check, now under test.
+  asks) exits 0 even when a check fails, so an agent reads `after.summary` and `plan`; exit 1 with no
+  JSON is a runtime error (PC-102). The README says a `--json` run never asks, names the repairs
+  question beside the one per app, and says a terminal run with nothing to ask saves a train at once. `doctor --dry-run` is refused with exit 2 before any check, now under test.
 
 ## 0.2.59 - 2026-11-03
 

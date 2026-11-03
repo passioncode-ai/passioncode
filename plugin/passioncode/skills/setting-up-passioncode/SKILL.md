@@ -35,7 +35,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 - Exit 0: no step and no check failed; 1: a step or a check failed; 2: bad arguments. A plan
   (`planOnly: true`: `--dry-run`, or a run without `--yes` that would change something, since a
   `--json` run never asks) changes nothing and exits 0 even when a check fails: read
-  `after.summary` and `plan`, not the exit code alone.
+  `after.summary` and `plan`, not the exit code alone. Exit 1 with no JSON on stdout is a runtime
+  error: report its stderr line and the exit code.
 - Use `--with <ids>` / `--without <ids>` for a subset (`switchboard`, `dashboards`,
   `observatory`, `inbox`, `fabric`), `--no-apps` for skills and MCP only, `--dry-run` to show
   the plan first. Fabric is an early preview and needs Docker (or OrbStack) and the Supabase CLI;
