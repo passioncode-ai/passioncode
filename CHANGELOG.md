@@ -7,9 +7,15 @@
 - When the skill update retires an old marketplace, and when `restore` declares it again, a `~/.claude/settings.json`
   that is a link stays a link: the change is written where the link points and the file keeps its permission bits, as
   the PC-117 rules merge already did (PC-120). The MCP registration in `~/.gemini/settings.json` and
-  `~/.kimi-code/mcp.json`, and its removal, do the same, and a file the launcher creates there is private. A link an
-  earlier update already replaced is not put back; the file it held then is in the quarantine as
-  `settings.json.before-<marketplace>`.
+  `~/.kimi-code/mcp.json`, and its removal, do the same, and a file the launcher creates there is private.
+  `~/.codex/config.toml` is still written as a regular file (PC-126).
+- What earlier versions left stays as it is: a link an earlier update replaced is not put back, and a file it rewrote
+  may have been left readable by others (mode 644; `chmod 600` on it narrows it again). The file the link pointed at
+  was not written then and holds what it held before that update; the regular file in the link's place holds every
+  change since, so merge that into it before linking again. The copy that update took is in its
+  `~/.passioncode/quarantine/<run>/` as `settings.json.before-<marketplace>` (`~/.claude/settings.json`),
+  `settings.json.before-mcp-gemini-cli` or `mcp.json.before-mcp-kimi-code`; a removal by `restore` or `uninstall`
+  took none.
 
 ## 0.2.73 - 2026-11-04
 

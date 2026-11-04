@@ -772,6 +772,16 @@ test('PC-120: a linked Gemini settings file stays a link with its mode through M
   assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers, {});
 });
 
+test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const file = path.join(env.home, '.kimi-code', 'mcp.json');
+  assert.equal(fs.existsSync(file), false);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+});
+
 test('uninstall removes what it registered and keeps an entry it did not add', () => {
   const env = setup();
   const bin = withFakeMcp(env);
