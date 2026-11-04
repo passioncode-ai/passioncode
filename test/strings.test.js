@@ -40,7 +40,10 @@ test('every strings.md row points at the line that holds its text', () => {
   const cited = rows.map((row) => {
     const cells = row.split(' | ');
     return { key: cells[0].slice(2), text: collapse(cells[1].replace(/\\\|/g, '|')), loc: cells[2] };
-  }).filter((r) => /^([\w./-]+):(\d+)$/.test(r.loc));
+  });
+  // A row that names a code file must name its line too: one without is wrong, never skipped.
+  for (const r of cited) if (/^(lib|bin|plugin|scripts)\//.test(r.loc) && !/^([\w./-]+):(\d+)$/.test(r.loc)) wrong.push(`${r.key} at ${r.loc} (no line)`);
+  cited.splice(0, cited.length, ...cited.filter((r) => /^([\w./-]+):(\d+)$/.test(r.loc)));
   for (const r of cited) {
     if (!startsAt(r.text, r.loc)) wrong.push(`${r.key} at ${r.loc}`);
     // A row whose words another row's words contain is told apart by the rest: when the longer row's

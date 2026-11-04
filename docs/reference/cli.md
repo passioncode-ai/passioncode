@@ -12,7 +12,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
-| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
+| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
@@ -78,7 +78,7 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
-humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
+humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `commands` (PC-119, below) when it lacks a command rule or a declared rule was not offered, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
 `none` when a train is saved) when a run named a train other than the saved one but was only a plan, or was a declined
 terminal run that named one.
 A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
@@ -101,7 +101,8 @@ the person's answer, not a plan (`declined` true, and it exits by its checks): i
 
 Questions are asked only on a terminal: one per absent app (on macOS), one for the
 repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
-tools where Claude Code is and they are missing (default no; see PC-117 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
+tools where Claude Code is and they are missing (default no; see PC-117 below), and one for the rules for shell commands
+where Claude Code is and one of them is missing (default no; see PC-119 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
 something (an offer selected, or a train other than the saved one named, `none` included when a
 train is saved; a `--json` run never asks, so it counts as one without a terminal), the plan is returned with `planOnly: true`,
 nothing changes, and the exit code is 0; without a terminal and without `--yes` a run with nothing
@@ -132,7 +133,7 @@ they were written (a plan agreed to but not run writes nothing). The plan lists 
 train's line; while they are offered a terminal asks about them, so a train-only plan closes with "Run it with --yes to
 apply, or in a terminal to answer its questions.", and a `--dry-run` whose only change is the rules (an offer that
 defaults to no may stand beside them, unticked) closes with "Run it without --dry-run, in a terminal or with
---allow-tools, to apply."), a run that leaves them out says how to add them under its
+--allow-tools, to apply.", naming `--allow-commands` too, joined with "and", while the rules for commands are offered), a run that leaves them out says how to add them under its
 headline (`setup --allow-tools`), and a run that changed nothing else says "Everything else this command can set up is
 in place". Yes to the rules alone is not a declined run, so with a named train it saves that train too.
 
@@ -142,6 +143,61 @@ shell commands (`gh pr merge`, a launchd job), other MCP servers and Fabric Inbo
 An `ask` or `deny` rule for one of these tools (in this file or a project's, local or managed settings file), or a
 managed policy that ignores user rules, still wins over them. They apply to Claude Code only. Existing machines are
 offered them the next time `setup` runs; `update` and the background update do not offer them.
+
+Rules for shell commands (PC-119) are a set of their own, with their own question in a terminal (default no) and
+`--allow-commands`; `--yes` alone does not take them and `doctor --fix` never offers them. The set is the launcher's own
+rules (`Bash(gh pr merge:*)`, to merge a pull request with the GitHub CLI: Claude Code cannot limit a command rule to
+your repositories, so it allows a merge in any) and the rules an agent of your own declares on this machine, each in a
+file `~/.passioncode/rules.d/<name>.json`:
+
+```json
+{ "by": "Your Agent", "rules": [{ "rule": "Bash(your-cli sync:*)", "why": "let Your Agent sync its data" }] }
+```
+
+`by` (1 to 80 characters) names the agent as the file says (nothing checks it) and `why` (1 to 200 characters) says what the rule allows;
+the plan shows each rule with them. The folder follows `PASSIONCODE_HOME` when it is set. A declared rule names one command (`Bash(<command>)`,
+with `:*` or a trailing ` *` for any arguments); an MCP rule is not offered from a declaration (PassionCode's own tool
+rules have their own question, PC-117). Claude Code matches a rule against the command's text, and a rule
+ending in `*` allows any arguments after its words, options included (the plan, the question, the hint and the done
+line say so). So only a plain form is offered, and every other rule is refused because it could allow more than it
+says: printable ASCII only; the program by its bare name in lower case (no path, so not `/bin/bash`; a version in the
+name is read as the program, so `perl5.34` is `perl` and `python3.12` is `python`); no quote, escape, substitution
+(`$(...)`), separator (`&&`, `;`, `|`, a line break) or redirection; never a program that runs another one (`env`,
+`sudo`, `command`, `nohup`, `xargs`, `xcrun`, `lockf` and the like), not even exactly. A wildcard comes only at the
+end, after `:` or a space, and only over a command installed in your home folder, as an agent's own command is (in
+`~/.local/bin`, say). The program is looked up on the `PATH` setup runs with, as the kernel runs it (links and `..`
+followed physically, a file the user may not execute skipped; on Windows the name itself, when it starts as a program or a script does, or `<name>.exe`, as Git Bash runs it,
+never a `.cmd` or `.bat`), leaving out the `node_modules/.bin` folders `npx` adds (absolute ones; a relative one stays);
+a program that is not found, or that the system or a package manager installed elsewhere, takes no wildcard, and
+neither does any program when a `PATH` folder ahead of it is empty or relative (a shell reads that from wherever it
+runs) or when the home folder is the root folder. Claude Code's shell may still find another program of the same name
+first, so the person's yes on each rule shown stays the gate. Within the home folder there is no wildcard over a program
+that runs whatever it is given, or takes options after its words that run other code (a shell, `python3`, `node`,
+`perl`, `uv`, `npx`, `find`, `ssh`, `make`, `git`, `claude` and the like), and none after a general-purpose program's
+name alone (`gh`, `aws`, `rm`, `curl` and the like): declare the exact command, or a command of your own. An exact
+rule, with no wildcard, allows only its own text and is offered over any program but a wrapper. A control character, or a
+format character that reorders or hides text (a bidirectional override or isolate, a zero-width or tag character, a
+line or paragraph separator, any character Unicode marks as ignorable), in `by` or `why` is refused too. A declaration that repeats the launcher's own rule changes nothing; a rule two files declare is
+offered once, as the first file (by name) not refused for it says it, and a later one is listed as the same rule. A wildcard is not offered over a `.cmd` or
+`.bat` file, which runs through `cmd` and has its arguments read again. The lists name known programs, not every one: the person's yes on each rule shown is
+the gate. A declared rule the launcher carries (`Bash(gh pr merge:*)`) is offered once, as the launcher says it.
+The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered as declared"; a
+control or format character a refusal line repeats from the declaration (its rule, file name or text) is written as
+its `\uXXXX` (or `\u{XXXXX}`) escape.
+Existing machines are offered the set the next time `setup` runs, until the person takes it; a rule the person lists
+under `permissions.ask` or `permissions.deny` is not offered again. When Claude Code's settings cannot be read, that is
+named once (above), and a run with `--allow-commands` fails that step (exit 1), as one with `--allow-tools` does.
+
+What Claude Code does with them, from its own docs (permissions, "Compound commands"; permission-modes, "How the
+classifier evaluates actions"): every subcommand of a compound command must be allowed for it to run without a prompt;
+an allow rule resolves before the auto mode classifier, except writes to protected paths, which still go to the
+classifier, and critical `rm` targets, which no rule approves; on entering auto mode Claude Code drops broad rules that
+grant arbitrary code execution (package-manager run commands among them), so a rule over such a runner may not apply
+there. For an act no rule can describe, Claude Code reads plain-language exceptions under `autoMode` in the same file,
+which `setup` never writes. The result carries `commands: { rules, refused, taken }`, and `error` only when a run with `--allow-commands`
+cannot read the settings (then `rules` is the whole set a run would write; without the flag, unreadable settings are
+named once, under `permissions.error`); `taken` is the yes, and the `commands`
+action is the proof the rules were written.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
@@ -250,8 +306,9 @@ conflict and interrupted-move regression tests in `test/launcher.test.js`.
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
-equivalent relative links. It leaves the Claude Code tool rules setup added (PC-117) in
-`~/.claude/settings.json`; the person removes them there. Other user files stay in place. Failed plugin removal
+equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119) in
+`~/.claude/settings.json`, and the declarations in `~/.passioncode/rules.d/` (under `PASSIONCODE_HOME` when it is set);
+the person removes them there. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 
@@ -292,7 +349,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.agents/skills` | Shared skill hub |
 | Existing paths in `CHANNELS` in `lib/launcher.js` | Supported agent channels; an absent channel is not created |
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |
-| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root; agent directories still use the user's home |
+| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root, and with it the `rules.d` folder `setup` reads declared rules from; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |
