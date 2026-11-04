@@ -758,10 +758,13 @@ test('PC-120: a linked Gemini settings file stays a link with its mode through M
   const file = path.join(env.home, '.gemini', 'settings.json');
   const real = path.join(env.home, 'dotfiles', 'gemini.json');
   fs.mkdirSync(path.dirname(real), { recursive: true });
-  fs.writeFileSync(real, JSON.stringify({ theme: 'dark', mcpServers: {} }, null, 2));
+  fs.writeFileSync(real, JSON.stringify({ theme: 'dark', mcpServers: { other: { command: '/bin/other' } } }, null, 2));
   fs.chmodSync(real, 0o600);
   fs.symlinkSync(real, file);
   assert.equal(run(env, 'update').status, 0);
+  const quarantine = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8')).quarantines[0];
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(quarantine, 'settings.json.before-mcp-gemini-cli'), 'utf8')).mcpServers, { other: { command: '/bin/other' } }, 'the file as it was is kept first');
+  assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers.other, { command: '/bin/other' }, 'another server is kept');
   assert.ok(fs.lstatSync(file).isSymbolicLink(), 'registration keeps the link');
   assert.equal(fs.statSync(real).mode & 0o777, 0o600);
   assert.deepEqual(mcpEntry(real), { command: bin, args: [], env: {} });
@@ -769,6 +772,22 @@ test('PC-120: a linked Gemini settings file stays a link with its mode through M
   assert.equal(run(env, 'restore').status, 0);
   assert.ok(fs.lstatSync(file).isSymbolicLink(), 'removal keeps the link');
   assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers, { other: { command: '/bin/other' } });
+});
+
+test('PC-120: a Gemini settings link to a missing file is kept, and the file is made where it points', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env);
+  const file = path.join(env.home, '.gemini', 'settings.json');
+  const real = path.join(env.home, 'dotfiles', 'gemini.json');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.symlinkSync(real, file);
+  assert.equal(run(env, 'update').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink());
+  assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.deepEqual(mcpEntry(real), { command: bin, args: [], env: {} });
+  assert.equal(run(env, 'restore').status, 0);
   assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers, {});
 });
 
