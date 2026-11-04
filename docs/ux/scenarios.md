@@ -10,7 +10,7 @@
 | SCN-002 | Read status without changing the installation | status | Automation | REQ-3 | implemented | 2026-10-01 |
 | SCN-003 | Update with a partial failure | update | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-004 | Restore displaced entries safely | restore | Operator | REQ-A1 | implemented | 2026-10-01 |
-| SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-10-01 |
+| SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-11-04 |
 | SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-10-01 |
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
@@ -113,7 +113,7 @@
   2. Fix any reported plugin failure and retry.
   3. Inspect status; optionally restore displaced files.
 - **Expected result:** Success clears the active installation and disables automatic updates; recovery copies remain. Repeating uninstall is safe.
-- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, and the declarations agents wrote in `~/.passioncode/rules.d` stay; the person removes them there.
+- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay; the person removes them there, or with `permissions remove` and `permissions mode default` before uninstalling.
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. Reinstallation retains the off preference until explicitly enabled.
@@ -294,7 +294,7 @@
 - **Persona:** Operator (Automation: Fabric's permissions screen through `--json`)
 - **Feature:** permissions
 - **Entry point:** `npx @passioncode-ai/passioncode@latest permissions`
-- **Preconditions:** Node 18+; Claude Code's settings in `~/.claude/settings.json` (absent is an empty file).
+- **Preconditions:** Node 18+; Claude Code's settings in `~/.claude/settings.json` (absent is an empty file; `allow` and `mode` create it, and its folder, when they write).
 - **Steps:**
   1. Run `permissions`: PassionCode's rules, each with its state, what it allows, who declared it, and who installed it and when; the rules offered and not allowed yet; the declarations not offered as declared; every other allow rule; the default mode.
   2. Take a rule out with `permissions remove <rule>`, or allow an offered one with `permissions allow <rule>`.

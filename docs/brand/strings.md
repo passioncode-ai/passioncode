@@ -9,16 +9,16 @@ Contract: brand-contract v1
 | status.npm.time | checked ${checkedAt} | bin/passioncode.js:9 | SCN-001 | proposed | copy |
 | status.npm.unknown-time | check time unknown | bin/passioncode.js:9 | SCN-001 | proposed | copy |
 | status.npm.stale | stale: older than installed | bin/passioncode.js:18 | SCN-001 | proposed | copy |
-| restore.empty | Nothing to restore. | bin/passioncode.js:237 | SCN-004 | proposed | copy |
-| uninstall.empty | Nothing was installed. | bin/passioncode.js:246 | SCN-005 | proposed | copy |
+| restore.empty | Nothing to restore. | bin/passioncode.js:239 | SCN-004 | proposed | copy |
+| uninstall.empty | Nothing was installed. | bin/passioncode.js:248 | SCN-005 | proposed | copy |
 | help.1 | passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills | bin/passioncode.js:21 | SCN-007 | proposed | layout |
 | help.2 | npx @passioncode-ai/passioncode@latest setup [--yes\|-y] [--with ids] [--without ids] [--train name\|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json] a new machine: install and configure everything; an existing one: check, repair, check again npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json] check everything (read-only); --fix repairs as setup does npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json] install or update the skill set and the apps' MCP registrations npx @passioncode-ai/passioncode@latest status [--json] what is installed where npx @passioncode-ai/passioncode@latest restore [--json] put back what the last update moved aside npx @passioncode-ai/passioncode@latest config set update.auto on\|off [--json] background updates at session start npx @passioncode-ai/passioncode@latest uninstall [--json] remove the set (quarantined items stay restorable) npx @passioncode-ai/passioncode@latest permissions [allow\|remove <rule>...\|mode <mode>] [--by who] [--json] Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules | bin/passioncode.js:23 | SCN-007 | proposed | layout |
 | help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:34 | SCN-007 | proposed | layout |
-| args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:210 | SCN-007 | proposed | copy |
+| args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:212 | SCN-007 | proposed | copy |
 | args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:80 | SCN-007 | proposed | copy |
 | hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:66 | SCN-006 | proposed | copy |
-| update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files. | bin/passioncode.js:221 | SCN-003 | proposed | copy |
-| update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:221 | SCN-003 | proposed | copy |
+| update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files. | bin/passioncode.js:223 | SCN-003 | proposed | copy |
+| update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:223 | SCN-003 | proposed | copy |
 | setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:177 | SCN-008 | proposed | copy |
 | setup.install-question.preview | (early preview) | lib/setup.js:177 | SCN-008 | proposed | copy |
 | setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:185 | SCN-008, SCN-009 | proposed | copy |
@@ -113,32 +113,33 @@ Contract: brand-contract v1
 | permissions.declared-twice | ${file}: ${r.rule} is the same rule ${rules.find((x) => x.rule === r.rule).by} declares; it is counted once | lib/permissions.js:162 | SCN-008 | proposed | error |
 | permissions.declared-by-control | ${file}: "by" holds a control or format character | lib/permissions.js:149 | SCN-008 | proposed | error |
 | permissions.declared-why-control | ${file}: ${r.rule}: "why" holds a control or format character | lib/permissions.js:159 | SCN-008 | proposed | error |
-| perm.title | Claude Code permissions in ${view.settingsFile} | bin/passioncode.js:168 | SCN-015 | proposed | copy |
-| perm.mode | Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`} | bin/passioncode.js:171 | SCN-015 | proposed | copy |
-| perm.rules | PassionCode's rules: | bin/passioncode.js:173 | SCN-015 | proposed | copy |
-| perm.when.removed | removed ${r.removedAt} by ${r.removedBy}${['allowed', 'asked', 'denied'].includes(r.state) ? ', and set again by hand since' : ''} | bin/passioncode.js:175 | SCN-015 | proposed | copy |
-| perm.offered | Offered and not allowed yet: | bin/passioncode.js:181 | SCN-015 | proposed | copy |
-| perm.allow-hint | To allow them: passioncode permissions allow <rule> | bin/passioncode.js:182 | SCN-015 | proposed | copy |
-| perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:184 | SCN-015 | proposed | copy |
-| perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:185 | SCN-015 | proposed | copy |
-| perm.done | ${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')} | bin/passioncode.js:139 | SCN-015 | proposed | copy |
-| perm.mode-changed | Default mode: ${values[0]} (was ${r.from === null ? 'not set' : r.from}). | bin/passioncode.js:146 | SCN-015 | proposed | copy |
-| perm.usage | passioncode: ${message}; run passioncode help. | bin/passioncode.js:158 | SCN-015 | proposed | error |
+| perm.title | Claude Code permissions in ${view.settingsFile} | bin/passioncode.js:170 | SCN-015 | proposed | copy |
+| perm.mode | Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, except what the allow rules let it do, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`} | bin/passioncode.js:173 | SCN-015 | proposed | copy |
+| perm.rules | PassionCode's rules: | bin/passioncode.js:175 | SCN-015 | proposed | copy |
+| perm.when.removed | removed ${r.removedAt} by ${r.removedBy}${['allowed', 'asked', 'denied'].includes(r.state) ? ', and set again by hand since' : ''} | bin/passioncode.js:177 | SCN-015 | proposed | copy |
+| perm.offered | Offered and not allowed yet: | bin/passioncode.js:183 | SCN-015 | proposed | copy |
+| perm.allow-hint | To allow them: ${require('../lib/doctor').NPX} permissions allow <rule> | bin/passioncode.js:184 | SCN-015 | proposed | copy |
+| perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:186 | SCN-015 | proposed | copy |
+| perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:187 | SCN-015 | proposed | copy |
+| perm.done | ${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')} | bin/passioncode.js:141 | SCN-015 | proposed | copy |
+| perm.mode-changed | Default mode: ${values[0]} (was ${r.from === null ? 'not set' : r.from}). | bin/passioncode.js:148 | SCN-015 | proposed | copy |
+| perm.usage | passioncode: ${message}; run passioncode help. | bin/passioncode.js:160 | SCN-015 | proposed | error |
 | perm.usage.by | --by needs who asked, for example "Fabric (operator)" | bin/passioncode.js:116 | SCN-015 | proposed | error |
 | perm.usage.option | unknown option ${rest[n]} | bin/passioncode.js:117 | SCN-015 | proposed | error |
 | perm.usage.by-text | --by is 1 to 80 characters of plain text | bin/passioncode.js:120 | SCN-015 | proposed | error |
-| perm.usage.rule | ${verb} needs at least one rule | bin/passioncode.js:135 | SCN-015 | proposed | error |
-| perm.usage.mode | mode needs one of ${ledger.MODES.join(', ')} | bin/passioncode.js:144 | SCN-015 | proposed | error |
-| perm.usage.verb | unknown permissions command ${verb} | bin/passioncode.js:149 | SCN-015 | proposed | error |
+| perm.usage.by-verb | --by goes with allow, remove or mode | bin/passioncode.js:122 | SCN-015 | proposed | error |
+| perm.usage.rule | ${verb} needs at least one rule | bin/passioncode.js:137 | SCN-015 | proposed | error |
+| perm.usage.mode | mode needs one of ${ledger.MODES.join(', ')} | bin/passioncode.js:146 | SCN-015 | proposed | error |
+| perm.usage.verb | unknown permissions command ${verb} | bin/passioncode.js:151 | SCN-015 | proposed | error |
 | ledger.not-offered | not a rule PassionCode offers: ${unknown.join(', ')} | lib/ledger.js:128 | SCN-015 | proposed | error |
 | ledger.not-installed | not a rule PassionCode offers now or has in its ledger: ${foreign.join(', ')}; remove it in ${settingsFile} yourself | lib/ledger.js:144 | SCN-015 | proposed | error |
 | ledger.mode | mode must be one of ${MODES.join(', ')} | lib/ledger.js:167 | SCN-015 | proposed | error |
 | ledger.invalid-json | ${file} is not valid JSON: ${error.message} | lib/ledger.js:29 | SCN-015 | proposed | error |
-| perm.when.installed | installed ${r.installedAt} by ${r.installedBy \|\| r.by} | bin/passioncode.js:176 | SCN-015 | proposed | copy |
-| perm.when.none | not in the ledger (set before it, or by hand) | bin/passioncode.js:176 | SCN-015 | proposed | copy |
-| perm.line | ${r.state.padEnd(8)} ${r.rule} (${r.why}; declared by ${r.by}; ${when}) | bin/passioncode.js:177 | SCN-015 | proposed | layout |
-| perm.nothing | Nothing to ${verb}: ${verb === 'allow' ? 'each rule is already allowed, asked about or denied' : 'none of them is allowed there'}. | bin/passioncode.js:140 | SCN-015 | proposed | copy |
-| perm.mode-same | Default mode is already ${values[0]}. | bin/passioncode.js:146 | SCN-015 | proposed | copy |
+| perm.when.installed | installed ${r.installedAt} by ${r.installedBy \|\| r.by} | bin/passioncode.js:178 | SCN-015 | proposed | copy |
+| perm.when.none | not in the ledger (set before it, or by hand) | bin/passioncode.js:178 | SCN-015 | proposed | copy |
+| perm.line | ${r.state.padEnd(8)} ${r.rule} (${r.why}; declared by ${r.by}; ${when}) | bin/passioncode.js:179 | SCN-015 | proposed | layout |
+| perm.nothing | Nothing to ${verb}: ${verb === 'allow' ? 'each rule is already allowed, asked about or denied' : 'none of them is allowed there'}. | bin/passioncode.js:142 | SCN-015 | proposed | copy |
+| perm.mode-same | Default mode is already ${values[0]}. | bin/passioncode.js:148 | SCN-015 | proposed | copy |
 | ledger.unreadable | ${file} cannot be read: ${error.message} | lib/ledger.js:27 | SCN-015 | proposed | error |
 | ledger.schema | ${file} is not a ${SCHEMA} ledger | lib/ledger.js:31 | SCN-015 | proposed | error |
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |

@@ -11,8 +11,12 @@ const test = require('node:test');
 const ROOT = path.resolve(__dirname, '..');
 const BIN = path.join(ROOT, 'bin', 'passioncode.js');
 
+const homes = [];
+test.after(() => { for (const home of homes) fs.rmSync(home, { recursive: true, force: true }); }); // a temp home never outlives the run
+
 function machine() {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-ledger-'));
+  homes.push(home);
   fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
   const bin = path.join(home, '.local', 'bin');
   fs.mkdirSync(bin, { recursive: true });
@@ -157,6 +161,12 @@ test('PC-125: the text view escapes control characters a settings rule carries',
   const out = m.run().stdout;
   assert.ok(!out.includes('\u001b'), 'no raw escape reaches the terminal');
   assert.match(out, /Bash\(a\\u001b\[2Jb\)/);
+  // The headline of an act prints what it read from the file escaped too.
+  fs.writeFileSync(m.settings, JSON.stringify({ permissions: { defaultMode: 'x\u001b[2Jy' } }));
+  const mode = m.run('mode', 'plan').stdout;
+  assert.ok(!mode.includes('\u001b'));
+  assert.match(mode, /Default mode: plan \(was x\\u001b\[2Jy\)\./);
+  assert.match(m.run('allow', 'mcp__fabric').stdout, /To allow them: npx @passioncode-ai\/passioncode@latest permissions allow <rule>/);
 });
 
 test('PC-125: a ledger that cannot be read stops allow, remove and mode before the settings change', () => {
@@ -204,11 +214,12 @@ test("PC-125: a set rule the person denies is shown as theirs, never as installe
 
 test('PC-125: usage errors exit 2', () => {
   const m = machine();
-  for (const args of [['allow'], ['mode'], ['mode', 'plan', 'auto'], ['frob'], ['--by'], ['allow', 'mcp__fabric', '--by', 'x\ny'], ['allow', 'mcp__fabric', '--by', 'a\u202eb'], ['allow', 'mcp__fabric', '--by', '   '], ['--nope']]) {
+  for (const args of [['allow'], ['mode'], ['mode', 'plan', 'auto'], ['frob'], ['--by'], ['allow', 'mcp__fabric', '--by', 'x\ny'], ['allow', 'mcp__fabric', '--by', 'a\u202eb'], ['allow', 'mcp__fabric', '--by', '   '], ['--by', 'x'], ['--nope']]) {
     assert.equal(m.run(...args).status, 2, args.join(' '));
   }
   assert.equal(m.run('mode', 'plan', '--by', '\u{1F600}'.repeat(80)).status, 0, '80 characters are counted as characters');
   assert.equal(m.run('mode', 'plan', '--by', '\u{1F600}'.repeat(81)).status, 2, '81 are refused');
+  assert.equal(m.json('mode', 'auto', '--by', '  X  ').mode.changed.by, 'X', 'who asked is trimmed');
 });
 
 test('PC-125: a linked settings file stays a link with its mode through allow, remove and mode', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {

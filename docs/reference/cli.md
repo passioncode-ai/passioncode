@@ -340,7 +340,7 @@ before (`from`), who asked and when; the file can change by hand since, so compa
 out of `permissions.allow` only rules PassionCode offers or the ledger names (a foreign rule is refused, exit 2; the
 person removes it in the file). `permissions mode <mode>` sets `permissions.defaultMode` to one of Claude Code's modes:
 `default`, `acceptEdits`, `plan`, `auto`, `dontAsk` or `bypassPermissions`; nothing else in the file changes.
-`--by <who>` (1 to 80 characters of plain text) records who asked, for example `"Fabric (operator)"`; without it the
+`allow` and `mode` create `~/.claude/settings.json`, and its folder, when it is absent. `--by <who>` (1 to 80 characters of plain text, trimmed, with `allow`, `remove` or `mode` only) records who asked, for example `"Fabric (operator)"`; without it the
 ledger says `permissions command`. It is the caller's own words, not a proof of who asked. Each change is written the
 way setup writes (a link is written where it points, its permission bits kept) and each answers the view again.
 Settings or a ledger that cannot be read, or a ledger that cannot be written, make an act exit 1 before the settings
@@ -354,10 +354,11 @@ permissions ledger was not updated"); `permissions` then lists them as not in th
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
-equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119) in
+equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119)
+and the rules `permissions allow` added and the default mode `permissions mode` set (PC-125) in
 `~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
 (under `PASSIONCODE_HOME` when it is set);
-the person removes them there. Other user files stay in place. Failed plugin removal
+the person removes them there, or with `permissions remove` and `permissions mode default` before uninstalling. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 

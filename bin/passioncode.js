@@ -119,6 +119,8 @@ function permissionsCommand(rest) {
   }
   if (by !== null && ([...by].length > 80 || !by.trim() || require('../lib/permissions').CONTROL.test(by))) return usage('--by is 1 to 80 characters of plain text');
   const [verb, ...values] = args;
+  if (by !== null && verb === undefined) return usage('--by goes with allow, remove or mode');
+  if (by !== null) by = by.trim();
   const p = L.paths();
   const file = p.claudeSettings;
   const show = (view, headline) => {
@@ -164,11 +166,11 @@ function renderPermissions(view, headline) {
   const clean = (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' ? shown(v) : v]));
   view = { ...view, rules: view.rules.map(clean), offered: view.offered.map(clean), foreign: view.foreign.map(shown) };
   const lines = [];
-  if (headline) lines.push(headline, '');
+  if (headline) lines.push(shown(headline), '');
   lines.push(`Claude Code permissions in ${view.settingsFile}`);
   if (!view.readable) lines.push(`  ${view.error}`);
   if (view.ledgerError) lines.push(`  ${view.ledgerError}`);
-  lines.push(`Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`}`);
+  lines.push(`Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, except what the allow rules let it do, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`}`);
   if (view.rules.length) {
     lines.push('', "PassionCode's rules:");
     for (const r of view.rules) {
@@ -179,7 +181,7 @@ function renderPermissions(view, headline) {
   }
   if (view.offered.length) {
     lines.push('', 'Offered and not allowed yet:', ...view.offered.map((r) => `  ${r.rule} (${r.why}; declared by ${r.by})`));
-    lines.push('To allow them: passioncode permissions allow <rule>');
+    lines.push(`To allow them: ${require('../lib/doctor').NPX} permissions allow <rule>`);
   }
   if (view.foreign.length) lines.push('', "Other allow rules (not PassionCode's; never changed here):", ...view.foreign.map((rule) => `  ${rule}`));
   if (view.refused.length) lines.push('', 'Rules declared on this machine and not offered as declared:', ...view.refused.map((x) => `  ${x}`));
