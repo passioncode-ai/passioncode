@@ -1126,9 +1126,10 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const broken = machine({ toolRules: false });
   fs.mkdirSync(path.dirname(settingsOf(broken)), { recursive: true });
   fs.writeFileSync(settingsOf(broken), '{ not json');
+  // --allow-tools asked for the rules: settings it cannot read make that a failed step (exit 1), not a quiet success.
   const named = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
-  assert.equal(named.status, 0, named.stdout + named.stderr);
-  assert.doesNotMatch(named.stdout, /FAILED/, named.stdout); // nothing was offered, so nothing was tried
+  assert.equal(named.status, 1, named.stdout + named.stderr);
+  assert.match(named.stdout, /FAILED allow PassionCode's own tools in .*settings\.json\n.*is not valid JSON/, named.stdout);
   assert.doesNotMatch(named.stdout, /still asks/, named.stdout); // --allow-tools cannot help while the file is unreadable
   const brokenPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run');
   assert.doesNotMatch(brokenPlan.stdout, /let Claude Code use|still asks/, brokenPlan.stdout);
@@ -1149,6 +1150,18 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   }
   assert.match(named.stdout, /\nClaude Code's settings were not changed: .*settings\.json is not valid JSON/, named.stdout);
   assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
+  // Where Claude Code is not (no claude, no ~/.claude), nothing about its rules is offered, said or written.
+  const noClaude = machine({ toolRules: false });
+  fs.rmSync(path.join(noClaude.home, '.claude'), { recursive: true, force: true });
+  const bareRun = (...args) => {
+    const r = require('child_process').spawnSync(process.execPath, [BIN, ...args], { env: { ...cliEnv(noClaude, api), PASSIONCODE_CLAUDE: path.join(noClaude.home, 'no-claude') }, encoding: 'utf8' });
+    return { stdout: r.stdout, json: (() => { try { return JSON.parse(r.stdout); } catch (_) { return null; } })() };
+  };
+  const bare = bareRun('setup', '--yes', '--no-apps', '--offline', '--json');
+  assert.equal(bare.json.permissions, undefined, bare.stdout);
+  assert.ok(!bare.json.actions.some((a) => a.kind === 'permissions'), bare.stdout);
+  assert.ok(!fs.existsSync(settingsOf(noClaude)), 'no settings file is made');
+  assert.doesNotMatch(bareRun('setup', '--no-apps', '--offline', '--dry-run').stdout, /PassionCode's own tools|allow-tools/);
   // doctor --fix repairs; it never decides the tool rules.
   const fix = await cli(machine({ toolRules: false }), api, 'doctor', '--fix', '--offline', '--json');
   assert.ok(!fix.json.actions.some((a) => a.kind === 'permissions'), fix.stdout);
@@ -1185,10 +1198,21 @@ test('PC-117: in a terminal the tool rules are one question of their own, defaul
   const pre = run(given, '() => "n"', { allowTools: true });
   assert.ok(!pre.asked.some((q) => /^Let Claude Code/.test(q)), JSON.stringify(pre.asked));
   assert.ok(pre.actions.includes('permissions:done'), JSON.stringify(pre.actions));
+  // Rules added by someone else between the plan and the write: the step says they were there already.
+  const raced = machine({ toolRules: false });
+  const racer = `(q) => { if (!/^Let Claude Code/.test(q)) return 'n';
+    require('fs').writeFileSync(require('path').join(process.env.HOME, '.claude', 'settings.json'),
+      JSON.stringify({ permissions: { allow: [...require(${JSON.stringify(path.join(__dirname, '../lib/permissions'))}).RULES] } }));
+    return 'y'; }`;
+  const already = run(raced, racer);
+  assert.deepEqual(already.actions, ['permissions:done'], already.text);
+  assert.match(already.text, /done +already allowed in .*settings\.json\n/, already.text);
+  assert.doesNotMatch(already.text, /allowed {2}in/, already.text);
   // A declined named train lists no plan, yet still says how to add the rules.
   const declined = run(onTrain(machine({ toolRules: false })), '() => "n"', { train: 'org-test' });
   assert.equal(declined.declined, true, declined.text);
-  assert.doesNotMatch(declined.text, /let Claude Code use/, declined.text);
+  assert.match(declined.text, /\nYou declined every offer/, declined.text);
+  assert.doesNotMatch(declined.text, /Plan \(nothing was changed\)|let Claude Code use/, declined.text);
   assert.match(declined.text, /setup --allow-tools/, declined.text);
 });
 

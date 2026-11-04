@@ -62,6 +62,7 @@ test('PC-117: a settings file that cannot be read is named and never written', (
     ['1', /does not hold a settings object/],
     [JSON.stringify({ permissions: null }), /"permissions" is not an object/],
     [JSON.stringify({ permissions: 'x' }), /"permissions" is not an object/],
+    [JSON.stringify({ permissions: { ask: 'mcp__fabric' } }), /"permissions.ask" is not a list/],
   ]) {
     const file = tmp();
     write(file, body);
@@ -157,4 +158,53 @@ test('PC-117: a rule the person wants asked about is not added', () => {
   assert.ok(!P.missing(file).rules.includes('mcp__fabric-dashboards'));
   P.apply(file);
   assert.ok(!JSON.parse(fs.readFileSync(file, 'utf8')).permissions.allow.includes('mcp__fabric-dashboards'));
+});
+
+test('PC-117: a settings file that exists but cannot be read is named, never treated as empty', () => {
+  const dir = path.dirname(tmp());
+  fs.mkdirSync(path.join(dir, 'settings.json'), { recursive: true }); // a folder where the file should be
+  assert.match(P.missing(path.join(dir, 'settings.json')).error, /cannot be read/);
+  assert.throws(() => P.apply(path.join(dir, 'settings.json')), /cannot be read/);
+  assert.ok(fs.statSync(path.join(dir, 'settings.json')).isDirectory());
+});
+
+test('PC-117: a settings file without read permission is named and left as it is', { skip: (process.platform === 'win32' && 'POSIX modes') || (process.getuid?.() === 0 && 'root reads anyway') }, () => {
+  const file = tmp();
+  write(file, { model: 'opus' });
+  fs.chmodSync(file, 0o000);
+  try {
+    assert.match(P.missing(file).error, /cannot be read: EACCES/);
+    assert.throws(() => P.apply(file), /cannot be read/);
+  } finally {
+    fs.chmodSync(file, 0o600);
+  }
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { model: 'opus' });
+});
+
+test('PC-117: a chain of relative links is followed to its end, every link kept', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
+  const dir = path.dirname(tmp());
+  fs.mkdirSync(path.join(dir, 'dotfiles', 'claude'), { recursive: true });
+  const end = path.join(dir, 'dotfiles', 'claude', 'b.json');
+  fs.writeFileSync(end, '{}', { mode: 0o600 });
+  fs.chmodSync(end, 0o600);
+  fs.symlinkSync(path.join('claude', 'b.json'), path.join(dir, 'dotfiles', 'a.json')); // relative to its own folder
+  fs.symlinkSync(path.join('dotfiles', 'a.json'), path.join(dir, 'settings.json'));
+  const cwd = process.cwd();
+  process.chdir(os.tmpdir()); // a relative link resolves from its folder, not from where setup runs
+  try { assert.deepEqual(P.apply(path.join(dir, 'settings.json')), [...P.RULES]); } finally { process.chdir(cwd); }
+  assert.ok(fs.lstatSync(path.join(dir, 'settings.json')).isSymbolicLink());
+  assert.ok(fs.lstatSync(path.join(dir, 'dotfiles', 'a.json')).isSymbolicLink());
+  assert.deepEqual(JSON.parse(fs.readFileSync(end, 'utf8')), { permissions: { allow: [...P.RULES] } });
+  assert.equal(fs.statSync(end).mode & 0o777, 0o600);
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'dotfiles', 'claude')), ['b.json']);
+});
+
+test('PC-117: a loop of links is named, never written', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
+  const dir = path.dirname(tmp());
+  fs.mkdirSync(dir, { recursive: true });
+  fs.symlinkSync('b.json', path.join(dir, 'settings.json'));
+  fs.symlinkSync('settings.json', path.join(dir, 'b.json'));
+  assert.ok(P.missing(path.join(dir, 'settings.json')).error, 'a loop cannot be read');
+  assert.throws(() => P.apply(path.join(dir, 'settings.json')));
+  assert.ok(fs.lstatSync(path.join(dir, 'settings.json')).isSymbolicLink());
 });

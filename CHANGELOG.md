@@ -11,7 +11,8 @@
   nothing, and settings that cannot be read are named and left as they are. The plan lists the rules; a run that
   leaves them out says how to add them; the result carries `permissions`. Each rule allows every tool of its server;
   shell commands, the Data Room and Fabric Inbox are not covered, and an `ask` or `deny` rule still wins. Existing
-  machines are offered the rules the next time `setup` runs.
+  machines are offered the rules the next time `setup` runs. A settings file that is a link, or a chain of links, is
+  written where it ends; with `--allow-tools`, settings that cannot be read are a failed step (exit 1).
 
 ## 0.2.70 - 2026-11-03
 
