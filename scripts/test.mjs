@@ -28,7 +28,8 @@ try {
   // PC-116: an interrupted run (Ctrl-C, SIGTERM) stops its tests and still removes its folder: the signal goes
   // to node --test, and this process waits for it to end instead of ending first.
   let interrupted = false;
-  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { interrupted = true; child.kill(signal); });
+  // On Windows the console delivers Ctrl-C to node --test itself, and kill() there would end it outright.
+  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { interrupted = true; if (process.platform !== 'win32') child.kill(signal); });
   const code = await new Promise((resolve) => {
     child.once('error', (error) => { console.error(error.message); resolve(1); });
     child.once('exit', (exitCode) => resolve(exitCode ?? 1));

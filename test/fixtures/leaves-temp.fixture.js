@@ -12,7 +12,9 @@ test('leaves its temporary folders', async () => {
   assert.match(path.basename(os.tmpdir()), /^pc-test-/);
   assert.equal(process.env.PASSIONCODE_TEST_RUN, '1');
   if (process.env.PC115_FIXTURE_FAILS) assert.fail('the fixture fails on request');
-  if (process.env.PC116_FIXTURE_WAITS) { // a run to interrupt: says it started, then waits
+  if (process.env.PC116_FIXTURE_KILLS_RUNNER) process.kill(process.ppid, 'SIGKILL'); // node --test dies by a signal
+  if (process.env.PC116_FIXTURE_WAITS) { // a run to interrupt: says it started (and its pid), then waits
+    fs.writeFileSync(process.env.PC116_FIXTURE_WAITS, String(process.pid));
     fs.writeFileSync(path.join(os.tmpdir(), 'started'), '');
     await new Promise((resolve) => setTimeout(resolve, 30000));
   }
