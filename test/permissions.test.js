@@ -330,7 +330,7 @@ test('PC-119: command rules merge like the tool rules, keeping what is there', (
   assert.deepEqual(P.apply(file, wanted), []);
 });
 
-test('PC-119: a declaration whose name or reason holds a control character is not offered', () => {
+test('PC-119: a declaration whose name or reason holds a control or format character is not offered', () => {
   const dir = path.join(path.dirname(tmp()), 'rules.d');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'Bash(a-cli sync:*)', why: 'sync\u001b[2K the data' }] }));
@@ -410,9 +410,9 @@ test('PC-119: a control character in a declaration is named as the reason', () =
   fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A\tB', rules: [] }));
   fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B', rules: [{ rule: 'Bash(b-cli sync:*)', why: 'sync\tall' }, { rule: 'Bash(a-cli sync:*)', why: 'sync\n' }] }));
   const { refused } = P.declared(dir, CTX);
-  assert.match(refused.join('\n'), /a\.json: "by" holds a control character/);
-  assert.match(refused.join('\n'), /b\.json: Bash\(b-cli sync:\*\): "why" holds a control character/);
-  assert.match(refused.join('\n'), /b\.json: Bash\(a-cli sync:\*\): "why" holds a control character/, 'a line break at the end counts too');
+  assert.match(refused.join('\n'), /a\.json: "by" holds a control or format character/);
+  assert.match(refused.join('\n'), /b\.json: Bash\(b-cli sync:\*\): "why" holds a control or format character/);
+  assert.match(refused.join('\n'), /b\.json: Bash\(a-cli sync:\*\): "why" holds a control or format character/, 'a line break at the end counts too');
 });
 
 test('PC-119: a refusal line never carries a control character from the declaration it repeats', () => {
@@ -444,8 +444,8 @@ test('PC-119: a format character that reorders text is refused like a control ch
   const { rules, refused } = P.declared(dir, CTX);
   assert.deepEqual(rules, []);
   assert.equal(refused.length, 2, refused.join('\n'));
-  assert.match(refused.join('\n'), /a\.json: Bash\(own-cli sync:\*\): "why" holds a control character/);
-  assert.match(refused.join('\n'), /b\.json: "by" holds a control character/);
+  assert.match(refused.join('\n'), /a\.json: Bash\(own-cli sync:\*\): "why" holds a control or format character/);
+  assert.match(refused.join('\n'), /b\.json: "by" holds a control or format character/);
   assert.doesNotMatch(refused.join('\n'), /gh pr merge/, 'the launcher rule declared again is not refused');
 });
 
@@ -459,7 +459,7 @@ test('PC-119: shown() writes every control and format character as its escape, a
   const { rules, refused } = P.declared(dir, CTX);
   assert.deepEqual(rules, []);
   assert.match(refused.join('\n'), /a\.json does not say who declares it \("by", 1 to 80 characters\)/);
-  assert.match(refused.join('\n'), /b\.json: "by" holds a control character/);
+  assert.match(refused.join('\n'), /b\.json: "by" holds a control or format character/);
 });
 
 test('PC-119: on Windows a name is looked up as Git Bash runs it, itself or .exe, never a .cmd of that name', () => {
@@ -472,4 +472,46 @@ test('PC-119: on Windows a name is looked up as Git Bash runs it, itself or .exe
   const ctx = { home, pathEnv: [own, sys].join(path.delimiter), platform: 'win32' };
   assert.match(P.refusal('Bash(tool run:*)', ctx) || '', /tool is installed outside your home folder/);
   assert.equal(P.refusal('Bash(mine run:*)', ctx), null);
+});
+
+test('PC-119: every invisible or reordering character is refused by its Unicode class, and shown() escapes it whole', () => {
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  const hidden = ['\u061c', '\u2066', '\u2069', '\ufeff', '\u00ad', '\u180e', '\ufff9', '\u206a', '\u{E0049}', '\u3164', '\ufe0f', '\u034f'];
+  hidden.forEach((c, n) => fs.writeFileSync(path.join(dir, `w${String(n).padStart(2, '0')}.json`), JSON.stringify({ by: 'W', rules: [{ rule: `Bash(own-cli w${n}:*)`, why: `sync${c}` }] })));
+  fs.writeFileSync(path.join(dir, 'x.json'), JSON.stringify({ by: `X\u{E0041}`, rules: [] }));
+  fs.writeFileSync(path.join(dir, 'y.json'), JSON.stringify({ by: 'Y'.repeat(80), rules: [{ rule: 'Bash(own-cli y:*)', why: 'sync' }] }));
+  fs.writeFileSync(path.join(dir, 'z.json'), JSON.stringify({ by: '\u{1F600}'.repeat(41), rules: [] }));
+  const { rules, refused } = P.declared(dir, CTX);
+  assert.deepEqual(rules.map((r) => r.rule), ['Bash(own-cli y:*)'], 'a by of 80 characters is offered');
+  assert.equal(refused.filter((l) => /"why" holds a control or format character/.test(l)).length, hidden.length);
+  assert.match(refused.join('\n'), /x\.json: "by" holds a control or format character/);
+  assert.doesNotMatch(refused.join('\n'), /z\.json/, '41 emoji are 41 characters, within 80');
+  assert.equal(P.shown('a\u{E0049}b'), 'a\\u{e0049}b');
+  assert.equal(P.shown(P.shown('a\u{E0049}\u202eb')), P.shown('a\u{E0049}\u202eb'));
+});
+
+test('PC-119: a rule two files declare is offered once, as the first says it, and the second is listed', () => {
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'First', rules: [{ rule: 'Bash(own-cli dup:*)', why: 'one' }] }));
+  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'Second', rules: [{ rule: 'Bash(own-cli dup:*)', why: 'two' }] }));
+  const { rules, refused } = P.declared(dir, CTX);
+  assert.deepEqual(rules, [{ rule: 'Bash(own-cli dup:*)', why: 'one', by: 'First' }]);
+  assert.match(refused.join('\n'), /b\.json: Bash\(own-cli dup:\*\) is already declared by First, and is offered once/);
+});
+
+test('PC-119: on Windows a .cmd or .bat takes no wildcard, and a file Git Bash would not run is skipped', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-'));
+  const own = path.join(home, 'bin'), sys = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-sys-'));
+  fs.mkdirSync(own);
+  fs.writeFileSync(path.join(own, 'tool.cmd'), '@echo off\n');
+  fs.writeFileSync(path.join(own, 'data'), 'plain text');
+  fs.writeFileSync(path.join(sys, 'data.exe'), 'MZ');
+  fs.writeFileSync(path.join(own, 'own-script'), '#!/bin/sh\n');
+  const ctx = { home, pathEnv: [own, sys].join(path.delimiter), platform: 'win32' };
+  assert.match(P.refusal('Bash(tool.cmd run:*)', ctx) || '', /runs through cmd/);
+  assert.equal(P.refusal('Bash(tool.cmd run)', ctx), null, 'an exact rule allows only its own text');
+  assert.match(P.refusal('Bash(data run:*)', ctx) || '', /data is installed outside your home folder/);
+  assert.equal(P.refusal('Bash(own-script run:*)', ctx), null);
 });

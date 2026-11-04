@@ -166,8 +166,8 @@ name is read as the program, so `perl5.34` is `perl` and `python3.12` is `python
 `sudo`, `command`, `nohup`, `xargs`, `xcrun`, `lockf` and the like), not even exactly. A wildcard comes only at the
 end, after `:` or a space, and only over a command installed in your home folder, as an agent's own command is (in
 `~/.local/bin`, say). The program is looked up on the `PATH` setup runs with, as the kernel runs it (links and `..`
-followed physically, a file the user may not execute skipped; on Windows the name itself or `<name>.exe`, as Git Bash
-runs it, never a `.cmd` or `.bat`), leaving out the `node_modules/.bin` folders `npx` adds (absolute ones; a relative one stays);
+followed physically, a file the user may not execute skipped; on Windows the name itself, when it starts as a program or a script does, or `<name>.exe`, as Git Bash runs it,
+never a `.cmd` or `.bat`), leaving out the `node_modules/.bin` folders `npx` adds (absolute ones; a relative one stays);
 a program that is not found, or that the system or a package manager installed elsewhere, takes no wildcard, and
 neither does any program when a `PATH` folder ahead of it is empty or relative (a shell reads that from wherever it
 runs) or when the home folder is the root folder. Claude Code's shell may still find another program of the same name
@@ -176,12 +176,14 @@ that runs whatever it is given, or takes options after its words that run other 
 `perl`, `uv`, `npx`, `find`, `ssh`, `make`, `git`, `claude` and the like), and none after a general-purpose program's
 name alone (`gh`, `aws`, `rm`, `curl` and the like): declare the exact command, or a command of your own. An exact
 rule, with no wildcard, allows only its own text and is offered over any program but a wrapper. A control character, or a
-format character that reorders or hides text (a bidirectional override or isolate, a zero-width character, a line separator), in `by` or
-`why` is refused too, and a declaration that repeats the launcher's own rule changes nothing. The lists name known programs, not every one: the person's yes on each rule shown is
+format character that reorders or hides text (a bidirectional override or isolate, a zero-width or tag character, a
+line separator, any character Unicode marks as ignorable), in `by` or `why` is refused too. A declaration that repeats the launcher's own rule changes nothing; a rule two files declare is
+offered once, as the first file (by name) says it, and the second is listed. A wildcard is not offered over a `.cmd` or
+`.bat` file, which runs through `cmd` and has its arguments read again. The lists name known programs, not every one: the person's yes on each rule shown is
 the gate. A declared rule the launcher carries (`Bash(gh pr merge:*)`) is offered once, as the launcher says it.
 The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered"; a
-control character a refusal line repeats from the declaration (its rule, file name or text) is written as its
-`\uXXXX` escape.
+control or format character a refusal line repeats from the declaration (its rule, file name or text) is written as
+its `\uXXXX` (or `\u{XXXXX}`) escape.
 Existing machines are offered the set the next time `setup` runs, until the person takes it; a rule the person lists
 under `permissions.ask` or `permissions.deny` is not offered again. When Claude Code's settings cannot be read, that is
 named once (above), and a run with `--allow-commands` fails that step (exit 1), as one with `--allow-tools` does.
