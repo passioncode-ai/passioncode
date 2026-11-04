@@ -19,7 +19,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
-| `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds `changed` and `from`) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
+| `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
@@ -332,8 +332,9 @@ by whom), or `unknown` while the settings cannot be read. A rule allowed again k
 included; `refused` is setup's list of declarations it does not offer as declared; `foreign` is every other allow
 rule, listed and never changed here. `mode.value` is `permissions.defaultMode` in this file, or null (not set there,
 or not known while `readable` is false); a project's or a managed settings file can set another mode, and this view
-reads only the user's file. After `permissions mode`, `mode.changed` names the value, the one before (`from`), who
-asked and when.
+reads only the user's file. `mode.changed` is the last change made through `permissions mode`: its value, the one
+before (`from`), who asked and when; the file can change by hand since, so compare `mode.changed.value` with
+`mode.value` before showing it as the author of the mode in force.
 
 `permissions allow <rule>...` adds rules PassionCode offers (any other is refused, exit 2) and `remove <rule>...` takes
 out of `permissions.allow` only rules PassionCode offers or the ledger names (a foreign rule is refused, exit 2; the
@@ -342,9 +343,13 @@ person removes it in the file). `permissions mode <mode>` sets `permissions.defa
 `--by <who>` (1 to 80 characters of plain text) records who asked, for example `"Fabric (operator)"`; without it the
 ledger says `permissions command`. It is the caller's own words, not a proof of who asked. Each change is written the
 way setup writes (a link is written where it points, its permission bits kept) and each answers the view again.
-Settings or a ledger that cannot be read, or a ledger that cannot be written, make the command exit 1 before the
-settings change; the view then says so (`readable: false` with `error`, or `ledgerError`) beside every list it could
-read. A rule taken out here is offered again by the next `setup`, which asks before it adds it back.
+Settings or a ledger that cannot be read, or a ledger that cannot be written, make an act exit 1 before the settings
+change; the act prints its reason on stderr and no view, `--json` included, and `permissions --json` then shows the
+view with `readable: false` and `error`, or `ledgerError`, beside every list it could read. A rule taken out here is
+offered again by the next `setup`, which adds it back on a yes: its question in a terminal, or `--allow-tools` or
+`--allow-commands` given in advance, which do not ask (a removal does not stay removed against them yet, PC-133).
+When setup can write the settings but not the ledger, it still adds the rules and says so on that step ("the
+permissions ledger was not updated"); `permissions` then lists them as not in the ledger.
 
 ## Uninstall and reinstall
 

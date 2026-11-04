@@ -71,7 +71,7 @@ test('PC-125: allow records who asked and when; remove takes out only PassionCod
   assert.match(refused.stderr, /not a rule PassionCode offers: Bash\(rm -rf:\*\)/);
   const foreign = m.run('remove', 'Bash(ls)');
   assert.equal(foreign.status, 2);
-  assert.match(foreign.stderr, /not a rule PassionCode installed: Bash\(ls\)/);
+  assert.match(foreign.stderr, /not a rule PassionCode offers now or has in its ledger: Bash\(ls\)/);
   const removed = m.json('remove', 'Bash(gh pr merge:*)', '--by', "Fabric (agent on operator's words)");
   assert.deepEqual(removed.removed, ['Bash(gh pr merge:*)']);
   assert.deepEqual(JSON.parse(fs.readFileSync(m.settings, 'utf8')).permissions.allow, ['Bash(ls)', 'mcp__fabric']);
@@ -86,6 +86,13 @@ test('PC-125: allow records who asked and when; remove takes out only PassionCod
   const entry = back.rules.find((r) => r.rule === 'Bash(gh pr merge:*)');
   assert.equal(entry.installedBy, 'permissions command', 'without --by the command names itself');
   assert.equal(entry.lastRemoved.by, "Fabric (agent on operator's words)", 'the last removal stays beside the new install');
+  assert.equal(entry.removedAt, undefined, 'an allowed rule carries no removal of its own');
+  // Taken out by hand and allowed again: the last removal through the command is still kept.
+  const handDoc = JSON.parse(fs.readFileSync(m.settings, 'utf8'));
+  handDoc.permissions.allow = handDoc.permissions.allow.filter((r) => r !== 'Bash(gh pr merge:*)');
+  fs.writeFileSync(m.settings, JSON.stringify(handDoc));
+  const third = m.json('allow', 'Bash(gh pr merge:*)').rules.find((r) => r.rule === 'Bash(gh pr merge:*)');
+  assert.equal(third.lastRemoved.by, "Fabric (agent on operator's words)");
   assert.deepEqual(m.json('remove', 'mcp__fabric', 'mcp__fabric').removed, ['mcp__fabric'], 'a rule named twice is removed once');
 });
 
@@ -116,6 +123,40 @@ test('PC-125: settings that cannot be read are named, exit 1, and never written'
   assert.equal(m.run('mode', 'plan').status, 1);
   assert.equal(fs.readFileSync(m.settings, 'utf8'), '{bad');
   assert.match(m.run().stdout, /Default mode: unknown \(the settings file cannot be read\)/);
+});
+
+test('PC-125: a removed rule read while the settings cannot be read is unknown, never "set again"', () => {
+  const m = machine();
+  fs.writeFileSync(m.settings, JSON.stringify({ permissions: { allow: [] } }));
+  m.json('allow', 'mcp__fabric');
+  m.json('remove', 'mcp__fabric');
+  fs.writeFileSync(m.settings, '{bad');
+  const v = JSON.parse(m.run('--json').stdout);
+  assert.equal(v.rules.find((r) => r.rule === 'mcp__fabric').state, 'unknown');
+  assert.deepEqual(v.offered, []);
+  const text = m.run().stdout;
+  assert.match(text, /unknown +mcp__fabric \(.*removed [^)]* by permissions command\)/);
+  assert.doesNotMatch(text, /set again by hand/);
+});
+
+test('PC-125: a rule the ledger names stays PassionCode\'s after its declaration is gone, listed once', () => {
+  const m = machine();
+  fs.writeFileSync(m.settings, JSON.stringify({ permissions: { allow: [] } }));
+  declare(m, { by: 'Own Agent', rules: [{ rule: 'Bash(own-cli sync:*)', why: 'sync its data' }] });
+  m.json('allow', 'Bash(own-cli sync:*)');
+  fs.rmSync(path.join(m.state, 'rules.d'), { recursive: true });
+  const v = m.json();
+  assert.equal(v.rules.filter((r) => r.rule === 'Bash(own-cli sync:*)').length, 1);
+  assert.deepEqual(v.foreign, []);
+  assert.deepEqual(m.json('remove', 'Bash(own-cli sync:*)').removed, ['Bash(own-cli sync:*)']);
+});
+
+test('PC-125: the text view escapes control characters a settings rule carries', () => {
+  const m = machine();
+  fs.writeFileSync(m.settings, JSON.stringify({ permissions: { allow: ['Bash(a\u001b[2Jb)'] } }));
+  const out = m.run().stdout;
+  assert.ok(!out.includes('\u001b'), 'no raw escape reaches the terminal');
+  assert.match(out, /Bash\(a\\u001b\[2Jb\)/);
 });
 
 test('PC-125: a ledger that cannot be read stops allow, remove and mode before the settings change', () => {
@@ -167,6 +208,7 @@ test('PC-125: usage errors exit 2', () => {
     assert.equal(m.run(...args).status, 2, args.join(' '));
   }
   assert.equal(m.run('mode', 'plan', '--by', '\u{1F600}'.repeat(80)).status, 0, '80 characters are counted as characters');
+  assert.equal(m.run('mode', 'plan', '--by', '\u{1F600}'.repeat(81)).status, 2, '81 are refused');
 });
 
 test('PC-125: a linked settings file stays a link with its mode through allow, remove and mode', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
@@ -182,4 +224,7 @@ test('PC-125: a linked settings file stays a link with its mode through allow, r
   assert.ok(fs.lstatSync(m.settings).isSymbolicLink());
   assert.equal(fs.statSync(real).mode & 0o777, 0o600);
   assert.equal(fs.statSync(path.join(m.state, 'permissions.json')).mode & 0o777, 0o600, 'the ledger is private');
+  fs.chmodSync(path.join(m.state, 'permissions.json'), 0o644);
+  m.json('allow', 'mcp__fabric');
+  assert.equal(fs.statSync(path.join(m.state, 'permissions.json')).mode & 0o777, 0o600, 'and private again after it was opened up');
 });

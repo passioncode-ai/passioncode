@@ -94,7 +94,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
   is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
   tool and command rules setup added stay in `~/.claude/settings.json`, and agents' declarations in
-  `~/.passioncode/rules.d` stay)
+  `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay)
   ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
   [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
 

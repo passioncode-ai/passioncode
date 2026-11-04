@@ -160,16 +160,19 @@ function usage(message) {
 }
 
 function renderPermissions(view, headline) {
+  const { shown } = require('../lib/permissions'); // a rule or a name from a file is printed with its control characters escaped
+  const clean = (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' ? shown(v) : v]));
+  view = { ...view, rules: view.rules.map(clean), offered: view.offered.map(clean), foreign: view.foreign.map(shown) };
   const lines = [];
   if (headline) lines.push(headline, '');
   lines.push(`Claude Code permissions in ${view.settingsFile}`);
   if (!view.readable) lines.push(`  ${view.error}`);
   if (view.ledgerError) lines.push(`  ${view.ledgerError}`);
-  lines.push(`Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before acting, unless a project or managed setting sets a mode)' : view.mode.value}`);
+  lines.push(`Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`}`);
   if (view.rules.length) {
     lines.push('', "PassionCode's rules:");
     for (const r of view.rules) {
-      const removed = r.removedAt ? `removed ${r.removedAt} by ${r.removedBy}${r.state === 'missing' ? '' : `, and set again by hand since`}` : '';
+      const removed = r.removedAt ? `removed ${r.removedAt} by ${r.removedBy}${['allowed', 'asked', 'denied'].includes(r.state) ? ', and set again by hand since' : ''}` : '';
       const when = removed || (r.installedAt ? `installed ${r.installedAt} by ${r.installedBy || r.by}` : 'not in the ledger (set before it, or by hand)');
       lines.push(`  ${r.state.padEnd(8)} ${r.rule} (${r.why}; declared by ${r.by}; ${when})`);
     }
