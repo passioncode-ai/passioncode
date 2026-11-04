@@ -239,3 +239,17 @@ test('PC-117: a loop of links met while walking to a missing end is named', { sk
     fs.realpathSync = realpath;
   }
 });
+
+test('PC-117: a link in a linked folder to a missing file that climbs with .. makes the file where the system says', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
+  const root = path.dirname(path.dirname(tmp()));
+  fs.mkdirSync(path.join(root, 'dotfiles', 'claude-config'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'dotfiles', 'shared'), { recursive: true });
+  fs.symlinkSync(path.join(root, 'dotfiles', 'claude-config'), path.join(root, '.claude'));
+  fs.symlinkSync(path.join('..', 'shared', 'settings.json'), path.join(root, 'dotfiles', 'claude-config', 'settings.json'));
+  const file = path.join(root, '.claude', 'settings.json');
+  assert.deepEqual(P.apply(file), [...P.RULES]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, 'dotfiles', 'shared', 'settings.json'), 'utf8')), { permissions: { allow: [...P.RULES] } });
+  assert.ok(!fs.existsSync(path.join(root, 'shared')), 'no stray file beside the linked folder');
+  assert.ok(fs.lstatSync(path.join(root, 'dotfiles', 'claude-config', 'settings.json')).isSymbolicLink());
+  assert.deepEqual(P.apply(file), []);
+});

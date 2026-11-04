@@ -1130,9 +1130,10 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const named = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
   assert.equal(named.status, 1, named.stdout + named.stderr);
   assert.match(named.stdout, /FAILED allow PassionCode's own tools in .*settings\.json\n.*is not valid JSON/, named.stdout);
+  assert.doesNotMatch(named.stdout, /fails until/, named.stdout); // the run failed; the warning is a plan's
   assert.doesNotMatch(named.stdout, /still asks/, named.stdout); // --allow-tools cannot help while the file is unreadable
   const failsPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-tools');
-  assert.match(failsPlan.stdout, /is not valid JSON[^\n]*\nA run with --allow-tools fails until they can be read\.\n/, failsPlan.stdout);
+  assert.match(failsPlan.stdout, /is not valid JSON[^\n]*\nA run with --allow-tools fails until that is fixed\.\n/, failsPlan.stdout);
   const brokenPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run');
   assert.doesNotMatch(brokenPlan.stdout, /fails until/, brokenPlan.stdout);
   assert.doesNotMatch(brokenPlan.stdout, /let Claude Code use|still asks/, brokenPlan.stdout);

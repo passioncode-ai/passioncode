@@ -74,7 +74,7 @@ Contract: brand-contract v1
 | permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:24 | SCN-008, SCN-009 | proposed | error |
 | setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:365 | SCN-008 | proposed | copy |
 | setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:386 | SCN-008 | proposed | copy |
-| setup.tools-fails | A run with --allow-tools fails until they can be read. | lib/setup.js:415 | SCN-008 | proposed | copy |
+| setup.tools-fails | A run with --allow-tools fails until that is fixed. | lib/setup.js:415 | SCN-008 | proposed | copy |
 | setup.tools-unreadable | Claude Code's settings were not changed: ${tools.error} | lib/setup.js:414 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-hint | Claude Code still asks before it uses PassionCode's own tools. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:417 | SCN-008, SCN-009 | proposed | copy |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |

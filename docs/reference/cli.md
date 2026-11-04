@@ -123,7 +123,7 @@ are offered only where Claude Code is (its `~/.claude` folder exists). Without a
 `--allow-tools` adds them when nothing else would change, and is part of the plan otherwise. A settings file that cannot
 be read, is not valid JSON, or whose `permissions`, `allow`, `deny` or `ask` has the wrong shape, is left as it is and
 named; a run with `--allow-tools` fails that step (exit 1), and a `--dry-run` with it says so ("A run with
---allow-tools fails until they can be read.") and exits 0. The rules merge writes a settings file that is a link, or a
+--allow-tools fails until that is fixed.") and exits 0. The rules merge writes a settings file that is a link, or a
 chain of links, where the system says it ends (linked folders and `..` included), keeping every link and the file's
 permission bits, and writes the merged file back as JSON indented by two spaces; the skill update's own write to that
 file, which retires an old marketplace, does not keep a link yet (PC-120). The result carries `permissions: { rules, error, taken }` only while
