@@ -103,3 +103,58 @@ test('PC-117: a write that fails leaves the settings and no temporary file', { s
   assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { model: 'opus' });
   assert.deepEqual(fs.readdirSync(path.dirname(file)), ['settings.json']);
 });
+
+test('PC-117: the permission bits are kept, whatever the umask; a new file is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
+  const old = process.umask(0o077);
+  try {
+    const file = tmp();
+    write(file, { model: 'opus' });
+    fs.chmodSync(file, 0o640);
+    P.apply(file);
+    assert.equal(fs.statSync(file).mode & 0o777, 0o640);
+    const fresh = tmp();
+    fs.mkdirSync(path.dirname(fresh), { recursive: true });
+    P.apply(fresh);
+    assert.equal(fs.statSync(fresh).mode & 0o777, 0o600);
+  } finally {
+    process.umask(old);
+  }
+  const shared = tmp();
+  write(shared, {});
+  fs.chmodSync(shared, 0o644);
+  const narrow = process.umask(0o077);
+  try { P.apply(shared); } finally { process.umask(narrow); }
+  assert.equal(fs.statSync(shared).mode & 0o777, 0o644, 'the umask does not narrow it');
+});
+
+test('PC-117: a rename that fails leaves the settings and removes the temporary file', () => {
+  const file = tmp();
+  write(file, { model: 'opus' });
+  const rename = fs.renameSync;
+  fs.renameSync = () => { throw Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' }); };
+  try {
+    assert.throws(() => P.apply(file), /ENOSPC/);
+  } finally {
+    fs.renameSync = rename;
+  }
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { model: 'opus' });
+  assert.deepEqual(fs.readdirSync(path.dirname(file)), ['settings.json']);
+});
+
+test('PC-117: a link to a missing file is kept, and the file is made where it points', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
+  const dir = path.dirname(tmp());
+  fs.mkdirSync(dir, { recursive: true });
+  const link = path.join(dir, 'settings.json');
+  fs.symlinkSync(path.join(dir, 'elsewhere.json'), link);
+  P.apply(link);
+  assert.ok(fs.lstatSync(link).isSymbolicLink());
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'elsewhere.json'), 'utf8')), { permissions: { allow: [...P.RULES] } });
+});
+
+test('PC-117: a rule the person wants asked about is not added', () => {
+  const file = tmp();
+  write(file, { permissions: { ask: ['mcp__fabric-dashboards'] } });
+  assert.ok(!P.missing(file).rules.includes('mcp__fabric-dashboards'));
+  P.apply(file);
+  assert.ok(!JSON.parse(fs.readFileSync(file, 'utf8')).permissions.allow.includes('mcp__fabric-dashboards'));
+});

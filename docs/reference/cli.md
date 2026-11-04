@@ -115,8 +115,11 @@ Code's auto mode refuses..."): `setup` offers to add `mcp__fabric`, `mcp__fabric
 `mcp__plugin_switchboard_switchboard` (Switchboard through its Claude Code plugin) and `mcp__observatory` to `permissions.allow` in `~/.claude/settings.json`, so Claude Code uses those servers' tools without
 asking. It is the person's security decision, taken only on its own yes: one question in a terminal (default no), or
 `--allow-tools`; `--yes` alone does not take it, a `--dry-run` shows it, and `doctor --fix` never offers it. The rules
-are merged: every other key and rule, and their order, is kept; a rule the person lists under `permissions.deny` is not
-added; a second run adds nothing. A settings file that is not valid JSON, or whose `permissions`, `allow` or `deny` has
+are merged: every other key and rule, and their order, is kept; a rule the person lists under `permissions.deny` or
+`permissions.ask` is not added; a second run adds nothing. Only `~/.claude/settings.json` is read (a rule granted in a
+project's or a managed settings file, or in another spelling such as `mcp__fabric__*`, is offered again), and the rules
+are offered only where Claude Code is (its `~/.claude` folder exists). Without a terminal and without `--yes`,
+`--allow-tools` adds them when nothing else would change, and is part of the plan otherwise. A settings file that is not valid JSON, or whose `permissions`, `allow` or `deny` has
 the wrong shape, is left as it is and named. The result carries `permissions: { rules, error, taken }` only while
 rules are missing (or the file cannot be read); `taken` is the person's yes, and the `permissions` action is the proof
 they were written (a plan agreed to but not run writes nothing). The plan lists them as a line of their own (after a
@@ -232,7 +235,8 @@ conflict and interrupted-move regression tests in `test/launcher.test.js`.
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
-equivalent relative links. Other user files stay in place. Failed plugin removal
+equivalent relative links. It leaves the Claude Code tool rules `setup --allow-tools` added (PC-117) in
+`~/.claude/settings.json`; the person removes them there. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 

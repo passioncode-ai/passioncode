@@ -89,8 +89,8 @@ function machine({ tools = TOOLS, toolRules = true } = {}) {
   for (const name of TOOLS.filter((x) => !tools.includes(x))) fs.writeFileSync(path.join(bin, name), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
   fs.writeFileSync(path.join(home, 'key.asc'), KEY.publicArmour);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: {} }));
+  fs.mkdirSync(path.join(home, '.claude'), { recursive: true }); // Claude Code is here
   if (toolRules) {
-    fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
     fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: [...require('../lib/permissions').RULES] } }));
   }
   fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
@@ -1118,6 +1118,21 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const named = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
   assert.equal(named.status, 0, named.stdout + named.stderr);
   assert.doesNotMatch(named.stdout, /FAILED/, named.stdout); // nothing was offered, so nothing was tried
+  assert.doesNotMatch(named.stdout, /still asks/, named.stdout); // --allow-tools cannot help while the file is unreadable
+  const brokenPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run');
+  assert.doesNotMatch(brokenPlan.stdout, /let Claude Code use|still asks/, brokenPlan.stdout);
+  assert.match(brokenPlan.stdout, /\nClaude Code's settings were not changed: /, brokenPlan.stdout);
+  const brokenRun = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.match(brokenRun.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, brokenRun.stdout);
+  // A set-up machine that lacks only the rules: its plan is the rules, not "Nothing to do".
+  const lacking = machine({ toolRules: false });
+  assert.equal((await cli(lacking, api, 'setup', '--yes', '--no-apps', '--offline')).status, 0);
+  for (const extra of [[], ['--allow-tools']]) {
+    const only = await cli(lacking, api, 'setup', '--no-apps', '--offline', '--dry-run', ...extra);
+    assert.match(only.stdout, /\nPlan \(nothing was changed\):\n/, only.stdout);
+    assert.doesNotMatch(only.stdout, /Nothing to do/, only.stdout);
+    assert.match(only.stdout, /\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/, only.stdout);
+  }
   assert.match(named.stdout, /\nClaude Code's settings were not changed: .*settings\.json is not valid JSON/, named.stdout);
   assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
   // doctor --fix repairs; it never decides the tool rules.
