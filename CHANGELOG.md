@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.72 - 2026-11-04
+
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.61.0`** (it was `v0.60.0`): a board responder can read the operator's mandate
+  from a request of his own Project (off by default); working-with-fabric says the operator's approval holds for the
+  whole task; the kit's mandate readers read a spend by its real type and number, a job's approval step is kept as the
+  gate reads it, and requests or answers that are no JSON object are refused, never a crash (PC-118).
+
 ## 0.2.71 - 2026-11-04
 
 ### Added
