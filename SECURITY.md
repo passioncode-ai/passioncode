@@ -49,7 +49,7 @@ keeping every other key and rule, and, in that merge, the file's permission bits
 tools without asking (PC-117; `uninstall` leaves them, the person removes them; each rule allows every tool of the
 server registered under its name, shell commands and other servers need rules of their own, and an `ask` or `deny`
 rule or a managed policy still wins); on a yes of its own (a second question, or `--allow-commands`) it merges rules
-for shell commands and MCP servers the same way: `Bash(gh pr merge:*)` and the rules an agent of the person's own
+for shell commands the same way: `Bash(gh pr merge:*)` and the rules an agent of the person's own
 declares in `~/.passioncode/rules.d/` (who declared a rule is what its file says, not checked), refusing a declared rule that is not in a plain form and could allow more than it says (a path or wrapper
 program, a quote, substitution, separator or redirection, a wildcard too early; `docs/reference/cli.md` lists them, PC-119), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
 descriptor names launchd and that does not answer, and opens the apps it installed. It never

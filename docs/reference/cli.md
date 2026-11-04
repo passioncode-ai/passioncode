@@ -154,9 +154,9 @@ file `~/.passioncode/rules.d/<name>.json`:
 ```
 
 `by` names the agent as the file says (nothing checks it) and `why` (1 to 200 characters) says what the rule allows;
-the plan shows each rule with them. A declared rule that is one of PassionCode's own tool rules is left to their own
-question and, while that question still offers it, listed as not offered. The folder follows `PASSIONCODE_HOME` when it is set. A rule names one MCP server (`mcp__<server>`) or one command (`Bash(<command>)`,
-with `:*` or a trailing ` *` for any arguments). Claude Code matches a rule against the command's text, and a rule
+the plan shows each rule with them. The folder follows `PASSIONCODE_HOME` when it is set. A declared rule names one command (`Bash(<command>)`,
+with `:*` or a trailing ` *` for any arguments); an MCP rule is not offered from a declaration (PassionCode's own tool
+rules have their own question, PC-117). Claude Code matches a rule against the command's text, and a rule
 ending in `*` allows any arguments after its words, options included (the plan and the question say so). So only a
 plain form is offered, and every other rule is refused because it could allow more than it says: printable ASCII only;
 the program by its bare name in lower case (no path, so not `/bin/bash`; a version in the name is read as the program,

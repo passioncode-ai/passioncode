@@ -264,7 +264,7 @@ test('PC-119: the launcher carries only rules any person may want, each passing 
 });
 
 test('PC-119: a declared rule is offered only when it allows no more than it says', () => {
-  for (const ok of ['mcp__some-agent', 'Bash(gh pr merge:*)',  'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(own-agent-exempt:*)', 'Bash(python3 tool.py sync)', 'Bash(bash -c ls)', 'Bash(git log --oneline)']) {
+  for (const ok of ['Bash(gh pr merge:*)',  'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(own-agent-exempt:*)', 'Bash(python3 tool.py sync)', 'Bash(bash -c ls)', 'Bash(git log --oneline)']) {
     assert.equal(P.refusal(ok), null, ok);
   }
   for (const [no, why] of [
@@ -280,7 +280,7 @@ test('PC-119: a declared rule is offered only when it allows no more than it say
     ['Bash(uv run app sync:*)', /wildcard over uv/], ['Bash(find src docs:*)', /wildcard over find/], ['Bash(ssh myhost uptime:*)', /wildcard over ssh/], ['Bash(perl5.34 -e:*)', /wildcard over perl/], ['Bash(python3.12 -c:*)', /wildcard over python/], ['Bash(node22 -e:*)', /wildcard over node/], ['Bash(xcrun python3:*)', /xcrun runs another program/], ['Bash(tmux new-session:*)', /tmux runs another program/], ['Bash(poetry run app:*)', /wildcard over poetry/], ['Bash(gdb -batch:*)', /gdb runs another/], ['Bash(gtimeout 5:*)', /gtimeout runs another/], ['Bash(git grep foo src:*)', /wildcard over git/], ['Bash(own-cli\u00a0x sync:*)', /not plain text/], ['Bash(own-cli \u202esync:*)', /not plain text/],
     ['Bash(sh -c "echo:*)', /quote/], ["Bash(bash -c 'ls:*)", /quote/], ['Bash(a\\b)', /escape/], ['Bash(a (b))', /substitution/],
     ['Bash(a $(b))', /substitution/], ['Bash(a `b`)', /substitution/], ['Bash(ls && rm x)', /separator/], ['Bash(a | b)', /separator/], ['Bash(a\nb)', /separator/],
-    ['Bash(a > f)', /redirection/], ['Read(**)', /names an MCP server/], ['mcp__a__b c', /names an MCP server/], [42, /not text/],
+    ['Bash(a > f)', /redirection/], ['Read(**)', /names a command, as Bash/], ['mcp__a__b c', /MCP server's tools are not offered/], [42, /not text/],
   ]) assert.match(P.refusal(no) || '', why, String(no));
 });
 
@@ -295,13 +295,13 @@ test('PC-119: rules agents declare on the machine are read, and what is not offe
     { rule: 'Bash(b-cli show)', why: 'x'.repeat(201) },
     'Bash(b-cli raw)',
   ] }));
-  fs.writeFileSync(path.join(dir, 'a-agent.json'), JSON.stringify({ by: ' A Agent ', rules: [{ rule: 'mcp__a-agent', why: ' every tool of A Agent ' }] }));
+  fs.writeFileSync(path.join(dir, 'a-agent.json'), JSON.stringify({ by: ' A Agent ', rules: [{ rule: 'Bash(a-agent-sync:*)', why: ' sync A Agent ' }] }));
   fs.writeFileSync(path.join(dir, 'broken.json'), '{ no');
   fs.writeFileSync(path.join(dir, 'nobody.json'), JSON.stringify({ rules: [] }));
   fs.writeFileSync(path.join(dir, 'notes.txt'), 'ignored');
   const got = P.declared(dir);
   assert.deepEqual(got.rules, [
-    { rule: 'mcp__a-agent', why: 'every tool of A Agent', by: 'A Agent' },
+    { rule: 'Bash(a-agent-sync:*)', why: 'sync A Agent', by: 'A Agent' },
     { rule: 'Bash(b-cli sync:*)', why: 'let B Agent sync its data', by: 'B Agent' },
   ]);
   assert.equal(got.refused.length, 6, got.refused.join('\n'));
@@ -338,4 +338,14 @@ test('PC-119: an invisible or line-breaking character in a rule is refused, so t
     assert.match(P.refusal(rule) || '', /quote, an escape|not plain text/, JSON.stringify(rule));
   }
   assert.equal(P.refusal('Bash(bash -c ls)'), null, 'an exact rule allows only its own text');
+});
+
+test('PC-119: every program on the lists is refused as the lists say, and a declared MCP rule is not offered', () => {
+  for (const name of P.RUNNERS) assert.match(P.refusal(`Bash(${name} a b:*)`) || '', /could run any code/, name);
+  for (const name of P.WRAPPERS) assert.match(P.refusal(`Bash(${name} a b:*)`) || '', /runs another program/, name);
+  for (const name of P.BROAD) assert.match(P.refusal(`Bash(${name}:*)`) || '', /any command of|could run any code|runs another/, name);
+  for (const rule of ['Bash(rundll32 shell32.dll,ShellExec_RunDLL:*)', 'Bash(sqlite3 app.db:*)', 'Bash(ssh-agent:*)', 'Bash(sandbox-exec:*)', 'Bash(scp -r:*)', 'Bash(nodejs:*)']) {
+    assert.ok(P.refusal(rule), rule);
+  }
+  assert.match(P.refusal('mcp__ide') || '', /an MCP server's tools are not offered here/);
 });

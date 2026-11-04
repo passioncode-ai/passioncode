@@ -1249,12 +1249,13 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   assert.equal(json.status, 0, json.stdout);
   assert.deepEqual(json.json.commands.rules, [{ ...P.COMMANDS[0] }, { rule: 'Bash(own-cli sync:*)', why: 'let Own Agent sync its data', by: 'Own Agent' }]);
   assert.equal(json.json.commands.taken, false);
-  assert.equal(json.json.commands.refused.length, 1, json.stdout); // mcp__fabric is allowed already: nothing to say about it
+  assert.equal(json.json.commands.refused.length, 2, json.stdout);
+  assert.match(json.json.commands.refused.join('\n'), /mcp__fabric: a declared rule names a command; an MCP server's tools are not offered here/);
   assert.ok(!json.json.actions.some((a) => a.kind === 'commands'), json.stdout);
   assert.ok(!allowOf(m).includes('Bash(gh pr merge:*)'), 'nothing was added');
   const text = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.match(text.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, text.stdout);
-  assert.match(text.stdout, /\nClaude Code still asks before it runs Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\)\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands\n/, text.stdout);
+  assert.match(text.stdout, /\nClaude Code still asks before it runs Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\)\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands \(a rule ending in \* allows any arguments after its words\)\n/, text.stdout);
   assert.match(text.stdout, /\nRules declared on this machine and not offered:\n  .*own-agent\.json: Bash\(python3 \*\): a wildcard over python could run any code; declare the exact command, or a command of your own\n/, text.stdout);
   // A dry run lists the set as one line, each rule under it with what it allows and who declared it.
   const plan = await cli(m, api, 'setup', '--no-apps', '--offline', '--dry-run');
@@ -1271,7 +1272,7 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   // --allow-commands takes the set: the rules are merged, the tool rules and other settings kept.
   const taken = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands');
   assert.equal(taken.status, 0, taken.stdout);
-  assert.match(taken.stdout, /done +allowed Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\) in .*settings\.json \(an ask or deny rule for them still wins\)/, taken.stdout);
+  assert.match(taken.stdout, /done +allowed Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\) in .*settings\.json \(an ask or deny rule for them still wins; a rule ending in \* allows any arguments after its words\)/, taken.stdout);
   assert.deepEqual(allowOf(m), [...P.RULES, 'Bash(gh pr merge:*)', 'Bash(own-cli sync:*)']);
   assert.doesNotMatch(taken.stdout, /still asks before it runs/, taken.stdout);
   const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
@@ -1281,9 +1282,10 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   fs.writeFileSync(settingsOf(broken), '{ not json');
   const failed = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands');
   assert.equal(failed.status, 1, failed.stdout);
-  assert.match(failed.stdout, /FAILED allow the rules for commands in .*settings\.json\n.*is not valid JSON/, failed.stdout);
+  assert.match(failed.stdout, /FAILED allow Bash\(gh pr merge:\*\) in .*settings\.json\n.*is not valid JSON/, failed.stdout);
   const failsPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-commands');
   assert.match(failsPlan.stdout, /\nA run with --allow-commands fails until that is fixed\.\n/, failsPlan.stdout);
+  assert.match(failsPlan.stdout, /\n  • let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) /, failsPlan.stdout); // the set it would write
   assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
   // doctor --fix never decides them.
   const fix = await cli(machine({ commandRules: false }), api, 'doctor', '--fix', '--offline', '--json');
@@ -1317,7 +1319,7 @@ test('PC-119: in a terminal the command rules are one question of their own, def
   assert.deepEqual(only.actions, ['commands:done'], only.text);
   const allow = JSON.parse(fs.readFileSync(path.join(lacking.home, '.claude', 'settings.json'), 'utf8')).permissions.allow;
   assert.deepEqual(allow, ['Bash(gh pr merge:*)'], 'the tool rules, declined, are not written with the commands');
-  assert.match(only.text, /mcp__fabric: one of PassionCode's own tool rules, offered on its own question \(declared by A\)/, only.text);
+  assert.match(only.text, /mcp__fabric: a declared rule names a command/, only.text);
   // Settings unreadable at the plan and mended before the write: the whole set is added, never "nothing to add".
   const mended = machine({ commandRules: false });
   fs.writeFileSync(path.join(mended.home, '.claude', 'settings.json'), '{ not json');
