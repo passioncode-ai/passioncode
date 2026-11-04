@@ -200,7 +200,7 @@ function analyticsCommand(rest) {
   try { if (verb !== 'status') A.setEnabled(state, verb === 'on'); }
   catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
   const s = A.status({ state });
-  const why = { off: 'turned off (analytics off)', unreadable: 'off for now: the switch file ~/.passioncode/analytics.json cannot be read; analytics on or analytics off writes it again', 'off-elsewhere': 'off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: `on: this run shows the notice below (unless another command is showing it right now), and counts are sent to ${A.HOST} from then on` }; // the text says it; --json reports reason notice
+  const why = { off: 'turned off (analytics off)', unreadable: `off for now: the switch file ${require('path').join(state, 'analytics.json')} cannot be read; analytics on or analytics off writes it again`, 'off-elsewhere': 'off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: `on: this run shows the notice below (unless another command is showing it right now), and counts are sent to ${A.HOST} from then on` }; // the text says it; --json reports reason notice
   process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
     : `Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch.\n`);
   return 0;
@@ -281,6 +281,7 @@ const argv = process.argv.slice(2);
 const existing = require('fs').existsSync(L.paths().stateFile); // before the command: setup and update write it themselves
 main(argv).then(async (code) => {
   process.exitCode = code; // first: the send below must never change how the command ended
+  process.stderr.on('error', () => {}); // nor a stderr whose reader has gone (EPIPE): the notice then counts as not shown
   const cmd = { onboard: 'setup', install: 'update', '--help': 'help', '-h': 'help' }[argv[0]] || argv[0] || 'help'; // a word not in the list is sent as other
   await require('../lib/analytics').after({ command: cmd, code, json: argv.includes('--json'), quiet: argv.includes('--quiet'), existing, startedAt, version: VERSION, state: L.paths().state });
 });

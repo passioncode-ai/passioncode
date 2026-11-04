@@ -355,7 +355,8 @@ test('PC-123: a switch file that cannot be read counts as off and is never rewri
   assert.deepEqual(await A.after(opts), { sent: 0 });
   assert.equal(r.calls.length, 0); assert.equal(err.out.length, 0);
   assert.equal(fs.readFileSync(file, 'utf8'), '{"enabled": false,}\n', 'untouched');
-  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key }).reason, 'unreadable');
+  const unread = A.status({ state: opts.state, env: opts.env, key: opts.key });
+  assert.deepEqual([unread.reason, unread.enabled], ['unreadable', false], 'never reported as on');
   A.setEnabled(opts.state, false); // the person's own word writes it again
   assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key }).reason, 'off');
 });
@@ -365,6 +366,7 @@ test('PC-123: a notice that could not be printed is not recorded as shown, and n
   const broken = { write() { throw new Error('EPIPE'); } };
   assert.deepEqual(await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: broken })), { sent: 0 });
   assert.equal(r.calls.length, 0);
+  assert.equal(fs.existsSync(path.join(h, '.config', 'PassionCode', 'installation.json')), false, 'nothing stored');
   const err = quiet();
   assert.equal((await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: err.stream }))).sent, 3, 'the next run shows it and sends, app_installed included');
   assert.equal(err.out.length, 1);
@@ -378,4 +380,35 @@ test('PC-123: an installation id another app wrote in upper case is sent as writ
   await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream }));
   assert.equal(r.calls[0].body[0].props.iid, 'ABCDEF01-2345-4678-89AB-CDEF01234567');
   assert.equal(r.calls[0].body[0].props.install_id, 'ABCDEF01-2345-4678-89AB-CDEF01234567');
+});
+
+test('PC-123: a stderr whose reader has gone (EPIPE) leaves the notice unshown, sends nothing and keeps the exit code', async () => {
+  const h = home();
+  const keyFile = path.join(h, 'key.json');
+  fs.writeFileSync(keyFile, JSON.stringify({ appKey: KEY }));
+  const log = path.join(h, 'sent.log');
+  const preload = path.join(h, 'fetch.js');
+  fs.writeFileSync(preload, `globalThis.fetch = async (url, init) => { require('fs').appendFileSync(${JSON.stringify(log)}, init.body + '\\n'); return { ok: true, status: 200 }; };`);
+  const env = { ...process.env, HOME: h, USERPROFILE: h, XDG_CONFIG_HOME: path.join(h, '.config'), APPDATA: path.join(h, 'AppData'),
+    PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_ANALYTICS_KEY_FILE: keyFile };
+  delete env.DO_NOT_TRACK; delete env.PASSIONCODE_ANALYTICS;
+  const { spawn } = require('child_process');
+  const child = spawn(process.execPath, ['--require', preload, path.join(ROOT, 'bin', 'passioncode.js'), 'analytics', 'status'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  child.stderr.destroy(); // the reader is gone before anything is written
+  child.stdout.resume();
+  const code = await new Promise((resolve) => child.on('close', resolve));
+  assert.equal(code, 0);
+  assert.equal(fs.existsSync(log), false, 'nothing sent');
+  assert.equal(A.readState(path.join(h, '.passioncode')).noticeAt, undefined, 'the notice is not recorded as shown');
+});
+
+test('PC-123: the unreadable-switch message names the file where it is', () => {
+  const h = home();
+  const state = path.join(h, 'elsewhere');
+  fs.mkdirSync(state, { recursive: true });
+  fs.writeFileSync(path.join(state, 'analytics.json'), '{"enabled": false,}');
+  const env = { ...process.env, HOME: h, USERPROFILE: h, PASSIONCODE_HOME: state };
+  delete env.DO_NOT_TRACK; delete env.PASSIONCODE_ANALYTICS;
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'passioncode.js'), 'analytics', 'status'], { env, encoding: 'utf8' });
+  assert.ok(r.stdout.includes(path.join(state, 'analytics.json')), r.stdout);
 });
