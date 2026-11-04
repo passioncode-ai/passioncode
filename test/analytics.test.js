@@ -501,3 +501,27 @@ test('PC-123: a switch file holding a JSON array is unreadable, not empty', () =
   fs.writeFileSync(path.join(state, 'analytics.json'), '[]');
   assert.equal(A.status({ state, env: {}, key: KEY }).reason, 'unreadable');
 });
+
+test('PC-123: a notice recorded without a count does not end the look: a later shared no is still kept', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  fs.mkdirSync(path.dirname(shared), { recursive: true });
+  fs.writeFileSync(shared, JSON.stringify({ version: 2, id: 'not-a-v4-id', analytics: true, created_at: 1 })); // an id the launcher refuses
+  assert.deepEqual(await A.after(opts), { sent: 0 });
+  assert.equal(err.out.length, 1, 'the notice was shown');
+  fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: false, created_at: 1 }));
+  assert.deepEqual(await A.after({ ...opts, now: new Date('2026-11-06T10:00:00Z') }), { sent: 0 });
+  assert.equal(r.calls.length, 0);
+  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key, home: h, platform: 'linux' }).reason, 'off-elsewhere');
+});
+
+test('PC-123: after the first count, a shared file with a refused id reads as not sending, whatever its analytics field', async () => {
+  const h = home(); const r = recorder();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream });
+  assert.equal((await A.after(opts)).sent, 3);
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  fs.writeFileSync(shared, JSON.stringify({ version: 2, id: 'x', analytics: false, created_at: 1 }));
+  const st = A.status({ state: opts.state, env: opts.env, key: opts.key, home: h, platform: 'linux' });
+  assert.deepEqual([st.sending, st.reason], [false, 'shared-unreadable']);
+});
