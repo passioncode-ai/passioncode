@@ -206,7 +206,7 @@
 - **Steps:**
   1. Run doctor.
   2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
-- **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
+- **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result, its release cache (`~/.passioncode/releases-cache.json`, release lookups kept 30 minutes) and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
@@ -244,7 +244,7 @@
 - **Preconditions:** A coding agent that can run commands; Node 18+.
 - **Steps:**
   1. Paste the prompt.
-  2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor`, runs `analytics status` once without `--json`, and reports.
+  2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor` (the README prompt, whose plain `doctor` shows the notice) or `analytics status` once without `--json` (the skill), and reports.
 - **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; the launcher's anonymous-counts notice word for word, or the status line it printed (SCN-016); no secret is asked for in the chat.
 - **Alt paths:** "Don't change anything" → the agent runs doctor only, and names the counts and `analytics off` without running `analytics status` or another command to show the notice (its `doctor --json` counts only where the notice was shown before).
 - **UI elements:** The agent's reply.

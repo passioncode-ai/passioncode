@@ -69,7 +69,8 @@ values still do not prove registry freshness. Sources: `status()` in
 about it (`update`, `replace`, `kickstart`) or is null. `ok` is false when any
 check fails. The summary and the failed ids are saved to
 `~/.passioncode/doctor.json`, which the SessionStart hook repeats while it has
-failures. Doctor writes nothing else and starts, stops or opens nothing, apart from the anonymous counts every command
+failures, and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
+starts, stops or opens nothing, apart from the anonymous counts every command
 sends when they are on ([Anonymous usage counts](#anonymous-usage-counts): `~/.passioncode/analytics.json`, its notice
 marker, the shared `installation.json` created once, and one request to `https://analytics.passioncode.ai`).
 
