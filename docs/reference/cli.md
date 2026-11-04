@@ -155,7 +155,7 @@ file `~/.passioncode/rules.d/<name>.json`:
 
 `by` names the agent as the file says (nothing checks it) and `why` (1 to 200 characters) says what the rule allows;
 the plan shows each rule with them. A declared rule that is one of PassionCode's own tool rules is left to their own
-question and listed as not offered. The folder follows `PASSIONCODE_HOME` when it is set. A rule names one MCP server (`mcp__<server>`) or one command (`Bash(<command>)`,
+question and, while that question still offers it, listed as not offered. The folder follows `PASSIONCODE_HOME` when it is set. A rule names one MCP server (`mcp__<server>`) or one command (`Bash(<command>)`,
 with `:*` or a trailing ` *` for any arguments). Claude Code matches a rule against the command's text, and a rule
 ending in `*` allows any arguments after its words, options included (the plan and the question say so). So only a
 plain form is offered, and every other rule is refused because it could allow more than it says: printable ASCII only;
@@ -166,7 +166,7 @@ so `perl5.34` is `perl` and `python3.12` is `python`); no quote, escape, substit
 `Bash(gh:*)`), while a command of an agent's own made for one act may take it after its name alone; never a program that runs another one (`env`, `sudo`, `command`, `nohup`, `xargs`, `xcrun` and the
 like); and no wildcard at all over a program that runs whatever it is given, or takes options after its words that run
 other code (a shell, `python3`, `node`, `perl`, `osascript`, `uv`, `npx`, `find`, `ssh`, `make`, `sed`, `git` and the
-like): declare the exact command, or a command of your own. An exact rule, with no wildcard, allows only its own text
+like): declare the exact command, or a command of your own. An exact rule over such a program, with no wildcard, allows only its own text
 and is offered. A control character in `by` or `why` is refused too. These are lists of known programs, not a proof:
 the person's yes on each rule shown is the gate.
 The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered".
