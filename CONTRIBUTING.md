@@ -36,7 +36,16 @@ persistent 404, corrupt bytes and the wrong version. A tag release still needs t
 plugin checks above; a successful source test run is not a publication receipt.
 
 `scripts/test.mjs` enumerates explicit test paths so `npm test` also works on
-Node 18, whose test runner does not expand quoted globs. Packed smoke uses the
+Node 18, whose test runner does not expand quoted globs. It also gives the run a
+temporary folder of its own (`TMPDIR`, `TMP` and `TEMP`, inherited by every process
+the tests start) and removes it when the run ends, so a run leaves nothing in the
+system's temporary folder (PC-115, `test/tmp.test.js`). Arguments name test files
+(`npm test -- test/help.test.js`); one that starts with `-` goes to `node --test`,
+with its value after `=` (`npm test -- --test-name-pattern=PC-115`); a whole run refuses to start inside
+another one (it marks its environment with `PASSIONCODE_TEST_RUN`). A test file run directly with
+`node --test` has no such folder and leaves its temporary folders behind, and a process
+a test leaves running after the run could still write there. A run interrupted while it
+runs (Ctrl-C) leaves its `pc-test-` folder too. Packed smoke uses the
 Node executable that runs it and a fake Claude CLI; it does not test a live
 Claude installation or npm publication.
 

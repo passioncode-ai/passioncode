@@ -42,4 +42,5 @@ jobs:
       # checkout is proved to read as on Linux and macOS. The rest of the suite is not yet proved
       # on Windows: most of it drives fake tools (a Node claude run through its
       # shebang line, and shell-script codesign and hdiutil).
-      - run: node --test test/no-em-dash.test.js test/license.test.js test/skill.test.js test/docs.test.js test/openpgp.test.js test/pack-result.test.js
+      # PC-115: test/tmp.test.js proves on Windows that a run through scripts/test.mjs leaves no temporary folder.
+      - run: node --test test/no-em-dash.test.js test/license.test.js test/skill.test.js test/docs.test.js test/openpgp.test.js test/pack-result.test.js test/tmp.test.js
