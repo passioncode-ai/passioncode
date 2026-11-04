@@ -66,12 +66,12 @@ Contract: brand-contract v1
 | setup.tools-pending | allow ${result.permissions.rules.join(', ') \|\| "PassionCode's own tools"} in ${file} | lib/setup.js:296 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins) | lib/setup.js:300 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:301 | SCN-008, SCN-009 | proposed | copy |
-| permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:203 | SCN-008, SCN-009 | proposed | error |
-| permissions.unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:148 | SCN-008, SCN-009 | proposed | error |
-| permissions.invalid-json | ${file} is not valid JSON: ${error.message} | lib/permissions.js:175 | SCN-008, SCN-009 | proposed | error |
-| permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:176 | SCN-008, SCN-009 | proposed | error |
-| permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:178 | SCN-008, SCN-009 | proposed | error |
-| permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:180 | SCN-008, SCN-009 | proposed | error |
+| permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:204 | SCN-008, SCN-009 | proposed | error |
+| permissions.unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:173 | SCN-008, SCN-009 | proposed | error |
+| permissions.invalid-json | ${file} is not valid JSON: ${error.message} | lib/permissions.js:176 | SCN-008, SCN-009 | proposed | error |
+| permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:177 | SCN-008, SCN-009 | proposed | error |
+| permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:179 | SCN-008, SCN-009 | proposed | error |
+| permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:181 | SCN-008, SCN-009 | proposed | error |
 | setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:408 | SCN-008 | proposed | copy |
 | setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:432 | SCN-008 | proposed | copy |
 | setup.tools-fails | A run with ${failing.join(' or ')} fails until that is fixed. | lib/setup.js:468 | SCN-008 | proposed | copy |
@@ -106,10 +106,11 @@ Contract: brand-contract v1
 | permissions.declared-dir-unreadable | ${dir} cannot be read: ${error.message} | lib/permissions.js:142 | SCN-008 | proposed | error |
 | permissions.rule-not-object | a rule is not an object | lib/permissions.js:157 | SCN-008 | proposed | error |
 | permissions.rule-wildcard-end | ${rule}: a wildcard at the end needs :* or a space before it | lib/permissions.js:69 | SCN-008 | proposed | error |
-| permissions.declared-unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js: | SCN-008 | proposed | error |
+| permissions.declared-unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:148 | SCN-008 | proposed | error |
 | permissions.declared-shape | ${file} does not say who declares it ("by", 1 to 80 characters) and its rules ("rules") | lib/permissions.js:151 | SCN-008 | proposed | error |
 | permissions.declared-why | ${file}: ${r.rule}: "why" says what it allows, in 1 to 200 characters | lib/permissions.js:160 | SCN-008 | proposed | error |
-| permissions.declared-twice | ${file}: ${r.rule} is already declared by ${rules.find((x) => x.rule === r.rule).by}, and is offered once, as that file says it | lib/permissions.js:161 | SCN-008 | proposed | error |
+| permissions.declared-twice-file | ${file}: ${r.rule} is declared twice in this file; it is counted once | lib/permissions.js:161 | SCN-008 | proposed | error |
+| permissions.declared-twice | ${file}: ${r.rule} is the same rule ${rules.find((x) => x.rule === r.rule).by} declares; it is counted once | lib/permissions.js:162 | SCN-008 | proposed | error |
 | permissions.declared-by-control | ${file}: "by" holds a control or format character | lib/permissions.js:149 | SCN-008 | proposed | error |
 | permissions.declared-why-control | ${file}: ${r.rule}: "why" holds a control or format character | lib/permissions.js:159 | SCN-008 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |

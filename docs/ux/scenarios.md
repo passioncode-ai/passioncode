@@ -112,7 +112,7 @@
   2. Fix any reported plugin failure and retry.
   3. Inspect status; optionally restore displaced files.
 - **Expected result:** Success clears the active installation and disables automatic updates; recovery copies remain. Repeating uninstall is safe.
-- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools that setup added (PC-117) stay in `~/.claude/settings.json`; the person removes them there.
+- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, and the declarations agents wrote in `~/.passioncode/rules.d` stay; the person removes them there.
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. Reinstallation retains the off preference until explicitly enabled.

@@ -178,7 +178,7 @@ name alone (`gh`, `aws`, `rm`, `curl` and the like): declare the exact command, 
 rule, with no wildcard, allows only its own text and is offered over any program but a wrapper. A control character, or a
 format character that reorders or hides text (a bidirectional override or isolate, a zero-width or tag character, a
 line separator, any character Unicode marks as ignorable), in `by` or `why` is refused too. A declaration that repeats the launcher's own rule changes nothing; a rule two files declare is
-offered once, as the first file (by name) says it, and the second is listed. A wildcard is not offered over a `.cmd` or
+offered once, as the first file (by name) not refused for it says it, and a later one is listed as the same rule. A wildcard is not offered over a `.cmd` or
 `.bat` file, which runs through `cmd` and has its arguments read again. The lists name known programs, not every one: the person's yes on each rule shown is
 the gate. A declared rule the launcher carries (`Bash(gh pr merge:*)`) is offered once, as the launcher says it.
 The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered"; a

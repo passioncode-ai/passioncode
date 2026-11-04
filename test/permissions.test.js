@@ -477,7 +477,7 @@ test('PC-119: on Windows a name is looked up as Git Bash runs it, itself or .exe
 test('PC-119: every invisible or reordering character is refused by its Unicode class, and shown() escapes it whole', () => {
   const dir = path.join(path.dirname(tmp()), 'rules.d');
   fs.mkdirSync(dir, { recursive: true });
-  const hidden = ['\u061c', '\u2066', '\u2069', '\ufeff', '\u00ad', '\u180e', '\ufff9', '\u206a', '\u{E0049}', '\u3164', '\ufe0f', '\u034f'];
+  const hidden = ['\u061c', '\u2066', '\u2069', '\ufeff', '\u00ad', '\u180e', '\ufff9', '\u206a', '\u{E0049}', '\u3164', '\ufe0f', '\u034f', '\u2029'];
   hidden.forEach((c, n) => fs.writeFileSync(path.join(dir, `w${String(n).padStart(2, '0')}.json`), JSON.stringify({ by: 'W', rules: [{ rule: `Bash(own-cli w${n}:*)`, why: `sync${c}` }] })));
   fs.writeFileSync(path.join(dir, 'x.json'), JSON.stringify({ by: `X\u{E0041}`, rules: [] }));
   fs.writeFileSync(path.join(dir, 'y.json'), JSON.stringify({ by: 'Y'.repeat(80), rules: [{ rule: 'Bash(own-cli y:*)', why: 'sync' }] }));
@@ -498,7 +498,14 @@ test('PC-119: a rule two files declare is offered once, as the first says it, an
   fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'Second', rules: [{ rule: 'Bash(own-cli dup:*)', why: 'two' }] }));
   const { rules, refused } = P.declared(dir, CTX);
   assert.deepEqual(rules, [{ rule: 'Bash(own-cli dup:*)', why: 'one', by: 'First' }]);
-  assert.match(refused.join('\n'), /b\.json: Bash\(own-cli dup:\*\) is already declared by First, and is offered once/);
+  assert.match(refused.join('\n'), /b\.json: Bash\(own-cli dup:\*\) is the same rule First declares; it is counted once/);
+  fs.writeFileSync(path.join(dir, 'c.json'), JSON.stringify({ by: 'Third', rules: [{ rule: 'Bash(own-cli two:*)', why: 'a' }, { rule: 'Bash(own-cli two:*)', why: 'b' }] }));
+  fs.writeFileSync(path.join(dir, '0.json'), JSON.stringify({ by: 'Zero', rules: [{ rule: 'Bash(own-cli bad:*)', why: '' }] }));
+  fs.writeFileSync(path.join(dir, 'd.json'), JSON.stringify({ by: 'Fourth', rules: [{ rule: 'Bash(own-cli bad:*)', why: 'valid' }] }));
+  const again = P.declared(dir, CTX);
+  assert.match(again.refused.join('\n'), /c\.json: Bash\(own-cli two:\*\) is declared twice in this file; it is counted once/);
+  assert.deepEqual(again.rules.find((r) => r.rule === 'Bash(own-cli bad:*)'), { rule: 'Bash(own-cli bad:*)', why: 'valid', by: 'Fourth' }, 'the first file not refused for it says it');
+  assert.equal(again.rules.every((r) => !('file' in r)), true);
 });
 
 test('PC-119: on Windows a .cmd or .bat takes no wildcard, and a file Git Bash would not run is skipped', () => {
@@ -511,7 +518,20 @@ test('PC-119: on Windows a .cmd or .bat takes no wildcard, and a file Git Bash w
   fs.writeFileSync(path.join(own, 'own-script'), '#!/bin/sh\n');
   const ctx = { home, pathEnv: [own, sys].join(path.delimiter), platform: 'win32' };
   assert.match(P.refusal('Bash(tool.cmd run:*)', ctx) || '', /runs through cmd/);
+  assert.match(P.refusal('Bash(tool.bat run:*)', ctx) || '', /runs through cmd/);
+  fs.writeFileSync(path.join(sys, 'native'), 'MZ');
+  fs.writeFileSync(path.join(own, 'native'), '#!/bin/sh\n');
+  assert.match(P.refusal('Bash(native run:*)', { ...ctx, pathEnv: [sys, own].join(path.delimiter) }) || '', /native is installed outside your home folder/, 'a bare MZ file is a program');
   assert.equal(P.refusal('Bash(tool.cmd run)', ctx), null, 'an exact rule allows only its own text');
   assert.match(P.refusal('Bash(data run:*)', ctx) || '', /data is installed outside your home folder/);
   assert.equal(P.refusal('Bash(own-script run:*)', ctx), null);
+});
+
+test('PC-119: "why" is counted in code points, 200 at most', () => {
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'Bash(own-cli a:*)', why: '\u{1F600}'.repeat(200) }, { rule: 'Bash(own-cli b:*)', why: '\u{1F600}'.repeat(201) }] }));
+  const { rules, refused } = P.declared(dir, CTX);
+  assert.deepEqual(rules.map((r) => r.rule), ['Bash(own-cli a:*)']);
+  assert.match(refused.join('\n'), /Bash\(own-cli b:\*\): "why" says what it allows, in 1 to 200 characters/);
 });
