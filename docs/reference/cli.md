@@ -20,7 +20,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
 | `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
-| `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `off-elsewhere` (turned off in another PassionCode app before the launcher counted, see [Anonymous usage counts](#anonymous-usage-counts)), `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123); exit 1 when the switch cannot be saved |
+| `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `off-elsewhere` (turned off in another PassionCode app before the launcher counted, see [Anonymous usage counts](#anonymous-usage-counts)), `unreadable` (the switch file is there but cannot be read: off for that run, never rewritten by a count), `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123); exit 1 when the switch cannot be saved |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
@@ -80,7 +80,7 @@ marker, the shared `installation.json` created once, and one request to `https:/
 | apps (macOS) | each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
 | mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
-| services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules are missing (the person's choice) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
+| services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules or Claude Code itself are missing (the person's choice; Switchboard's default agent may be another) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `commands` (PC-119, below) when it lacks a command rule or a declared rule was not offered, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
@@ -100,7 +100,7 @@ for Fabric without its prerequisites unless `--with fabric`), `update`,
 launchd service that does not answer), each with the check ids that caused it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
-fix, each product's onboarding for apps installed in this run, and the restart. A plan lists
+fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124), each product's onboarding for apps installed in this run, and the restart. A plan lists
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 

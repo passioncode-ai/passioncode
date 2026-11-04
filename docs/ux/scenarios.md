@@ -58,11 +58,11 @@
 - **Steps:**
   1. Read JSON status.
   2. Use `latest` and `checkedAt` as the saved observation.
-- **Expected result:** Existing JSON fields retain their raw values. Both text and JSON status leave state unchanged and do not invoke npm.
+- **Expected result:** Existing JSON fields retain their raw values. Both text and JSON status leave state unchanged and do not invoke npm, apart from the launcher's anonymous counts (SCN-016).
 - **Alt paths:** With no observation, `latest` and `checkedAt` remain null.
 - **UI elements:** JSON on stdout and process exit code.
 - **States covered:** empty, success
-- **Errors & recovery:** Network availability has no effect on reading locally saved status.
+- **Errors & recovery:** Network availability has no effect on reading locally saved status (a count that cannot be sent is dropped).
 - **Status:** implemented
 - **Coverage:** `test/launcher.test.js`, test beginning `status labels cached npm observations`.
 - **Product:** unobserved
@@ -206,7 +206,7 @@
 - **Steps:**
   1. Run doctor.
   2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
-- **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
+- **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules or Claude Code itself are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
@@ -246,7 +246,7 @@
   1. Paste the prompt.
   2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor`, runs `analytics status` once without `--json`, and reports.
 - **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; the launcher's anonymous-counts notice word for word, or the status line it printed (SCN-016); no secret is asked for in the chat.
-- **Alt paths:** "Don't change anything" → the agent runs doctor only.
+- **Alt paths:** "Don't change anything" → the agent runs doctor only, and names the counts and `analytics off` without running a counting command of its own.
 - **UI elements:** The agent's reply.
 - **States covered:** success, error
 - **Errors & recovery:** The agent reports a failed command with its exit code and does not fall back to manual installs.
@@ -323,7 +323,7 @@
 - **Alt paths:** `--json` and `--quiet` runs never print the notice and send nothing until it was shown, and `analytics status --json` then reports reason `notice`; a `no` given earlier in a PassionCode app (the shared file's `analytics: false`) is kept as the launcher's off, which `analytics status` names and `analytics on` lifts for the launcher alone; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
 - **UI elements:** The notice line on stderr, the status line, the JSON status, exit code.
 - **States covered:** success, empty, error
-- **Errors & recovery:** A send that fails or is slow is dropped after two seconds and never fails the command; a word other than on, off or status exits 2.
+- **Errors & recovery:** A send that fails or is slow is dropped after two seconds and never fails the command; a word other than on, off or status exits 2. A switch file that cannot be read counts as off for that run and is not rewritten; `analytics on` or `off` writes it again.
 - **Status:** implemented
 - **Coverage:** `test/analytics.test.js` tests beginning `PC-123:`.
 - **Product:** unobserved

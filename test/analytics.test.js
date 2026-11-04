@@ -345,3 +345,37 @@ test('PC-123: an analytics off given while the command ran wins: nothing said, s
   assert.equal(fs.existsSync(path.join(h, '.config', 'PassionCode', 'installation.json')), false);
   assert.equal(A.readState(opts.state).enabled, false);
 });
+
+test('PC-123: a switch file that cannot be read counts as off and is never rewritten by a count', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  A.setEnabled(opts.state, false);
+  const file = path.join(opts.state, 'analytics.json');
+  fs.writeFileSync(file, '{"enabled": false,}\n'); // a hand edit with a trailing comma
+  assert.deepEqual(await A.after(opts), { sent: 0 });
+  assert.equal(r.calls.length, 0); assert.equal(err.out.length, 0);
+  assert.equal(fs.readFileSync(file, 'utf8'), '{"enabled": false,}\n', 'untouched');
+  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key }).reason, 'unreadable');
+  A.setEnabled(opts.state, false); // the person's own word writes it again
+  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key }).reason, 'off');
+});
+
+test('PC-123: a notice that could not be printed is not recorded as shown, and nothing is sent', async () => {
+  const h = home(); const r = recorder();
+  const broken = { write() { throw new Error('EPIPE'); } };
+  assert.deepEqual(await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: broken })), { sent: 0 });
+  assert.equal(r.calls.length, 0);
+  const err = quiet();
+  assert.equal((await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: err.stream }))).sent, 3, 'the next run shows it and sends, app_installed included');
+  assert.equal(err.out.length, 1);
+});
+
+test('PC-123: an installation id another app wrote in upper case is sent as written', async () => {
+  const h = home(); const r = recorder();
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  fs.mkdirSync(path.dirname(shared), { recursive: true });
+  fs.writeFileSync(shared, JSON.stringify({ version: 1, id: 'ABCDEF01-2345-4678-89AB-CDEF01234567', analytics: true, created_at: 1 }));
+  await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream }));
+  assert.equal(r.calls[0].body[0].props.iid, 'ABCDEF01-2345-4678-89AB-CDEF01234567');
+  assert.equal(r.calls[0].body[0].props.install_id, 'ABCDEF01-2345-4678-89AB-CDEF01234567');
+});

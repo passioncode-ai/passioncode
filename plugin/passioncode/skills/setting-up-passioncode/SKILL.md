@@ -110,7 +110,8 @@ Reply in the person's language, briefly:
 2. What still fails, each with its `fix`; rules offered and not taken, with the flag that takes them (`--allow-tools`,
    `--allow-commands`), and every `commands.refused` line. `npx @passioncode-ai/passioncode@latest permissions` shows what
    PassionCode allowed and when, and `permissions remove <rule>` takes a rule back. The launcher's anonymous counts
-   start only after their notice is shown once, and a `--json` run never shows it: run
+   start only after their notice is shown once (on a look-only request, do not run it: tell the person the launcher
+   sends anonymous counts and `analytics off` turns them off), and a `--json` run never shows it: run
    `npx --yes @passioncode-ai/passioncode@latest analytics status` once (without `--json`) and give the person the line
    "The PassionCode launcher sends anonymous usage and error counts ..." it prints on stderr, word for word: it is their
    notice, and `analytics off` is their switch. If it prints no such line, give the person the status line it printed

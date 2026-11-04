@@ -1,4 +1,4 @@
-# ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only
+# ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only (amended 2026-11-04, PC-123: apart from the anonymous counts)
 
 Status: accepted · 2026-10-13 · brief: [docs/tasks/2026-10-13-setup-doctor.md](../tasks/2026-10-13-setup-doctor.md)
 

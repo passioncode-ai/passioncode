@@ -481,6 +481,10 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', a
   const noRules = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand');
   assert.deepEqual([noRules.state, noRules.fix], ['info', 'npx @passioncode-ai/passioncode@latest setup --allow-tools'], 'declined rules alone are the person\'s choice: information');
   assert.match(noRules.detail, /missing Claude Code's rules for PassionCode's own tools$/);
+  // No Claude Code at all: the default agent may be another, so the row is information too.
+  const noClaude = require('child_process').spawnSync(process.execPath, [BIN, 'doctor', '--json'], { env: { ...cliEnv(m, api), PASSIONCODE_CLAUDE: path.join(m.home, 'no-claude') }, encoding: 'utf8' });
+  const nc = JSON.parse(noClaude.stdout).checks.find((x) => x.id === 'sessions.on-demand');
+  assert.deepEqual([nc.state, nc.detail], ['info', 'sessions Fabric starts on a board request, with Claude Code as the default agent: missing Claude Code']);
   // Without Fabric the row is information, never a warning.
   const bare = await cli(machine(), api, 'doctor', '--json');
   assert.deepEqual((({ state, detail }) => ({ state, detail }))(bare.json.checks.find((x) => x.id === 'sessions.on-demand')),

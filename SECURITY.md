@@ -70,7 +70,7 @@ tests and is named in setup's output whenever it is set.
 ## What `permissions` changes
 
 `permissions` reads Claude Code's settings, the ledger and the declarations in `~/.passioncode/rules.d` (and looks up a
-declared wildcard's program on PATH, as setup does) and changes nothing. `permissions allow`, `remove` and `mode`
+declared wildcard's program on PATH, as setup does) and changes nothing but the anonymous counts below. `permissions allow`, `remove` and `mode`
 write the ledger `~/.passioncode/permissions.json`, and `allow` and `mode` create `~/.claude/settings.json` and its
 folder when they are absent. `permissions allow` adds only rules
 PassionCode offers, `permissions remove` takes out of `permissions.allow` only rules PassionCode offers or its ledger

@@ -50,6 +50,7 @@ The launcher sets no permission mode during `setup`. `permissions mode` (from 0.
 - On Windows the launcher does not install the apps; it names their download pages. A Windows machine needs Fabric and
   Fabric Switchboard installed by hand before Fabric can start a session there.
 - `doctor` checks the prerequisites as one row, `sessions.on-demand` (from 0.2.76), for Claude Code only: when
-  Switchboard names another default agent, that agent's prerequisites are not checked yet.
+  Switchboard names another default agent, that agent's prerequisites are not checked yet, so a machine without
+  Claude Code reads as information, not as a warning.
 - Which agent is the default and which permission mode a started session gets are read from Switchboard and Fabric;
   the launcher neither sets nor reports them.

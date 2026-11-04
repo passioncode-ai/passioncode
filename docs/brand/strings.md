@@ -125,10 +125,11 @@ Contract: brand-contract v1
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:188 | SCN-015 | proposed | copy |
 | doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:375 | SCN-010 | proposed | copy |
 | doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:377 | SCN-010 | proposed | copy |
-| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:397 | SCN-010 | proposed | copy |
+| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:400 | SCN-010 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch). | lib/analytics.js:29 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:205 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:203 | SCN-016 | proposed | copy |
+| analytics.why.unreadable | off for now: the switch file ~/.passioncode/analytics.json cannot be read; analytics on or analytics off writes it again | bin/passioncode.js:203 | SCN-016 | proposed | copy |
 | analytics.why.off-elsewhere | off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone | bin/passioncode.js:203 | SCN-016 | proposed | copy |
 | analytics.why.env | off for this process (PASSIONCODE_ANALYTICS=off) | bin/passioncode.js:203 | SCN-016 | proposed | copy |
 | analytics.why.dnt | off for this process (DO_NOT_TRACK) | bin/passioncode.js:203 | SCN-016 | proposed | copy |
