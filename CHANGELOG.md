@@ -16,6 +16,10 @@
 
 ### Changed
 
+- **Setup's hints under a mode that does not ask** (PC-125): when `~/.claude/settings.json` sets the default mode to
+  `bypassPermissions`, `dontAsk` or `auto`, setup no longer says "Claude Code still asks"; it says the allow rules do not
+  include the rules and that the mode decides. A rules step that cannot write the ledger still adds its rules and ends
+  "the permissions ledger was not updated".
 - **Fabric Agent Adapter is pinned at `v0.62.0`** (it was `v0.61.0`): a new service install must name the repository of
   its code (an update of an installed one without it still works and warns), the reference service declares its
   connections, and `check_service.py` reports a descriptor without a repository and the connections declaration

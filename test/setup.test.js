@@ -1080,8 +1080,14 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   fs.writeFileSync(settingsOf(quiet), JSON.stringify(quietDoc));
   const bypass = await cli(quiet, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.doesNotMatch(bypass.stdout, /still asks/, bypass.stdout);
-  assert.match(bypass.stdout, /\nClaude Code's allow rules do not include PassionCode's own tools; its default mode, bypassPermissions, decides what it does without them\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, bypass.stdout);
-  assert.match(bypass.stdout, /\nClaude Code's allow rules do not include Bash\(gh pr merge:\*\); its default mode, bypassPermissions, decides what it does without them\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands \(a rule ending in \* allows any arguments after its words\)\n/, bypass.stdout);
+  assert.match(bypass.stdout, /\nClaude Code's allow rules do not include PassionCode's own tools; its default mode in your user settings, bypassPermissions, decides what it does without them\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, bypass.stdout);
+  assert.match(bypass.stdout, /\nClaude Code's allow rules do not include Bash\(gh pr merge:\*\); its default mode in your user settings, bypassPermissions, decides what it does without them\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands \(a rule ending in \* allows any arguments after its words\)\n/, bypass.stdout);
+  // bypassPermissions switched off in the same file asks again: "still asks" is true there.
+  const off = machine({ toolRules: false, commandRules: false });
+  const offDoc = read(off) || {};
+  offDoc.permissions = { ...(offDoc.permissions || {}), defaultMode: 'bypassPermissions', disableBypassPermissionsMode: 'disable' };
+  fs.writeFileSync(settingsOf(off), JSON.stringify(offDoc));
+  assert.match((await cli(off, api, 'setup', '--yes', '--no-apps', '--offline')).stdout, /\nClaude Code still asks before it uses PassionCode's own tools\./);
   // Run again with nothing else to do: not "everything ... is in place" while the rules are offered.
   const rerun = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.match(rerun.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, rerun.stdout);

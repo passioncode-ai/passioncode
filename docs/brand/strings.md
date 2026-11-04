@@ -19,41 +19,41 @@ Contract: brand-contract v1
 | hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:66 | SCN-006 | proposed | copy |
 | update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files. | bin/passioncode.js:223 | SCN-003 | proposed | copy |
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:223 | SCN-003 | proposed | copy |
-| setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:181 | SCN-008 | proposed | copy |
-| setup.install-question.preview | (early preview) | lib/setup.js:181 | SCN-008 | proposed | copy |
-| setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:189 | SCN-008, SCN-009 | proposed | copy |
+| setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:184 | SCN-008 | proposed | copy |
+| setup.install-question.preview | (early preview) | lib/setup.js:184 | SCN-008 | proposed | copy |
+| setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:192 | SCN-008, SCN-009 | proposed | copy |
 | setup.repair-update | install or refresh the skill set and register the apps\' MCP servers for every agent | lib/setup.js:90 | SCN-008, SCN-009 | proposed | copy |
 | setup.repair-replace | reinstall ${pr.name} from ${from(pr)} (the current one goes to the Trash) | lib/setup.js:91 | SCN-009, SCN-014 | proposed | copy |
 | setup.repair-kickstart | start the ${r.label} service through launchd | lib/setup.js:92 | SCN-009 | proposed | copy |
 | setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} from ${from(pr)} | lib/setup.js:73 | SCN-008 | proposed | copy |
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:74 | SCN-008, SCN-014 | proposed | copy |
-| setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:376 | SCN-009, SCN-014 | proposed | copy |
-| setup.install-note.train | ${setupStep} --with | lib/setup.js:375 | SCN-014 | proposed | copy |
+| setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:379 | SCN-009, SCN-014 | proposed | copy |
+| setup.install-note.train | ${setupStep} --with | lib/setup.js:378 | SCN-014 | proposed | copy |
 | doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:188 | SCN-009, SCN-010 | proposed | layout |
-| setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:408 | SCN-009 | proposed | copy |
-| setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:409 | SCN-009 | proposed | copy |
-| setup.declined | You declined every offer; nothing was changed.${stand(a)} | lib/setup.js:407 | SCN-008, SCN-009 | proposed | copy |
-| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${stand(a)} | lib/setup.js:406 | SCN-008, SCN-009 | proposed | copy |
-| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:473 | SCN-009 | proposed | copy |
-| setup.in-place.tools | Everything else this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:472 | SCN-009 | proposed | copy |
-| setup.checks-stand |  The checks below still stand. | lib/setup.js:413 | SCN-008, SCN-009 | proposed | copy |
-| setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:441 | SCN-008 | proposed | copy |
-| setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:410 | SCN-008 | proposed | copy |
-| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:466 | SCN-008 | proposed | copy |
-| setup.plan-footer.dry-run | Run it without --dry-run (with --yes, or in a terminal) to apply. | lib/setup.js:465 | SCN-008 | proposed | copy |
-| setup.plan-footer.dry-run.asks | Run it without --dry-run, in a terminal or with ${untaken.join(' and ')}, to apply. | lib/setup.js:465 | SCN-008 | proposed | copy |
-| setup.plan-footer.train | Run it with --yes, or in a terminal, to apply. | lib/setup.js:466 | SCN-008, SCN-014 | proposed | copy |
-| setup.plan-header | Plan (nothing was changed): | lib/setup.js:440 | SCN-008 | proposed | copy |
-| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved. | lib/setup.js:457 | SCN-008 | proposed | copy |
-| setup.plan-forget-train | forget the saved release train | lib/setup.js:423 | SCN-008 | proposed | copy |
-| setup.plan-train | save release train ${t} | lib/setup.js:423 | SCN-008 | proposed | copy |
-| setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:457 | SCN-008 | proposed | copy |
-| setup.open-now | Open now: | lib/setup.js:513 | SCN-008 | proposed | layout |
-| setup.still-open | Still open: | lib/setup.js:513 | SCN-009 | proposed | layout |
-| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:517 | SCN-008 | proposed | copy |
-| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:521 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:522 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:523 | SCN-008, SCN-009 | proposed | copy |
+| setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:411 | SCN-009 | proposed | copy |
+| setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:412 | SCN-009 | proposed | copy |
+| setup.declined | You declined every offer; nothing was changed.${stand(a)} | lib/setup.js:410 | SCN-008, SCN-009 | proposed | copy |
+| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${stand(a)} | lib/setup.js:409 | SCN-008, SCN-009 | proposed | copy |
+| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:476 | SCN-009 | proposed | copy |
+| setup.in-place.tools | Everything else this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:475 | SCN-009 | proposed | copy |
+| setup.checks-stand |  The checks below still stand. | lib/setup.js:416 | SCN-008, SCN-009 | proposed | copy |
+| setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:444 | SCN-008 | proposed | copy |
+| setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:413 | SCN-008 | proposed | copy |
+| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:469 | SCN-008 | proposed | copy |
+| setup.plan-footer.dry-run | Run it without --dry-run (with --yes, or in a terminal) to apply. | lib/setup.js:468 | SCN-008 | proposed | copy |
+| setup.plan-footer.dry-run.asks | Run it without --dry-run, in a terminal or with ${untaken.join(' and ')}, to apply. | lib/setup.js:468 | SCN-008 | proposed | copy |
+| setup.plan-footer.train | Run it with --yes, or in a terminal, to apply. | lib/setup.js:469 | SCN-008, SCN-014 | proposed | copy |
+| setup.plan-header | Plan (nothing was changed): | lib/setup.js:443 | SCN-008 | proposed | copy |
+| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved. | lib/setup.js:460 | SCN-008 | proposed | copy |
+| setup.plan-forget-train | forget the saved release train | lib/setup.js:426 | SCN-008 | proposed | copy |
+| setup.plan-train | save release train ${t} | lib/setup.js:426 | SCN-008 | proposed | copy |
+| setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:460 | SCN-008 | proposed | copy |
+| setup.open-now | Open now: | lib/setup.js:516 | SCN-008 | proposed | layout |
+| setup.still-open | Still open: | lib/setup.js:516 | SCN-009 | proposed | layout |
+| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:520 | SCN-008 | proposed | copy |
+| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:524 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:525 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:526 | SCN-008, SCN-009 | proposed | copy |
 | trains.not-a-name | "${id}" is not a release train name | lib/trains.js:19 | SCN-014 | proposed | copy |
 | trains.unknown | no release train "${id}" in this launcher (known: ${list().join(', ')}) | lib/trains.js:22 | SCN-014 | proposed | copy |
 | trains.none-shipped | no release train "${id}": this launcher ships no release train | lib/trains.js:22 | SCN-014 | proposed | copy |
@@ -62,33 +62,33 @@ Contract: brand-contract v1
 | trains.no-pin | release train "${id}" pins no app | lib/trains.js:27 | SCN-014 | proposed | copy |
 | trains.unknown-app | release train "${id}" pins an unknown app "${app}" | lib/trains.js:29 | SCN-014 | proposed | copy |
 | trains.bad-version | release train "${id}" pins ${app} at "${version}", not a version | lib/trains.js:30 | SCN-014 | proposed | copy |
-| setup.tools-question | Let Claude Code use PassionCode's own tools without asking (allow ${result.permissions.rules.join(', ')})? | lib/setup.js:193 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-pending | allow ${result.permissions.rules.join(', ') \|\| "PassionCode's own tools"} in ${file} | lib/setup.js:302 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins) | lib/setup.js:306 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:307 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-question | Let Claude Code use PassionCode's own tools without asking (allow ${result.permissions.rules.join(', ')})? | lib/setup.js:196 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-pending | allow ${result.permissions.rules.join(', ') \|\| "PassionCode's own tools"} in ${file} | lib/setup.js:305 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins) | lib/setup.js:309 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:310 | SCN-008, SCN-009 | proposed | copy |
 | permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:220 | SCN-008, SCN-009 | proposed | error |
 | permissions.unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:189 | SCN-008, SCN-009 | proposed | error |
 | permissions.invalid-json | ${file} is not valid JSON: ${error.message} | lib/permissions.js:192 | SCN-008, SCN-009 | proposed | error |
 | permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:193 | SCN-008, SCN-009 | proposed | error |
 | permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:195 | SCN-008, SCN-009 | proposed | error |
 | permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:197 | SCN-008, SCN-009 | proposed | error |
-| setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:422 | SCN-008 | proposed | copy |
-| setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:446 | SCN-008 | proposed | copy |
-| setup.tools-fails | A run with ${failing.join(' or ')} fails until that is fixed. | lib/setup.js:482 | SCN-008 | proposed | copy |
-| setup.tools-unreadable | Claude Code's settings were not changed: ${tools.error} | lib/setup.js:480 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-hint | Claude Code still asks before it uses PassionCode's own tools. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:488 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-question | Let Claude Code run these commands without asking: ${result.commands.rules.map(commandLine).join('; ')}${wild}? | lib/setup.js:197 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-question.wild | ; a rule ending in * allows any arguments after its words | lib/setup.js:196 | SCN-008 | proposed | copy |
-| setup.commands-rule | ${r.rule} (${r.why}${r.by ? `; declared by ${r.by}` : ''}) | lib/setup.js:421 | SCN-008 | proposed | copy |
-| setup.commands-plan | let Claude Code run these commands without asking (asked in a terminal, or --allow-commands): | lib/setup.js:449 | SCN-008 | proposed | copy |
-| setup.commands-plan.wild | (a rule ending in * allows any arguments after its words, options included) | lib/setup.js:451 | SCN-008 | proposed | copy |
-| setup.commands-pending | allow ${result.commands.rules.map((r) => r.rule).join(', ') \|\| 'the rules for commands'} in ${file} | lib/setup.js:316 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins${added.some(wildcard) ? '; a rule ending in * allows any arguments after its words' : ''}) | lib/setup.js:323 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:324 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-hint | Claude Code still asks before it runs ${cmds.rules.map((r) => r.rule).join(', ')}. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:493 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-hint-quiet | Claude Code's allow rules do not include PassionCode's own tools; its default mode, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:487 | SCN-008 | proposed | copy |
-| setup.commands-hint-quiet | Claude Code's allow rules do not include ${cmds.rules.map((r) => r.rule).join(', ')}; its default mode, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:491 | SCN-008 | proposed | copy |
-| setup.commands-refused | Rules declared on this machine and not offered as declared: | lib/setup.js:496 | SCN-008 | proposed | copy |
+| setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:425 | SCN-008 | proposed | copy |
+| setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:449 | SCN-008 | proposed | copy |
+| setup.tools-fails | A run with ${failing.join(' or ')} fails until that is fixed. | lib/setup.js:485 | SCN-008 | proposed | copy |
+| setup.tools-unreadable | Claude Code's settings were not changed: ${tools.error} | lib/setup.js:483 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-hint | Claude Code still asks before it uses PassionCode's own tools. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:491 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-question | Let Claude Code run these commands without asking: ${result.commands.rules.map(commandLine).join('; ')}${wild}? | lib/setup.js:200 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-question.wild | ; a rule ending in * allows any arguments after its words | lib/setup.js:199 | SCN-008 | proposed | copy |
+| setup.commands-rule | ${r.rule} (${r.why}${r.by ? `; declared by ${r.by}` : ''}) | lib/setup.js:424 | SCN-008 | proposed | copy |
+| setup.commands-plan | let Claude Code run these commands without asking (asked in a terminal, or --allow-commands): | lib/setup.js:452 | SCN-008 | proposed | copy |
+| setup.commands-plan.wild | (a rule ending in * allows any arguments after its words, options included) | lib/setup.js:454 | SCN-008 | proposed | copy |
+| setup.commands-pending | allow ${result.commands.rules.map((r) => r.rule).join(', ') \|\| 'the rules for commands'} in ${file} | lib/setup.js:319 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins${added.some(wildcard) ? '; a rule ending in * allows any arguments after its words' : ''}) | lib/setup.js:326 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:327 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-hint | Claude Code still asks before it runs ${cmds.rules.map((r) => r.rule).join(', ')}. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:496 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-hint-quiet | Claude Code's allow rules do not include PassionCode's own tools; its default mode in your user settings, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:490 | SCN-008 | proposed | copy |
+| setup.commands-hint-quiet | Claude Code's allow rules do not include ${cmds.rules.map((r) => r.rule).join(', ')}; its default mode in your user settings, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:494 | SCN-008 | proposed | copy |
+| setup.commands-refused | Rules declared on this machine and not offered as declared: | lib/setup.js:499 | SCN-008 | proposed | copy |
 | permissions.gh-merge | merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories | lib/permissions.js:17 | SCN-008 | proposed | copy |
 | permissions.rule-not-text | a rule is not text | lib/permissions.js:61 | SCN-008 | proposed | error |
 | permissions.rule-mcp | ${rule}: a declared rule names a command; an MCP server's tools are not offered here | lib/permissions.js:62 | SCN-008 | proposed | error |
@@ -145,7 +145,7 @@ Contract: brand-contract v1
 | ledger.unreadable | ${file} cannot be read: ${error.message} | lib/ledger.js:27 | SCN-015 | proposed | error |
 | ledger.schema | ${file} is not a ${SCHEMA} ledger | lib/ledger.js:31 | SCN-015 | proposed | error |
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
-| setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:418 | SCN-008, SCN-009, SCN-015 | proposed | error |
+| setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:421 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |

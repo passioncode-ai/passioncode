@@ -56,7 +56,7 @@ for shell commands the same way: `Bash(gh pr merge:*)` and the rules an agent of
 declares in `~/.passioncode/rules.d/` (who declared a rule is what its file says, not checked), refusing a declared rule that is not in a plain form and could allow more than it says (a path or wrapper
 program, a quote, substitution, separator or redirection, a wildcard too early, any wildcard over a shell, an
 interpreter or a program whose options run other code, and any wildcard over a program not installed in the person's
-home folder; `docs/reference/cli.md` lists them, PC-119), records every rule it added in a private ledger
+home folder; `docs/reference/cli.md` lists them, PC-119), records every rule it added in a private ledger when it can write it (the rules stand without it)
 (`~/.passioncode/permissions.json`: the rule, who declared it, from where and when, PC-125), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
 descriptor names launchd and that does not answer, and opens the apps it installed. It never
 stops or kills a process, never replaces a running app, never asks for or stores a secret, and
