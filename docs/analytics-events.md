@@ -12,17 +12,20 @@ with a two-second ceiling; a failed send is dropped and never kept for a later r
 ([lib/analytics.js](../lib/analytics.js)). Only the published package carries the App Key: the publish job writes it
 from the release secret, so a checkout, a test or a fork sends nothing.
 
-Every event carries the launcher version, the OS name and version and the locale (as Aptabase's SDKs do), `install_id`
-and `iid` (the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses, created
-once if absent and never rewritten) and `environment` (`production`, or `sandbox` for a development version).
+Every event carries the time, a random id for the run (`sessionId`) and the fields Aptabase's SDKs send: the launcher
+version, the OS name and its kernel release (for example `Darwin 25.6.0`, not the macOS version), the locale, the
+Node.js version, an SDK tag and a debug flag (true for `sandbox`). And three properties: `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
+(created once if absent, never rewritten; growth counts installations by it); `surface`, `cli` (a value of its own is
+added if the SessionStart hook ever sends); and `environment`, `production` for a release version `x.y.z` and `sandbox`
+for any other (`-rc.N`, `-beta.N`, a build tag).
 
 | Event | Status | Sent from | When | Properties | Added |
 | --- | --- | --- | --- | --- | --- |
-| `app_installed` | live | lib/analytics.js:100 | the first command on this machine that sends anything | none | 2026-11-04 |
-| `app_updated` | live | lib/analytics.js:101 | the first command after the launcher's version changed | `from`: the previous version | 2026-11-04 |
-| `app_active` | live | lib/analytics.js:104 | the first command of a UTC day | none | 2026-11-04 |
-| `command_run` | live | lib/analytics.js:107 | every command, when it ends | `command`: `setup`, `doctor`, `update`, `status`, `restore`, `config`, `uninstall`, `permissions`, `analytics` or `help` (any other word is sent as `help`); `outcome`: `ok`, `failed` or `usage` (exit 0, 1, 2); `duration`: `under-1s`, `1-10s`, `10-60s` or `over-60s`; `json`: true or false | 2026-11-04 |
-| `app_error` | live | lib/analytics.js:108 | a command that ends with exit 1 | `where`: the command, as above; `code`: `other` (fixed codes per failure come later, each added here first) | 2026-11-04 |
+| `app_installed` | live | lib/analytics.js:106 | the first command on this machine that sends anything | `existing`: true when the launcher was installed here before the counts existed (its `~/.passioncode/state.json` was there), false for a new install | 2026-11-04 |
+| `app_updated` | live | lib/analytics.js:107 | the first command after the launcher's version changed (an update the SessionStart hook ran is counted at the next command, so it can arrive a session late) | `from`: the previous version | 2026-11-04 |
+| `app_active` | live | lib/analytics.js:110 | the first command of a UTC day on this machine (counts daily active machines) | none | 2026-11-04 |
+| `command_run` | live | lib/analytics.js:113 | every command, when it ends | `command`: `setup`, `doctor`, `update`, `status`, `restore`, `config`, `uninstall`, `permissions`, `analytics` or `help` (any other word is sent as `other`, never as typed; a new command gets a new value here in the same change, a removed one is marked retired and its value is never reused); `outcome`: `ok` (exit 0), `failed` (exit 1: a check or a step failed) or `usage` (exit 2: the words given were not a command the launcher takes); `duration`: `under-1s`, `1-10s`, `10-60s` or `over-60s` (the bounds are part of the series: other bounds would be a new property, never new meanings of these); `json`: true or false | 2026-11-04 |
+| `app_error` | live | lib/analytics.js:114 | a command that ends with exit 1 | `where`: the command, as above; `code`: `other` (fixed codes per failure come later, each added here first) | 2026-11-04 |
 
 Never sent: a path, a file or folder name, a user name, a rule, an argument, an app id the person typed, a token, an
 error message or the content of any file. Properties are the fixed words above and nothing else.
@@ -31,9 +34,9 @@ error message or the content of any file. Properties are the fixed words above a
 
 The first command that would send something prints, once per machine, on stderr:
 
-> PassionCode sends anonymous usage and error counts to improve it. Turn them off: npx @passioncode-ai/passioncode@latest analytics off
+> The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch).
 
-A `--json` run never prints it and sends nothing until a run in a terminal has. The background update the SessionStart
+It is printed by the first run without `--json` or `--quiet`, whether a person or an agent runs it; an agent that sets up a machine passes the line to the person word for word (the setup skill says so). A `--json` or `--quiet` run never prints it and sends nothing until such a run has. After that, `--json` runs count too, so a product's "Check setup" button counts toward `app_active`. The background update the SessionStart
 hook starts sends nothing.
 
 `npx @passioncode-ai/passioncode@latest analytics off` turns the counts off for the launcher alone (`on` turns them back

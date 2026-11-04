@@ -78,7 +78,7 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | apps (macOS) | each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
 | mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
-| services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed ([session chain](session-chain.md), PC-124) | a part is missing (a warning, fixed by `setup --allow-tools`) |
+| services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules are missing (the person's choice) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `commands` (PC-119, below) when it lacks a command rule or a declared rule was not offered, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
@@ -360,8 +360,8 @@ permissions ledger was not updated"); `permissions` then lists them as not in th
 Every command sends, when it ends, a few anonymous counts to PassionCode's analytics host: which command ran, how it
 ended, how long it took in coarse buckets, and once a day that the launcher was used (PC-123). The events, their fixed
 properties, the notice and what is never sent are in the [event catalogue](../analytics-events.md). The first command
-that would send something prints the notice once on stderr; a `--json` run prints nothing and sends nothing until a run
-in a terminal has shown it. `analytics off` turns the counts off for the launcher alone, saved in
+that would send something, without `--json` or `--quiet`, prints the notice once on stderr (an agent passes it to the
+person); a `--json` or `--quiet` run prints nothing and sends nothing until such a run has shown it. `analytics off` turns the counts off for the launcher alone, saved in
 `~/.passioncode/analytics.json`; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turns them off for one process. A
 checkout or a test sends nothing: only the published package carries the App Key. A send never makes a command fail
 and never delays it by more than two seconds.
@@ -373,7 +373,7 @@ equivalent relative links. It leaves the Claude Code rules setup added (the tool
 and the rules `permissions allow` added and the default mode `permissions mode` set (PC-125) in
 `~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
 (under `PASSIONCODE_HOME` when it is set);
-the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). Other user files stay in place. Failed plugin removal
+the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 

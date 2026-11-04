@@ -196,11 +196,12 @@ function analyticsCommand(rest) {
   const [verb = 'status', ...extra] = rest.filter((a) => a !== '--json');
   if (extra.length || !['on', 'off', 'status'].includes(verb)) return usage('analytics takes on, off or status');
   const state = L.paths().state;
-  if (verb !== 'status') A.setEnabled(state, verb === 'on');
+  try { if (verb !== 'status') A.setEnabled(state, verb === 'on'); }
+  catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
   const s = A.status({ state });
   const why = { off: 'turned off (analytics off)', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent' };
   process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
-    : `Anonymous usage and error counts: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}.\n`);
+    : `Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch.\n`);
   return 0;
 }
 
@@ -277,7 +278,7 @@ async function main(argv) {
 const startedAt = Date.now();
 const argv = process.argv.slice(2);
 main(argv).then(async (code) => {
-  const cmd = { onboard: 'setup', install: 'update', '--help': 'help', '-h': 'help' }[argv[0]] || argv[0] || 'help';
-  await require('../lib/analytics').after({ command: cmd, code, json: argv.includes('--json'), startedAt, version: VERSION, state: L.paths().state });
-  process.exitCode = code;
+  process.exitCode = code; // first: the send below must never change how the command ended
+  const cmd = { onboard: 'setup', install: 'update', '--help': 'help', '-h': 'help' }[argv[0]] || argv[0] || 'help'; // a word not in the list is sent as other
+  await require('../lib/analytics').after({ command: cmd, code, json: argv.includes('--json'), quiet: argv.includes('--quiet'), startedAt, version: VERSION, state: L.paths().state });
 });

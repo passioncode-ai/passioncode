@@ -114,7 +114,7 @@
   2. Fix any reported plugin failure and retry.
   3. Inspect status; optionally restore displaced files.
 - **Expected result:** Success clears the active installation and disables automatic updates; recovery copies remain. Repeating uninstall is safe.
-- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
+- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. Reinstallation retains the off preference until explicitly enabled.
@@ -215,7 +215,7 @@
 - **States covered:** success, error
 - **Errors & recovery:** Every failing line names the command or the step that fixes it.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`;
+- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`; PC-124's `sessions.on-demand` row: `test/setup.test.js` test beginning `doctor never starts Fabric's MCP server` and `test/analytics.test.js` test beginning `PC-124:`.
   `test/windows.test.js`, tests beginning `PC-86`.
 - **Product:** unobserved
 
@@ -316,11 +316,11 @@
 - **Entry point:** any command; `npx @passioncode-ai/passioncode@latest analytics`
 - **Preconditions:** Node 18+; the published package (a checkout carries no App Key and sends nothing).
 - **Steps:**
-  1. Run any command in a terminal: the first one that would send something prints, once, "PassionCode sends anonymous usage and error counts to improve it. Turn them off: npx @passioncode-ai/passioncode@latest analytics off".
-  2. Run `analytics off`: nothing is sent from then on; `analytics status` says "turned off (analytics off)".
+  1. Run any command without `--json` (a person, or an agent who passes the line on): the first one that would send something prints, once, "The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch).".
+  2. Run `analytics off`: nothing is sent from then on; `analytics status` says "turned off (analytics off)" and that each PassionCode app has its own switch.
   3. Run `analytics on` to send them again.
 - **Expected result:** Each command sends, when it ends, the events of docs/analytics-events.md with fixed words only; the switch is the launcher's own and never turns another PassionCode app off.
-- **Alt paths:** `--json` runs never print the notice and send nothing until it was shown; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
+- **Alt paths:** `--json` and `--quiet` runs never print the notice and send nothing until it was shown; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
 - **UI elements:** The notice line on stderr, the status line, the JSON status, exit code.
 - **States covered:** success, empty, error
 - **Errors & recovery:** A send that fails or is slow is dropped after two seconds and never fails the command; a word other than on, off or status exits 2.

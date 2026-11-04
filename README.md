@@ -51,9 +51,10 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
    terminal, never by `--yes` alone). Apps are installed on macOS; on other systems setup
    names each download page, and on Windows `doctor` reads which version of each app is installed. Skills only: `npx @passioncode-ai/passioncode@latest update`.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
-   `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. Anonymous usage and
-   error counts are on by default too ([what is sent](docs/analytics-events.md));
-   `npx @passioncode-ai/passioncode@latest analytics off` turns them off. Each app's
+   `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. The launcher's anonymous
+   usage and error counts are on by default too ([what is sent](docs/analytics-events.md));
+   `npx @passioncode-ai/passioncode@latest analytics off` turns them off for the launcher (each PassionCode app has its
+   own switch in its settings). Each app's
    own onboarding (sign-ins, Fabric Inbox's server, Observatory's projects) is listed by `setup`.
 3. **MCP:** the launcher serves no MCP server of its own. It registers the apps' servers
    (`fabric-dashboards`, `fabric` with `fabric-mcp --runner <agent>`, and `switchboard` with
@@ -151,7 +152,7 @@ observation, not a live registry check. With no saved version it says
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows
 npx @passioncode-ai/passioncode@latest update --dry-run
 npx @passioncode-ai/passioncode@latest uninstall
-npx @passioncode-ai/passioncode@latest analytics off # stop the anonymous usage and error counts (on by default)
+npx @passioncode-ai/passioncode@latest analytics off # stop the launcher's anonymous usage and error counts (on by default)
 npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed Claude Code to do without asking (in ~/.claude/settings.json), and who asked for it
 ```
 

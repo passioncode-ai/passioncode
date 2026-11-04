@@ -33,17 +33,18 @@ test('PC-123: the first run says so once on stderr, then sends installed, active
   assert.equal(r.calls[0].url, 'https://analytics.passioncode.ai/api/v0/events');
   assert.equal(r.calls[0].init.headers['App-Key'], KEY);
   assert.deepEqual(r.calls[0].body.map((e) => e.eventName), ['app_installed', 'app_active', 'command_run']);
+  assert.equal(r.calls[0].body[0].props.existing, false, 'no launcher state before: a new install');
   assert.deepEqual(r.calls[0].body[2].props.command, 'doctor');
   assert.equal(r.calls[0].body[2].props.duration, '1-10s');
   assert.equal(r.calls[0].body[2].props.environment, 'production');
-  const id = r.calls[0].body[0].props.install_id;
+  const id = r.calls[0].body[0].props.iid;
   assert.match(id, /^[0-9a-f-]{36}$/);
   assert.equal(JSON.parse(fs.readFileSync(path.join(h, '.config', 'PassionCode', 'installation.json'), 'utf8')).id, id, 'the shared file holds the id');
   // The same day, the same version: the command only, and no second notice.
   const again = await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: err.stream, code: 1, command: 'setup' }));
   assert.equal(err.out.length, 1);
   assert.deepEqual(again.body.map((e) => e.eventName), ['command_run', 'app_error']);
-  assert.deepEqual(again.body[1].props, { where: 'setup', code: 'other', install_id: id, iid: id, environment: 'production' });
+  assert.deepEqual(again.body[1].props, { where: 'setup', code: 'other', surface: 'cli', iid: id, environment: 'production' });
   // A new version and a new day.
   const next = await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: err.stream, version: '0.2.77', now: new Date('2026-11-06T09:00:00Z') }));
   assert.deepEqual(next.body.map((e) => [e.eventName, e.props.from]), [['app_updated', '0.2.76'], ['app_active', undefined], ['command_run', undefined]]);
@@ -82,7 +83,7 @@ test('PC-123: off, PASSIONCODE_ANALYTICS=off, DO_NOT_TRACK and a build with no k
   fs.mkdirSync(path.dirname(shared), { recursive: true });
   fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: false, created_at: 1 }));
   const sent = await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream }));
-  assert.equal(sent.body[0].props.install_id, '11111111-2222-4333-8444-555555555555');
+  assert.equal(sent.body[0].props.iid, '11111111-2222-4333-8444-555555555555');
   assert.equal(JSON.parse(fs.readFileSync(shared, 'utf8')).analytics, false, 'the shared file is never rewritten');
 });
 
@@ -93,8 +94,8 @@ test('PC-123: no payload carries a path, a user name, a rule or a token', async 
     env: { HOME: h, USER: 'example-person', PASSIONCODE_TOKEN: secret } }));
   const text = JSON.stringify(r.calls[0].body);
   for (const planted of [h, 'example-person', 'Bash(rm', secret, os.userInfo().username]) assert.ok(!text.includes(planted), planted);
-  assert.equal(r.calls[0].body.at(-1).props.command, 'help', 'a command not in the list is sent as help');
-  for (const e of r.calls[0].body) for (const [k, v] of Object.entries(e.props)) assert.ok(typeof v !== 'string' || k === 'install_id' || k === 'iid' || /^[a-z0-9._-]+$/.test(v), `${k}=${v}`);
+  assert.equal(r.calls[0].body.at(-1).props.command, 'other', 'a command not in the list is sent as other');
+  for (const e of r.calls[0].body) for (const [k, v] of Object.entries(e.props)) assert.ok(typeof v !== 'string' || k === 'iid' || /^[a-z0-9._-]+$/.test(v), `${k}=${v}`);
 });
 
 test('PC-123: a failed or slow send never fails the command', async () => {
@@ -111,7 +112,7 @@ test('PC-123: the analytics command turns it off and on and reports why it sends
   assert.equal(JSON.parse(run('status', '--json').stdout).reason, 'no-key', 'a checkout carries no key');
   assert.equal(run('off').status, 0);
   assert.equal(JSON.parse(fs.readFileSync(path.join(h, '.passioncode', 'analytics.json'), 'utf8')).enabled, false);
-  assert.match(run().stdout, /Anonymous usage and error counts: turned off \(analytics off\)\./);
+  assert.match(run().stdout, /Anonymous usage and error counts from the launcher: turned off \(analytics off\)\. Each PassionCode app has its own switch\./);
   assert.equal(run('on').status, 0);
   assert.equal(JSON.parse(run('status', '--json').stdout).enabled, true);
   assert.equal(run('maybe').status, 2);
@@ -131,4 +132,62 @@ test('PC-123: every event the code sends is in the catalogue, at its line', () =
   for (const [name, line] of emits) {
     assert.match(doc, new RegExp(`\\| \`${name}\` \\| (live|retired[^|]*) \\| lib/analytics\\.js:${line} \\|`), `${name} at lib/analytics.js:${line}`);
   }
+});
+
+test('PC-123: every event carries iid, surface cli and an environment growth counts', async () => {
+  for (const [version, environment] of [['0.2.76', 'production'], ['0.2.77-rc.1', 'sandbox'], ['0.2.77-beta.2', 'sandbox'], ['0.2.76+local', 'sandbox']]) {
+    const h = home(); const r = recorder();
+    await A.after(base(h, { version, fetchImpl: r.fetchImpl, stderr: quiet().stream, code: 1 }));
+    for (const e of r.calls[0].body) {
+      assert.match(e.props.iid, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/, `${version} ${e.eventName}`);
+      assert.equal(e.props.surface, 'cli');
+      assert.equal(e.props.environment, environment, version);
+      assert.equal(e.systemProps.isDebug, environment !== 'production');
+      assert.equal('install_id' in e.props, false);
+    }
+  }
+});
+
+test('PC-123: the real command keeps its exit code, and a host that never answers costs at most about two seconds', () => {
+  const h = home();
+  const keyFile = path.join(h, 'key.json');
+  fs.writeFileSync(keyFile, JSON.stringify({ appKey: KEY }));
+  const preload = path.join(h, 'fetch.js'); // no request leaves the machine: fetch is replaced before the CLI loads
+  fs.writeFileSync(preload, `const fs = require('fs'); globalThis.fetch = (url, init) => { fs.appendFileSync(${JSON.stringify(path.join(h, 'sent.log'))}, init.body + '\\n'); return new Promise((resolve, reject) => { if (process.env.HANG) init.signal.addEventListener('abort', () => reject(new Error('aborted'))); else resolve({ ok: true, status: 200 }); }); };`);
+  const env = { ...process.env, HOME: h, USERPROFILE: h, APPDATA: path.join(h, 'AppData'), XDG_CONFIG_HOME: path.join(h, '.config'),
+    PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_ANALYTICS_KEY_FILE: keyFile };
+  delete env.DO_NOT_TRACK; delete env.PASSIONCODE_ANALYTICS;
+  const run = (args, extra = {}) => spawnSync(process.execPath, ['--require', preload, path.join(ROOT, 'bin', 'passioncode.js'), ...args], { env: { ...env, ...extra }, encoding: 'utf8' });
+  const usage = run(['analytics', 'maybe']);
+  assert.equal(usage.status, 2);
+  assert.match(usage.stderr, /The PassionCode launcher sends anonymous usage and error counts/);
+  const failed = run(['config', 'set', 'update.auto', 'maybe']);
+  assert.ok([1, 2].includes(failed.status), 'the command ends as it would without counts');
+  const sent = fs.readFileSync(path.join(h, 'sent.log'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  assert.deepEqual(sent[0].map((e) => [e.eventName, e.props.command, e.props.outcome]).filter((x) => x[0] === 'command_run'), [['command_run', 'analytics', 'usage']]);
+  const t0 = Date.now();
+  const slow = run(['analytics', 'status'], { HANG: '1' });
+  assert.equal(slow.status, 0);
+  assert.ok(Date.now() - t0 < 4000, `took ${Date.now() - t0} ms`);
+});
+
+test('PC-124: on Linux the sessions row says doctor checks their apps on macOS and Windows only', () => {
+  const h = home();
+  const env = { ...process.env, HOME: h, USERPROFILE: h, PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_PLATFORM: 'linux',
+    PASSIONCODE_SERVICES_DIR: path.join(h, 'services'), PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js') };
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], { env, encoding: 'utf8' });
+  const row = JSON.parse(r.stdout).checks.find((c) => c.id === 'sessions.on-demand');
+  assert.deepEqual([row.state, row.detail], ['info', 'sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only']);
+});
+
+test('PC-123: a launcher installed before the counts says so in its first app_installed, and the sent fields are the documented ones', async () => {
+  const h = home(); const r = recorder();
+  fs.mkdirSync(path.join(h, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(h, '.passioncode', 'state.json'), JSON.stringify({ installed: '0.2.75' }));
+  await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream }));
+  assert.deepEqual(r.calls[0].body[0].props.existing, true);
+  const e = r.calls[0].body[0];
+  assert.deepEqual(Object.keys(e).sort(), ['eventName', 'props', 'sessionId', 'systemProps', 'timestamp']);
+  assert.deepEqual(Object.keys(e.systemProps).sort(), ['appBuildNumber', 'appVersion', 'engineName', 'engineVersion', 'isDebug', 'locale', 'osName', 'osVersion', 'sdkVersion']);
+  assert.match(e.sessionId, /^\d{18}$/);
 });
