@@ -66,12 +66,12 @@ Contract: brand-contract v1
 | setup.tools-pending | allow ${result.permissions.rules.join(', ') \|\| "PassionCode's own tools"} in ${file} | lib/setup.js:296 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins) | lib/setup.js:300 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:301 | SCN-008, SCN-009 | proposed | copy |
-| permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:172 | SCN-008, SCN-009 | proposed | error |
-| permissions.unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:141 | SCN-008, SCN-009 | proposed | error |
-| permissions.invalid-json | ${file} is not valid JSON: ${error.message} | lib/permissions.js:144 | SCN-008, SCN-009 | proposed | error |
-| permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:145 | SCN-008, SCN-009 | proposed | error |
-| permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:147 | SCN-008, SCN-009 | proposed | error |
-| permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:149 | SCN-008, SCN-009 | proposed | error |
+| permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:180 | SCN-008, SCN-009 | proposed | error |
+| permissions.unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:149 | SCN-008, SCN-009 | proposed | error |
+| permissions.invalid-json | ${file} is not valid JSON: ${error.message} | lib/permissions.js:152 | SCN-008, SCN-009 | proposed | error |
+| permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:153 | SCN-008, SCN-009 | proposed | error |
+| permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:155 | SCN-008, SCN-009 | proposed | error |
+| permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:157 | SCN-008, SCN-009 | proposed | error |
 | setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:408 | SCN-008 | proposed | copy |
 | setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:432 | SCN-008 | proposed | copy |
 | setup.tools-fails | A run with ${failing.join(' or ')} fails until that is fixed. | lib/setup.js:468 | SCN-008 | proposed | copy |
@@ -88,24 +88,25 @@ Contract: brand-contract v1
 | setup.commands-hint | Claude Code still asks before it runs ${cmds.rules.map((r) => r.rule).join(', ')}. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:473 | SCN-008, SCN-009 | proposed | copy |
 | setup.commands-refused | Rules declared on this machine and not offered: | lib/setup.js:476 | SCN-008 | proposed | copy |
 | permissions.gh-merge | merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories | lib/permissions.js:17 | SCN-008 | proposed | copy |
-| permissions.rule-not-text | a rule is not text | lib/permissions.js:59 | SCN-008 | proposed | error |
-| permissions.rule-mcp | ${rule}: a declared rule names a command; an MCP server's tools are not offered here | lib/permissions.js:60 | SCN-008 | proposed | error |
-| permissions.rule-kind | ${rule}: a declared rule names a command, as Bash(<command>) | lib/permissions.js:62 | SCN-008 | proposed | error |
-| permissions.rule-compound | ${rule}: a command with a quote, an escape, a substitution, a separator, a redirection or a character that is not plain text is not offered | lib/permissions.js:63 | SCN-008 | proposed | error |
-| permissions.rule-any | ${rule}: it would allow any command | lib/permissions.js:66 | SCN-008 | proposed | error |
-| permissions.rule-wildcard | ${rule}: a wildcard is allowed only at the end | lib/permissions.js:68 | SCN-008 | proposed | error |
-| permissions.rule-runner | ${rule}: a wildcard over ${program} could run any code; declare the exact command, or a command of your own | lib/permissions.js:78 | SCN-008 | proposed | error |
-| permissions.rule-one-word | ${rule}: it would allow any command of ${program} | lib/permissions.js:79 | SCN-008 | proposed | error |
-| permissions.rule-not-found | ${rule}: ${words[0]} is not found on PATH; a wildcard is offered only over a command installed in your home folder | lib/permissions.js:84 | SCN-008 | proposed | error |
-| permissions.rule-outside-home | ${rule}: ${words[0]} is installed outside your home folder (${found}); a wildcard is offered only over a command of your own there | lib/permissions.js:85 | SCN-008 | proposed | error |
-| permissions.rule-plain-name | ${rule}: name the program by its plain name, in lower case, without a path | lib/permissions.js:70 | SCN-008 | proposed | error |
-| permissions.rule-wrapper | ${rule}: ${program} runs another program, so the rule could run any code | lib/permissions.js:77 | SCN-008 | proposed | error |
-| permissions.declared-dir-unreadable | ${dir} cannot be read: ${error.message} | lib/permissions.js:115 | SCN-008 | proposed | error |
-| permissions.rule-not-object | a rule is not an object | lib/permissions.js:128 | SCN-008 | proposed | error |
-| permissions.rule-wildcard-end | ${rule}: a wildcard at the end needs :* or a space before it | lib/permissions.js:67 | SCN-008 | proposed | error |
-| permissions.declared-unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:121 | SCN-008 | proposed | error |
-| permissions.declared-shape | ${file} does not say who declares it ("by") and its rules ("rules") | lib/permissions.js:123 | SCN-008 | proposed | error |
-| permissions.declared-why | ${file}: ${r.rule}: "why" says what it allows, in 1 to 200 characters | lib/permissions.js:130 | SCN-008 | proposed | error |
+| permissions.rule-not-text | a rule is not text | lib/permissions.js:61 | SCN-008 | proposed | error |
+| permissions.rule-mcp | ${rule}: a declared rule names a command; an MCP server's tools are not offered here | lib/permissions.js:62 | SCN-008 | proposed | error |
+| permissions.rule-kind | ${rule}: a declared rule names a command, as Bash(<command>) | lib/permissions.js:64 | SCN-008 | proposed | error |
+| permissions.rule-compound | ${rule}: a command with a quote, an escape, a substitution, a separator, a redirection or a character that is not plain text is not offered | lib/permissions.js:65 | SCN-008 | proposed | error |
+| permissions.rule-any | ${rule}: it would allow any command | lib/permissions.js:68 | SCN-008 | proposed | error |
+| permissions.rule-wildcard | ${rule}: a wildcard is allowed only at the end | lib/permissions.js:70 | SCN-008 | proposed | error |
+| permissions.rule-runner | ${rule}: a wildcard over ${program} could run any code; declare the exact command, or a command of your own | lib/permissions.js:80 | SCN-008 | proposed | error |
+| permissions.rule-one-word | ${rule}: it would allow any command of ${program} | lib/permissions.js:81 | SCN-008 | proposed | error |
+| permissions.rule-relative-path | ${rule}: PATH holds an empty or relative folder, which a shell reads from wherever it runs; a wildcard is not offered while it does | lib/permissions.js:86 | SCN-008 | proposed | error |
+| permissions.rule-not-found | ${rule}: ${words[0]} is not found on PATH; a wildcard is offered only over a command installed in your home folder | lib/permissions.js:87 | SCN-008 | proposed | error |
+| permissions.rule-outside-home | ${rule}: ${words[0]} is installed outside your home folder (${found}); a wildcard is offered only over a command of your own there | lib/permissions.js:88 | SCN-008 | proposed | error |
+| permissions.rule-plain-name | ${rule}: name the program by its plain name, in lower case, without a path | lib/permissions.js:72 | SCN-008 | proposed | error |
+| permissions.rule-wrapper | ${rule}: ${program} runs another program, so the rule could run any code | lib/permissions.js:79 | SCN-008 | proposed | error |
+| permissions.declared-dir-unreadable | ${dir} cannot be read: ${error.message} | lib/permissions.js:123 | SCN-008 | proposed | error |
+| permissions.rule-not-object | a rule is not an object | lib/permissions.js:136 | SCN-008 | proposed | error |
+| permissions.rule-wildcard-end | ${rule}: a wildcard at the end needs :* or a space before it | lib/permissions.js:69 | SCN-008 | proposed | error |
+| permissions.declared-unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:129 | SCN-008 | proposed | error |
+| permissions.declared-shape | ${file} does not say who declares it ("by") and its rules ("rules") | lib/permissions.js:131 | SCN-008 | proposed | error |
+| permissions.declared-why | ${file}: ${r.rule}: "why" says what it allows, in 1 to 200 characters | lib/permissions.js:138 | SCN-008 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |

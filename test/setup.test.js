@@ -1289,6 +1289,17 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   assert.match(failsPlan.stdout, /\nA run with --allow-commands fails until that is fixed\.\n/, failsPlan.stdout);
   assert.match(failsPlan.stdout, /\n  • let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) /, failsPlan.stdout); // the set it would write
   assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
+  // npx puts node_modules/.bin folders on PATH, which Claude Code's shell does not have: a command found only there is
+  // not a command of the person's own.
+  const viaNpx = machine({ commandRules: false });
+  const proj = path.join(viaNpx.home, 'proj', 'node_modules', '.bin');
+  fs.mkdirSync(proj, { recursive: true });
+  fs.writeFileSync(path.join(proj, 'own-npx'), '#!/bin/sh\n', { mode: 0o755 });
+  fs.mkdirSync(path.join(viaNpx.home, '.passioncode', 'rules.d'), { recursive: true });
+  fs.writeFileSync(path.join(viaNpx.home, '.passioncode', 'rules.d', 'n.json'), JSON.stringify({ by: 'N', rules: [{ rule: 'Bash(own-npx sync:*)', why: 'sync' }] }));
+  const npx = require('child_process').spawnSync(process.execPath, [BIN, 'setup', '--yes', '--no-apps', '--offline', '--json'],
+    { env: { ...cliEnv(viaNpx, api), PATH: `${proj}${path.delimiter}${cliEnv(viaNpx, api).PATH}` }, encoding: 'utf8' });
+  assert.match(JSON.parse(npx.stdout).commands.refused.join('\n'), /own-npx is not found on PATH/, npx.stdout);
   // doctor --fix never decides them.
   const fix = await cli(machine({ commandRules: false }), api, 'doctor', '--fix', '--offline', '--json');
   assert.equal(fix.json.commands, undefined, fix.stdout);

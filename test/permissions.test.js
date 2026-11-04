@@ -374,3 +374,32 @@ test('PC-119: a wildcard is offered only over a command installed in the home fo
     assert.match(P.refusal(rule, CTX) || '', /runs another program/, rule);
   }
 });
+
+test('PC-119: PATH is read as a shell in any folder reads it, so a name cannot resolve one way for setup and another for Claude Code', { skip: process.platform === 'win32' && 'POSIX paths and modes' }, () => {
+  const bin = path.join(CTX.home, '.local', 'bin');
+  const at = (pathEnv, home = CTX.home) => ({ home, pathEnv, platform: process.platform });
+  // An empty or relative entry is the shell's folder, not setup's.
+  for (const pathEnv of [`:${bin}:/usr/bin`, `bin${path.delimiter}${bin}`, `.${path.delimiter}${bin}`]) {
+    assert.match(P.refusal('Bash(own-cli status *)', at(pathEnv)) || '', /empty or relative folder/, pathEnv);
+  }
+  // `..` after a link is resolved by the kernel, physically.
+  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-out-'));
+  fs.mkdirSync(path.join(out, 'a'));
+  fs.mkdirSync(path.join(out, 'bin'));
+  fs.writeFileSync(path.join(out, 'bin', 'own-c'), '#!/bin/sh\n', { mode: 0o755 });
+  fs.mkdirSync(path.join(CTX.home, 'bin'), { recursive: true });
+  fs.writeFileSync(path.join(CTX.home, 'bin', 'own-c'), '#!/bin/sh\n', { mode: 0o755 });
+  fs.symlinkSync(path.join(out, 'a'), path.join(CTX.home, 'link'));
+  assert.match(P.refusal('Bash(own-c x:*)', at(`${CTX.home}/link/../bin`)) || '', /outside your home folder/);
+  // A file the user cannot execute is skipped, as the shell skips it, so the system's program is the one found.
+  if (process.getuid?.() !== 0) {
+    const shadow = path.join(CTX.home, 'bin4');
+    fs.mkdirSync(shadow);
+    fs.writeFileSync(path.join(shadow, 'ls'), '#!/bin/sh\n', { mode: 0o645 });
+    fs.chmodSync(path.join(shadow, 'ls'), 0o645);
+    assert.match(P.refusal('Bash(ls -la *)', at(`${shadow}${path.delimiter}/bin`)) || '', /outside your home folder/);
+  }
+  // A home folder at the root holds every program, so it holds none for this check.
+  assert.match(P.refusal('Bash(ls -la *)', at('/bin', '/')) || '', /outside your home folder/);
+  fs.rmSync(out, { recursive: true, force: true });
+});

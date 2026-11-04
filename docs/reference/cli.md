@@ -164,7 +164,10 @@ name is read as the program, so `perl5.34` is `perl` and `python3.12` is `python
 (`$(...)`), separator (`&&`, `;`, `|`, a line break) or redirection; never a program that runs another one (`env`,
 `sudo`, `command`, `nohup`, `xargs`, `xcrun`, `lockf` and the like), not even exactly. A wildcard comes only at the
 end, after `:` or a space, and only over a command installed in your home folder, as an agent's own command is (in
-`~/.local/bin`, say): the program is looked up on `PATH`, links followed, and one that is not found, or that the system
+`~/.local/bin`, say): the program is looked up on the `PATH` setup runs with, as the kernel runs it (links and `..` followed physically, a file
+the user may not execute skipped), leaving out the `node_modules/.bin` folders `npx` adds; a `PATH` with an empty or
+relative folder ahead of it, which a shell reads from wherever it runs, takes no wildcard. Claude Code's shell may
+still find another program of the same name first, so the person's yes on each rule shown stays the gate; and one that is not found, or that the system
 or a package manager installed elsewhere, takes no wildcard. Within the home folder there is no wildcard over a program
 that runs whatever it is given, or takes options after its words that run other code (a shell, `python3`, `node`,
 `perl`, `uv`, `npx`, `find`, `ssh`, `make`, `git`, `claude` and the like), and none after a general-purpose program's
@@ -183,8 +186,9 @@ an allow rule resolves before the auto mode classifier, except writes to protect
 classifier, and critical `rm` targets, which no rule approves; on entering auto mode Claude Code drops broad rules that
 grant arbitrary code execution (package-manager run commands among them), so a rule over such a runner may not apply
 there. For an act no rule can describe, Claude Code reads plain-language exceptions under `autoMode` in the same file,
-which `setup` never writes. The result carries `commands: { rules, refused, taken }`, and `error` when the settings cannot be read
-(then, with `--allow-commands`, `rules` is the whole set a run would write); `taken` is the yes, and the `commands`
+which `setup` never writes. The result carries `commands: { rules, refused, taken }`, and `error` only when a run with `--allow-commands`
+cannot read the settings (then `rules` is the whole set a run would write; without the flag, unreadable settings are
+named once, under `permissions.error`); `taken` is the yes, and the `commands`
 action is the proof the rules were written.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
