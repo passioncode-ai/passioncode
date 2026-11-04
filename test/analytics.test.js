@@ -525,3 +525,16 @@ test('PC-123: after the first count, a shared file with a refused id reads as no
   const st = A.status({ state: opts.state, env: opts.env, key: opts.key, home: h, platform: 'linux' });
   assert.deepEqual([st.sending, st.reason], [false, 'shared-unreadable']);
 });
+
+test('PC-123: Node 18 announcing its fetch as experimental prints nothing; other warnings pass and the hook is put back', async () => {
+  const h = home(); const seen = [];
+  const original = process.emitWarning;
+  process.emitWarning = (w) => { seen.push(String(w)); };
+  const spy = process.emitWarning;
+  try {
+    const fetchImpl = async () => { process.emitWarning('The Fetch API is an experimental feature. This feature could change at any time', 'ExperimentalWarning'); process.emitWarning('something else'); return { ok: true, status: 200 }; };
+    assert.equal((await A.after(base(h, { fetchImpl, stderr: quiet().stream }))).sent, 3);
+    assert.deepEqual(seen, ['something else']);
+    assert.equal(process.emitWarning, spy, 'restored');
+  } finally { process.emitWarning = original; }
+});

@@ -494,6 +494,7 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', a
   const odd = JSON.parse(keep); odd.mcpServers = { ...(odd.mcpServers || {}), fabric: { weird: true } }; fs.writeFileSync(cj, JSON.stringify(odd));
   const oddRow = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand');
   assert.doesNotMatch(oddRow.detail, /missing Fabric's MCP server/);
+  assert.match(oddRow.detail, /a Fabric MCP entry in Claude Code that doctor can read/);
   assert.ok(!oddRow.fix || !oddRow.fix.endsWith('passioncode@latest setup'), String(oddRow.fix));
   fs.writeFileSync(cj, keep);
   // No Claude Code at all: the default agent may be another, so the row is information too.

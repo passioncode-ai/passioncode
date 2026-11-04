@@ -17,8 +17,9 @@
   listed in `docs/analytics-events.md`.
 - **`doctor` checks what sessions Fabric starts need** (PC-124): a `sessions.on-demand` row names what a session Fabric
   starts on a board request still lacks with Claude Code as the default agent (Fabric Switchboard, Fabric's MCP server
-  in Claude Code, the skill set, the tool rules), and is information only on Linux, while Fabric is not installed or when only the tool rules or Claude Code itself are
-  missing; it is never one of setup's steps for the person. The page
+  in Claude Code, the skill set, the tool rules), and is information only on Linux, while Fabric is not installed or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot
+  read are missing; it is never one of setup's steps for the person. As a warning it adds one to doctor's and setup's
+  warning count on a Mac or Windows machine with Fabric that lacks a part. The page
   `docs/reference/session-chain.md` says which part of that chain is the launcher's.
 
 ## 0.2.75 - 2026-11-04
