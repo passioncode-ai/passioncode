@@ -99,8 +99,9 @@ fix, each product's onboarding for apps installed in this run, and the restart. 
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
-Questions are asked only on a terminal: one per absent app (on macOS) and one for the
-repairs, if any are left after the installs (see PC-112 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
+Questions are asked only on a terminal: one per absent app (on macOS), one for the
+repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
+tools where Claude Code is and they are missing (default no; see PC-117 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
 something (an offer selected, or a train other than the saved one named, `none` included when a
 train is saved; a `--json` run never asks, so it counts as one without a terminal), the plan is returned with `planOnly: true`,
 nothing changes, and the exit code is 0; without a terminal and without `--yes` a run with nothing
@@ -124,9 +125,18 @@ the wrong shape, is left as it is and named. The result carries `permissions: { 
 rules are missing (or the file cannot be read); `taken` is the person's yes, and the `permissions` action is the proof
 they were written (a plan agreed to but not run writes nothing). The plan lists them as a line of their own (after a
 train's line; while they are offered a terminal asks about them, so a train-only plan closes with "Run it with --yes to
-apply, or in a terminal to answer its questions."), a run that leaves them out says how to add them under its
+apply, or in a terminal to answer its questions.", and a `--dry-run` whose only changes are questions `--yes` does not
+answer, the rules or an offer that defaults to no, closes with "Run it without --dry-run, in a terminal or with
+--allow-tools, to apply."), a run that leaves them out says how to add them under its
 headline (`setup --allow-tools`), and a run that changed nothing else says "Everything else this command can set up is
 in place". Yes to the rules alone is not a declined run, so with a named train it saves that train too.
+
+What the rules do not cover: each one allows every tool of the server registered under that name (Fabric Dashboards'
+`control`, which restarts a service, included), whatever program answers under the name. They allow MCP tools only:
+shell commands (`gh pr merge`, a launchd job), the Data Room and Fabric Inbox (`fabric-inbox`) need rules of their own.
+An `ask` or `deny` rule for one of these tools (in this file or a project's, local or managed settings file), or a
+managed policy that ignores user rules, still wins over them. They apply to Claude Code only. Existing machines are
+offered them the next time `setup` runs; `update` and the background update do not offer them.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
@@ -235,7 +245,7 @@ conflict and interrupted-move regression tests in `test/launcher.test.js`.
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
-equivalent relative links. It leaves the Claude Code tool rules `setup --allow-tools` added (PC-117) in
+equivalent relative links. It leaves the Claude Code tool rules setup added (PC-117) in
 `~/.claude/settings.json`; the person removes them there. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.

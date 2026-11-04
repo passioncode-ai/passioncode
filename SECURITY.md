@@ -45,8 +45,10 @@ each app), copies a verified app into `/Applications`, moves an app it replaces 
 runs `update` (above), on the person's own yes (a terminal question, default no, or `--allow-tools`) merges
 Claude Code's rules for PassionCode's own MCP tools (`mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard`,
 `mcp__plugin_switchboard_switchboard`, `mcp__observatory`) into `permissions.allow` in `~/.claude/settings.json`,
-keeping every other key, rule and the file's permission bits, so Claude Code uses those tools without asking
-(PC-117; `uninstall` leaves them, the person removes them), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
+keeping every other key and rule, and, in that merge, the file's permission bits and link, so Claude Code uses those
+tools without asking (PC-117; `uninstall` leaves them, the person removes them; each rule allows every tool of the
+server registered under its name, shell commands and other servers need rules of their own, and an `ask` or `deny`
+rule or a managed policy still wins), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
 descriptor names launchd and that does not answer, and opens the apps it installed. It never
 stops or kills a process, never replaces a running app, never asks for or stores a secret, and
 never installs a byte whose signature, checksum, team or notarization does not verify. The trust

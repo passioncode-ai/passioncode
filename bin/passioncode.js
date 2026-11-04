@@ -29,7 +29,8 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
   npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
 
 onboard is another name for setup, install for update. --offline skips the check for newer app
-releases; --quiet prints nothing when an update succeeds. App ids: switchboard, dashboards,
+releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
+PassionCode's own tools without asking (--yes never does). App ids: switchboard, dashboards,
 observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
 or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode"
 marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after

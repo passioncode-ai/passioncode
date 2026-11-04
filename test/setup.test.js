@@ -1111,6 +1111,17 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const takenPlan = render({ mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true, trainNotSaved: 'org-test', permissions: { rules: [...P.RULES], error: null, taken: true } });
   assert.match(takenPlan, /\n  • let Claude Code use PassionCode's own tools without asking: /, takenPlan);
   assert.match(takenPlan, /\nRun it with --yes, or in a terminal, to apply\.\n/, takenPlan);
+  // A dry run whose only changes are questions --yes does not answer names how they are applied; any change --yes
+  // does take, or rules taken already, keeps the dry run's own footer.
+  const offer = { kind: 'install', product: 'fabric', selected: false, detail: 'install Fabric (early preview)', note: 'needs Docker' };
+  const dryOf = (over, taken) => render({ mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true, dryRun: true, ...over, permissions: { rules: [...P.RULES], error: null, taken } });
+  const asking = 'Run it without --dry-run, in a terminal or with --allow-tools, to apply.';
+  const dryYes = 'Run it without --dry-run (with --yes, or in a terminal) to apply.';
+  for (const [over, taken, footer] of [[{}, false, asking], [{ plan: [offer] }, false, asking], [{}, true, dryYes],
+    [{ trainNotSaved: 'org-test' }, false, dryYes], [{ plan: [{ ...offer, selected: true }] }, false, dryYes]]) {
+    const out = dryOf(over, taken).split('\n');
+    assert.ok(out.includes(footer) && !out.includes(footer === dryYes ? asking : dryYes), out.join('\n'));
+  }
   // Settings that cannot be read are named and left as they are.
   const broken = machine({ toolRules: false });
   fs.mkdirSync(path.dirname(settingsOf(broken)), { recursive: true });
@@ -1131,7 +1142,10 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
     const only = await cli(lacking, api, 'setup', '--no-apps', '--offline', '--dry-run', ...extra);
     assert.match(only.stdout, /\nPlan \(nothing was changed\):\n/, only.stdout);
     assert.doesNotMatch(only.stdout, /Nothing to do/, only.stdout);
-    assert.match(only.stdout, /\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/, only.stdout);
+    // --yes alone never takes the rules, so a plan of nothing else is not applied with it.
+    assert.match(only.stdout, extra.length ? /\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/
+      : /\nRun it without --dry-run, in a terminal or with --allow-tools, to apply\.\n/, only.stdout);
+    if (!extra.length) assert.doesNotMatch(only.stdout, /with --yes/, only.stdout);
   }
   assert.match(named.stdout, /\nClaude Code's settings were not changed: .*settings\.json is not valid JSON/, named.stdout);
   assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
@@ -1165,7 +1179,7 @@ test('PC-117: in a terminal the tool rules are one question of their own, defaul
   const ruled = run(only, '(q) => (/^Let Claude Code/.test(q) ? "y" : "n")');
   assert.equal(ruled.declined, undefined, ruled.text);
   assert.deepEqual(ruled.actions, ['permissions:done'], ruled.text);
-  assert.match(ruled.text, /allowed mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory in .*settings\.json: Claude Code uses these tools without asking/, ruled.text);
+  assert.match(ruled.text, /allowed mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory in .*settings\.json \(an ask or deny rule for them still wins\)/, ruled.text);
   // --allow-tools in a terminal is that yes already: the question is not asked again, and no means no elsewhere.
   const given = machine({ toolRules: false });
   const pre = run(given, '() => "n"', { allowTools: true });
