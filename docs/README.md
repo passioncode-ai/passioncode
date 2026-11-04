@@ -6,6 +6,7 @@
 | Command results, failure recovery, state | [CLI contract](reference/cli.md) | `lib/launcher.js`, `test/launcher.test.js` |
 | Set up or check a computer: setup, doctor, the copy-prompt | [CLI contract: setup and doctor](reference/cli.md#setup-and-doctor), [README](../README.md#set-it-up-with-your-coding-agent) | `lib/setup.js`, `lib/doctor.js`, `test/setup.test.js` |
 | Sessions Fabric starts for a board request: who prepares what | [Sessions started by Fabric](reference/session-chain.md) | `lib/setup.js`, `lib/catalog.js`, `lib/permissions.js` |
+| Anonymous usage and error counts: what is sent, the notice, the switch | [Event catalogue](analytics-events.md), [CLI contract: Anonymous usage counts](reference/cli.md#anonymous-usage-counts) | `lib/analytics.js`, `test/analytics.test.js` |
 | Automatic-update trust and filesystem effects | [Security](../SECURITY.md) | `plugin/passioncode/hooks/`, `trust.json` |
 | Contribute or release | [Contributing](../CONTRIBUTING.md) | Tests and `.github/workflows/` |
 | User paths and wording | [Scenarios](ux/scenarios.md), [copy pack](brand/README.md) | Named regression coverage and CLI source |

@@ -21,6 +21,7 @@
 | SCN-013 | A new session names the problems of the last setup check | session start | Operator | REQ-9 | implemented | 2026-10-13 |
 | SCN-014 | Follow an organization's release train | setup, doctor | Operator | PC-89 | implemented | 2026-10-28 |
 | SCN-015 | See and change what Claude Code may do without asking | permissions | Operator | PC-125 | implemented | 2026-11-04 |
+| SCN-016 | Know about and turn off the anonymous usage counts | analytics | Operator | PC-123 | implemented | 2026-11-04 |
 
 ## Personas
 
@@ -306,4 +307,23 @@
 - **Errors & recovery:** `permissions` (and `--json`) with settings or a ledger it cannot read exits 1 and still prints the view on stdout, nothing on stderr, so a program reads the view on exit 1. For `permissions allow`, `remove` and `mode`: settings or a ledger that cannot be read, or a ledger that cannot be written, are named and exit 1 before the settings change; the person repairs the file and runs the command again.
 - **Status:** implemented
 - **Coverage:** `test/ledger.test.js` tests beginning `PC-125:`; `test/setup.test.js` tests beginning `PC-117:` and `PC-119:` (the ledger setup writes).
+- **Product:** unobserved
+
+### SCN-016: Know about and turn off the anonymous usage counts
+
+- **Persona:** Operator
+- **Feature:** analytics
+- **Entry point:** any command; `npx @passioncode-ai/passioncode@latest analytics`
+- **Preconditions:** Node 18+; the published package (a checkout carries no App Key and sends nothing).
+- **Steps:**
+  1. Run any command in a terminal: the first one that would send something prints, once, "PassionCode sends anonymous usage and error counts to improve it. Turn them off: npx @passioncode-ai/passioncode@latest analytics off".
+  2. Run `analytics off`: nothing is sent from then on; `analytics status` says "turned off (analytics off)".
+  3. Run `analytics on` to send them again.
+- **Expected result:** Each command sends, when it ends, the events of docs/analytics-events.md with fixed words only; the switch is the launcher's own and never turns another PassionCode app off.
+- **Alt paths:** `--json` runs never print the notice and send nothing until it was shown; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
+- **UI elements:** The notice line on stderr, the status line, the JSON status, exit code.
+- **States covered:** success, empty, error
+- **Errors & recovery:** A send that fails or is slow is dropped after two seconds and never fails the command; a word other than on, off or status exits 2.
+- **Status:** implemented
+- **Coverage:** `test/analytics.test.js` tests beginning `PC-123:`.
 - **Product:** unobserved

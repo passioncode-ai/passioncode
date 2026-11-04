@@ -78,6 +78,14 @@ act without any prompt but the few no mode skips; setup never sets a mode, only 
 or a program, without checking which (PC-133 tracks a stronger gate for `bypassPermissions`). `--by` records who the caller says asked; it is not authentication
 (PC-125).
 
+## What anonymous counts send
+
+Each command sends, when it ends, the events listed in [docs/analytics-events.md](docs/analytics-events.md) to
+`https://analytics.passioncode.ai`: fixed words and counts, the launcher version, the OS name and version, the locale and
+the installation id every PassionCode app on the machine shares. Never a path, a name, a rule, an argument, a token, an
+error message or a file's content (`test/analytics.test.js` plants each and fails if one is sent). Only the published
+package carries the App Key; `analytics off`, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` stop it (PC-123).
+
 ## The self-update and who it trusts
 
 The SessionStart hook reads `~/.passioncode/state.json` and reuses a check for up to
