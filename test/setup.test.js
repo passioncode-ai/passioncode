@@ -999,6 +999,40 @@ test('PC-108: an app with an external MCP server forces no update after declined
 
 // PC-112: the update a bundled install runs is that install's: when the install fails, the update does not run,
 // and the person, who was not asked about it, keeps `setup` among the steps.
+// PC-114: the two widenings PC-112 left unpinned. An install whose MCP server is external forces nothing, so the
+// repairs question still names the skill set and a yes runs it; a failed forced install deselects only the update,
+// and a repair the person keeps still runs.
+test('PC-114: an external-MCP install asks about the update; a failed forced install keeps the other repairs', async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const run = (m, opts) => new Promise((resolve) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      const asked = [];
+      S.setup(Object.assign({ online: true, noOpen: true, ask: async (q) => { asked.push(q); return 'y'; } }, ${JSON.stringify(opts)}))
+        .then((r) => process.stdout.write(JSON.stringify({ asked, plan: r.plan, actions: r.actions.map((a) => a.kind + ':' + (a.product || '') + ':' + a.outcome) })), (e) => { console.error(e); process.exit(1); });`;
+    const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => { assert.equal(status, 0, stderr); resolve(JSON.parse(stdout)); });
+  });
+  // Project Observatory, taken, with the repairs answered yes: asked about, and the update runs.
+  const external = await run(machine(), { withIds: ['observatory'] });
+  const apply = external.asked.filter((q) => /^Apply /.test(q));
+  assert.equal(apply.length, 1, JSON.stringify(external.asked));
+  assert.match(apply[0], /skill set/, apply[0]);
+  assert.ok(external.actions.includes('update::done'), JSON.stringify(external.actions));
+  // Switchboard's pinned release is not served, so its install fails; Fabric Dashboards behind its pin is a
+  // reinstall the person keeps: it runs, and only the update is left not taken.
+  const m = onTrain(machine(), { switchboard: '9.9.9', dashboards: '1.1.0' });
+  installApp(m, catalog.byId('dashboards'), { version: '1.0.0' });
+  const failed = await run(m, { train: 'org-test', withIds: ['switchboard', 'dashboards'] });
+  assert.ok(failed.actions.includes('install:switchboard:failed'), JSON.stringify(failed.actions));
+  assert.ok(failed.actions.includes('replace:dashboards:done'), JSON.stringify(failed.actions));
+  assert.ok(!failed.actions.some((a) => a.startsWith('update:')), JSON.stringify(failed.actions));
+  assert.ok(failed.plan.some((i) => i.kind === 'replace' && i.product === 'dashboards' && i.selected), JSON.stringify(failed.plan));
+  assert.ok(failed.plan.some((i) => i.kind === 'update' && !i.selected), JSON.stringify(failed.plan));
+});
+
 test('PC-112: a bundled install that fails runs no update and was not asked about it', async (t) => {
   const api = await releaseServer(t); // serves no 9.9.9, so the pinned install fails
   const m = onTrain(machine(), { switchboard: '9.9.9' });

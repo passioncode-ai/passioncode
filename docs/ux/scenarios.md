@@ -192,7 +192,7 @@
 - **States covered:** success, error
 - **Errors & recovery:** A problem that remains keeps exit 1 and names its fix.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run), `PC-91:`, `PC-92:`, `PC-94:`, `PC-101:`, `PC-104:`, `PC-105:`, `PC-107:`, `PC-108:` and `PC-112:`; `test/windows.test.js` test beginning `PC-108:`.
+- **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run), `PC-91:`, `PC-92:`, `PC-94:`, `PC-101:`, `PC-104:`, `PC-105:`, `PC-107:`, `PC-108:`, `PC-112:` and `PC-114:`; `test/windows.test.js` test beginning `PC-108:`.
 - **Product:** unobserved
 
 ### SCN-010: Check the setup without changing anything
