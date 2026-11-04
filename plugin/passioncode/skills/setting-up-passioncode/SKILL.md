@@ -52,7 +52,8 @@ asked only to look, use `--dry-run` or `doctor` and ask before applying.
 decision, so pass it only on the person's own yes to that set; `permissions.rules` in the result lists the rules missing when the run began, and a
 `permissions` action marked done shows they were written. `--allow-commands` does the same for the command rules
 (`commands.rules`, each with what it allows; a `commands` action marked done shows they were written): pass it only on
-the person's own yes to that set. An agent of the person's own declares its rules in `~/.passioncode/rules.d/` (the CLI
+the person's own yes to that set, and compare the applying run's `commands.rules` with the set they saw: name any
+rule that was not in it, since a declaration may have been added in between. An agent of the person's own declares its rules in `~/.passioncode/rules.d/` (the CLI
 reference names the format); never write one there for them.
 
 ## 2. Read the result

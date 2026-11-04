@@ -419,7 +419,7 @@ test('PC-119: a refusal line never carries a control character from the declarat
   const dir = path.join(path.dirname(tmp()), 'rules.d');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'Bash(x\u001b[3A\u001b[2K:*)', why: 'x' }] }));
-  fs.writeFileSync(path.join(dir, 'b.json'), '\u001b[3A\u001b[2Kgarbage');
+  fs.writeFileSync(path.join(dir, 'b.json'), '\u001b[3A\r\n\t\u009b\u2028\u202e\u001b[2Kgarbage');
   if (process.platform !== 'win32') fs.writeFileSync(path.join(dir, 'c\u001b[2K.json'), JSON.stringify({ by: 'C', rules: 1 }));
   const { refused } = P.declared(dir, CTX);
   assert.equal(refused.length, process.platform === 'win32' ? 2 : 3);
@@ -434,4 +434,42 @@ test('PC-119: the programs added to the lists in this release are refused as the
   for (const name of ['rustup', 'pm2', 'proto', 'aqua', 'goenv', 'jenv', 'xonsh', 'nu', 'elvish', 'mksh', 'yash', 'op', 'aws-vault', 'doppler']) {
     assert.match(P.refusal(`Bash(${name} run:*)`, CTX) || '', /could run any code/, name);
   }
+});
+
+test('PC-119: a format character that reorders text is refused like a control character, and repeating the launcher rule changes nothing', () => {
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'Bash(own-cli sync:*)', why: 'sync \u202eall' }, { rule: 'Bash(gh pr merge:*)' }] }));
+  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B\u200b', rules: [] }));
+  const { rules, refused } = P.declared(dir, CTX);
+  assert.deepEqual(rules, []);
+  assert.equal(refused.length, 2, refused.join('\n'));
+  assert.match(refused.join('\n'), /a\.json: Bash\(own-cli sync:\*\): "why" holds a control character/);
+  assert.match(refused.join('\n'), /b\.json: "by" holds a control character/);
+  assert.doesNotMatch(refused.join('\n'), /gh pr merge/, 'the launcher rule declared again is not refused');
+});
+
+test('PC-119: shown() writes every control and format character as its escape, and "by" is at most 80 characters', () => {
+  assert.equal(P.shown('a\r\n\t\u001b\u009b\u2028\u202eb'), 'a\\u000d\\u000a\\u0009\\u001b\\u009b\\u2028\\u202eb');
+  assert.equal(P.shown(P.shown('a\u001bb')), P.shown('a\u001bb'), 'escaping twice changes nothing');
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A'.repeat(81), rules: [{ rule: 'Bash(own-cli sync:*)', why: 'sync' }] }));
+  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B\u2028', rules: [] }));
+  const { rules, refused } = P.declared(dir, CTX);
+  assert.deepEqual(rules, []);
+  assert.match(refused.join('\n'), /a\.json does not say who declares it \("by", 1 to 80 characters\)/);
+  assert.match(refused.join('\n'), /b\.json: "by" holds a control character/);
+});
+
+test('PC-119: on Windows a name is looked up as Git Bash runs it, itself or .exe, never a .cmd of that name', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-'));
+  const own = path.join(home, 'bin'), sys = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-sys-'));
+  fs.mkdirSync(own);
+  fs.writeFileSync(path.join(own, 'tool.cmd'), '@echo off\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(sys, 'tool.exe'), 'MZ', { mode: 0o755 });
+  fs.writeFileSync(path.join(own, 'mine.exe'), 'MZ', { mode: 0o755 });
+  const ctx = { home, pathEnv: [own, sys].join(path.delimiter), platform: 'win32' };
+  assert.match(P.refusal('Bash(tool run:*)', ctx) || '', /tool is installed outside your home folder/);
+  assert.equal(P.refusal('Bash(mine run:*)', ctx), null);
 });

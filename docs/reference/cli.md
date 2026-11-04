@@ -101,7 +101,8 @@ the person's answer, not a plan (`declined` true, and it exits by its checks): i
 
 Questions are asked only on a terminal: one per absent app (on macOS), one for the
 repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
-tools where Claude Code is and they are missing (default no; see PC-117 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
+tools where Claude Code is and they are missing (default no; see PC-117 below), and one for the rules for shell commands
+where Claude Code is and one of them is missing (default no; see PC-119 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
 something (an offer selected, or a train other than the saved one named, `none` included when a
 train is saved; a `--json` run never asks, so it counts as one without a terminal), the plan is returned with `planOnly: true`,
 nothing changes, and the exit code is 0; without a terminal and without `--yes` a run with nothing
@@ -132,7 +133,7 @@ they were written (a plan agreed to but not run writes nothing). The plan lists 
 train's line; while they are offered a terminal asks about them, so a train-only plan closes with "Run it with --yes to
 apply, or in a terminal to answer its questions.", and a `--dry-run` whose only change is the rules (an offer that
 defaults to no may stand beside them, unticked) closes with "Run it without --dry-run, in a terminal or with
---allow-tools, to apply."), a run that leaves them out says how to add them under its
+--allow-tools, to apply.", naming `--allow-commands` too, joined with "and", while the rules for commands are offered), a run that leaves them out says how to add them under its
 headline (`setup --allow-tools`), and a run that changed nothing else says "Everything else this command can set up is
 in place". Yes to the rules alone is not a declined run, so with a named train it saves that train too.
 
@@ -153,7 +154,7 @@ file `~/.passioncode/rules.d/<name>.json`:
 { "by": "Your Agent", "rules": [{ "rule": "Bash(your-cli sync:*)", "why": "let Your Agent sync its data" }] }
 ```
 
-`by` names the agent as the file says (nothing checks it) and `why` (1 to 200 characters) says what the rule allows;
+`by` (1 to 80 characters) names the agent as the file says (nothing checks it) and `why` (1 to 200 characters) says what the rule allows;
 the plan shows each rule with them. The folder follows `PASSIONCODE_HOME` when it is set. A declared rule names one command (`Bash(<command>)`,
 with `:*` or a trailing ` *` for any arguments); an MCP rule is not offered from a declaration (PassionCode's own tool
 rules have their own question, PC-117). Claude Code matches a rule against the command's text, and a rule
@@ -165,7 +166,8 @@ name is read as the program, so `perl5.34` is `perl` and `python3.12` is `python
 `sudo`, `command`, `nohup`, `xargs`, `xcrun`, `lockf` and the like), not even exactly. A wildcard comes only at the
 end, after `:` or a space, and only over a command installed in your home folder, as an agent's own command is (in
 `~/.local/bin`, say). The program is looked up on the `PATH` setup runs with, as the kernel runs it (links and `..`
-followed physically, a file the user may not execute skipped), leaving out the `node_modules/.bin` folders `npx` adds (absolute ones; a relative one stays);
+followed physically, a file the user may not execute skipped; on Windows the name itself or `<name>.exe`, as Git Bash
+runs it, never a `.cmd` or `.bat`), leaving out the `node_modules/.bin` folders `npx` adds (absolute ones; a relative one stays);
 a program that is not found, or that the system or a package manager installed elsewhere, takes no wildcard, and
 neither does any program when a `PATH` folder ahead of it is empty or relative (a shell reads that from wherever it
 runs) or when the home folder is the root folder. Claude Code's shell may still find another program of the same name
@@ -173,8 +175,9 @@ first, so the person's yes on each rule shown stays the gate. Within the home fo
 that runs whatever it is given, or takes options after its words that run other code (a shell, `python3`, `node`,
 `perl`, `uv`, `npx`, `find`, `ssh`, `make`, `git`, `claude` and the like), and none after a general-purpose program's
 name alone (`gh`, `aws`, `rm`, `curl` and the like): declare the exact command, or a command of your own. An exact
-rule, with no wildcard, allows only its own text and is offered over any program but a wrapper. A control character in
-`by` or `why` is refused too. The lists name known programs, not every one: the person's yes on each rule shown is
+rule, with no wildcard, allows only its own text and is offered over any program but a wrapper. A control character, or a
+format character that reorders or hides text (a bidirectional override or isolate, a zero-width character, a line separator), in `by` or
+`why` is refused too, and a declaration that repeats the launcher's own rule changes nothing. The lists name known programs, not every one: the person's yes on each rule shown is
 the gate. A declared rule the launcher carries (`Bash(gh pr merge:*)`) is offered once, as the launcher says it.
 The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered"; a
 control character a refusal line repeats from the declaration (its rule, file name or text) is written as its
