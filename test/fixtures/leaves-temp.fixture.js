@@ -1,11 +1,17 @@
 'use strict';
 // PC-115 fixture: a test that leaves temporary folders behind, its own and a child process's.
+const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
 test('leaves its temporary folders', () => {
+  // The run's own folder, under every name a tool reads it by (TMPDIR on POSIX, TEMP and TMP on Windows).
+  for (const key of ['TMPDIR', 'TMP', 'TEMP']) assert.equal(process.env[key], os.tmpdir(), key);
+  assert.match(path.basename(os.tmpdir()), /^pc-test-/);
+  assert.equal(process.env.PASSIONCODE_TEST_RUN, '1');
+  if (process.env.PC115_FIXTURE_FAILS) assert.fail('the fixture fails on request');
   fs.mkdtempSync(path.join(os.tmpdir(), 'pc-fixture-'));
   require('node:child_process').execFileSync(process.execPath, ['-e', "require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'pc-child-'))"]);
 });

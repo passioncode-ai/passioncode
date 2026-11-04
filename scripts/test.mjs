@@ -1,5 +1,6 @@
 // Node 18 does not expand quoted test globs. Pass explicit paths on every host.
 // Arguments name the test files to run (the PC-115 test runs this script on a fixture); none: every test/*.test.js.
+// An argument that starts with - goes to node --test as it is (`npm test -- --test-name-pattern=PC-115`).
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,7 +8,14 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const named = process.argv.slice(2).map((file) => path.resolve(file));
+const args = process.argv.slice(2);
+const flags = args.filter((arg) => arg.startsWith('-'));
+const named = args.filter((arg) => !arg.startsWith('-')).map((file) => path.resolve(file));
+// A whole run started from inside a run would start itself again: the runner marks its run's environment.
+if (!named.length && process.env.PASSIONCODE_TEST_RUN) {
+  console.error('scripts/test.mjs: a whole test run cannot start inside another one; name the test files.');
+  process.exit(2);
+}
 const tests = named.length ? named
   : fs.readdirSync(path.join(root, 'test')).filter((name) => name.endsWith('.test.js')).sort().map((name) => path.join(root, 'test', name));
 if (!tests.length) throw new Error('No test files found.');
@@ -16,7 +24,7 @@ if (!tests.length) throw new Error('No test files found.');
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-test-'));
 let status = 1;
 try {
-  const result = spawnSync(process.execPath, ['--test', ...tests], { stdio: 'inherit', env: { ...process.env, TMPDIR: scratch, TMP: scratch, TEMP: scratch } });
+  const result = spawnSync(process.execPath, ['--test', ...flags, ...tests], { stdio: 'inherit', env: { ...process.env, PASSIONCODE_TEST_RUN: '1', TMPDIR: scratch, TMP: scratch, TEMP: scratch } });
   if (result.error) console.error(result.error.message);
   status = result.status ?? 1;
 } finally {
