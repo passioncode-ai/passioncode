@@ -71,8 +71,9 @@ tests and is named in setup's output whenever it is set.
 PassionCode offers, `permissions remove` takes out of `permissions.allow` only rules PassionCode offers or its ledger
 names, and `permissions mode` sets only `permissions.defaultMode`; every other key and rule of the settings file stays,
 a rule nobody offered is refused, and a file that cannot be read is never written. `bypassPermissions` lets Claude Code
-act without any prompt but the few no mode skips; it is set only when a person chooses it, directly or through Fabric's
-screen, which names who asked with `--by` (PC-125).
+act without any prompt but the few no mode skips; setup never sets a mode, only `permissions mode` does, when a person
+chooses it directly or through Fabric's screen. `--by` records who the caller says asked; it is not authentication
+(PC-125).
 
 ## The self-update and who it trusts
 

@@ -117,7 +117,7 @@ function permissionsCommand(rest) {
     if (rest[n].startsWith('-')) return usage(`unknown option ${rest[n]}`);
     args.push(rest[n]);
   }
-  if (by !== null && (by.length > 80 || /[\u0000-\u001f\u007f-\u009f]/.test(by))) return usage('--by is at most 80 characters of plain text');
+  if (by !== null && ([...by].length > 80 || !by.trim() || require('../lib/permissions').CONTROL.test(by))) return usage('--by is 1 to 80 characters of plain text');
   const [verb, ...values] = args;
   const p = L.paths();
   const file = p.claudeSettings;
@@ -136,7 +136,8 @@ function permissionsCommand(rest) {
       const r = verb === 'allow' ? ledger.allow(p.home, file, p.state, values, { by, version: VERSION }) : ledger.remove(p.home, file, p.state, values, { by });
       const done = verb === 'allow' ? r.added : r.removed;
       show({ ...r.view, [verb === 'allow' ? 'added' : 'removed']: done },
-        done.length ? `${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')}` : `Nothing to ${verb}: ${verb === 'allow' ? 'each rule is already allowed, asked about or denied' : 'none of them is allowed there'}.`);
+        done.length ? `${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')}`
+          : `Nothing to ${verb}: ${verb === 'allow' ? 'each rule is already allowed, asked about or denied' : 'none of them is allowed there'}.`);
       return 0;
     }
     if (verb === 'mode') {
@@ -164,11 +165,12 @@ function renderPermissions(view, headline) {
   lines.push(`Claude Code permissions in ${view.settingsFile}`);
   if (!view.readable) lines.push(`  ${view.error}`);
   if (view.ledgerError) lines.push(`  ${view.ledgerError}`);
-  lines.push(`Default mode: ${view.mode.value === null ? 'not set (Claude Code asks before acting)' : view.mode.value}`);
+  lines.push(`Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before acting, unless a project or managed setting sets a mode)' : view.mode.value}`);
   if (view.rules.length) {
-    lines.push('', 'Installed by PassionCode:');
+    lines.push('', "PassionCode's rules:");
     for (const r of view.rules) {
-      const when = r.removedAt ? `removed ${r.removedAt} by ${r.removedBy}` : r.installedAt ? `installed ${r.installedAt} by ${r.by}` : 'installed before the ledger';
+      const removed = r.removedAt ? `removed ${r.removedAt} by ${r.removedBy}${r.state === 'missing' ? '' : `, and set again by hand since`}` : '';
+      const when = removed || (r.installedAt ? `installed ${r.installedAt} by ${r.installedBy || r.by}` : 'not in the ledger (set before it, or by hand)');
       lines.push(`  ${r.state.padEnd(8)} ${r.rule} (${r.why}; declared by ${r.by}; ${when})`);
     }
   }

@@ -59,7 +59,8 @@ test('PC-125: allow records who asked and when; remove takes out only PassionCod
   const doc = JSON.parse(fs.readFileSync(m.settings, 'utf8'));
   assert.deepEqual(doc.permissions.allow, ['Bash(ls)', 'Bash(gh pr merge:*)', 'mcp__fabric']);
   const merge = added.rules.find((r) => r.rule === 'Bash(gh pr merge:*)');
-  assert.equal(merge.by, 'Fabric (operator)');
+  assert.equal(merge.by, 'PassionCode setup', 'who declared it stays');
+  assert.equal(merge.installedBy, 'Fabric (operator)', 'who asked is its own field');
   assert.equal(merge.state, 'allowed');
   assert.ok(Date.parse(merge.installedAt));
   const ledger = JSON.parse(fs.readFileSync(path.join(m.state, 'permissions.json'), 'utf8'));
@@ -77,7 +78,15 @@ test('PC-125: allow records who asked and when; remove takes out only PassionCod
   const gone = removed.rules.find((r) => r.rule === 'Bash(gh pr merge:*)');
   assert.equal(gone.state, 'missing');
   assert.equal(gone.removedBy, "Fabric (agent on operator's words)");
-  assert.equal(gone.by, 'Fabric (operator)', 'who installed it is kept');
+  assert.equal(gone.installedBy, 'Fabric (operator)', 'who installed it is kept');
+  const again = removed.offered.find((r) => r.rule === 'Bash(gh pr merge:*)');
+  assert.ok(again, 'a rule taken out is offered again, as setup offers it');
+  assert.ok(!m.json().foreign.includes('mcp__fabric'), "a rule the ledger names is never foreign");
+  const back = m.json('allow', 'Bash(gh pr merge:*)');
+  const entry = back.rules.find((r) => r.rule === 'Bash(gh pr merge:*)');
+  assert.equal(entry.installedBy, 'permissions command', 'without --by the command names itself');
+  assert.equal(entry.lastRemoved.by, "Fabric (agent on operator's words)", 'the last removal stays beside the new install');
+  assert.deepEqual(m.json('remove', 'mcp__fabric', 'mcp__fabric').removed, ['mcp__fabric'], 'a rule named twice is removed once');
 });
 
 test('PC-125: mode writes permissions.defaultMode only, and refuses a mode Claude Code does not have', () => {
@@ -89,7 +98,9 @@ test('PC-125: mode writes permissions.defaultMode only, and refuses a mode Claud
   assert.deepEqual(JSON.parse(fs.readFileSync(m.settings, 'utf8')), { theme: 'dark', permissions: { allow: ['Bash(ls)'], defaultMode: 'bypassPermissions' } });
   assert.equal(r.mode.value, 'bypassPermissions');
   assert.equal(r.mode.changed.by, 'Fabric (operator)');
+  const same = [fs.readFileSync(m.settings, 'utf8'), fs.readFileSync(path.join(m.state, 'permissions.json'), 'utf8')];
   assert.equal(m.json('mode', 'bypassPermissions').changed, false);
+  assert.deepEqual([fs.readFileSync(m.settings, 'utf8'), fs.readFileSync(path.join(m.state, 'permissions.json'), 'utf8')], same, 'the same mode writes nothing');
   const bad = m.run('mode', 'yolo');
   assert.equal(bad.status, 2);
   assert.match(bad.stderr, /mode must be one of default, acceptEdits, plan, auto, dontAsk, bypassPermissions/);
@@ -104,13 +115,58 @@ test('PC-125: settings that cannot be read are named, exit 1, and never written'
   assert.equal(m.run('allow', 'mcp__fabric').status, 1);
   assert.equal(m.run('mode', 'plan').status, 1);
   assert.equal(fs.readFileSync(m.settings, 'utf8'), '{bad');
+  assert.match(m.run().stdout, /Default mode: unknown \(the settings file cannot be read\)/);
+});
+
+test('PC-125: a ledger that cannot be read stops allow, remove and mode before the settings change', () => {
+  for (const bad of ['{bad', JSON.stringify({ schema: 'x', rules: [] }), JSON.stringify({ schema: 'passioncode-permissions/1', rules: [null] })]) {
+    const m = machine();
+    const settings = JSON.stringify({ permissions: { allow: ['Bash(ls)', 'mcp__observatory'] } });
+    fs.writeFileSync(m.settings, settings);
+    fs.mkdirSync(m.state, { recursive: true });
+    fs.writeFileSync(path.join(m.state, 'permissions.json'), bad);
+    for (const args of [['allow', 'mcp__fabric'], ['remove', 'mcp__observatory'], ['mode', 'plan']]) {
+      const r = m.run(...args);
+      assert.equal(r.status, 1, `${bad} ${args.join(' ')}`);
+      assert.match(r.stderr, /permissions\.json (is not valid JSON|is not a passioncode-permissions\/1 ledger)/);
+      assert.equal(fs.readFileSync(m.settings, 'utf8'), settings, 'the settings are unchanged');
+    }
+    const v = m.run('--json');
+    assert.equal(v.status, 1);
+    assert.ok(JSON.parse(v.stdout).ledgerError);
+  }
+});
+
+test('PC-125: a ledger that cannot be written stops the act before the settings change', { skip: (process.platform === 'win32' || process.getuid() === 0) && 'POSIX folder modes' }, () => {
+  const m = machine();
+  const settings = JSON.stringify({ permissions: { allow: ['mcp__observatory'] } });
+  fs.writeFileSync(m.settings, settings);
+  fs.mkdirSync(m.state, { recursive: true });
+  fs.chmodSync(m.state, 0o500);
+  try {
+    for (const args of [['allow', 'mcp__fabric'], ['remove', 'mcp__observatory'], ['mode', 'plan']]) {
+      const r = m.run(...args);
+      assert.equal(r.status, 1, args.join(' '));
+      assert.match(r.stderr, /permissions\.json cannot be written/);
+      assert.equal(fs.readFileSync(m.settings, 'utf8'), settings);
+    }
+  } finally { fs.chmodSync(m.state, 0o700); }
+});
+
+test("PC-125: a set rule the person denies is shown as theirs, never as installed by PassionCode", () => {
+  const m = machine();
+  fs.writeFileSync(m.settings, JSON.stringify({ permissions: { deny: ['mcp__fabric'] } }));
+  const text = m.run().stdout;
+  assert.match(text, /PassionCode's rules:\n {2}denied {3}mcp__fabric \(.*; not in the ledger \(set before it, or by hand\)\)/);
+  assert.doesNotMatch(text, /Installed by PassionCode/);
 });
 
 test('PC-125: usage errors exit 2', () => {
   const m = machine();
-  for (const args of [['allow'], ['mode'], ['mode', 'plan', 'auto'], ['frob'], ['--by'], ['allow', 'mcp__fabric', '--by', 'x\ny'], ['--nope']]) {
+  for (const args of [['allow'], ['mode'], ['mode', 'plan', 'auto'], ['frob'], ['--by'], ['allow', 'mcp__fabric', '--by', 'x\ny'], ['allow', 'mcp__fabric', '--by', 'a\u202eb'], ['allow', 'mcp__fabric', '--by', '   '], ['--nope']]) {
     assert.equal(m.run(...args).status, 2, args.join(' '));
   }
+  assert.equal(m.run('mode', 'plan', '--by', '\u{1F600}'.repeat(80)).status, 0, '80 characters are counted as characters');
 });
 
 test('PC-125: a linked settings file stays a link with its mode through allow, remove and mode', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {

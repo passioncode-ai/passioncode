@@ -291,19 +291,19 @@
 
 ### SCN-015: See and change what Claude Code may do without asking
 
-- **Persona:** Operator, or Fabric's permissions screen on the operator's behalf
+- **Persona:** Operator (Automation: Fabric's permissions screen through `--json`)
 - **Feature:** permissions
 - **Entry point:** `npx @passioncode-ai/passioncode@latest permissions`
 - **Preconditions:** Node 18+; Claude Code's settings in `~/.claude/settings.json` (absent is an empty file).
 - **Steps:**
-  1. Run `permissions`: the rules PassionCode installed, each with its state, what it allows, who declared it and when; the rules offered and not allowed yet; the declarations not offered as declared; every other allow rule; the default mode.
+  1. Run `permissions`: PassionCode's rules, each with its state, what it allows, who declared it, and who installed it and when; the rules offered and not allowed yet; the declarations not offered as declared; every other allow rule; the default mode.
   2. Take a rule out with `permissions remove <rule>`, or allow an offered one with `permissions allow <rule>`.
   3. Switch the default mode with `permissions mode <mode>`.
-- **Expected result:** Only rules PassionCode offers or installed change; every other key and rule of the settings file is kept; the ledger records who asked (`--by`) and when, and keeps a removed rule with `removedAt` and `removedBy`.
-- **Alt paths:** `--json` answers the same view for a program (Fabric); a rule PassionCode does not offer is refused for `allow`, and one it did not install for `remove` (exit 2, nothing written); a mode Claude Code does not have is refused (exit 2); rules of PassionCode's sets allowed before the ledger existed are listed with no install time; a settings file that is a link stays a link with its mode.
+- **Expected result:** Only rules PassionCode offers or installed change; every other key and rule of the settings file is kept; the ledger records who asked (`installedBy`, the words of `--by`, or `permissions command`) and when, and keeps a removed rule with `removedAt` and `removedBy`.
+- **Alt paths:** `--json` answers the same view for a program (Fabric); a rule PassionCode does not offer is refused for `allow`, and one it did not install for `remove` (exit 2, nothing written); a mode Claude Code does not have is refused (exit 2); rules of PassionCode's sets the settings name without a ledger entry (set before it, or by the person, a deny included) are listed as "not in the ledger"; a rule taken out is offered again, here and by the next `setup`; a settings file that is a link stays a link with its mode.
 - **UI elements:** The view's sections in text, the JSON view, exit code.
 - **States covered:** success, empty, error
-- **Errors & recovery:** Settings or a ledger that cannot be read are named and exit 1, and nothing is written; the person repairs the file and runs the command again.
+- **Errors & recovery:** Settings or a ledger that cannot be read, or a ledger that cannot be written, are named and exit 1 before the settings change; the person repairs the file and runs the command again.
 - **Status:** implemented
 - **Coverage:** `test/ledger.test.js` tests beginning `PC-125:`; `test/setup.test.js` tests beginning `PC-117:` and `PC-119:` (the ledger setup writes).
 - **Product:** unobserved
