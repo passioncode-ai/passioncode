@@ -6,12 +6,16 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-test('leaves its temporary folders', () => {
+test('leaves its temporary folders', async () => {
   // The run's own folder, under every name a tool reads it by (TMPDIR on POSIX, TEMP and TMP on Windows).
   for (const key of ['TMPDIR', 'TMP', 'TEMP']) assert.equal(process.env[key], os.tmpdir(), key);
   assert.match(path.basename(os.tmpdir()), /^pc-test-/);
   assert.equal(process.env.PASSIONCODE_TEST_RUN, '1');
   if (process.env.PC115_FIXTURE_FAILS) assert.fail('the fixture fails on request');
+  if (process.env.PC116_FIXTURE_WAITS) { // a run to interrupt: says it started, then waits
+    fs.writeFileSync(path.join(os.tmpdir(), 'started'), '');
+    await new Promise((resolve) => setTimeout(resolve, 30000));
+  }
   if (process.env.PC115_FIXTURE_STUCK) { // a folder the run cannot remove (POSIX: no write permission on it)
     const stuck = path.join(os.tmpdir(), 'stuck');
     fs.mkdirSync(stuck);

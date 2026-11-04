@@ -60,6 +60,27 @@ test('PC-115: a run whose folder cannot be removed fails, and says so', { skip: 
   }
 });
 
+test('PC-116: an interrupted run stops its tests, fails and still removes its folder', { skip: process.platform === 'win32' && 'Windows has no SIGTERM to catch' }, async () => {
+  const outer = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-tmp-'));
+  try {
+    const { NODE_TEST_CONTEXT, PASSIONCODE_TEST_RUN, ...env } = process.env; // eslint-disable-line no-unused-vars
+    const runner = require('node:child_process').spawn(process.execPath, [path.join(ROOT, 'scripts/test.mjs'), path.join(__dirname, 'fixtures/leaves-temp.fixture.js')], {
+      env: { ...env, PC116_FIXTURE_WAITS: '1', TMPDIR: outer, TMP: outer, TEMP: outer }, stdio: 'ignore',
+    });
+    const exited = new Promise((resolve) => runner.once('exit', (code, signal) => resolve({ code, signal })));
+    const started = () => fs.readdirSync(outer).some((run) => fs.existsSync(path.join(outer, run, 'started')));
+    for (const until = Date.now() + 20000; !started() && Date.now() < until;) await new Promise((r) => setTimeout(r, 100));
+    assert.ok(started(), 'the fixture started inside the run');
+    runner.kill('SIGTERM');
+    const { code, signal } = await Promise.race([exited, new Promise((r) => setTimeout(() => r({ code: 'timeout' }), 20000))]);
+    assert.equal(signal, null, 'the runner ended by itself, not killed');
+    assert.ok(code !== 0 && code !== 'timeout', `exit ${code}`);
+    assert.deepEqual(fs.readdirSync(outer), [], 'the interrupted run removed its folder');
+  } finally {
+    fs.rmSync(outer, { recursive: true, force: true });
+  }
+});
+
 test('PC-115: a whole run refuses to start inside another run', () => {
   const inner = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-test-'));
   try {
