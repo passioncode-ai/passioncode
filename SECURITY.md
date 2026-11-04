@@ -56,13 +56,27 @@ for shell commands the same way: `Bash(gh pr merge:*)` and the rules an agent of
 declares in `~/.passioncode/rules.d/` (who declared a rule is what its file says, not checked), refusing a declared rule that is not in a plain form and could allow more than it says (a path or wrapper
 program, a quote, substitution, separator or redirection, a wildcard too early, any wildcard over a shell, an
 interpreter or a program whose options run other code, and any wildcard over a program not installed in the person's
-home folder; `docs/reference/cli.md` lists them, PC-119), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
+home folder; `docs/reference/cli.md` lists them, PC-119), records every rule it added in a private ledger when it can write it (the rules stand without it)
+(`~/.passioncode/permissions.json`: the rule, who declared it, from where and when, PC-125), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
 descriptor names launchd and that does not answer, and opens the apps it installed. It never
 stops or kills a process, never replaces a running app, never asks for or stores a secret, and
 never installs a byte whose signature, checksum, team or notarization does not verify. The trust
 root is the release key bundled at `lib/release-key.asc`, pinned by fingerprint in
 `lib/openpgp.js`; a new key needs a launcher release. `PASSIONCODE_RELEASE_KEY` replaces it for
 tests and is named in setup's output whenever it is set.
+
+## What `permissions` changes
+
+`permissions` reads Claude Code's settings, the ledger and the declarations in `~/.passioncode/rules.d` (and looks up a
+declared wildcard's program on PATH, as setup does) and changes nothing. `permissions allow`, `remove` and `mode`
+write the ledger `~/.passioncode/permissions.json`, and `allow` and `mode` create `~/.claude/settings.json` and its
+folder when they are absent. `permissions allow` adds only rules
+PassionCode offers, `permissions remove` takes out of `permissions.allow` only rules PassionCode offers or its ledger
+names, and `permissions mode` sets only `permissions.defaultMode`; every other key and rule of the settings file stays,
+a rule nobody offered is refused, and a file that cannot be read is never written. `bypassPermissions` lets Claude Code
+act without any prompt but the few no mode skips; setup never sets a mode, only `permissions mode` does, for whoever runs it, a person
+or a program, without checking which (PC-133 tracks a stronger gate for `bypassPermissions`). `--by` records who the caller says asked; it is not authentication
+(PC-125).
 
 ## The self-update and who it trusts
 

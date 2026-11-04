@@ -1073,6 +1073,21 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   assert.equal(yes.status, 0, yes.stderr + yes.stdout);
   assert.ok(!(((read(plain) || {}).permissions || {}).allow || []).some((r) => P.RULES.includes(r)), 'no tool rule was written');
   assert.match(yes.stdout, /\nClaude Code still asks before it uses PassionCode's own tools\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, yes.stdout);
+  // PC-125: a default mode that does not ask makes "still asks" false; the hint names the mode instead.
+  const quiet = machine({ toolRules: false, commandRules: false });
+  const quietDoc = read(quiet) || {};
+  quietDoc.permissions = { ...(quietDoc.permissions || {}), defaultMode: 'bypassPermissions' };
+  fs.writeFileSync(settingsOf(quiet), JSON.stringify(quietDoc));
+  const bypass = await cli(quiet, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.doesNotMatch(bypass.stdout, /still asks/, bypass.stdout);
+  assert.match(bypass.stdout, /\nClaude Code's allow rules do not include PassionCode's own tools; its default mode in your user settings, bypassPermissions, decides what it does without them\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, bypass.stdout);
+  assert.match(bypass.stdout, /\nClaude Code's allow rules do not include Bash\(gh pr merge:\*\); its default mode in your user settings, bypassPermissions, decides what it does without them\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands \(a rule ending in \* allows any arguments after its words\)\n/, bypass.stdout);
+  // bypassPermissions switched off in the same file asks again: "still asks" is true there.
+  const off = machine({ toolRules: false, commandRules: false });
+  const offDoc = read(off) || {};
+  offDoc.permissions = { ...(offDoc.permissions || {}), defaultMode: 'bypassPermissions', disableBypassPermissionsMode: 'disable' };
+  fs.writeFileSync(settingsOf(off), JSON.stringify(offDoc));
+  assert.match((await cli(off, api, 'setup', '--yes', '--no-apps', '--offline')).stdout, /\nClaude Code still asks before it uses PassionCode's own tools\./);
   // Run again with nothing else to do: not "everything ... is in place" while the rules are offered.
   const rerun = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.match(rerun.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, rerun.stdout);
@@ -1088,7 +1103,25 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const doc = read(kept); // the update adds its own marketplace key beside them
   assert.equal(doc.model, 'opus');
   assert.deepEqual(doc.permissions, { allow: ['Bash(npm test)', ...P.RULES], deny: ['Bash(rm -rf:*)'] });
+  // PC-125: the ledger names the tool rules setup added (not the person's own rule).
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(kept.home, '.passioncode', 'permissions.json'), 'utf8')).rules.map((r) => [r.rule, r.set, r.by]), P.RULES.map((rule) => [rule, 'tools', 'PassionCode setup']));
   assert.ok(allowed.json.actions.some((a) => a.kind === 'permissions' && a.outcome === 'done'), allowed.stdout);
+  // PC-125: a rule already there is not recorded as setup's; a ledger setup cannot update is a note, the step stays done.
+  const partial = machine({ toolRules: false });
+  fs.mkdirSync(path.dirname(settingsOf(partial)), { recursive: true });
+  fs.writeFileSync(settingsOf(partial), JSON.stringify({ permissions: { allow: [P.RULES[0]] } }));
+  fs.mkdirSync(path.join(partial.home, '.passioncode'), { recursive: true });
+  await cli(partial, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(partial.home, '.passioncode', 'permissions.json'), 'utf8')).rules.map((r) => r.rule), P.RULES.slice(1));
+  const corrupt = machine({ toolRules: false });
+  fs.mkdirSync(path.join(corrupt.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(corrupt.home, '.passioncode', 'permissions.json'), '{bad');
+  const noted = await cli(corrupt, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.equal(noted.status, 0, noted.stdout);
+  const step = noted.json.actions.find((a) => a.kind === 'permissions');
+  assert.equal(step.outcome, 'done');
+  assert.match(step.detail, /; the permissions ledger was not updated \(.*permissions\.json is not valid JSON/);
+  assert.ok(P.RULES.every((rule) => read(corrupt).permissions.allow.includes(rule)), 'the rules stand');
   const allowedText = await cli(machine({ toolRules: false }), api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
   assert.doesNotMatch(allowedText.stdout, /still asks/, allowedText.stdout); // they were just added
   // Run again: nothing is missing, so nothing is offered or written.
@@ -1277,6 +1310,13 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   assert.match(taken.stdout, /done +allowed Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\) in .*settings\.json \(an ask or deny rule for them still wins; a rule ending in \* allows any arguments after its words\)/, taken.stdout);
   assert.deepEqual(allowOf(m), [...P.RULES, 'Bash(gh pr merge:*)', 'Bash(own-cli sync:*)']);
   assert.doesNotMatch(taken.stdout, /still asks before it runs/, taken.stdout);
+  // PC-125: the ledger names what setup installed, who declared it, from where, and when.
+  const ledgerDoc = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode', 'permissions.json'), 'utf8'));
+  assert.equal(ledgerDoc.schema, 'passioncode-permissions/1');
+  assert.deepEqual(ledgerDoc.rules.map(({ installedAt, ...r }) => (assert.ok(Date.parse(installedAt)), r)), [
+    { rule: 'Bash(gh pr merge:*)', set: 'commands', why: P.COMMANDS[0].why, by: 'PassionCode setup', source: 'launcher', installedBy: 'PassionCode setup', version: require('../package.json').version },
+    { rule: 'Bash(own-cli sync:*)', set: 'commands', why: 'let Own Agent sync its data', by: 'Own Agent', source: 'rules.d/own-agent.json', installedBy: 'PassionCode setup', version: require('../package.json').version },
+  ]);
   const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
   assert.deepEqual(again.json.commands.rules, [], 'a second run offers nothing');
   // --allow-commands asked for them: settings that cannot be read are a failed step (exit 1), and a dry run says so.

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 const L = require('../lib/launcher');
+const VERSION = require('../package.json').version;
 
 function cachedNpmStatus({ latest, checkedAt, installed }) {
   if (!latest) return 'npm latest: not checked';
@@ -27,6 +28,8 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
   npx @passioncode-ai/passioncode@latest restore [--json]                        put back what the last update moved aside
   npx @passioncode-ai/passioncode@latest config set update.auto on|off [--json]  background updates at session start
   npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
+  npx @passioncode-ai/passioncode@latest permissions [allow|remove <rule>...|mode <mode>] [--by who] [--json]
+        Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules
 
 onboard is another name for setup, install for update. --offline skips the check for newer app
 releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
@@ -101,8 +104,93 @@ async function setupOrDoctor(cmd, rest) {
   return S.exitCode(r);
 }
 
+// PC-125: `permissions`, the ledger of Claude Code rules PassionCode installed (lib/ledger.js), for people and for
+// Fabric's permissions screen. Usage errors exit 2, a settings file or ledger that cannot be read or written 1.
+function permissionsCommand(rest) {
+  const ledger = require('../lib/ledger');
+  const json = rest.includes('--json');
+  const args = [];
+  let by = null;
+  for (let n = 0; n < rest.length; n += 1) {
+    if (rest[n] === '--json') continue;
+    if (rest[n] === '--by') { by = rest[n + 1]; n += 1; if (!by || by.startsWith('--')) return usage('--by needs who asked, for example "Fabric (operator)"'); continue; }
+    if (rest[n].startsWith('-')) return usage(`unknown option ${rest[n]}`);
+    args.push(rest[n]);
+  }
+  if (by !== null && ([...by].length > 80 || !by.trim() || require('../lib/permissions').CONTROL.test(by))) return usage('--by is 1 to 80 characters of plain text');
+  const [verb, ...values] = args;
+  if (by !== null && verb === undefined) return usage('--by goes with allow, remove or mode');
+  if (by !== null) by = by.trim();
+  const p = L.paths();
+  const file = p.claudeSettings;
+  const show = (view, headline) => {
+    if (json) { process.stdout.write(JSON.stringify(view, null, 2) + '\n'); return; }
+    process.stdout.write(renderPermissions(view, headline) + '\n');
+  };
+  try {
+    if (verb === undefined) {
+      const view = ledger.view(p.home, file, p.state);
+      show(view);
+      return view.readable && !view.ledgerError ? 0 : 1;
+    }
+    if (verb === 'allow' || verb === 'remove') {
+      if (!values.length) return usage(`${verb} needs at least one rule`);
+      const r = verb === 'allow' ? ledger.allow(p.home, file, p.state, values, { by, version: VERSION }) : ledger.remove(p.home, file, p.state, values, { by });
+      const done = verb === 'allow' ? r.added : r.removed;
+      show({ ...r.view, [verb === 'allow' ? 'added' : 'removed']: done },
+        done.length ? `${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')}`
+          : `Nothing to ${verb}: ${verb === 'allow' ? 'each rule is already allowed, asked about or denied' : 'none of them is allowed there'}.`);
+      return 0;
+    }
+    if (verb === 'mode') {
+      if (values.length !== 1) return usage(`mode needs one of ${ledger.MODES.join(', ')}`);
+      const r = ledger.mode(p.home, file, p.state, values[0], { by });
+      show({ ...r.view, changed: r.changed, from: r.from }, r.changed ? `Default mode: ${values[0]} (was ${r.from === null ? 'not set' : r.from}).` : `Default mode is already ${values[0]}.`);
+      return 0;
+    }
+    return usage(`unknown permissions command ${verb}`);
+  } catch (error) {
+    if (error.code === 'EUSAGE') return usage(error.message);
+    process.stderr.write(`passioncode: ${error.message}\n`);
+    return 1;
+  }
+}
+
+function usage(message) {
+  process.stderr.write(`passioncode: ${message}; run passioncode help.\n`);
+  return 2;
+}
+
+function renderPermissions(view, headline) {
+  const { shown } = require('../lib/permissions'); // a rule or a name from a file is printed with its control characters escaped
+  const clean = (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' ? shown(v) : v]));
+  view = { ...view, rules: view.rules.map(clean), offered: view.offered.map(clean), foreign: view.foreign.map(shown) };
+  const lines = [];
+  if (headline) lines.push(shown(headline), '');
+  lines.push(`Claude Code permissions in ${view.settingsFile}`);
+  if (!view.readable) lines.push(`  ${view.error}`);
+  if (view.ledgerError) lines.push(`  ${view.ledgerError}`);
+  lines.push(`Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, except what the allow rules let it do, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`}`);
+  if (view.rules.length) {
+    lines.push('', "PassionCode's rules:");
+    for (const r of view.rules) {
+      const removed = r.removedAt ? `removed ${r.removedAt} by ${r.removedBy}${['allowed', 'asked', 'denied'].includes(r.state) ? ', and set again by hand since' : ''}` : '';
+      const when = removed || (r.installedAt ? `installed ${r.installedAt} by ${r.installedBy || r.by}` : 'not in the ledger (set before it, or by hand)');
+      lines.push(`  ${r.state.padEnd(8)} ${r.rule} (${r.why}; declared by ${r.by}; ${when})`);
+    }
+  }
+  if (view.offered.length) {
+    lines.push('', 'Offered and not allowed yet:', ...view.offered.map((r) => `  ${r.rule} (${r.why}; declared by ${r.by})`));
+    lines.push(`To allow them: ${require('../lib/doctor').NPX} permissions allow <rule>`);
+  }
+  if (view.foreign.length) lines.push('', "Other allow rules (not PassionCode's; never changed here):", ...view.foreign.map((rule) => `  ${rule}`));
+  if (view.refused.length) lines.push('', 'Rules declared on this machine and not offered as declared:', ...view.refused.map((x) => `  ${x}`));
+  return lines.join('\n');
+}
+
 async function main(argv) {
   const [cmd = 'help', ...rest] = argv;
+  if (cmd === 'permissions') return permissionsCommand(rest);
   if (cmd === 'setup' || cmd === 'onboard' || cmd === 'doctor') {
     try { return await setupOrDoctor(cmd === 'onboard' ? 'setup' : cmd, rest); } catch (error) {
       process.stderr.write(`passioncode: ${error.message}\n`);

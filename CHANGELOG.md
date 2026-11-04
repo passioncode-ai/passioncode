@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.75 - 2026-11-04
+
+### Added
+
+- **`permissions`** (PC-125): what PassionCode allowed Claude Code to do without asking, and its default mode, for a
+  person and for Fabric's permissions screen. Setup keeps a private ledger, `~/.passioncode/permissions.json`: each rule
+  it added, its set, what it allows, who declared it, from where, when, who asked for it and the launcher version.
+  `permissions` joins
+  it with `~/.claude/settings.json` (each rule's state, the rules offered and not allowed yet, declarations not offered
+  as declared, every other allow rule, the mode); `permissions allow` and `remove` change only PassionCode's rules,
+  `permissions mode <mode>` sets `permissions.defaultMode` to one of Claude Code's modes, and `--by` records who the
+  caller says asked. A ledger that cannot be read or written stops the act before the settings change. `--json`
+  answers the same view; a settings file that is a link stays a link with its mode.
+
+### Changed
+
+- **Setup's hints under a mode that does not ask** (PC-125): when `~/.claude/settings.json` sets the default mode to
+  `bypassPermissions`, `dontAsk` or `auto`, setup no longer says "Claude Code still asks"; it says the allow rules do not
+  include the rules and that the mode decides. A rules step that cannot write the ledger still adds its rules and ends
+  "the permissions ledger was not updated".
+- **Fabric Agent Adapter is pinned at `v0.62.0`** (it was `v0.61.0`): a new service install must name the repository of
+  its code (an update of an installed one without it still works and warns), the reference service declares its
+  connections, and `check_service.py` reports a descriptor without a repository and the connections declaration
+  (PC-130).
+
 ## 0.2.74 - 2026-11-04
 
 ### Fixed

@@ -93,8 +93,8 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
   is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
-  tool and command rules setup added stay in `~/.claude/settings.json`, and agents' declarations in
-  `~/.passioncode/rules.d` stay)
+  tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json`, and agents' declarations in
+  `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay)
   ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
   [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
 
@@ -149,6 +149,7 @@ observation, not a live registry check. With no saved version it says
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows
 npx @passioncode-ai/passioncode@latest update --dry-run
 npx @passioncode-ai/passioncode@latest uninstall
+npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed Claude Code to do without asking (in ~/.claude/settings.json), and who asked for it
 ```
 
 For supported flags, JSON fields, exit codes and partial-failure recovery, read the
