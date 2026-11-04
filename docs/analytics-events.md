@@ -17,8 +17,9 @@ Every event carries the time, a random id for the run (`sessionId`) and the fiel
 version, the OS name and its kernel release (for example `Darwin 25.6.0`, not the macOS version), the locale, the
 Node.js version, an SDK tag and a debug flag (true for `sandbox`). The shared file is `~/Library/Application Support/PassionCode/installation.json` on macOS,
 `%APPDATA%\PassionCode\installation.json` on Windows and `$XDG_CONFIG_HOME/PassionCode/installation.json` (else
-`~/.config`) on Linux, where Fabric and Fabric Dashboards keep it too; on Linux Fabric Switchboard keeps its
-own under `~/.local/share` for now, so there the two do not share an id. And four properties (a run that cannot read, find or create a usable id in the shared file sends nothing: no count without the id): `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
+`~/.config`) on Linux, where Fabric, Fabric Dashboards and Fabric Switchboard keep it too (Switchboard from 0.7.10,
+SB-252, which moves an id it kept under `~/.local/share` there once; before 0.7.10 the two did not share an id on
+Linux). And four properties (a run that cannot read, find or create a usable id in the shared file sends nothing: no count without the id): `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
 (created once if absent, never rewritten; growth counts installations by it); `install_id`, always equal to `iid` (the
 key questions across PassionCode apps join on, which the apps send too; kept for the family's compatibility, never a
 second id); `surface`, `cli` (a value of its own is
