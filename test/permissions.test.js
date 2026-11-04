@@ -11,6 +11,16 @@ const P = require('../lib/permissions');
 const tmp = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'pc-perm-')), '.claude', 'settings.json');
 const write = (file, doc) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, typeof doc === 'string' ? doc : JSON.stringify(doc, null, 2)); };
 
+// A home folder whose own bin holds the agents' commands the PC-119 tests name, as an agent installs them.
+const OWN = ['own-cli', 'own-agent-exempt', 'own-app', 'b-cli', 'a-agent-sync', 'a-cli'];
+const CTX = (() => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-home-'));
+  const bin = path.join(home, '.local', 'bin');
+  fs.mkdirSync(bin, { recursive: true });
+  for (const name of OWN) fs.writeFileSync(path.join(bin, name), '#!/bin/sh\n', { mode: 0o755 });
+  return { home, pathEnv: [bin, ...String(process.env.PATH).split(path.delimiter)].join(path.delimiter), platform: process.platform };
+})();
+
 test('PC-117: the rule set names the MCP servers PassionCode registers', () => {
   assert.deepEqual([...P.RULES], ['mcp__fabric', 'mcp__fabric-dashboards', 'mcp__switchboard', 'mcp__plugin_switchboard_switchboard', 'mcp__observatory']);
 });
@@ -254,18 +264,15 @@ test('PC-117: a link in a linked folder to a missing file that climbs with .. ma
   assert.deepEqual(P.apply(file), []);
 });
 
-test('PC-119: the launcher carries only rules any person may want, each passing its own check', () => {
+test('PC-119: the launcher carries only rules any person may want, each saying what it allows', () => {
   assert.deepEqual(P.COMMANDS.map((r) => r.rule), ['Bash(gh pr merge:*)']);
-  for (const r of P.COMMANDS) {
-    assert.equal(P.refusal(r.rule), null, r.rule);
-    assert.ok(r.why.length > 10 && r.why.length <= 200, r.rule);
-  }
+  for (const r of P.COMMANDS) assert.ok(r.why.length > 10 && r.why.length <= 200, r.rule);
   assert.match(P.COMMANDS[0].why, /cannot be limited to your repositories/);
 });
 
 test('PC-119: a declared rule is offered only when it allows no more than it says', () => {
-  for (const ok of ['Bash(gh pr merge:*)',  'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(own-agent-exempt:*)', 'Bash(python3 tool.py sync)', 'Bash(bash -c ls)', 'Bash(git log --oneline)']) {
-    assert.equal(P.refusal(ok), null, ok);
+  for (const ok of ['Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(own-agent-exempt:*)', 'Bash(python3 tool.py sync)', 'Bash(bash -c ls)', 'Bash(git log --oneline)']) {
+    assert.equal(P.refusal(ok, CTX), null, ok);
   }
   for (const [no, why] of [
     ['Bash(*)', /any command$/], ['Bash(:*)', /any command$/], ['Bash(python3 *)', /wildcard over python could run any code/], ['Bash(uv run *)', /wildcard over uv could run/],
@@ -281,12 +288,12 @@ test('PC-119: a declared rule is offered only when it allows no more than it say
     ['Bash(sh -c "echo:*)', /quote/], ["Bash(bash -c 'ls:*)", /quote/], ['Bash(a\\b)', /escape/], ['Bash(a (b))', /substitution/],
     ['Bash(a $(b))', /substitution/], ['Bash(a `b`)', /substitution/], ['Bash(ls && rm x)', /separator/], ['Bash(a | b)', /separator/], ['Bash(a\nb)', /separator/],
     ['Bash(a > f)', /redirection/], ['Read(**)', /names a command, as Bash/], ['mcp__a__b c', /MCP server's tools are not offered/], [42, /not text/],
-  ]) assert.match(P.refusal(no) || '', why, String(no));
+  ]) assert.match(P.refusal(no, CTX) || '', why, String(no));
 });
 
 test('PC-119: rules agents declare on the machine are read, and what is not offered is named', () => {
   const dir = path.join(path.dirname(tmp()), 'rules.d');
-  assert.deepEqual(P.declared(dir), { rules: [], refused: [] }, 'no folder: nothing declared');
+  assert.deepEqual(P.declared(dir, CTX), { rules: [], refused: [] }, 'no folder: nothing declared');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'b-agent.json'), JSON.stringify({ by: 'B Agent', rules: [
     { rule: 'Bash(b-cli sync:*)', why: 'let B Agent sync its data' },
@@ -299,7 +306,7 @@ test('PC-119: rules agents declare on the machine are read, and what is not offe
   fs.writeFileSync(path.join(dir, 'broken.json'), '{ no');
   fs.writeFileSync(path.join(dir, 'nobody.json'), JSON.stringify({ rules: [] }));
   fs.writeFileSync(path.join(dir, 'notes.txt'), 'ignored');
-  const got = P.declared(dir);
+  const got = P.declared(dir, CTX);
   assert.deepEqual(got.rules, [
     { rule: 'Bash(a-agent-sync:*)', why: 'sync A Agent', by: 'A Agent' },
     { rule: 'Bash(b-cli sync:*)', why: 'let B Agent sync its data', by: 'B Agent' },
@@ -328,24 +335,42 @@ test('PC-119: a declaration whose name or reason holds a control character is no
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'Bash(a-cli sync:*)', why: 'sync\u001b[2K the data' }] }));
   fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B\rPassionCode', rules: [{ rule: 'Bash(b-cli sync:*)', why: 'sync' }] }));
-  const got = P.declared(dir);
+  const got = P.declared(dir, CTX);
   assert.deepEqual(got.rules, []);
   assert.equal(got.refused.length, 2, got.refused.join('\n'));
 });
 
 test('PC-119: an invisible or line-breaking character in a rule is refused, so the plan shows what is allowed', () => {
   for (const rule of ['Bash(gh pr \u009b2J:*)', 'Bash(gh pr merge:*)', 'Bash(gh pr\u0085merge:*)', 'Bash(gh pr merge:*)']) {
-    assert.match(P.refusal(rule) || '', /quote, an escape|not plain text/, JSON.stringify(rule));
+    assert.match(P.refusal(rule, CTX) || '', /quote, an escape|not plain text/, JSON.stringify(rule));
   }
-  assert.equal(P.refusal('Bash(bash -c ls)'), null, 'an exact rule allows only its own text');
+  assert.equal(P.refusal('Bash(bash -c ls)', CTX), null, 'an exact rule allows only its own text');
 });
 
 test('PC-119: every program on the lists is refused as the lists say, and a declared MCP rule is not offered', () => {
-  for (const name of P.RUNNERS) assert.match(P.refusal(`Bash(${name} a b:*)`) || '', /could run any code/, name);
-  for (const name of P.WRAPPERS) assert.match(P.refusal(`Bash(${name} a b:*)`) || '', /runs another program/, name);
-  for (const name of P.BROAD) assert.match(P.refusal(`Bash(${name}:*)`) || '', /any command of|could run any code|runs another/, name);
+  for (const name of P.RUNNERS) assert.match(P.refusal(`Bash(${name} a b:*)`, CTX) || '', /could run any code/, name);
+  for (const name of P.WRAPPERS) assert.match(P.refusal(`Bash(${name} a b:*)`, CTX) || '', /runs another program/, name);
+  for (const name of P.BROAD) assert.match(P.refusal(`Bash(${name}:*)`, CTX) || '', /any command of|could run any code|runs another/, name);
   for (const rule of ['Bash(rundll32 shell32.dll,ShellExec_RunDLL:*)', 'Bash(sqlite3 app.db:*)', 'Bash(ssh-agent:*)', 'Bash(sandbox-exec:*)', 'Bash(scp -r:*)', 'Bash(nodejs:*)']) {
-    assert.ok(P.refusal(rule), rule);
+    assert.ok(P.refusal(rule, CTX), rule);
   }
-  assert.match(P.refusal('mcp__ide') || '', /an MCP server's tools are not offered here/);
+  assert.match(P.refusal('mcp__ide', CTX) || '', /an MCP server's tools are not offered here/);
+});
+
+test('PC-119: a wildcard is offered only over a command installed in the home folder; an exact rule over a wrapper never', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
+  const bin = path.join(CTX.home, '.local', 'bin');
+  fs.symlinkSync('/bin/sh', path.join(bin, 'own-sh')); // a link in the home folder to a program the system ships
+  fs.writeFileSync(path.join(bin, 'own-noexec'), 'x', { mode: 0o644 });
+  assert.match(P.refusal('Bash(own-sh x y:*)', CTX) || '', /own-sh is installed outside your home folder/);
+  assert.match(P.refusal('Bash(own-missing sync:*)', CTX) || '', /own-missing is not found on PATH/);
+  assert.match(P.refusal('Bash(own-noexec sync:*)', CTX) || '', /own-noexec is not found on PATH/);
+  assert.match(P.refusal('Bash(ls -la *)', CTX) || '', /ls is installed outside your home folder/);
+  assert.equal(P.refusal('Bash(ls -la)', CTX), null, 'an exact rule over a system program allows only its own text');
+  for (const exact of ['Bash(sudo make install)', 'Bash(env foo)', 'Bash(apply echo x)']) assert.match(P.refusal(exact, CTX) || '', /runs another program/, exact);
+  for (const rule of ['Bash(pip3 install x:*)', 'Bash(claude -p:*)', 'Bash(launchctl asuser:*)', 'Bash(codex exec:*)', 'Bash(view -c:*)', 'Bash(python3.13t -c:*)', 'Bash(python3.12-intel64 -c:*)']) {
+    assert.match(P.refusal(rule, CTX) || '', /could run any code/, rule);
+  }
+  for (const rule of ['Bash(lockf f:*)', 'Bash(taskpolicy -b:*)', 'Bash(chrt -o 0:*)', 'Bash(coproc:*)', 'Bash(noglob:*)', 'Bash(pcalua -a:*)']) {
+    assert.match(P.refusal(rule, CTX) || '', /runs another program/, rule);
+  }
 });

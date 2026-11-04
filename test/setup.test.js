@@ -1237,6 +1237,8 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   const settingsOf = (m) => path.join(m.home, '.claude', 'settings.json');
   const allowOf = (m) => ((JSON.parse(fs.readFileSync(settingsOf(m), 'utf8')).permissions || {}).allow || []);
   const declare = (m, doc) => {
+    // The agent's own command, installed in the home folder, as a wildcard over it needs.
+    fs.writeFileSync(path.join(m.bin, 'own-cli'), '#!/bin/sh\n', { mode: 0o755 });
     fs.mkdirSync(path.join(m.home, '.passioncode', 'rules.d'), { recursive: true });
     fs.writeFileSync(path.join(m.home, '.passioncode', 'rules.d', 'own-agent.json'), JSON.stringify(doc));
   };
@@ -1244,7 +1246,7 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   const m = machine({ commandRules: false });
   declare(m, { by: 'Own Agent', rules: [{ rule: 'Bash(own-cli sync:*)', why: 'let Own Agent sync its data' }, { rule: 'Bash(python3 *)', why: 'anything' },
     { rule: 'Bash(gh pr merge:*)', why: 'merge, declared again' }, { rule: 'mcp__fabric', why: 'every Fabric tool' }] });
-  // a rule the launcher carries is listed once, as the launcher says it; one of PassionCode's tool rules keeps its own question
+  // a rule the launcher carries is listed once, as the launcher says it, however it is declared; a declared MCP rule is refused
   const json = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
   assert.equal(json.status, 0, json.stdout);
   assert.deepEqual(json.json.commands.rules, [{ ...P.COMMANDS[0] }, { rule: 'Bash(own-cli sync:*)', why: 'let Own Agent sync its data', by: 'Own Agent' }]);

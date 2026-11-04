@@ -157,18 +157,21 @@ file `~/.passioncode/rules.d/<name>.json`:
 the plan shows each rule with them. The folder follows `PASSIONCODE_HOME` when it is set. A declared rule names one command (`Bash(<command>)`,
 with `:*` or a trailing ` *` for any arguments); an MCP rule is not offered from a declaration (PassionCode's own tool
 rules have their own question, PC-117). Claude Code matches a rule against the command's text, and a rule
-ending in `*` allows any arguments after its words, options included (the plan and the question say so). So only a
-plain form is offered, and every other rule is refused because it could allow more than it says: printable ASCII only;
-the program by its bare name in lower case (no path, so not `/bin/bash`; a version in the name is read as the program,
-so `perl5.34` is `perl` and `python3.12` is `python`); no quote, escape, substitution (`$(...)`), separator (`&&`, `;`,
-`|`, a line break) or redirection; a wildcard only at the end, after `:` or a space, and over a general-purpose program
-(`gh`, `aws`, `brew`, `rm`, `curl` and the like) only after a subcommand or argument (`Bash(gh pr merge:*)`, never
-`Bash(gh:*)`), while a command of an agent's own made for one act may take it after its name alone; never a program that runs another one (`env`, `sudo`, `command`, `nohup`, `xargs`, `xcrun` and the
-like); and no wildcard at all over a program that runs whatever it is given, or takes options after its words that run
-other code (a shell, `python3`, `node`, `perl`, `osascript`, `uv`, `npx`, `find`, `ssh`, `make`, `sed`, `git` and the
-like): declare the exact command, or a command of your own. An exact rule over such a program, with no wildcard, allows only its own text
-and is offered. A control character in `by` or `why` is refused too. These are lists of known programs, not a proof:
-the person's yes on each rule shown is the gate.
+ending in `*` allows any arguments after its words, options included (the plan, the question, the hint and the done
+line say so). So only a plain form is offered, and every other rule is refused because it could allow more than it
+says: printable ASCII only; the program by its bare name in lower case (no path, so not `/bin/bash`; a version in the
+name is read as the program, so `perl5.34` is `perl` and `python3.12` is `python`); no quote, escape, substitution
+(`$(...)`), separator (`&&`, `;`, `|`, a line break) or redirection; never a program that runs another one (`env`,
+`sudo`, `command`, `nohup`, `xargs`, `xcrun`, `lockf` and the like), not even exactly. A wildcard comes only at the
+end, after `:` or a space, and only over a command installed in your home folder, as an agent's own command is (in
+`~/.local/bin`, say): the program is looked up on `PATH`, links followed, and one that is not found, or that the system
+or a package manager installed elsewhere, takes no wildcard. Within the home folder there is no wildcard over a program
+that runs whatever it is given, or takes options after its words that run other code (a shell, `python3`, `node`,
+`perl`, `uv`, `npx`, `find`, `ssh`, `make`, `git`, `claude` and the like), and none after a general-purpose program's
+name alone (`gh`, `aws`, `rm`, `curl` and the like): declare the exact command, or a command of your own. An exact
+rule, with no wildcard, allows only its own text and is offered over any program but a wrapper. A control character in
+`by` or `why` is refused too. The lists name known programs, not every one: the person's yes on each rule shown is
+the gate. A declared rule the launcher carries (`Bash(gh pr merge:*)`) is offered once, as the launcher says it.
 The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered".
 Existing machines are offered the set the next time `setup` runs, until the person takes it; a rule the person lists
 under `permissions.ask` or `permissions.deny` is not offered again. When Claude Code's settings cannot be read, that is
@@ -180,8 +183,9 @@ an allow rule resolves before the auto mode classifier, except writes to protect
 classifier, and critical `rm` targets, which no rule approves; on entering auto mode Claude Code drops broad rules that
 grant arbitrary code execution (package-manager run commands among them), so a rule over such a runner may not apply
 there. For an act no rule can describe, Claude Code reads plain-language exceptions under `autoMode` in the same file,
-which `setup` never writes. The result carries `commands: { rules, refused, taken }`; `taken` is the yes, and the
-`commands` action is the proof the rules were written.
+which `setup` never writes. The result carries `commands: { rules, refused, taken }`, and `error` when the settings cannot be read
+(then, with `--allow-commands`, `rules` is the whole set a run would write); `taken` is the yes, and the `commands`
+action is the proof the rules were written.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
