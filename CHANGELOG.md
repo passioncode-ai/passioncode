@@ -10,13 +10,14 @@
   `~/.kimi-code/mcp.json`, and its removal, do the same, and a file the launcher creates there is private; a link there
   to a missing file no longer fails the registration: the file is made where it points.
   `~/.codex/config.toml` is still written as a regular file (PC-126).
-- What earlier versions left stays as it is: a link an earlier update replaced is not put back, and a file it rewrote
-  may have been left readable by others (mode 644; `chmod 600` on it narrows it again). The file the link pointed at
+- What earlier versions left stays as it is: a link an earlier update, `restore` or `uninstall` replaced is not put
+  back, and a file one of them rewrote may have been left readable by others (mode 644 on macOS and Linux; `chmod 600`
+  on it narrows it again). The file the link pointed at
   was not written then and holds what it held before that update; the regular file in the link's place holds every
   change since, so merge that into it before linking again. The copy that update took is in its
   `~/.passioncode/quarantine/<run>/` as `settings.json.before-<marketplace>` (`~/.claude/settings.json`),
-  `settings.json.before-mcp-gemini-cli` or `mcp.json.before-mcp-kimi-code`; a removal by `restore` or `uninstall`
-  took none.
+  `settings.json.before-mcp-gemini-cli` or `mcp.json.before-mcp-kimi-code`; a removal by `restore` or `uninstall`,
+  and `restore` declaring a marketplace again, took none.
 
 ## 0.2.73 - 2026-11-04
 
