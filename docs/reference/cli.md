@@ -269,7 +269,8 @@ and `test/openpgp.test.js`.
 4. Link supported existing agent channels, including directory symlinks. Record
    each quarantine move before applying it. Re-read state before the final write
    to retain config/probe results written while plugin subprocesses ran.
-5. Register the MCP server of each installed app (`mcp` steps): Fabric Dashboards and
+5. Register the MCP server inside each installed app's bundle (`mcp` steps; Project
+   Observatory and Fabric Inbox add theirs through their own onboarding): Fabric Dashboards and
    Fabric Switchboard (not for Claude Code when its `switchboard` plugin already brings
    it), for every agent that is present: Claude Code through its CLI,
    `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`
@@ -280,7 +281,8 @@ and `test/openpgp.test.js`.
    and leaves the link (setup and `doctor --fix`, which run an update, report it
    too): make the folder writable, or declare the server in the file the link points
    to, which the next update finds already there; a registration that failed is never
-   taken out by `restore`. The other agents are still registered. Fabric's early-preview
+   taken out by `restore`, and an update whose only change is such a failure saves no
+   recovery entry. The other agents are still registered. Fabric's early-preview
    server is registered by `setup`, not by an update.
 6. Prune the launcher's own releases (`prune` step): keep the release just
    installed and the one it replaced (the newest other release when it replaced
@@ -321,7 +323,7 @@ link into a folder that is locked) is kept and left unrestored, the rest of the
 batch is still put back and listed, and restore exits 1 naming the file. Make the
 file and its folder readable and writable (for a link, the folder it points into)
 and run `restore` again: it removes the entry while that batch is still the latest.
-Any update that registers, tries to register or moves something starts a new batch, including
+Any update that registers or moves something starts a new batch, including
 `update --quiet` and the background update a session start runs, and restore reads
 only the latest: if a later restore succeeds while the entry is still in the file,
 delete it by hand (`uninstall`, which removes PassionCode too, also does). A file

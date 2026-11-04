@@ -859,6 +859,46 @@ test('PC-126: an entry a person declares after a failed registration is never ta
   assert.equal(fs.readFileSync(real, 'utf8'), mine, 'the hand-written table stays');
 });
 
+test('PC-126: an update whose only change is a failed registration saves no recovery entry and keeps the batch before it', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, path.join(env.home, '.codex', 'config.toml'));
+  fs.chmodSync(path.dirname(real), 0o555);
+  let second;
+  try {
+    assert.equal(run(env, 'update').status, 1);
+    second = run(env, 'update');
+  } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  assert.equal(second.status, 1);
+  assert.doesNotMatch(second.stdout, /recovery entry/);
+  assert.equal(run(env, 'restore').status, 0);
+  assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'), 'the first batch is still the one restore reads');
+});
+
+test('PC-126: a failed registration journalled by an earlier version does not take out an entry declared by hand', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, path.join(env.home, '.codex', 'config.toml'));
+  fs.chmodSync(path.dirname(real), 0o555);
+  try { assert.equal(run(env, 'update').status, 1); } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  const journal = path.join(state.quarantines.at(-1), 'moved.json');
+  fs.writeFileSync(journal, JSON.stringify(JSON.parse(fs.readFileSync(journal, 'utf8')).map(({ failedAt, ...e }) => e))); // the 0.2.75 shape
+  const mine = `${CODEX_CONF}\n["mcp_servers"."fabric-dashboards"]\ncommand = ${JSON.stringify(bin)}\nargs = []\n`;
+  fs.writeFileSync(real, mine);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'restore').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), mine, 'restore takes out only what an update recorded as registered');
+});
+
 test('PC-126: a Codex config.toml the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);

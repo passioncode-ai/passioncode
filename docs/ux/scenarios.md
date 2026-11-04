@@ -9,8 +9,8 @@
 | SCN-001 | Inspect cached npm version | status | Operator | REQ-1, REQ-2 | implemented | 2026-10-01 |
 | SCN-002 | Read status without changing the installation | status | Automation | REQ-3 | implemented | 2026-10-01 |
 | SCN-003 | Update with a partial failure | update | Operator | REQ-A1 | implemented | 2026-11-05 |
-| SCN-004 | Restore displaced entries safely | restore | Operator | REQ-A1 | implemented | 2026-11-04 |
-| SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-11-04 |
+| SCN-004 | Restore displaced entries safely | restore | Operator | REQ-A1 | implemented | 2026-11-05 |
+| SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-11-05 |
 | SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-10-01 |
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
@@ -98,7 +98,7 @@
 - **Alt paths:** Old journals without checkpoints are handled without deleting a destination whose quarantine source is absent.
 - **UI elements:** Restored paths, conflict/error text, empty result.
 - **States covered:** empty, error, success
-- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded. An MCP entry whose file the system cannot open now is kept; the rest of the batch is still put back and listed, and restore exits 1 naming the file. Once the folder is writable, a restore removes it while that batch is still the latest; after any update (a quiet or background one included) starts a new batch, delete it by hand (uninstall, which removes PassionCode too, also does). A file that does not parse, or a folder in its place, is reported as kept and no longer tracked (PC-127).
+- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded. An MCP entry whose file the system cannot open now is kept; the rest of the batch is still put back and listed, and restore exits 1 naming the file. Once the folder is writable, a restore removes it while that batch is still the latest; after any update (a quiet or background one included) starts a new batch, delete it by hand (uninstall, which removes PassionCode too, also does). A file that does not parse, or a folder in its place, is reported as kept and no longer tracked (PC-127). Restore takes out only MCP entries an update recorded as registered, so an entry declared by hand after a failed registration stays (PC-126).
 - **Status:** implemented
 - **Coverage:** `test/launcher.test.js`; SCN-004 evidence includes repeat, conflict and interruption regressions and the PC-127 restore test.
 - **Product:** unobserved

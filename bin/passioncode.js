@@ -237,11 +237,13 @@ async function main(argv) {
       const r = L.update({ dryRun: rest.includes('--dry-run') });
       const failed = r.steps.filter((s) => s.outcome === 'failed');
       if (!quiet || failed.length) {
+        const saved = r.moved.filter((e) => !e.failedAt).length;
         out(r, [
           ...r.steps.map((s) => `${s.outcome.padEnd(8)} ${s.kind.padEnd(11)} ${s.detail}${s.error ? `\n         ${s.error}` : ''}`),
           '',
           failed.length ? `${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start.`,
-          r.moved.length ? `${r.moved.length} recovery entry(s) saved; use \`passioncode restore\`.` : '',
+          // A registration that failed was never written, and restore skips it (PC-126): it is no recovery entry.
+          saved ? `${saved} recovery entry(s) saved; use \`passioncode restore\`.` : '',
         ].filter(Boolean).join('\n'));
       }
       return failed.length ? 1 : 0;

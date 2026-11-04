@@ -36,10 +36,12 @@
   opened now (its permissions, a link into a locked folder) is kept and stays recorded; `restore` still puts back the rest of
   the batch and `uninstall` finishes the rest, each lists what it did and exits 1 naming the file. Once the folder is
   readable and writable again, `uninstall` removes the entry, and so does `restore` while that batch is still the latest
-  (any update that registers, tries to register or moves something starts a new one, a quiet or background one included). With
+  (any update that registers or moves something starts a new one, a quiet or background one included). With
   `--json`, stdout still holds what was done. A file that does not parse, or a folder in its place, is reported as
   kept and no longer tracked, and a path that now runs through a file is taken as already gone. A registration whose
-  write failed is marked in the journal, so `restore` never takes out an entry the person declares there later. Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file the
+  write failed is marked in the journal and saves no recovery entry, and `restore` takes out only what an update
+  recorded as registered, so it never removes an entry the person declares there later, even from a batch an earlier
+  version journalled. Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file the
   system could not open was dropped from the record: a `config.toml` was taken as already cleaned, the JSON files of
   Claude Code, Gemini and Kimi were reported as kept and then forgotten.
 - What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
