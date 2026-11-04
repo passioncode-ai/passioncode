@@ -12,6 +12,13 @@
   `permissions mode <mode>` sets `permissions.defaultMode` to one of Claude Code's modes, and `--by` records who asked.
   `--json` answers the same view; a settings file that is a link stays a link with its mode.
 
+### Changed
+
+- **Fabric Agent Adapter is pinned at `v0.62.0`** (it was `v0.61.0`): a new service install must name the repository of
+  its code (an update of an installed one without it still works and warns), the reference service declares its
+  connections, and `check_service.py` reports a descriptor without a repository and the connections declaration
+  (PC-130).
+
 ## 0.2.74 - 2026-11-04
 
 ### Fixed
