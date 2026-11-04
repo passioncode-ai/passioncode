@@ -791,6 +791,43 @@ test('PC-120: a Gemini settings link to a missing file is kept, and the file is 
   assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers, {});
 });
 
+test('PC-126: a linked 0600 Codex config.toml stays a link with its mode through update, restore and uninstall', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.chmodSync(real, 0o600);
+  fs.symlinkSync(real, file);
+  const holds = () => fs.readFileSync(real, 'utf8').includes('["mcp_servers"."fabric-dashboards"]');
+  assert.equal(run(env, 'update').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'registration keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o600, 'and the mode');
+  assert.ok(holds(), 'the entry lands where the link points');
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'removal keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF, 'the entry is gone and the rest is byte-identical');
+  assert.equal(run(env, 'update').status, 0);
+  assert.ok(holds());
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'uninstall keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+});
+
+test('PC-126: a Codex config.toml the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  assert.equal(fs.existsSync(file), false);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+});
+
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);

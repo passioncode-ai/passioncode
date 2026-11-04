@@ -22,6 +22,13 @@
   warning count on a Mac or Windows machine with Fabric that lacks a part. The page
   `docs/reference/session-chain.md` says which part of that chain is the launcher's.
 
+### Fixed
+
+- **`~/.codex/config.toml` keeps its link and its mode** (PC-126): registering an MCP server there, and removing it
+  through `restore` or `uninstall`, now writes the file where a link points and keeps its permission bits, as the JSON
+  settings files already did (PC-120); a file the launcher creates is private (0600). Before, a link was replaced by a
+  regular file and the file, which can hold server tokens under `env`, could become readable by others.
+
 ## 0.2.75 - 2026-11-04
 
 ### Added
