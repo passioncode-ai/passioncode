@@ -98,7 +98,7 @@
 - **Alt paths:** Old journals without checkpoints are handled without deleting a destination whose quarantine source is absent.
 - **UI elements:** Restored paths, conflict/error text, empty result.
 - **States covered:** empty, error, success
-- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded. An MCP entry whose file cannot be written now is reported as kept and left for the next restore, and the rest of the batch is still put back (PC-127).
+- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded. An MCP entry whose file cannot be read or written now is kept; the rest of the batch is still put back and listed, and restore exits 1 naming the file. Once the folder is writable, a restore removes it while that batch is still the latest; after an update starts a new batch, uninstall does (PC-127).
 - **Status:** implemented
 - **Coverage:** `test/launcher.test.js`; SCN-004 evidence includes repeat, conflict and interruption regressions and the PC-127 restore test.
 - **Product:** unobserved
@@ -112,12 +112,12 @@
 - **Steps:**
   1. Run uninstall.
   2. Fix any reported plugin failure and retry.
-  3. Inspect status; optionally restore displaced files.
+  3. Inspect status (it does not list an MCP entry an incomplete uninstall kept; the uninstall's error names it); optionally restore displaced files.
 - **Expected result:** Success clears the active installation and disables automatic updates; recovery copies remain. Repeating uninstall is safe.
 - **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
-- **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. An MCP entry whose file cannot be written now (a link into a locked folder) does not stop the rest: uninstall finishes, exits 1 naming the file and keeps the entry recorded, and a retry once it is writable removes it (PC-127). Reinstallation retains the off preference until explicitly enabled.
+- **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. An MCP entry whose file cannot be read or written now (a link into a locked folder) does not stop the rest: uninstall finishes and lists what it removed, exits 1 naming the file and keeps the entry recorded, and a retry once it is writable removes it (PC-127). Reinstallation retains the off preference until explicitly enabled.
 - **Status:** implemented
 - **Coverage:** `test/launcher.test.js`; SCN-005 evidence names successful/repeated and failed uninstall tests and the PC-127 uninstall test.
 - **Product:** unobserved

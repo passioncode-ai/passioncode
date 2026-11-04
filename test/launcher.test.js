@@ -848,9 +848,15 @@ test('PC-127: restore keeps an MCP entry it cannot remove, puts back the rest, a
   const { file, real, unlock } = lockedCodexLink(env);
   try {
     const r = run(env, 'restore', '--json');
-    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.status, 1, 'a partial restore is not a success');
+    assert.ok(r.stderr.includes(`Restore incomplete: ${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
+    assert.match(r.stderr, /folder it points into\) and run restore again; once an update starts a new batch, uninstall removes it/);
     const notes = JSON.parse(r.stdout);
-    assert.ok(notes.some((n) => n.startsWith(`${file}: fabric-dashboards for Codex CLI could not be removed`) && n.includes('run restore again')), JSON.stringify(notes));
+    assert.ok(notes.some((n) => n.includes('for Gemini CLI removed from')), 'what it did is still shown: ' + JSON.stringify(notes));
+    const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+    assert.deepEqual(state.mcpRegistrations.map((m) => m.agent), ['Codex CLI'], 'the kept entry stays recorded');
+    const journal = JSON.parse(fs.readFileSync(path.join(state.quarantines.at(-1), 'moved.json'), 'utf8'));
+    assert.deepEqual(journal.filter((e) => !e.restoredAt).map((e) => e.agent), ['Codex CLI'], 'and unrestored in the journal');
     assert.equal(mcpEntry(path.join(env.home, '.gemini', 'settings.json')), undefined, 'the other agents are still cleaned');
     assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'), 'quarantined skills still come back');
     assert.ok(fs.lstatSync(file).isSymbolicLink());
@@ -868,7 +874,9 @@ test('PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it r
   try {
     const r = run(env, 'uninstall');
     assert.equal(r.status, 1);
-    assert.match(r.stderr, /Uninstall incomplete: /);
+    assert.match(r.stderr, /Uninstall incomplete: .*; kept\. The rest of uninstall finished\. Make the file and its folder readable and writable \(for a link, the folder it points into\) and retry uninstall\./);
+    assert.match(r.stdout, /^Removed:\n/, 'what it did is still shown');
+    assert.match(r.stdout, /for Gemini CLI removed from/);
     assert.ok(r.stderr.includes(`${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
     const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
     assert.equal(state.installed, null, 'the rest of uninstall is done');
@@ -880,6 +888,31 @@ test('PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it r
   assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
   assert.ok(fs.lstatSync(file).isSymbolicLink());
   assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).mcpRegistrations, undefined);
+});
+
+test('PC-127: after an update starts a new batch, restore no longer reaches a kept MCP entry and uninstall removes it', { skip: lockSkip }, () => {
+  const env = setup();
+  const { real, unlock } = lockedCodexLink(env);
+  try { assert.equal(run(env, 'restore').status, 1); } finally { unlock(); }
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.readFileSync(real, 'utf8').includes('"fabric-dashboards"'), 'the new batch does not hold it, as cli.md says');
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF, 'uninstall removes it');
+});
+
+test('PC-127: a Codex config.toml that cannot be read is kept recorded, not taken as gone', { skip: lockSkip }, () => {
+  const env = setup();
+  const { real, unlock } = lockedCodexLink(env);
+  fs.chmodSync(path.dirname(real), 0o000);
+  const stateFile = path.join(env.home, '.passioncode', 'state.json');
+  try {
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 1, r.stderr);
+    assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, 'utf8')).mcpRegistrations.map((m) => m.agent), ['Codex CLI']);
+  } finally { unlock(); }
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
 });
 
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {

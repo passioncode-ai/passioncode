@@ -19,7 +19,7 @@ agent that is present: through
 `claude mcp add --scope user` for Claude Code (it never writes `~/.claude.json` itself),
 and in `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`,
 copying each existing file into the quarantine first (each of the three files, like `~/.claude/settings.json`, is
-written where a link points and keeps its permission bits; a new one is private, PC-120 and PC-126); an entry that already exists is
+written where a link points and keeps its permission bits; a new one is private, mode 600 on macOS and Linux, PC-120 and PC-126); an entry that already exists is
 left alone and reported. Displaced files are moved rather than
 deleted: a recovery record is written before the move in
 `~/.passioncode/quarantine/<run>/moved.json`. `restore` processes the latest batch,

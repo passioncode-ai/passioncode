@@ -266,7 +266,18 @@ and `test/openpgp.test.js`.
 4. Link supported existing agent channels, including directory symlinks. Record
    each quarantine move before applying it. Re-read state before the final write
    to retain config/probe results written while plugin subprocesses ran.
-5. Prune the launcher's own releases (`prune` step): keep the release just
+5. Register the Fabric Dashboards MCP server (`mcp` steps) for every agent that is
+   present, when the Fabric Dashboards app is installed: Claude Code through its CLI,
+   `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`
+   directly. An entry already there is kept and reported, each existing file is
+   copied into the quarantine first, and a file that is a link is written where it
+   points with its permission bits kept; a new one is private (mode 600 on macOS and
+   Linux). A link into a folder the launcher cannot write fails that agent's step
+   and leaves the link (setup and `doctor --fix`, which run an update, report it
+   too): make the folder writable, or declare the server in the file the link points
+   to, which the next update finds already there. The other agents are still
+   registered. Early-preview servers are registered by `setup`, not by an update.
+6. Prune the launcher's own releases (`prune` step): keep the release just
    installed and the one it replaced (the newest other release when it replaced
    none), and remove older ones and `*.partial` copies a killed update left
    behind. Files and links in `releases/` are never touched. A dry run plans it.
@@ -282,7 +293,7 @@ alive). A second mutating command refuses with exit 1 and names the holder;
 Evidence: `update()` in [launcher](../../lib/launcher.js); regressions named
 `a failed release copy...`, `a failed current switch...`, `marketplace failure...`,
 `a successful plugin command...`, `update preserves config...` and
-`a failure immediately after a quarantine move...` in the launcher tests; the lock
+`a failure immediately after a quarantine move...`, `update registers the Fabric Dashboards MCP server...` and the PC-120 and PC-126 tests in the launcher tests; the lock
 and pruning in [the lifecycle tests](../../test/lifecycle.test.js)
 (`LC-03 a second update refuses while one holds the lock, and names the holder`,
 `LC-15 after four updates only the current and the previous release remain`).
@@ -300,10 +311,13 @@ is treated as consumed, without deleting the destination. If a recorded source
 is present but a user replacement occupies the destination, restore reports a
 conflict; move that replacement aside yourself and retry. If a marketplace cannot
 be re-added or its settings cannot be restored, exit 1 leaves it retryable.
-An MCP registration whose file cannot be written now (for example a link into a
-folder that is not writable) is reported as kept with its error and left
-unrestored, the rest of the batch is still put back, and the next `restore`
-removes it once the file can be written (PC-127).
+An MCP registration whose file cannot be read or written now (for example a link
+into a folder that is locked) is kept and left unrestored, the rest of the batch
+is still put back and listed, and restore exits 1 naming the file. Make the file
+and its folder readable and writable (for a link, the folder it points into) and
+run `restore` again: it removes the entry while that batch is still the latest. An
+update that moves something aside starts a new batch, and restore reads only the
+latest, so then `uninstall` removes the entry, or delete it by hand (PC-127).
 
 Keep quarantine directories and settings backups until recovery is complete.
 Do not delete a corrupted `state.json` to silence the error: it indexes the
@@ -389,10 +403,10 @@ and the rules `permissions allow` added and the default mode `permissions mode` 
 the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained. An MCP registration
-whose file cannot be written now (for example a link into a folder that is not
-writable) does not stop the rest: uninstall finishes, keeps that entry recorded in
-`state.json`, and exits 1 naming the file; once it can be written, another uninstall
-removes the entry (PC-127).
+whose file cannot be read or written now (for example a link into a locked folder)
+does not stop the rest: uninstall finishes and lists what it removed, keeps that
+entry recorded in `state.json`, and exits 1 naming the file; once it can be written,
+another uninstall removes the entry (PC-127).
 
 After success, `current` is removed, `installed` becomes null, member bookkeeping
 is cleared, and automatic updates are off. The current and previous release

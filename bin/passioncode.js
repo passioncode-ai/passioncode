@@ -254,8 +254,15 @@ async function main(argv) {
       ].join('\n'));
       return 0;
     }
+    // A partial restore or uninstall still shows what it did before its error (PC-127).
+    const partly = (fn, label) => {
+      try { return fn(); } catch (error) {
+        if (Array.isArray(error.done) && error.done.length) out(error.done, `${label}:\n  ${error.done.join('\n  ')}`);
+        throw error;
+      }
+    };
     if (cmd === 'restore') {
-      const r = L.restore();
+      const r = partly(() => L.restore(), 'Restored');
       out(r, r.length ? `Restored:\n  ${r.join('\n  ')}` : 'Nothing to restore.');
       return 0;
     }
@@ -264,7 +271,7 @@ async function main(argv) {
       return 0;
     }
     if (cmd === 'uninstall') {
-      const r = L.uninstall();
+      const r = partly(() => L.uninstall(), 'Removed');
       out(r, r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.');
       return 0;
     }

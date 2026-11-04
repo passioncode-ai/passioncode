@@ -182,6 +182,30 @@
       "file": "test/self-update.test.js",
       "test": "session start names the failures of the last saved setup check, and is silent when it passed",
       "scenario": "SCN-013"
+    },
+    {
+      "id": "AUD-31",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a linked 0600 Codex config.toml stays a link with its mode through update, restore and uninstall",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-32",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: restore keeps an MCP entry it cannot remove, puts back the rest, and removes it on the next run",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-33",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: after an update starts a new batch, restore no longer reaches a kept MCP entry and uninstall removes it",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-34",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it recorded, and a retry removes it",
+      "scenario": "SCN-005"
     }
   ]
 }

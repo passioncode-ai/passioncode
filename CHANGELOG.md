@@ -29,12 +29,15 @@
   settings files already did (PC-120); a file the launcher creates is private (mode 600 on macOS and Linux). Before, a
   link was replaced by a regular file and the file, which can hold server tokens under `env`, could become readable by
   others. When the file is a link into a folder the launcher cannot write, the update now reports the registration as
-  failed instead of replacing the link (the Gemini and Kimi files have done so since 0.2.74); make the folder writable,
-  or declare the server in the file the link comes from, which the update then finds already there.
+  failed instead of replacing the link, and so do `setup` and `doctor --fix`, which run an update (the Gemini and Kimi
+  files have done so since 0.2.74); make the folder writable, or declare the server in the file the link points to,
+  which the update then finds already there.
 - **`restore` and `uninstall` go on past an MCP entry they cannot remove** (PC-127): an entry whose file cannot be
-  written now (a link into a locked folder) is reported as kept with its error; `restore` still puts back the rest of
-  the batch and removes the entry on its next run, and `uninstall` finishes the rest, keeps the entry recorded and exits
-  1 naming the file, so a retry removes it. Before, both stopped at that entry, `uninstall` with `current` already gone.
+  read or written now (a link into a locked folder) is kept and stays recorded; `restore` still puts back the rest of
+  the batch and `uninstall` finishes the rest, each lists what it did and exits 1 naming the file. Once the folder is
+  readable and writable again, `uninstall` removes the entry, and so does `restore` while that batch is still the latest
+  (an update that moves something aside starts a new one). Before, both stopped at that entry (`uninstall` with `current` already gone), and a `config.toml`
+  that could not be read was taken as already cleaned and forgotten.
 - What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
   `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
   on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it
