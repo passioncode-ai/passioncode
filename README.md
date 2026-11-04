@@ -106,7 +106,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
 
 `setup` checks first, then installs the absent apps you chose, repairs what the checks found,
 checks again and prints a before → after table and the steps that stay yours. On a healthy
-computer it changes nothing and exits 0. An app is installed only after its release's
+computer it changes nothing (apart from the anonymous counts) and exits 0. An app is installed only after its release's
 `SHA256SUMS.asc` verifies against the PassionCode.ai release key bundled in this package
 (fingerprint `63B3 0DC3 24BD 6974 87AA 3194 4FAF B8AE C803 B6A7`), the file matches the signed
 checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35UYYL22`, has its
@@ -160,7 +160,7 @@ npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed 
 For supported flags, JSON fields, exit codes and partial-failure recovery, read the
 [CLI contract](docs/reference/cli.md). `restore` repairs the latest quarantine batch;
 it is not a release rollback. A successful `uninstall` preserves recovery files and
-turns automatic updates off. Unsupported flags are rejected before mutation.
+turns automatic updates off. Unsupported flags are rejected before mutation (the anonymous counts still count the run).
 
 Repository docs describe the current source. See the [documentation index](docs/README.md)
 and dated handoffs for which changes have actually been published or installed.

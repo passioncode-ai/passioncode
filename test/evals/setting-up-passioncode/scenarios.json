@@ -44,7 +44,7 @@
         "reports each fail and warn with its fix",
         "asks before applying any repair",
         "does not rewrite an MCP entry the person set themselves",
-        "names the launcher's anonymous counts and `analytics off` without running a counting command of its own"
+        "names the launcher's anonymous counts and `analytics off` without running `analytics status` or another command to show the notice"
       ]
     },
     {

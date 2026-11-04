@@ -431,3 +431,35 @@ test('PC-123: the notice is recorded only once printed: a run meanwhile waits, a
   assert.equal(A.readState(opts.state).enabled, false, 'the off survives');
   assert.equal(typeof held, 'function');
 });
+
+test('PC-123: a shared file that is there but cannot be read is not an answer: nothing is sent until it can be read', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  fs.mkdirSync(path.dirname(shared), { recursive: true });
+  fs.writeFileSync(shared, '{"version": 1, "id": "11111111-2222-4333-8444-5555'); // caught half-written
+  assert.deepEqual(await A.after(opts), { sent: 0 });
+  assert.equal(r.calls.length, 0); assert.equal(err.out.length, 0, 'no notice either');
+  assert.notEqual(A.readState(opts.state).sharedChecked, true, 'not looked yet');
+  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key, home: h, platform: 'linux' }).reason, 'shared-unreadable');
+  fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: false, created_at: 1 }));
+  assert.deepEqual(await A.after(opts), { sent: 0 });
+  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key, home: h, platform: 'linux' }).reason, 'off-elsewhere', 'the earlier no is kept once it can be read');
+});
+
+test('PC-123: after the first look, a shared file that cannot be read sends nothing that run (no count without the id)', async () => {
+  const h = home(); const r = recorder();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream });
+  assert.equal((await A.after(opts)).sent, 3);
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  fs.writeFileSync(shared, 'not json');
+  const before = r.calls.length;
+  assert.deepEqual(await A.after({ ...opts, now: new Date('2026-11-06T10:00:00Z') }), { sent: 0 });
+  assert.equal(r.calls.length, before);
+});
+
+test('PC-123: doctor exiting 1 is a check that found a problem: app_error code check-failed', async () => {
+  const h = home(); const r = recorder();
+  await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream, code: 1 }));
+  assert.deepEqual(r.calls[0].body.find((e) => e.eventName === 'app_error').props.code, 'check-failed');
+});

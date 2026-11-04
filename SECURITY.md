@@ -37,7 +37,8 @@ returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.
 the server it starts and never printed), the Fabric service descriptors (never their token
 files), the apps' `Info.plist` (on Windows, the apps' uninstall entries through `reg query` and their install folders),
 the launcher's own `trains/<name>.json` and the `train` it saved in `~/.passioncode/state.json`,
-and the GitHub releases API. It starts each registered stdio MCP
+Claude Code's `~/.claude/settings.json` (only its `permissions` rules, for the `sessions.on-demand` row; nothing in it is
+printed or sent), and the GitHub releases API. It starts each registered stdio MCP
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
 release cache, apart from the anonymous counts below that every command sends while they are on (`~/.passioncode/analytics.json`,
 its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to

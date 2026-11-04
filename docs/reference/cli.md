@@ -20,7 +20,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
 | `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
-| `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `off-elsewhere` (turned off in another PassionCode app before the launcher counted, see [Anonymous usage counts](#anonymous-usage-counts)), `unreadable` (the switch file is there but cannot be read: off for that run, never rewritten by a count), `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123); exit 1 when the switch cannot be saved |
+| `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `off-elsewhere` (turned off in another PassionCode app before the launcher counted, see [Anonymous usage counts](#anonymous-usage-counts)), `unreadable` (the switch file is there but cannot be read: off for that run, never rewritten by a count), `shared-unreadable` (the shared `installation.json` is there but cannot be read before the launcher's first look: nothing is sent until it can be), `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123); exit 1 when the switch cannot be saved |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
@@ -361,7 +361,8 @@ permissions ledger was not updated"); `permissions` then lists them as not in th
 
 "Changes nothing" and "nothing was changed" across the CLI (doctor, status, a plan, a dry run, a refused argument) mean
 the setup: the counts' own files (`analytics.json`, its notice marker, the shared `installation.json`) and their one
-request are written and sent apart from that, unless they are off.
+request are written and sent apart from that, unless they are off. `--offline` skips the release lookups, not the counts;
+`PASSIONCODE_ANALYTICS=off` stops those for one run.
 
 Every command sends, when it ends, a few anonymous counts to PassionCode's analytics host: which command ran, how it
 ended, how long it took in coarse buckets, and once a day that the launcher was used (PC-123). The events, their fixed

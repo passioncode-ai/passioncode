@@ -129,6 +129,7 @@ Contract: brand-contract v1
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch). | lib/analytics.js:29 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:205 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:203 | SCN-016 | proposed | copy |
+| analytics.why.shared-unreadable | off for now: the shared PassionCode installation file cannot be read, so an earlier answer in another app is not known yet | bin/passioncode.js:203 | SCN-016 | proposed | copy |
 | analytics.why.unreadable | off for now: the switch file ${require('path').join(state, 'analytics.json')} cannot be read; analytics on or analytics off writes it again | bin/passioncode.js:203 | SCN-016 | proposed | copy |
 | analytics.why.off-elsewhere | off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone | bin/passioncode.js:203 | SCN-016 | proposed | copy |
 | analytics.why.env | off for this process (PASSIONCODE_ANALYTICS=off) | bin/passioncode.js:203 | SCN-016 | proposed | copy |
