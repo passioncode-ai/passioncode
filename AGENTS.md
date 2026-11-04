@@ -54,7 +54,8 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
 - `lib/launcher.js` (update, restore, status, uninstall), `lib/setup.js` and `lib/doctor.js`
   (setup and doctor, ADR-0004), `lib/catalog.js` (the apps: release, asset, MCP command, proving
   call, onboarding), `lib/releases.js` and `lib/openpgp.js` (verified downloads; the release key
-  `lib/release-key.asc`), `lib/mcp-probe.js` (the proving call), `bin/passioncode.js` (the CLI),
+  `lib/release-key.asc`), `lib/mcp-probe.js` (the proving call), `lib/permissions.js` and `lib/ledger.js` (Claude Code's
+  rules setup offers, and the `permissions` command's ledger, PC-119 and PC-125), `bin/passioncode.js` (the CLI),
   `scripts/vendor.mjs` (the payload), `plugin/passioncode/` (the self-update SessionStart
   hook: `hooks/update-check.js` decides, `probe.js` asks npm, `session-start.js` acts;
   `trust.json` names the npm accounts allowed to publish).

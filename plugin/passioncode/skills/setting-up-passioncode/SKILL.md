@@ -108,7 +108,9 @@ Reply in the person's language, briefly:
    (`trainNotSaved`, `none` meaning the saved train would be forgotten), and the before → after counts.
 2. What still fails, each with its `fix`; rules offered and not taken, with the flag that takes them (`--allow-tools`,
    `--allow-commands`), and every `commands.refused` line. `npx @passioncode-ai/passioncode@latest permissions` shows what
-   PassionCode allowed and when, and `permissions remove <rule>` takes a rule back.
+   PassionCode allowed and when, and `permissions remove <rule>` takes a rule back. `permissions allow` and
+   `permissions mode` are the same security decision as `--allow-tools`: run them only on the person's own yes to
+   that rule or mode, with `--by` naming who asked.
 3. **Your steps**: the numbered `humanSteps` you could not finish yourself: sign-ins, consents,
    secrets in hidden prompts, starting Docker, the restart.
 4. How to check again: `npx @passioncode-ai/passioncode@latest doctor`.

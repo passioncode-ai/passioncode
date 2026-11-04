@@ -308,7 +308,7 @@ conflict and interrupted-move regression tests in `test/launcher.test.js`.
 
 `permissions` shows what PassionCode allowed Claude Code to do without asking, for a person and for Fabric's
 permissions screen (PC-125). Setup keeps a ledger, `~/.passioncode/permissions.json` (under `PASSIONCODE_HOME` when it
-is set; private, mode 600, a link kept): each rule it added with `--allow-tools`, `--allow-commands` or a yes in a
+is set; private, mode 600 on macOS and Linux, a link kept): each rule it added with `--allow-tools`, `--allow-commands` or a yes in a
 terminal, its set (`tools` or `commands`), what it allows (`why`), who declared it (`by`), where it came from
 (`source`: `launcher`, or `rules.d/<file>.json` for an agent's declaration), when (`installedAt`), who asked for it
 (`installedBy`: `PassionCode setup`, `permissions command`, or the words `--by` carried) and the launcher version. The ledger never decides what Claude Code allows; `~/.claude/settings.json` does, and the view joins the two:
@@ -358,7 +358,7 @@ equivalent relative links. It leaves the Claude Code rules setup added (the tool
 and the rules `permissions allow` added and the default mode `permissions mode` set (PC-125) in
 `~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
 (under `PASSIONCODE_HOME` when it is set);
-the person removes them there, or with `permissions remove` and `permissions mode default` before uninstalling. Other user files stay in place. Failed plugin removal
+the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 
@@ -396,10 +396,11 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | Location/variable | Role |
 |---|---|
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs |
+| `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.agents/skills` | Shared skill hub |
 | Existing paths in `CHANNELS` in `lib/launcher.js` | Supported agent channels; an absent channel is not created |
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |
-| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root, and with it the `rules.d` folder `setup` reads declared rules from; agent directories still use the user's home |
+| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root, and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |
