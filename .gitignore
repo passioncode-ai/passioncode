@@ -2,6 +2,8 @@ node_modules/
 payload/
 .DS_Store
 *.tgz
+# PC-123: written only by the publish job from the release secret
+lib/analytics-key.json
 
 # agent-sync: local state and the credentials file are never committed
 .env.agent-sync

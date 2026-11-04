@@ -30,6 +30,7 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
   npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
   npx @passioncode-ai/passioncode@latest permissions [allow|remove <rule>...|mode <mode>] [--by who] [--json]
         Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules
+  npx @passioncode-ai/passioncode@latest analytics [on|off|status] [--json]     anonymous usage and error counts (on by default)
 
 onboard is another name for setup, install for update. --offline skips the check for newer app
 releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
@@ -188,9 +189,25 @@ function renderPermissions(view, headline) {
   return lines.join('\n');
 }
 
+// PC-123: `analytics on|off|status`, this product's own switch (lib/analytics.js).
+function analyticsCommand(rest) {
+  const A = require('../lib/analytics');
+  const json = rest.includes('--json');
+  const [verb = 'status', ...extra] = rest.filter((a) => a !== '--json');
+  if (extra.length || !['on', 'off', 'status'].includes(verb)) return usage('analytics takes on, off or status');
+  const state = L.paths().state;
+  if (verb !== 'status') A.setEnabled(state, verb === 'on');
+  const s = A.status({ state });
+  const why = { off: 'turned off (analytics off)', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent' };
+  process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
+    : `Anonymous usage and error counts: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}.\n`);
+  return 0;
+}
+
 async function main(argv) {
   const [cmd = 'help', ...rest] = argv;
   if (cmd === 'permissions') return permissionsCommand(rest);
+  if (cmd === 'analytics') return analyticsCommand(rest);
   if (cmd === 'setup' || cmd === 'onboard' || cmd === 'doctor') {
     try { return await setupOrDoctor(cmd === 'onboard' ? 'setup' : cmd, rest); } catch (error) {
       process.stderr.write(`passioncode: ${error.message}\n`);
@@ -256,4 +273,11 @@ async function main(argv) {
   }
 }
 
-main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
+// PC-123: one batch of anonymous counts when the command ends (nothing from a build without a key, or when turned off).
+const startedAt = Date.now();
+const argv = process.argv.slice(2);
+main(argv).then(async (code) => {
+  const cmd = { onboard: 'setup', install: 'update', '--help': 'help', '-h': 'help' }[argv[0]] || argv[0] || 'help';
+  await require('../lib/analytics').after({ command: cmd, code, json: argv.includes('--json'), startedAt, version: VERSION, state: L.paths().state });
+  process.exitCode = code;
+});
