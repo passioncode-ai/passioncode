@@ -44,7 +44,8 @@ system's temporary folder (PC-115, `test/tmp.test.js`). Arguments name test file
 with its value after `=` (`npm test -- --test-name-pattern=PC-115`); a whole run refuses to start inside
 another one (it marks its environment with `PASSIONCODE_TEST_RUN`). A test file run directly with
 `node --test` has no such folder and leaves its temporary folders behind, and a process
-a test leaves running after the run could still write there. Packed smoke uses the
+a test leaves running after the run could still write there. A run interrupted while it
+runs (Ctrl-C) leaves its `pc-test-` folder too. Packed smoke uses the
 Node executable that runs it and a fake Claude CLI; it does not test a live
 Claude installation or npm publication.
 
