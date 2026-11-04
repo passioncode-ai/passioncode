@@ -11,7 +11,7 @@ description: >-
   agent may not take. NOT for contributing to a passioncode-ai repository (working-in-passioncode),
   building a Fabric agent or service (the fabric-agent-adapter skills), or product UX.
 license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
-compatibility: Needs Node 18+ and network access to npm, GitHub and analytics.passioncode.ai (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills and MCP servers and names each app's download page.
+compatibility: Needs Node 18+ and network access to npm and GitHub; it reaches analytics.passioncode.ai when it can (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills and MCP servers and names each app's download page.
 metadata:
   author: PassionCode.ai
 ---
@@ -114,7 +114,8 @@ Reply in the person's language, briefly:
    sends anonymous counts and `analytics off` turns them off), and a `--json` run never shows it: run
    `npx --yes @passioncode-ai/passioncode@latest analytics status` once (without `--json`) and give the person the line
    "The PassionCode launcher sends anonymous usage and error counts ..." it prints on stderr, word for word: it is their
-   notice, and `analytics off` is their switch. If it prints no such line, give the person the status line it printed
+   notice, and `analytics off` is their switch. The `sessions.on-demand` check is a readiness note: report it, never act on it as a repair, and treat a
+   `--allow-tools` in its fix like any other. If it prints no such line, give the person the status line it printed
    (on, or off and why); `analytics off` and `analytics on` are their switch. `permissions allow` and
    `permissions mode` are the same security decision as `--allow-tools`: run them only on the person's own yes to
    that rule or mode, with `--by` naming who asked.

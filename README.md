@@ -216,8 +216,11 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
    `@passioncode-ai/passioncode` and waits until npm serves it. It runs when the repository
    variables `RELEASE_ENABLED` and `PUBLISH_NPMJS` are `true`; npm auth is trusted publishing
    (OIDC) or the `NPM_TOKEN` secret; a private member needs `MEMBERS_READ_TOKEN`.
+   The job writes `lib/analytics-key.json` from the `PASSIONCODE_ANALYTICS_APP_KEY` secret (the App Key for the
+   anonymous counts, PC-123) and refuses to publish without it.
    By hand, `npm publish` still works: `prepublishOnly` vendors from tags only (`--release`),
-   refuses credential-shaped strings and runs the tests.
+   refuses credential-shaped strings and runs the tests; but a hand-published package carries no App Key and sends no
+   counts, so release through the tag.
 5. `npx @passioncode-ai/passioncode@<version> update` on each machine; restart the agents.
 
 Vendoring clones every member from its own repository at its tag. A maintainer with

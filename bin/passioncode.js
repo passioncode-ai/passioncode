@@ -200,7 +200,7 @@ function analyticsCommand(rest) {
   try { if (verb !== 'status') A.setEnabled(state, verb === 'on'); }
   catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
   const s = A.status({ state });
-  const why = { off: 'turned off (analytics off)', 'shared-unreadable': 'off for now: the shared PassionCode installation file cannot be read, so an earlier answer in another app is not known yet', unreadable: `off for now: the switch file ${require('path').join(state, 'analytics.json')} cannot be read; analytics on or analytics off writes it again`, 'off-elsewhere': 'off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: `on, and this run shows their notice on stderr (unless another command is showing it right now); counts go to ${A.HOST} from then on` }; // the text says it; --json reports reason notice
+  const why = { off: 'turned off (analytics off)', 'shared-unreadable': 'off for now: the shared PassionCode installation file cannot be read or holds no usable id, so nothing is sent until it can be', unreadable: `off for now: the switch file ${require('path').join(state, 'analytics.json')} cannot be read; analytics on or analytics off writes it again`, 'off-elsewhere': 'off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: `on, and this run shows their notice on stderr (unless another command is showing it right now); counts go to ${A.HOST} from then on` }; // the text says it; --json reports reason notice
   process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
     : `Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch.\n`);
   return 0;
@@ -212,6 +212,7 @@ async function main(argv) {
   if (cmd === 'analytics') return analyticsCommand(rest);
   if (cmd === 'setup' || cmd === 'onboard' || cmd === 'doctor') {
     try { return await setupOrDoctor(cmd === 'onboard' ? 'setup' : cmd, rest); } catch (error) {
+      threw = true;
       process.stderr.write(`passioncode: ${error.message}\n`);
       return 1;
     }
@@ -278,10 +279,13 @@ async function main(argv) {
 // PC-123: one batch of anonymous counts when the command ends (nothing from a build without a key, or when turned off).
 const startedAt = Date.now();
 const argv = process.argv.slice(2);
+let threw = false; // a command that ended on a thrown error, not on what it found
 const existing = require('fs').existsSync(L.paths().stateFile); // before the command: setup and update write it themselves
 main(argv).then(async (code) => {
   process.exitCode = code; // first: the send below must never change how the command ended
   process.stderr.on('error', () => {}); // nor a stderr whose reader has gone (EPIPE): the notice then counts as not shown
   const cmd = { onboard: 'setup', install: 'update', '--help': 'help', '-h': 'help' }[argv[0]] || argv[0] || 'help'; // a word not in the list is sent as other
-  await require('../lib/analytics').after({ command: cmd, code, json: argv.includes('--json'), quiet: argv.includes('--quiet'), existing, startedAt, version: VERSION, state: L.paths().state });
+  // app_error's code: a plain doctor exits 1 when a check found a problem on the machine; --fix or a thrown error is other.
+  const errorCode = cmd === 'doctor' && !argv.includes('--fix') && !threw ? 'check-failed' : 'other';
+  await require('../lib/analytics').after({ command: cmd, code, errorCode, json: argv.includes('--json'), quiet: argv.includes('--quiet'), existing, startedAt, version: VERSION, state: L.paths().state });
 });

@@ -14,7 +14,7 @@ from the release secret, so a checkout, a test or a fork sends nothing.
 
 Every event carries the time, a random id for the run (`sessionId`) and the fields Aptabase's SDKs send: the launcher
 version, the OS name and its kernel release (for example `Darwin 25.6.0`, not the macOS version), the locale, the
-Node.js version, an SDK tag and a debug flag (true for `sandbox`). And four properties (the two ids only when the shared file can be read; a run that finds it there but unreadable sends nothing): `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
+Node.js version, an SDK tag and a debug flag (true for `sandbox`). And four properties (a run that cannot read, find or create a usable id in the shared file sends nothing: no count without the id): `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
 (created once if absent, never rewritten; growth counts installations by it); `install_id`, always equal to `iid` (the
 key questions across PassionCode apps join on, which the apps send too; kept for the family's compatibility, never a
 second id); `surface`, `cli` (a value of its own is
@@ -23,11 +23,11 @@ for any other (`-rc.N`, `-beta.N`, a build tag).
 
 | Event | Status | Sent from | When | Properties | Added |
 | --- | --- | --- | --- | --- | --- |
-| `app_installed` | live | lib/analytics.js:151 | the first command on this machine that tries to send (a send that fails is not repeated, so an offline first run never reports it) | `existing`: `"true"` when the launcher was installed here before the counts existed (its `~/.passioncode/state.json` was there when the first run of a counting version started, whatever its flags; that answer is kept in `analytics.json`; so a machine an agent sets up with `setup --json` counts as a new install), `"false"` for a new install (a string, as every property: growth filters only string properties) | 2026-11-04 |
-| `app_updated` | live | lib/analytics.js:152 | the first command after the launcher's version changed (an update the SessionStart hook ran is counted at the next command, so it can arrive a session late) | `from`: the previous version | 2026-11-04 |
-| `app_active` | live | lib/analytics.js:155 | the first command of a UTC day on this machine (counts daily active machines; two commands that end at the same moment on a new day may both send it) | none | 2026-11-04 |
-| `command_run` | live | lib/analytics.js:158 | every command, when it ends | `command`: `setup`, `doctor`, `update`, `status`, `restore`, `config`, `uninstall`, `permissions`, `analytics` or `help` (any other word is sent as `other`, never as typed; a new command gets a new value here in the same change, a removed one is marked retired and its value is never reused); `outcome`: `ok` (exit 0), `failed` (exit 1: a check or a step failed) or `usage` (exit 2: the words given were not a command the launcher takes); `duration`: `under-1s`, `1-10s`, `10-60s` or `over-60s` (the bounds are part of the series: other bounds would be a new property, never new meanings of these); `json`: `"true"` or `"false"` (strings) | 2026-11-04 |
-| `app_error` | live | lib/analytics.js:159 | a command that ends with exit 1 | `where`: the command, as above; `code`: `check-failed` for doctor (a check it ran found a problem on the machine, not a fault in the launcher; added 2026-11-04 before the first release) or `other` (fixed codes per failure come later, each added here first) | 2026-11-04 |
+| `app_installed` | live | lib/analytics.js:164 | the first command on this machine that tries to send (a send that fails is not repeated, so an offline first run never reports it) | `existing`: `"true"` when the launcher was installed here before the counts existed (its `~/.passioncode/state.json` was there when the first run of a counting version started, whatever its flags; that answer is kept in `analytics.json`; so a machine an agent sets up with `setup --json` counts as a new install), `"false"` for a new install (a string, as every property: growth filters only string properties) | 2026-11-04 |
+| `app_updated` | live | lib/analytics.js:165 | the first command after the launcher's version changed (an update the SessionStart hook ran is counted at the next command, so it can arrive a session late) | `from`: the previous version | 2026-11-04 |
+| `app_active` | live | lib/analytics.js:168 | the first command of a UTC day on this machine (counts daily active machines; two commands that end at the same moment on a new day may both send it) | none | 2026-11-04 |
+| `command_run` | live | lib/analytics.js:171 | every command, when it ends | `command`: `setup`, `doctor`, `update`, `status`, `restore`, `config`, `uninstall`, `permissions`, `analytics` or `help` (any other word is sent as `other`, never as typed; a new command gets a new value here in the same change, a removed one is marked retired and its value is never reused); `outcome`: `ok` (exit 0), `failed` (exit 1: a check or a step failed) or `usage` (exit 2: the words given were not a command the launcher takes); `duration`: `under-1s`, `1-10s`, `10-60s` or `over-60s` (the bounds are part of the series: other bounds would be a new property, never new meanings of these); `json`: `"true"` or `"false"` (strings) | 2026-11-04 |
+| `app_error` | live | lib/analytics.js:172 | a command that ends with exit 1 | `where`: the command, as above; `code`: `check-failed` for a plain `doctor` whose checks found a problem on the machine (not a fault in the launcher; not `doctor --fix`, whose exit 1 can be a failed repair, and not a run that ended on a thrown error; added 2026-11-04 before the first release) or `other` (fixed codes per failure come later, each added here first) | 2026-11-04 |
 
 Never sent: a path, a file or folder name, a user name, a rule, an argument, an app id the person typed, a token, an
 error message or the content of any file. Properties are the fixed words above and nothing else.
@@ -49,9 +49,9 @@ on, `status` says whether they are sent and why not); the choice is saved in `~/
 and is not rewritten until `analytics on` or `off` writes it again. `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turns them off for
 one process. Off sends nothing and stores nothing new. The shared `installation.json` field `analytics` belongs to the
 apps; the launcher reads it once. A shared file that is there but cannot be read (a permission, a half-written file)
-is not an answer: nothing is sent until it can be read, and the launcher looks again at the next run. At its first run of a counting version, a shared `analytics: false` (a "no" the
+is not an answer: nothing is sent until it can be read, and the launcher looks again at the next run. Until the launcher first counts (its notice shown), every run looks: a shared `analytics: false` (a "no" the
 person already gave in a PassionCode app, such as Fabric's switch) is kept as the launcher's own off: nothing is sent,
-`analytics status` says why, and `analytics on` turns the counts on for the launcher alone. After that one look the
+`analytics status` says why, and `analytics on` turns the counts on for the launcher alone. Once it has counted, the
 launcher never reads the field again: one product's switch never turns another off later, so a "no" given in an app
 after that does not reach the launcher; its own switch is `analytics off`. The person's own `analytics on` or `off` is
 final: a shared "no" is not read over it.

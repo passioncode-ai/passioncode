@@ -460,6 +460,44 @@ test('PC-123: after the first look, a shared file that cannot be read sends noth
 
 test('PC-123: doctor exiting 1 is a check that found a problem: app_error code check-failed', async () => {
   const h = home(); const r = recorder();
-  await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream, code: 1 }));
+  await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream, code: 1, errorCode: 'check-failed' }));
   assert.deepEqual(r.calls[0].body.find((e) => e.eventName === 'app_error').props.code, 'check-failed');
+  const h2 = home(); const r2 = recorder();
+  await A.after(base(h2, { fetchImpl: r2.fetchImpl, stderr: quiet().stream, code: 1 })); // --fix or a thrown error: the caller passes nothing
+  assert.equal(r2.calls[0].body.find((e) => e.eventName === 'app_error').props.code, 'other');
+  const src = fs.readFileSync(path.join(ROOT, 'bin', 'passioncode.js'), 'utf8');
+  assert.match(src, /const errorCode = cmd === 'doctor' && !argv\.includes\('--fix'\) && !threw \? 'check-failed' : 'other';/);
+});
+
+test('PC-123: a no given in an app while the launcher only ran with --json (as during setup) is still kept', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  assert.deepEqual(await A.after({ ...opts, json: true }), { sent: 0, waiting: 'notice' }); // setup --json before Fabric exists
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  fs.mkdirSync(path.dirname(shared), { recursive: true });
+  fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: false, created_at: 1 }));
+  assert.deepEqual(await A.after(opts), { sent: 0 });
+  assert.equal(r.calls.length, 0); assert.equal(err.out.length, 0);
+  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key, home: h, platform: 'linux' }).reason, 'off-elsewhere');
+});
+
+test('PC-123: no count without the id: an uncreatable shared file sends nothing, and status says so when the id is unusable', async () => {
+  const h = home(); const r = recorder();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream });
+  const dir = path.join(h, '.config', 'PassionCode');
+  fs.mkdirSync(path.dirname(dir), { recursive: true });
+  fs.writeFileSync(dir, 'a file where the folder goes'); // the shared file cannot be created
+  assert.deepEqual(await A.after(opts), { sent: 0 });
+  assert.equal(r.calls.length, 0);
+  fs.rmSync(dir);
+  assert.equal((await A.after({ ...opts, now: new Date('2026-11-06T10:00:00Z') })).sent >= 1, true, 'counts once the id exists');
+  fs.writeFileSync(path.join(dir, 'installation.json'), JSON.stringify({ version: 1, id: '0192f8a4-0000-7000-8000-000000000000', analytics: true, created_at: 1 })); // a v7 id
+  assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key, home: h, platform: 'linux' }).reason, 'shared-unreadable');
+});
+
+test('PC-123: a switch file holding a JSON array is unreadable, not empty', () => {
+  const h = home();
+  const state = path.join(h, '.passioncode'); fs.mkdirSync(state, { recursive: true });
+  fs.writeFileSync(path.join(state, 'analytics.json'), '[]');
+  assert.equal(A.status({ state, env: {}, key: KEY }).reason, 'unreadable');
 });
