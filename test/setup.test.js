@@ -466,6 +466,45 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', a
   assert.match(c.detail, /doctor does not start it/);
   const started = (() => { try { return fs.readFileSync(path.join(m.home, 'fake-mcp.log'), 'utf8'); } catch (_) { return ''; } })();
   assert.doesNotMatch(started, /^fabric /m, 'fabric-mcp was never started');
+  // PC-124: the sessions-on-demand row names what a session Fabric starts still lacks (Switchboard is not installed here).
+  const on = r.json.checks.find((x) => x.id === 'sessions.on-demand');
+  assert.equal(on.state, 'warn');
+  assert.match(on.detail, /missing Fabric Switchboard \(it starts the session\)$/);
+  assert.equal(on.fix, 'npx @passioncode-ai/passioncode@latest setup --with switchboard', 'each part names what repairs it');
+  installApp(m, catalog.byId('switchboard'));
+  assert.equal((await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand').state, 'ok');
+  // Claude Code's tool rules taken out: the row says so and names --allow-tools.
+  const settingsFile = path.join(m.home, '.claude', 'settings.json');
+  const doc = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+  doc.permissions.allow = doc.permissions.allow.filter((rule) => !rule.startsWith('mcp__'));
+  fs.writeFileSync(settingsFile, JSON.stringify(doc));
+  const noRules = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand');
+  assert.deepEqual([noRules.state, noRules.fix], ['info', 'npx @passioncode-ai/passioncode@latest setup --allow-tools'], 'declined rules alone are the person\'s choice: information');
+  assert.match(noRules.detail, /missing Claude Code's rules for PassionCode's own tools$/);
+  // A Fabric entry Claude Code has but cannot use: the row reuses that entry's own repair (setup leaves it alone).
+  const cj = path.join(m.home, '.claude.json'); const keep = fs.readFileSync(cj, 'utf8');
+  const cdoc = JSON.parse(keep); cdoc.mcpServers = { ...(cdoc.mcpServers || {}), fabric: { command: '/bin/echo', args: [] } }; fs.writeFileSync(cj, JSON.stringify(cdoc));
+  const broken = (await cli(m, api, 'doctor', '--json')).json.checks;
+  const fabRow = broken.find((x) => x.id === 'mcp.claude.fabric');
+  const bs = broken.find((x) => x.id === 'sessions.on-demand');
+  assert.ok(fabRow && fabRow.state !== 'ok' && fabRow.fix, JSON.stringify(fabRow));
+  assert.match(bs.detail, /a usable Fabric MCP server in Claude Code/);
+  assert.ok(bs.fix.includes(fabRow.fix), bs.fix);
+  // An entry in a form doctor does not read: a note, never 'missing' with a setup that would leave it alone.
+  const odd = JSON.parse(keep); odd.mcpServers = { ...(odd.mcpServers || {}), fabric: { weird: true } }; fs.writeFileSync(cj, JSON.stringify(odd));
+  const oddRow = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand');
+  assert.doesNotMatch(oddRow.detail, /missing Fabric's MCP server/);
+  assert.match(oddRow.detail, /a Fabric MCP entry in Claude Code that doctor can read/);
+  assert.ok(!oddRow.fix || !oddRow.fix.endsWith('passioncode@latest setup'), String(oddRow.fix));
+  fs.writeFileSync(cj, keep);
+  // No Claude Code at all: the default agent may be another, so the row is information too.
+  const noClaude = require('child_process').spawnSync(process.execPath, [BIN, 'doctor', '--json'], { env: { ...cliEnv(m, api), PASSIONCODE_CLAUDE: path.join(m.home, 'no-claude') }, encoding: 'utf8' });
+  const nc = JSON.parse(noClaude.stdout).checks.find((x) => x.id === 'sessions.on-demand');
+  assert.deepEqual([nc.state, nc.detail], ['info', 'sessions Fabric starts on a board request, with Claude Code as the default agent: missing Claude Code']);
+  // Without Fabric the row is information, never a warning.
+  const bare = await cli(machine(), api, 'doctor', '--json');
+  assert.deepEqual((({ state, detail }) => ({ state, detail }))(bare.json.checks.find((x) => x.id === 'sessions.on-demand')),
+    { state: 'info', detail: 'sessions Fabric starts on a board request: Fabric is not installed here' });
 });
 
 test('setup saves its after-check later than the release it installed, so the session hook shows what still fails', async (t) => {

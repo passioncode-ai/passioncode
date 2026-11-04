@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.76 - 2026-11-05
+
+### Added
+
+- **Anonymous usage and error counts, on by default** (PC-123): when a command ends, the launcher sends a few anonymous
+  counts to PassionCode's analytics host (which command, how it ended, a coarse duration, once a day that it was used),
+  with fixed words, the previous version after an update and the installation id every PassionCode app on the machine
+  shares; never a path, a name, a
+  rule, an argument, a token or a message. The first command run without `--json` or `--quiet` says so once on stderr, and nothing is sent before
+  that (the setup skill has an agent show it to the person);
+  `analytics off` turns the counts off for the launcher alone, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` for one
+  process; a "no" already given in a PassionCode app (the shared `installation.json`) is kept as the launcher's off.
+  `analytics on` and `analytics status` turn them back on and say whether they are sent and why not; the background
+  update the SessionStart hook starts sends nothing. Only the published package carries the App Key. The events are
+  listed in `docs/analytics-events.md`.
+- **`doctor` checks what sessions Fabric starts need** (PC-124): a `sessions.on-demand` row names what a session Fabric
+  starts on a board request still lacks with Claude Code as the default agent (Fabric Switchboard, Fabric's MCP server
+  in Claude Code, the skill set, the tool rules), and is information only on Linux, while Fabric is not installed or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot
+  read are missing; it is never one of setup's steps for the person. As a warning it adds one to doctor's and setup's
+  warning count on a Mac or Windows machine with Fabric that lacks a part. The page
+  `docs/reference/session-chain.md` says which part of that chain is the launcher's.
+
 ## 0.2.75 - 2026-11-04
 
 ### Added

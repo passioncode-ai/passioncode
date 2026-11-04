@@ -9,7 +9,7 @@ what changed.
 
 ```bash
 npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
-npx @passioncode-ai/passioncode@latest doctor    # check only; changes nothing
+npx @passioncode-ai/passioncode@latest doctor    # check only; changes nothing (apart from anonymous counts)
 ```
 
 | Member | Skills |
@@ -34,7 +34,8 @@ Paste this into Claude Code, Codex or another coding agent:
 > chat (the tools open their own hidden prompts), and finish with
 > `npx --yes @passioncode-ai/passioncode@latest doctor`. Tell me briefly what you set up or
 > fixed, what still fails, and the numbered steps only I can do, such as signing in, and
-> remind me to restart you so the new skills and MCP servers load.
+> remind me to restart you so the new skills and MCP servers load. If the launcher prints a line
+> about anonymous usage counts, give it to me word for word.
 
 Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
@@ -51,7 +52,10 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
    terminal, never by `--yes` alone). Apps are installed on macOS; on other systems setup
    names each download page, and on Windows `doctor` reads which version of each app is installed. Skills only: `npx @passioncode-ai/passioncode@latest update`.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
-   `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. Each app's
+   `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. The launcher's anonymous
+   usage and error counts are on by default too ([what is sent](docs/analytics-events.md));
+   `npx @passioncode-ai/passioncode@latest analytics off` turns them off for the launcher (each PassionCode app has its
+   own switch in its settings). Each app's
    own onboarding (sign-ins, Fabric Inbox's server, Observatory's projects) is listed by `setup`.
 3. **MCP:** the launcher serves no MCP server of its own. It registers the apps' servers
    (`fabric-dashboards`, `fabric` with `fabric-mcp --runner <agent>`, and `switchboard` with
@@ -102,7 +106,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
 
 `setup` checks first, then installs the absent apps you chose, repairs what the checks found,
 checks again and prints a before → after table and the steps that stay yours. On a healthy
-computer it changes nothing and exits 0. An app is installed only after its release's
+computer it changes nothing (apart from the anonymous counts) and exits 0. An app is installed only after its release's
 `SHA256SUMS.asc` verifies against the PassionCode.ai release key bundled in this package
 (fingerprint `63B3 0DC3 24BD 6974 87AA 3194 4FAF B8AE C803 B6A7`), the file matches the signed
 checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35UYYL22`, has its
@@ -110,7 +114,7 @@ notarization ticket stapled and is accepted by Gatekeeper. An outdated or damage
 reinstalled only when it is not running; the old one goes to the Trash. A family service that
 does not answer is started through launchd (`launchctl kickstart`, never a kill).
 
-`doctor` changes nothing. It reads prerequisites, the skill set, each app's version, signature
+`doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of
 the family; each line names its state and its fix. Exit codes: **0** no check failed (or `setup`
 only showed its plan), **1** a check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without
@@ -149,13 +153,14 @@ observation, not a live registry check. With no saved version it says
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows
 npx @passioncode-ai/passioncode@latest update --dry-run
 npx @passioncode-ai/passioncode@latest uninstall
+npx @passioncode-ai/passioncode@latest analytics off # stop the launcher's anonymous usage and error counts (on by default)
 npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed Claude Code to do without asking (in ~/.claude/settings.json), and who asked for it
 ```
 
 For supported flags, JSON fields, exit codes and partial-failure recovery, read the
 [CLI contract](docs/reference/cli.md). `restore` repairs the latest quarantine batch;
 it is not a release rollback. A successful `uninstall` preserves recovery files and
-turns automatic updates off. Unsupported flags are rejected before mutation.
+turns automatic updates off. Unsupported flags are rejected before mutation (the anonymous counts still count the run).
 
 Repository docs describe the current source. See the [documentation index](docs/README.md)
 and dated handoffs for which changes have actually been published or installed.
@@ -211,8 +216,11 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
    `@passioncode-ai/passioncode` and waits until npm serves it. It runs when the repository
    variables `RELEASE_ENABLED` and `PUBLISH_NPMJS` are `true`; npm auth is trusted publishing
    (OIDC) or the `NPM_TOKEN` secret; a private member needs `MEMBERS_READ_TOKEN`.
+   The job writes `lib/analytics-key.json` from the `PASSIONCODE_ANALYTICS_APP_KEY` secret (the App Key for the
+   anonymous counts, PC-123) and refuses to publish without it.
    By hand, `npm publish` still works: `prepublishOnly` vendors from tags only (`--release`),
-   refuses credential-shaped strings and runs the tests.
+   refuses credential-shaped strings and runs the tests; but a hand-published package carries no App Key and sends no
+   counts, so release through the tag.
 5. `npx @passioncode-ai/passioncode@<version> update` on each machine; restart the agents.
 
 Vendoring clones every member from its own repository at its tag. A maintainer with

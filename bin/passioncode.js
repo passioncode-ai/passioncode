@@ -22,7 +22,7 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
 
   npx @passioncode-ai/passioncode@latest setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
-  npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json]     check everything (read-only); --fix repairs as setup does
+  npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json]     check everything (changes nothing but the anonymous counts); --fix repairs as setup does
   npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
   npx @passioncode-ai/passioncode@latest status [--json]                         what is installed where
   npx @passioncode-ai/passioncode@latest restore [--json]                        put back what the last update moved aside
@@ -30,6 +30,7 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
   npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
   npx @passioncode-ai/passioncode@latest permissions [allow|remove <rule>...|mode <mode>] [--by who] [--json]
         Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules
+  npx @passioncode-ai/passioncode@latest analytics [on|off|status] [--json]     anonymous usage and error counts (on by default)
 
 onboard is another name for setup, install for update. --offline skips the check for newer app
 releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
@@ -188,11 +189,30 @@ function renderPermissions(view, headline) {
   return lines.join('\n');
 }
 
+// PC-123: `analytics on|off|status`, this product's own switch (lib/analytics.js).
+function analyticsCommand(rest) {
+  const A = require('../lib/analytics');
+  const json = rest.includes('--json');
+  const [verb = 'status', ...extra] = rest.filter((a) => a !== '--json');
+  if (extra.length || !['on', 'off', 'status'].includes(verb)) return usage('analytics takes on, off or status');
+  const state = L.paths().state;
+  if (verb === 'status') A.honourSharedNo({ state }); // a no given earlier in another app is the answer from the first status on
+  try { if (verb !== 'status') A.setEnabled(state, verb === 'on'); }
+  catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
+  const s = A.status({ state });
+  const why = { off: 'turned off (analytics off)', 'shared-unreadable': 'off for now: the shared PassionCode installation file cannot be read or holds no usable id, so nothing is sent until it can be', unreadable: `off for now: the switch file ${require('path').join(state, 'analytics.json')} cannot be read; analytics on or analytics off writes it again`, 'off-elsewhere': 'off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: `on, and this run shows their notice on stderr (unless another command is showing it right now); counts go to ${A.HOST} from then on` }; // the text says it; --json reports reason notice
+  process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
+    : `Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch.\n`);
+  return 0;
+}
+
 async function main(argv) {
   const [cmd = 'help', ...rest] = argv;
   if (cmd === 'permissions') return permissionsCommand(rest);
+  if (cmd === 'analytics') return analyticsCommand(rest);
   if (cmd === 'setup' || cmd === 'onboard' || cmd === 'doctor') {
     try { return await setupOrDoctor(cmd === 'onboard' ? 'setup' : cmd, rest); } catch (error) {
+      threw = true;
       process.stderr.write(`passioncode: ${error.message}\n`);
       return 1;
     }
@@ -256,4 +276,16 @@ async function main(argv) {
   }
 }
 
-main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
+// PC-123: one batch of anonymous counts when the command ends (nothing from a build without a key, or when turned off).
+const startedAt = Date.now();
+const argv = process.argv.slice(2);
+let threw = false; // a command that ended on a thrown error, not on what it found
+const existing = require('fs').existsSync(L.paths().stateFile); // before the command: setup and update write it themselves
+main(argv).then(async (code) => {
+  process.exitCode = code; // first: the send below must never change how the command ended
+  process.stderr.on('error', () => {}); // nor a stderr whose reader has gone (EPIPE): the notice then counts as not shown
+  const cmd = { onboard: 'setup', install: 'update', '--help': 'help', '-h': 'help' }[argv[0]] || argv[0] || 'help'; // a word not in the list is sent as other
+  // app_error's code: a plain doctor exits 1 when a check found a problem on the machine; --fix or a thrown error is other.
+  const errorCode = cmd === 'doctor' && !argv.includes('--fix') && !threw ? 'check-failed' : 'other';
+  await require('../lib/analytics').after({ command: cmd, code, errorCode, json: argv.includes('--json'), quiet: argv.includes('--quiet'), existing, startedAt, version: VERSION, state: L.paths().state });
+});

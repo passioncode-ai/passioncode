@@ -3,7 +3,8 @@
 Report vulnerabilities privately to contact@passioncode.ai. Do not open an issue that
 carries credentials or a working exploit.
 
-What `passioncode update` touches (setup and doctor: [below](#what-setup-and-doctor-touch)): `~/.passioncode/` (releases, state, quarantine,
+What `passioncode update` touches (setup and doctor: [below](#what-setup-and-doctor-touch); every command also the
+[anonymous counts](#what-anonymous-counts-send) while they are on): `~/.passioncode/` (releases, state, quarantine,
 logs); Claude Code's plugin registry through the `claude plugin` CLI only;
 `~/.agents/skills/<member skill>` and `<agent channel>/<member skill>` links (junctions on Windows); and
 `~/.claude/skills/<member skill>`, which it moves into the quarantine once the plugin
@@ -37,9 +38,12 @@ returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.
 the server it starts and never printed), the Fabric service descriptors (never their token
 files), the apps' `Info.plist` (on Windows, the apps' uninstall entries through `reg query` and their install folders),
 the launcher's own `trains/<name>.json` and the `train` it saved in `~/.passioncode/state.json`,
-and the GitHub releases API. It starts each registered stdio MCP
+Claude Code's `~/.claude/settings.json` (only its `permissions` rules, for the `sessions.on-demand` row; nothing in it is
+printed or sent), and the GitHub releases API. It starts each registered stdio MCP
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
-release cache.
+release cache, apart from the anonymous counts below that every command sends while they are on (`~/.passioncode/analytics.json`,
+its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to
+`https://analytics.passioncode.ai`).
 
 `setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`; a train
 changes which release is downloaded (the pinned tag instead of the latest), never how it is verified.
@@ -68,7 +72,7 @@ tests and is named in setup's output whenever it is set.
 ## What `permissions` changes
 
 `permissions` reads Claude Code's settings, the ledger and the declarations in `~/.passioncode/rules.d` (and looks up a
-declared wildcard's program on PATH, as setup does) and changes nothing. `permissions allow`, `remove` and `mode`
+declared wildcard's program on PATH, as setup does) and changes nothing but the anonymous counts below. `permissions allow`, `remove` and `mode`
 write the ledger `~/.passioncode/permissions.json`, and `allow` and `mode` create `~/.claude/settings.json` and its
 folder when they are absent. `permissions allow` adds only rules
 PassionCode offers, `permissions remove` takes out of `permissions.allow` only rules PassionCode offers or its ledger
@@ -77,6 +81,24 @@ a rule nobody offered is refused, and a file that cannot be read is never writte
 act without any prompt but the few no mode skips; setup never sets a mode, only `permissions mode` does, for whoever runs it, a person
 or a program, without checking which (PC-133 tracks a stronger gate for `bypassPermissions`). `--by` records who the caller says asked; it is not authentication
 (PC-125).
+
+## What anonymous counts send
+
+Each command sends, when it ends, the events listed in [docs/analytics-events.md](docs/analytics-events.md) to
+`https://analytics.passioncode.ai`: fixed words and counts, the time, a random id for the run, the launcher version, the
+OS name and kernel release, the locale, the Node.js version (with the engine name `Node` and an empty build number), an
+SDK tag, a debug flag and the installation id every PassionCode app on the machine shares (sent as `iid` and, with the
+same value, `install_id`). Never a path, a name, a rule,
+an argument, a token, an error message or a file's content: every property is a fixed word, the previous launcher
+version or the installation id (`test/analytics.test.js` plants a home path, a user name, a rule
+and a token and fails if one is sent, and checks the exact fields sent). Only the published
+package carries the App Key; `analytics off`, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` stop it, and a "no" already
+given in a PassionCode app (the shared `installation.json` field `analytics: false`) is kept as the launcher's off (PC-123). The host
+sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing it;
+events are kept two years and the installation id is removed from them after 400 days
+(from the live store; backups age out within their own retention). While the counts are on, every
+command may write `~/.passioncode/analytics.json` and its notice marker and create the shared
+`PassionCode/installation.json` (outside `~/.passioncode`) once if it is absent.
 
 ## The self-update and who it trusts
 

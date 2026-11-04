@@ -15,12 +15,13 @@
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
 | SCN-009 | Check and repair an existing setup with the same command | setup | Operator | REQ-7a | implemented | 2026-10-13 |
-| SCN-010 | Check the setup without changing anything | doctor | Operator, Automation | REQ-6, REQ-8 | implemented | 2026-10-13 |
+| SCN-010 | Check the setup without changing anything (but the anonymous counts) | doctor | Operator, Automation | REQ-6, REQ-8 | implemented | 2026-10-13 |
 | SCN-011 | A download that fails verification installs nothing | setup | Newcomer | REQ-2 | implemented | 2026-10-13 |
 | SCN-012 | A coding agent sets the computer up from one pasted prompt | setting-up-passioncode | Newcomer | REQ-9, REQ-10 | implemented | 2026-10-13 |
 | SCN-013 | A new session names the problems of the last setup check | session start | Operator | REQ-9 | implemented | 2026-10-13 |
 | SCN-014 | Follow an organization's release train | setup, doctor | Operator | PC-89 | implemented | 2026-10-28 |
 | SCN-015 | See and change what Claude Code may do without asking | permissions | Operator | PC-125 | implemented | 2026-11-04 |
+| SCN-016 | Know about and turn off the anonymous usage counts | analytics | Operator | PC-123 | implemented | 2026-11-04 |
 
 ## Personas
 
@@ -57,11 +58,11 @@
 - **Steps:**
   1. Read JSON status.
   2. Use `latest` and `checkedAt` as the saved observation.
-- **Expected result:** Existing JSON fields retain their raw values. Both text and JSON status leave state unchanged and do not invoke npm.
+- **Expected result:** Existing JSON fields retain their raw values. Both text and JSON status leave state unchanged and do not invoke npm, apart from the launcher's anonymous counts (SCN-016).
 - **Alt paths:** With no observation, `latest` and `checkedAt` remain null.
 - **UI elements:** JSON on stdout and process exit code.
 - **States covered:** empty, success
-- **Errors & recovery:** Network availability has no effect on reading locally saved status.
+- **Errors & recovery:** Network availability has no effect on reading locally saved status (a count that cannot be sent is dropped).
 - **Status:** implemented
 - **Coverage:** `test/launcher.test.js`, test beginning `status labels cached npm observations`.
 - **Product:** unobserved
@@ -113,7 +114,7 @@
   2. Fix any reported plugin failure and retry.
   3. Inspect status; optionally restore displaced files.
 - **Expected result:** Success clears the active installation and disables automatic updates; recovery copies remain. Repeating uninstall is safe.
-- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
+- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. Reinstallation retains the off preference until explicitly enabled.
@@ -149,7 +150,7 @@
   1. Invoke a command with unsupported arguments, or a mutating command with invalid state.
   2. Read the error; correct arguments or preserve and repair the state file.
   3. Retry the command.
-- **Expected result:** Unsupported arguments return exit 2 before mutation. Invalid state returns exit 1 without overwriting it; status can still read the active release.
+- **Expected result:** Unsupported arguments return exit 2 before mutation (apart from the launcher's anonymous counts, SCN-016). Invalid state returns exit 1 without overwriting it; status can still read the active release.
 - **Alt paths:** Valid command/options follow their normal scenarios.
 - **UI elements:** stderr, help, exit code.
 - **States covered:** error, success
@@ -187,7 +188,7 @@
   1. Run setup. It checks first and lists the repairs.
   2. Accept. It repairs, checks again and prints before → after.
   3. Do the listed steps that stay the person's (quit a running app that needs an update, start Docker, a product's own onboarding).
-- **Expected result:** The closing line counts what is still open: "No problems" or the number of problems (FAILs), with the warnings named beside them ("No problems, 1 warning(s).", or "No problems remain (before: 2), 1 warning(s)." after repairs); open checks are "Still open:" after any run, a declined one included, and "Open now:" under a plan. The skill set and MCP registrations are repaired; an outdated or damaged app that is not running is reinstalled from its verified release and the old one is in the Trash; a family service launchd owns that does not answer is started with `launchctl kickstart` (no `-k`); a running app is never replaced; nothing is killed. On a healthy computer nothing changes and the exit code is 0.
+- **Expected result:** The closing line counts what is still open: "No problems" or the number of problems (FAILs), with the warnings named beside them ("No problems, 1 warning(s).", or "No problems remain (before: 2), 1 warning(s)." after repairs); open checks are "Still open:" after any run, a declined one included, and "Open now:" under a plan. The skill set and MCP registrations are repaired; an outdated or damaged app that is not running is reinstalled from its verified release and the old one is in the Trash; a family service launchd owns that does not answer is started with `launchctl kickstart` (no `-k`); a running app is never replaced; nothing is killed. On a healthy computer nothing changes (apart from the launcher's anonymous counts, SCN-016) and the exit code is 0; a `sessions.on-demand` warning is listed under the checks, never as a step for the person.
 - **Alt paths:** `doctor --fix` runs the same repairs without installing new apps or opening anything (it never asks). `setup` in a terminal, answered no to the repairs and to every other offer, changes nothing, is reported as declined (never as "everything is in place") and still names `setup` among the person's steps when a failing or warning check's own fix names it (a service it would start keeps that check's own fix). The steps rule holds for any terminal run that answers no to the repairs, whatever else it took (an install, or forgetting a train with `--train none`): `setup` stays among the person's steps where a failing or warning check's own fix names it. An app it installs that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) is registered through the skill and MCP update, so once such an install is taken the repairs question leaves that update out, and the update runs after that install succeeds, not when it fails (PC-112); the update also makes the skill-set and MCP-registration repairs, so their checks may pass and leave no `setup` step (PC-108). A yes to PassionCode's tool rules alone (PC-117), or to the rules for commands alone (PC-119), is not a declined run: it adds those rules. An existing machine is offered the rules for commands on its next `setup` until the person takes them or lists them under ask or deny (PC-119). An app answered no that has no note (its prerequisites are there) is no step of its own: running `setup` again offers it, and the steps name `setup` only when a failing or warning check's own fix names it. Fabric named with `--with fabric` without its prerequisites and then answered no is "not installed (--with fabric)" among the steps (with a declined train, `setup --train <name> --with fabric`). On a set-up Mac where the only offer defaults to no (Fabric without Docker or the Supabase CLI), a terminal run that takes nothing and names no train other than the saved one (`--train none` with a train saved is a change) says "Nothing was changed: Fabric was offered and not installed" and lists the app's note among the person's steps (a run that names a new train saves it, "Done: saved release train"). The same machine re-run with `--yes`, or without a terminal, naming no train other than the saved one, says "Nothing was changed: Fabric was not installed (see your steps below)" rather than "everything is in place". A terminal run that answers no to every offer that defaults to yes and leaves Fabric's says "You declined every other offer, and Fabric was not installed": leaving a default-no offer is not declining it. Each of these lines adds "The checks below still stand." when a check fails or warns, and only then. A run that is not a plan, changes nothing and leaves no app out (none offered and not installed, none skipped) says "Everything this command can set up is in place; nothing was changed." ("Everything else this command can set up is in place" while Claude Code's tool rules or the rules for commands are offered and not taken, or its settings cannot be read, PC-117, PC-119), adding "The checks below still stand." the same way; with a check it cannot repair failing it exits 1. A `--dry-run` is a plan and says "Nothing to do" instead.
 - **UI elements:** The before → after table by area, every check that changed state, what is still open, the person's steps.
 - **States covered:** success, error
@@ -196,7 +197,7 @@
 - **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run), `PC-91:`, `PC-92:`, `PC-94:`, `PC-101:`, `PC-104:`, `PC-105:`, `PC-107:`, `PC-108:`, `PC-112:`, `PC-114:`, `PC-117:` and `PC-119:`; `test/windows.test.js` test beginning `PC-108:`.
 - **Product:** unobserved
 
-### SCN-010: Check the setup without changing anything
+### SCN-010: Check the setup without changing anything (but the anonymous counts)
 
 - **Persona:** Operator, Automation
 - **Feature:** doctor
@@ -205,7 +206,7 @@
 - **Steps:**
   1. Run doctor.
   2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
-- **Expected result:** Nothing is installed, registered, started, stopped or opened. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
+- **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result, its release cache (`~/.passioncode/releases-cache.json`, release lookups kept 30 minutes) and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
@@ -214,7 +215,7 @@
 - **States covered:** success, error
 - **Errors & recovery:** Every failing line names the command or the step that fixes it.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`;
+- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`; PC-124's `sessions.on-demand` row: `test/setup.test.js` test beginning `doctor never starts Fabric's MCP server` and `test/analytics.test.js` test beginning `PC-124:`.
   `test/windows.test.js`, tests beginning `PC-86`.
 - **Product:** unobserved
 
@@ -243,9 +244,9 @@
 - **Preconditions:** A coding agent that can run commands; Node 18+.
 - **Steps:**
   1. Paste the prompt.
-  2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor`, and reports.
-- **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; no secret is asked for in the chat.
-- **Alt paths:** "Don't change anything" → the agent runs doctor only.
+  2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor` (the README prompt, whose plain `doctor` shows the notice) or `analytics status` once without `--json` (the skill), and reports.
+- **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; the launcher's anonymous-counts notice word for word, or the status line it printed (SCN-016); no secret is asked for in the chat.
+- **Alt paths:** "Don't change anything" → the agent runs doctor only, and names the counts and `analytics off` without running `analytics status` or another command to show the notice (its `doctor --json` counts only where the notice was shown before).
 - **UI elements:** The agent's reply.
 - **States covered:** success, error
 - **Errors & recovery:** The agent reports a failed command with its exit code and does not fall back to manual installs.
@@ -306,4 +307,23 @@
 - **Errors & recovery:** `permissions` (and `--json`) with settings or a ledger it cannot read exits 1 and still prints the view on stdout, nothing on stderr, so a program reads the view on exit 1. For `permissions allow`, `remove` and `mode`: settings or a ledger that cannot be read, or a ledger that cannot be written, are named and exit 1 before the settings change; the person repairs the file and runs the command again.
 - **Status:** implemented
 - **Coverage:** `test/ledger.test.js` tests beginning `PC-125:`; `test/setup.test.js` tests beginning `PC-117:` and `PC-119:` (the ledger setup writes).
+- **Product:** unobserved
+
+### SCN-016: Know about and turn off the anonymous usage counts
+
+- **Persona:** Operator
+- **Feature:** analytics
+- **Entry point:** any command; `npx @passioncode-ai/passioncode@latest analytics`
+- **Preconditions:** Node 18+; the published package (a checkout carries no App Key and sends nothing).
+- **Steps:**
+  1. Run any command without `--json` (a person, or an agent who passes the line on): the first one that would send something prints, once, "The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch).".
+  2. Run `analytics off`: nothing is sent from then on; `analytics status` says "turned off (analytics off)" and that each PassionCode app has its own switch.
+  3. Run `analytics on` to send them again.
+- **Expected result:** Each command sends, when it ends, the events of docs/analytics-events.md with fixed words only; the switch is the launcher's own and never turns another PassionCode app off.
+- **Alt paths:** `--json` and `--quiet` runs never print the notice and send nothing until it was shown, and `analytics status --json` then reports reason `notice`; a `no` given earlier in a PassionCode app (the shared file's `analytics: false`) is kept as the launcher's off, which `analytics status` names and `analytics on` lifts for the launcher alone; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
+- **UI elements:** The notice line on stderr, the status line, the JSON status, exit code.
+- **States covered:** success, empty, error
+- **Errors & recovery:** A send that fails or is slow is dropped after two seconds and never fails the command; a word other than on, off or status exits 2. A switch file that cannot be read counts as off for that run and is not rewritten; `analytics on` or `off` writes it again.
+- **Status:** implemented
+- **Coverage:** `test/analytics.test.js` tests beginning `PC-123:`.
 - **Product:** unobserved

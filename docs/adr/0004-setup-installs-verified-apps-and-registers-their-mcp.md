@@ -1,4 +1,4 @@
-# ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only
+# ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only (amended 2026-11-04, PC-123: apart from the anonymous counts)
 
 Status: accepted · 2026-10-13 · brief: [docs/tasks/2026-10-13-setup-doctor.md](../tasks/2026-10-13-setup-doctor.md)
 
@@ -54,7 +54,8 @@ and checksums from GitHub's asset digests and checks no signature.
    skipped, Claude Code through its CLI, never clobber, journalled and reversible. Observatory
    (a server in its own virtualenv) and Fabric Inbox (a remote server per person, its key in the
    keychain) register through their own `onboard`; setup lists that step and doctor checks it.
-5. **`doctor [--json]` reads, and changes nothing**: prerequisites, each app's installed version
+5. **`doctor [--json]` reads, and changes nothing** (amended 2026-11-04, PC-123: apart from the launcher's anonymous
+   counts, which every command sends unless they are off; see `docs/analytics-events.md`): prerequisites, each app's installed version
    against its latest release, its signature and Team ID, the Fabric service descriptors of family
    products and their `/.well-known/fabric-service`, each agent's MCP entry for each installed
    product, one proving call per distinct registered stdio command (`initialize`, `tools/list`,

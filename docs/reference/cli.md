@@ -13,13 +13,14 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
 | `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
-| `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
+| `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Check of everything that changes nothing but the [anonymous counts](#anonymous-usage-counts); `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
 | `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
+| `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `off-elsewhere` (turned off in another PassionCode app before the launcher counted, see [Anonymous usage counts](#anonymous-usage-counts)), `unreadable` (the switch file is there but cannot be read: off for that run, never rewritten by a count), `shared-unreadable` (the shared `installation.json` is there but cannot be read, or holds no usable id: nothing is sent until it can be), `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123); exit 1 when the switch cannot be saved |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
@@ -68,7 +69,10 @@ values still do not prove registry freshness. Sources: `status()` in
 about it (`update`, `replace`, `kickstart`) or is null. `ok` is false when any
 check fails. The summary and the failed ids are saved to
 `~/.passioncode/doctor.json`, which the SessionStart hook repeats while it has
-failures. Doctor writes nothing else and starts, stops or opens nothing.
+failures, and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
+starts, stops or opens nothing, apart from the anonymous counts every command
+sends when they are on ([Anonymous usage counts](#anonymous-usage-counts): `~/.passioncode/analytics.json`, its notice
+marker, the shared `installation.json` created once, and one request to `https://analytics.passioncode.ai`).
 
 | Area | What is read | A failure means |
 |---|---|---|
@@ -77,6 +81,7 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | apps (macOS) | each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
 | mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
+| services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing (the person's choice; Switchboard's default agent may be another) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
 humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `commands` (PC-119, below) when it lacks a command rule or a declared rule was not offered, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
@@ -96,7 +101,7 @@ for Fabric without its prerequisites unless `--with fabric`), `update`,
 launchd service that does not answer), each with the check ids that caused it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
-fix, each product's onboarding for apps installed in this run, and the restart. A plan lists
+fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124), each product's onboarding for apps installed in this run, and the restart. A plan lists
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
@@ -353,6 +358,23 @@ offered again by the next `setup`, which adds it back on a yes: its question in 
 When setup can write the settings but not the ledger, it still adds the rules and says so on that step ("the
 permissions ledger was not updated"); `permissions` then lists them as not in the ledger.
 
+## Anonymous usage counts
+
+"Changes nothing" and "nothing was changed" across the CLI (doctor, status, a plan, a dry run, a refused argument) mean
+the setup: the counts' own files (`analytics.json`, its notice marker, the shared `installation.json`) and their one
+request are written and sent apart from that, unless they are off. `--offline` skips the release lookups, not the counts;
+`PASSIONCODE_ANALYTICS=off` stops those for one run.
+
+Every command sends, when it ends, a few anonymous counts to PassionCode's analytics host: which command ran, how it
+ended, how long it took in coarse buckets, and once a day that the launcher was used (PC-123). The events, their fixed
+properties, the notice and what is never sent are in the [event catalogue](../analytics-events.md). The first command
+that would send something, without `--json` or `--quiet`, prints the notice once on stderr (an agent passes it to the
+person); a `--json` or `--quiet` run prints nothing and sends nothing until such a run has shown it. `analytics off` turns the counts off for the launcher alone, saved in
+`~/.passioncode/analytics.json`; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turns them off for one process. A
+checkout or a test sends nothing: only the published package carries the App Key. A send never makes a command fail
+and never delays it by more than two seconds (about four on the run that shows the notice, which first waits for it to be
+written).
+
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
@@ -360,7 +382,7 @@ equivalent relative links. It leaves the Claude Code rules setup added (the tool
 and the rules `permissions allow` added and the default mode `permissions mode` set (PC-125) in
 `~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
 (under `PASSIONCODE_HOME` when it is set);
-the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). Other user files stay in place. Failed plugin removal
+the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 
@@ -399,6 +421,10 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 |---|---|
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
+| `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
+| `~/.passioncode/analytics-notice` | An empty marker: the notice was claimed by one command, so two commands started together never both print it; one older than a minute with no record of the notice in `analytics.json` is claimed again (PC-123) |
+| `PassionCode/installation.json` in the user's application data folder | The installation id every PassionCode app on the machine shares (PC-123; created once with `analytics: true`, the apps' own field, never rewritten) |
+| `PASSIONCODE_ANALYTICS=off`, `DO_NOT_TRACK` | Turn the anonymous counts off for one process (PC-123) |
 | `~/.agents/skills` | Shared skill hub |
 | Existing paths in `CHANNELS` in `lib/launcher.js` | Supported agent channels; an absent channel is not created |
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |

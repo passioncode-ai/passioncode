@@ -27,7 +27,7 @@ function detached(cmd, args, logName) {
     try {
       fs.mkdirSync(path.join(DIR, 'logs'), { recursive: true });
       out = fs.openSync(path.join(DIR, 'logs', logName), 'a');
-      const child = spawn(cmd, args, { detached: true, stdio: ['ignore', out, out], env: process.env });
+      const child = spawn(cmd, args, { detached: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off' } }); // PC-123: the background update sends no counts
       child.once('error', () => resolve(false));
       child.once('spawn', () => { child.unref(); resolve(true); });
     } catch (_) { resolve(false); }

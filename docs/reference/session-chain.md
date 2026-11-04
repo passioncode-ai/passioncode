@@ -21,7 +21,7 @@ sections 2 to 5.
 | Install the apps, their MCP servers in each agent, the skill set and Claude Code's rules for PassionCode's tools and commands | the launcher (`setup`) | this page, below |
 | Take the request, do the work, report and end | Fabric Agent Adapter (`working-with-fabric`) | the specification, §4 |
 | Keep a readable record of the rules `setup` added, for Fabric's permissions screen | the launcher (`permissions`, from 0.2.75, PC-125) | the CLI contract of 0.2.75 |
-| Check that the default agent's prerequisites are in place | the launcher (`doctor`), planned for 0.2.76 | PC-124 in the [backlog](../backlog.md) |
+| Check that the default agent's prerequisites are in place | the launcher (`doctor`, the `sessions.on-demand` row, from 0.2.76) | [CLI contract: setup and doctor](cli.md#setup-and-doctor) |
 
 ## What the launcher installs today
 
@@ -49,8 +49,8 @@ The launcher sets no permission mode during `setup`. `permissions mode` (from 0.
 
 - On Windows the launcher does not install the apps; it names their download pages. A Windows machine needs Fabric and
   Fabric Switchboard installed by hand before Fabric can start a session there.
-- `doctor` does not yet check the default agent's prerequisites as one group (Fabric and Switchboard installed,
-  `fabric-mcp` registered in the default agent, the skill set present, the tool rules allowed). That check ships with
-  0.2.76.
+- `doctor` checks the prerequisites as one row, `sessions.on-demand` (from 0.2.76), for Claude Code only: when
+  Switchboard names another default agent, that agent's prerequisites are not checked yet, so a machine without
+  Claude Code reads as information, not as a warning.
 - Which agent is the default and which permission mode a started session gets are read from Switchboard and Fabric;
   the launcher neither sets nor reports them.

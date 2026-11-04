@@ -40,10 +40,21 @@
       "trap": "a person asked whether the setup was fine and the agent changed their MCP configuration without asking",
       "request": "Is my Fabric setup OK? Don't change anything.",
       "expected": [
-        "runs `doctor --json` (or `setup --dry-run`), which changes nothing",
+        "runs `doctor --json` (or `setup --dry-run`), which changes nothing in the setup",
         "reports each fail and warn with its fix",
         "asks before applying any repair",
-        "does not rewrite an MCP entry the person set themselves"
+        "does not rewrite an MCP entry the person set themselves",
+        "names the launcher's anonymous counts and `analytics off` without running `analytics status` or another command to show the notice"
+      ]
+    },
+    {
+      "id": "counts-notice",
+      "trap": "the agent ran only --json commands, never showed the person the launcher's anonymous-counts notice, and said nothing about the switch",
+      "request": "Set me up with PassionCode on this new Mac.",
+      "expected": [
+        "runs `npx --yes @passioncode-ai/passioncode@latest analytics status` once without `--json` after setup",
+        "gives the person the line \"The PassionCode launcher sends anonymous usage and error counts ...\" word for word, or the status line it printed when there is no such line",
+        "names `analytics off` as the launcher's own switch"
       ]
     }
   ]
