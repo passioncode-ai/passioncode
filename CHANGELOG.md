@@ -6,8 +6,10 @@
 
 - **Anonymous usage and error counts, on by default** (PC-123): when a command ends, the launcher sends a few anonymous
   counts to PassionCode's analytics host (which command, how it ended, a coarse duration, once a day that it was used),
-  with fixed words only and the installation id every PassionCode app on the machine shares; never a path, a name, a
-  rule, an argument, a token or a message. The first command that would send something says so once on stderr;
+  with fixed words, the previous version after an update and the installation id every PassionCode app on the machine
+  shares; never a path, a name, a
+  rule, an argument, a token or a message. The first command run without `--json` or `--quiet` says so once on stderr, and nothing is sent before
+  that (the setup skill has an agent show it to the person);
   `analytics off` turns the counts off for the launcher alone, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` for one
   process. Only the published package carries the App Key. The events are listed in `docs/analytics-events.md`.
 - **`doctor` checks what sessions Fabric starts need** (PC-124): a `sessions.on-demand` row names what a session Fabric

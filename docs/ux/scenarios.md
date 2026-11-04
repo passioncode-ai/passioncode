@@ -320,7 +320,7 @@
   2. Run `analytics off`: nothing is sent from then on; `analytics status` says "turned off (analytics off)" and that each PassionCode app has its own switch.
   3. Run `analytics on` to send them again.
 - **Expected result:** Each command sends, when it ends, the events of docs/analytics-events.md with fixed words only; the switch is the launcher's own and never turns another PassionCode app off.
-- **Alt paths:** `--json` and `--quiet` runs never print the notice and send nothing until it was shown; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
+- **Alt paths:** `--json` and `--quiet` runs never print the notice and send nothing until it was shown, and `analytics status` then says nothing is sent until the notice has been shown once; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
 - **UI elements:** The notice line on stderr, the status line, the JSON status, exit code.
 - **States covered:** success, empty, error
 - **Errors & recovery:** A send that fails or is slow is dropped after two seconds and never fails the command; a word other than on, off or status exits 2.

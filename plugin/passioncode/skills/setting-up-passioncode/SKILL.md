@@ -43,7 +43,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   `observatory`, `inbox`, `fabric`), `--no-apps` for skills and MCP only, `--dry-run` to show
   the plan first. Fabric is an early preview and needs Docker (or OrbStack) and the Supabase CLI;
   without them it is offered, not installed; say so.
-- Only checking? `npx --yes @passioncode-ai/passioncode@latest doctor --json` changes nothing.
+- Only checking? `npx --yes @passioncode-ai/passioncode@latest doctor --json` changes nothing (apart from the launcher's
+  anonymous counts).
   Exit 0: no check failed; 1: at least one did; 2: bad arguments.
 
 The person asked you to do this, so `--yes` is their consent to the plan for this run. If they
@@ -108,9 +109,11 @@ Reply in the person's language, briefly:
    (`trainNotSaved`, `none` meaning the saved train would be forgotten), and the before → after counts.
 2. What still fails, each with its `fix`; rules offered and not taken, with the flag that takes them (`--allow-tools`,
    `--allow-commands`), and every `commands.refused` line. `npx @passioncode-ai/passioncode@latest permissions` shows what
-   PassionCode allowed and when, and `permissions remove <rule>` takes a rule back. If a run printed the line "The
-   PassionCode launcher sends anonymous usage and error counts ..." on stderr, give it to the person word for word:
-   it is their notice, and `analytics off` is their switch. `permissions allow` and
+   PassionCode allowed and when, and `permissions remove <rule>` takes a rule back. The launcher's anonymous counts
+   start only after their notice is shown once, and a `--json` run never shows it: run
+   `npx --yes @passioncode-ai/passioncode@latest analytics status` once (without `--json`) and give the person the line
+   "The PassionCode launcher sends anonymous usage and error counts ..." it prints on stderr, word for word: it is their
+   notice, and `analytics off` is their switch. `permissions allow` and
    `permissions mode` are the same security decision as `--allow-tools`: run them only on the person's own yes to
    that rule or mode, with `--by` naming who asked.
 3. **Your steps**: the numbered `humanSteps` you could not finish yourself: sign-ins, consents,

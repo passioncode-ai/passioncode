@@ -20,7 +20,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
 | `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
-| `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `env`, `do-not-track` or `no-key` | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123) |
+| `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123) |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
@@ -69,7 +69,9 @@ values still do not prove registry freshness. Sources: `status()` in
 about it (`update`, `replace`, `kickstart`) or is null. `ok` is false when any
 check fails. The summary and the failed ids are saved to
 `~/.passioncode/doctor.json`, which the SessionStart hook repeats while it has
-failures. Doctor writes nothing else and starts, stops or opens nothing.
+failures. Doctor writes nothing else and starts, stops or opens nothing, apart from the anonymous counts every command
+sends when they are on ([Anonymous usage counts](#anonymous-usage-counts): `~/.passioncode/analytics.json`, its notice
+marker, the shared `installation.json` created once, and one request to `https://analytics.passioncode.ai`).
 
 | Area | What is read | A failure means |
 |---|---|---|
@@ -413,7 +415,8 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
-| `PassionCode/installation.json` in the user's application data folder | The installation id every PassionCode app on the machine shares (PC-123; created once, never rewritten) |
+| `~/.passioncode/analytics-notice` | An empty marker: the notice was claimed by one command, so two commands started together never both print it (PC-123) |
+| `PassionCode/installation.json` in the user's application data folder | The installation id every PassionCode app on the machine shares (PC-123; created once with `analytics: true`, the apps' own field, never rewritten) |
 | `PASSIONCODE_ANALYTICS=off`, `DO_NOT_TRACK` | Turn the anonymous counts off for one process (PC-123) |
 | `~/.agents/skills` | Shared skill hub |
 | Existing paths in `CHANNELS` in `lib/launcher.js` | Supported agent channels; an absent channel is not created |

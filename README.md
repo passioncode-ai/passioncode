@@ -9,7 +9,7 @@ what changed.
 
 ```bash
 npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
-npx @passioncode-ai/passioncode@latest doctor    # check only; changes nothing
+npx @passioncode-ai/passioncode@latest doctor    # check only; changes nothing (apart from anonymous counts)
 ```
 
 | Member | Skills |
@@ -113,7 +113,7 @@ notarization ticket stapled and is accepted by Gatekeeper. An outdated or damage
 reinstalled only when it is not running; the old one goes to the Trash. A family service that
 does not answer is started through launchd (`launchctl kickstart`, never a kill).
 
-`doctor` changes nothing. It reads prerequisites, the skill set, each app's version, signature
+`doctor` changes nothing (every command sends anonymous counts, see below). It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of
 the family; each line names its state and its fix. Exit codes: **0** no check failed (or `setup`
 only showed its plan), **1** a check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without

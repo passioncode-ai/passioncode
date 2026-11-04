@@ -199,7 +199,7 @@ function analyticsCommand(rest) {
   try { if (verb !== 'status') A.setEnabled(state, verb === 'on'); }
   catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
   const s = A.status({ state });
-  const why = { off: 'turned off (analytics off)', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent' };
+  const why = { off: 'turned off (analytics off)', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: 'on, and nothing is sent until this notice has been shown once by a command run without --json or --quiet' };
   process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
     : `Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch.\n`);
   return 0;
@@ -277,8 +277,9 @@ async function main(argv) {
 // PC-123: one batch of anonymous counts when the command ends (nothing from a build without a key, or when turned off).
 const startedAt = Date.now();
 const argv = process.argv.slice(2);
+const existing = require('fs').existsSync(L.paths().stateFile); // before the command: setup and update write it themselves
 main(argv).then(async (code) => {
   process.exitCode = code; // first: the send below must never change how the command ended
   const cmd = { onboard: 'setup', install: 'update', '--help': 'help', '-h': 'help' }[argv[0]] || argv[0] || 'help'; // a word not in the list is sent as other
-  await require('../lib/analytics').after({ command: cmd, code, json: argv.includes('--json'), quiet: argv.includes('--quiet'), startedAt, version: VERSION, state: L.paths().state });
+  await require('../lib/analytics').after({ command: cmd, code, json: argv.includes('--json'), quiet: argv.includes('--quiet'), existing, startedAt, version: VERSION, state: L.paths().state });
 });

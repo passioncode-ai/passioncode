@@ -33,7 +33,7 @@ test('PC-123: the first run says so once on stderr, then sends installed, active
   assert.equal(r.calls[0].url, 'https://analytics.passioncode.ai/api/v0/events');
   assert.equal(r.calls[0].init.headers['App-Key'], KEY);
   assert.deepEqual(r.calls[0].body.map((e) => e.eventName), ['app_installed', 'app_active', 'command_run']);
-  assert.equal(r.calls[0].body[0].props.existing, false, 'no launcher state before: a new install');
+  assert.equal(r.calls[0].body[0].props.existing, 'false', 'no launcher state before: a new install');
   assert.deepEqual(r.calls[0].body[2].props.command, 'doctor');
   assert.equal(r.calls[0].body[2].props.duration, '1-10s');
   assert.equal(r.calls[0].body[2].props.environment, 'production');
@@ -57,7 +57,7 @@ test('PC-123: a --json run before the notice sends nothing and prints nothing', 
   assert.equal(err.out.length, 0);
   await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: err.stream }));
   const after = await A.after(base(h, { json: true, fetchImpl: r.fetchImpl, stderr: err.stream }));
-  assert.equal(after.body.at(-1).props.json, true, 'after the notice, a --json run is counted');
+  assert.equal(after.body.at(-1).props.json, 'true', 'after the notice, a --json run is counted');
   assert.equal(err.out.length, 1);
 });
 
@@ -185,9 +185,49 @@ test('PC-123: a launcher installed before the counts says so in its first app_in
   fs.mkdirSync(path.join(h, '.passioncode'), { recursive: true });
   fs.writeFileSync(path.join(h, '.passioncode', 'state.json'), JSON.stringify({ installed: '0.2.75' }));
   await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream }));
-  assert.deepEqual(r.calls[0].body[0].props.existing, true);
+  assert.deepEqual(r.calls[0].body[0].props.existing, 'true');
   const e = r.calls[0].body[0];
   assert.deepEqual(Object.keys(e).sort(), ['eventName', 'props', 'sessionId', 'systemProps', 'timestamp']);
   assert.deepEqual(Object.keys(e.systemProps).sort(), ['appBuildNumber', 'appVersion', 'engineName', 'engineVersion', 'isDebug', 'locale', 'osName', 'osVersion', 'sdkVersion']);
   assert.match(e.sessionId, /^\d{18}$/);
+});
+
+test('PC-123: a first command that writes the launcher state itself is still a new install', () => {
+  const h = home();
+  const keyFile = path.join(h, 'key.json');
+  fs.writeFileSync(keyFile, JSON.stringify({ appKey: KEY }));
+  const log = path.join(h, 'sent.log');
+  const preload = path.join(h, 'fetch.js');
+  fs.writeFileSync(preload, `globalThis.fetch = async (url, init) => { require('fs').appendFileSync(${JSON.stringify(log)}, init.body + '\\n'); return { ok: true, status: 200 }; };`);
+  const env = { ...process.env, HOME: h, USERPROFILE: h, XDG_CONFIG_HOME: path.join(h, '.config'), APPDATA: path.join(h, 'AppData'),
+    PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_ANALYTICS_KEY_FILE: keyFile };
+  delete env.DO_NOT_TRACK; delete env.PASSIONCODE_ANALYTICS;
+  const r = spawnSync(process.execPath, ['--require', preload, path.join(ROOT, 'bin', 'passioncode.js'), 'config', 'set', 'update.auto', 'off'], { env, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(fs.existsSync(path.join(h, '.passioncode', 'state.json')), 'the command wrote the launcher state');
+  const first = JSON.parse(fs.readFileSync(log, 'utf8').trim().split('\n')[0]);
+  assert.equal(first.find((e) => e.eventName === 'app_installed').props.existing, 'false');
+});
+
+test('PC-123: a state that cannot be written, or an off given meanwhile, leaves no notice claimed and no installation file', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  fs.mkdirSync(path.join(opts.state, 'analytics.json'), { recursive: true }); // a folder where the file goes: the write fails
+  assert.equal((await A.after(opts)).sent, 0);
+  assert.equal(err.out.length, 0, 'nothing said');
+  assert.equal(fs.existsSync(path.join(h, '.config', 'PassionCode', 'installation.json')), false, 'nothing stored');
+  fs.rmSync(path.join(opts.state, 'analytics.json'), { recursive: true });
+  assert.equal((await A.after(opts)).sent, 3, 'the next run says it and sends');
+  assert.equal(err.out.length, 1);
+});
+
+test('PC-123: status says nothing is sent until the notice has been shown once', async () => {
+  const h = home();
+  const opts = base(h, { fetchImpl: recorder().fetchImpl, stderr: quiet().stream });
+  const st = () => A.status({ state: opts.state, env: opts.env, key: opts.key });
+  assert.deepEqual([st().sending, st().reason], [false, 'notice']);
+  await A.after({ ...opts, json: true });
+  assert.equal(st().reason, 'notice', 'a --json run never shows it');
+  await A.after(opts);
+  assert.deepEqual([st().sending, st().reason], [true, null]);
 });

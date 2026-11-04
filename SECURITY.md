@@ -39,7 +39,9 @@ files), the apps' `Info.plist` (on Windows, the apps' uninstall entries through 
 the launcher's own `trains/<name>.json` and the `train` it saved in `~/.passioncode/state.json`,
 and the GitHub releases API. It starts each registered stdio MCP
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
-release cache.
+release cache, apart from the anonymous counts below that every command sends while they are on (`~/.passioncode/analytics.json`,
+its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to
+`https://analytics.passioncode.ai`).
 
 `setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`; a train
 changes which release is downloaded (the pinned tag instead of the latest), never how it is verified.
@@ -82,11 +84,14 @@ or a program, without checking which (PC-133 tracks a stronger gate for `bypassP
 
 Each command sends, when it ends, the events listed in [docs/analytics-events.md](docs/analytics-events.md) to
 `https://analytics.passioncode.ai`: fixed words and counts, the time, a random id for the run, the launcher version, the
-OS name and kernel release, the locale, the Node.js version, an SDK tag, a debug flag and the installation id every
-PassionCode app on the machine shares. Never a path, a name, a rule, an argument, a token, an error message or a file's
-content: every property is a word from a fixed list (`test/analytics.test.js` plants a home path, a user name, a rule
+OS name and kernel release, the locale, the Node.js version (with the engine name `Node` and an empty build number), an
+SDK tag, a debug flag and the installation id every PassionCode app on the machine shares. Never a path, a name, a rule,
+an argument, a token, an error message or a file's content: every property is a fixed word, the previous launcher
+version or the installation id (`test/analytics.test.js` plants a home path, a user name, a rule
 and a token and fails if one is sent, and checks the exact fields sent). Only the published
-package carries the App Key; `analytics off`, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` stop it (PC-123).
+package carries the App Key; `analytics off`, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` stop it (PC-123). The host
+sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing it;
+events are kept two years and the installation id is removed from them after 400 days.
 
 ## The self-update and who it trusts
 
