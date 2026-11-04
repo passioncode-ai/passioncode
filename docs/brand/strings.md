@@ -34,7 +34,8 @@ Contract: brand-contract v1
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:350 | SCN-009 | proposed | copy |
 | setup.declined | You declined every offer; nothing was changed.${stand(a)} | lib/setup.js:348 | SCN-008, SCN-009 | proposed | copy |
 | setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${stand(a)} | lib/setup.js:347 | SCN-008, SCN-009 | proposed | copy |
-| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:391 | SCN-009 | proposed | copy |
+| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:394 | SCN-009 | proposed | copy |
+| setup.in-place.tools | Everything else this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:393 | SCN-009 | proposed | copy |
 | setup.checks-stand |  The checks below still stand. | lib/setup.js:354 | SCN-008, SCN-009 | proposed | copy |
 | setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:371 | SCN-008 | proposed | copy |
 | setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:351 | SCN-008 | proposed | copy |
@@ -46,12 +47,12 @@ Contract: brand-contract v1
 | setup.plan-forget-train | forget the saved release train | lib/setup.js:357 | SCN-008 | proposed | copy |
 | setup.plan-train | save release train ${t} | lib/setup.js:357 | SCN-008 | proposed | copy |
 | setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:381 | SCN-008 | proposed | copy |
-| setup.open-now | Open now: | lib/setup.js:415 | SCN-008 | proposed | layout |
-| setup.still-open | Still open: | lib/setup.js:415 | SCN-009 | proposed | layout |
-| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:419 | SCN-008 | proposed | copy |
-| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:423 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:424 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:425 | SCN-008, SCN-009 | proposed | copy |
+| setup.open-now | Open now: | lib/setup.js:418 | SCN-008 | proposed | layout |
+| setup.still-open | Still open: | lib/setup.js:418 | SCN-009 | proposed | layout |
+| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:422 | SCN-008 | proposed | copy |
+| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:426 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:427 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: npx @passioncode-ai/passioncode@latest doctor | lib/setup.js:428 | SCN-008, SCN-009 | proposed | copy |
 | trains.not-a-name | "${id}" is not a release train name | lib/trains.js:19 | SCN-014 | proposed | copy |
 | trains.unknown | no release train "${id}" in this launcher (known: ${list().join(', ')}) | lib/trains.js:22 | SCN-014 | proposed | copy |
 | trains.none-shipped | no release train "${id}": this launcher ships no release train | lib/trains.js:22 | SCN-014 | proposed | copy |
@@ -64,8 +65,8 @@ Contract: brand-contract v1
 | setup.tools-done | allowed ${permissions.apply(file).join(', ')} in ${file}: Claude Code uses these tools without asking | lib/setup.js:268 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:356 | SCN-008 | proposed | copy |
 | setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:376 | SCN-008 | proposed | copy |
-| setup.tools-unreadable | Claude Code's settings were not changed: ${tools.error} | lib/setup.js:397 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-hint | Claude Code still asks before it uses PassionCode's own tools. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:398 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-unreadable | Claude Code's settings were not changed: ${tools.error} | lib/setup.js:400 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-hint | Claude Code still asks before it uses PassionCode's own tools. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:401 | SCN-008, SCN-009 | proposed | copy |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |

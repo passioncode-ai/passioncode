@@ -111,16 +111,19 @@ same way, 1 when a check still fails, whether or not it named a train (PC-93). `
 opened.
 
 Claude Code's rules for PassionCode's own tools (PC-117; fabric-workspace `knowledge/agents-first.md`, "When Claude
-Code's auto mode refuses..."): `setup` offers to add `mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard` and
-`mcp__observatory` to `permissions.allow` in `~/.claude/settings.json`, so Claude Code uses those servers' tools without
+Code's auto mode refuses..."): `setup` offers to add `mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard`,
+`mcp__plugin_switchboard_switchboard` (Switchboard through its Claude Code plugin) and `mcp__observatory` to `permissions.allow` in `~/.claude/settings.json`, so Claude Code uses those servers' tools without
 asking. It is the person's security decision, taken only on its own yes: one question in a terminal (default no), or
 `--allow-tools`; `--yes` alone does not take it, a `--dry-run` shows it, and `doctor --fix` never offers it. The rules
 are merged: every other key and rule, and their order, is kept; a rule the person lists under `permissions.deny` is not
 added; a second run adds nothing. A settings file that is not valid JSON, or whose `permissions`, `allow` or `deny` has
 the wrong shape, is left as it is and named. The result carries `permissions: { rules, error, taken }` only while
-rules are missing (or the file cannot be read), the plan lists them as a line of their own, a run that adds them lists
-a `permissions` action, and a run that leaves them out ends with how to add them (`setup --allow-tools`). Yes to the
-rules alone is not a declined run.
+rules are missing (or the file cannot be read); `taken` is the person's yes, and the `permissions` action is the proof
+they were written (a plan agreed to but not run writes nothing). The plan lists them as a line of their own (after a
+train's line; while they are offered a terminal asks about them, so a train-only plan closes with "Run it with --yes to
+apply, or in a terminal to answer its questions."), a run that leaves them out says how to add them under its
+headline (`setup --allow-tools`), and a run that changed nothing else says "Everything else this command can set up is
+in place". Yes to the rules alone is not a declined run, so with a named train it saves that train too.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)

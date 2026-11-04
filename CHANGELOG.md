@@ -6,7 +6,7 @@
 
 - **`setup` offers Claude Code's rules for PassionCode's own tools** (PC-117). On the person's own yes (a question in a
   terminal, default no, or `--allow-tools`; never `--yes` alone) it merges `mcp__fabric`, `mcp__fabric-dashboards`,
-  `mcp__switchboard` and `mcp__observatory` into `permissions.allow` in `~/.claude/settings.json`, so Claude Code uses
+  `mcp__switchboard`, `mcp__plugin_switchboard_switchboard` and `mcp__observatory` into `permissions.allow` in `~/.claude/settings.json`, so Claude Code uses
   those tools without asking. Every other setting and rule is kept, a denied rule is not added, a second run adds
   nothing, and settings that cannot be read are named and left as they are. The plan lists the rules; a run that
   leaves them out says how to add them; the result carries `permissions`.

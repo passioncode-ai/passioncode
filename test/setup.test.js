@@ -1072,6 +1072,10 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   assert.equal(yes.status, 0, yes.stderr + yes.stdout);
   assert.equal((read(plain) || {}).permissions, undefined, 'no rule was written');
   assert.match(yes.stdout, /\nClaude Code still asks before it uses PassionCode's own tools\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, yes.stdout);
+  // Run again with nothing else to do: not "everything ... is in place" while the rules are offered.
+  const rerun = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.match(rerun.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, rerun.stdout);
+  assert.doesNotMatch(rerun.stdout, /\nEverything this command can set up is in place/, rerun.stdout);
   const json = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
   assert.deepEqual(json.json.permissions, { rules: [...P.RULES], error: null, taken: false });
   // --allow-tools is that yes: the rules are merged in, every other setting kept.
@@ -1084,18 +1088,36 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   assert.equal(doc.model, 'opus');
   assert.deepEqual(doc.permissions, { allow: ['Bash(npm test)', ...P.RULES], deny: ['Bash(rm -rf:*)'] });
   assert.ok(allowed.json.actions.some((a) => a.kind === 'permissions' && a.outcome === 'done'), allowed.stdout);
+  const allowedText = await cli(machine({ toolRules: false }), api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
+  assert.doesNotMatch(allowedText.stdout, /still asks/, allowedText.stdout); // they were just added
   // Run again: nothing is missing, so nothing is offered or written.
   const again = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
   assert.equal(again.json.permissions, undefined);
   assert.ok(!again.json.actions.some((a) => a.kind === 'permissions'), again.stdout);
   // A plan lists them as a line of its own, not taken.
   const plan = await cli(machine({ toolRules: false }), api, 'setup', '--offline', '--dry-run');
-  assert.match(plan.stdout, /\n  – let Claude Code use PassionCode's own tools without asking: allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__observatory \(asked in a terminal, or --allow-tools\)\n/, plan.stdout);
+  assert.doesNotMatch(plan.stdout, /still asks/, plan.stdout); // a plan lists them; the hint is for a run
+  assert.match(plan.stdout, /\n  – let Claude Code use PassionCode's own tools without asking: allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory \(asked in a terminal, or --allow-tools\)\n/, plan.stdout);
+  // A dry run with --allow-tools shows them taken, as the run would take them.
+  const dryAllowed = await cli(machine({ toolRules: false }), api, 'setup', '--offline', '--dry-run', '--allow-tools');
+  assert.match(dryAllowed.stdout, /\n  • let Claude Code use PassionCode's own tools without asking: /, dryAllowed.stdout);
+  // While they are offered, a train-only plan lists them after the train and promises the question they get.
+  const { render } = require('../lib/setup');
+  const empty = { summary: {}, checks: [] };
+  const trainPlan = render({ mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true, trainNotSaved: 'org-test', permissions: { rules: [...P.RULES], error: null, taken: false } });
+  assert.match(trainPlan, /\n  • save release train org-test\n  – let Claude Code use PassionCode's own tools without asking: [^\n]*\n/, trainPlan);
+  assert.match(trainPlan, /\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/, trainPlan);
+  // Taken already (--allow-tools), they ask nothing: a train-only plan keeps the quiet footer.
+  const takenPlan = render({ mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true, trainNotSaved: 'org-test', permissions: { rules: [...P.RULES], error: null, taken: true } });
+  assert.match(takenPlan, /\n  • let Claude Code use PassionCode's own tools without asking: /, takenPlan);
+  assert.match(takenPlan, /\nRun it with --yes, or in a terminal, to apply\.\n/, takenPlan);
   // Settings that cannot be read are named and left as they are.
   const broken = machine({ toolRules: false });
   fs.mkdirSync(path.dirname(settingsOf(broken)), { recursive: true });
   fs.writeFileSync(settingsOf(broken), '{ not json');
   const named = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
+  assert.equal(named.status, 0, named.stdout + named.stderr);
+  assert.doesNotMatch(named.stdout, /FAILED/, named.stdout); // nothing was offered, so nothing was tried
   assert.match(named.stdout, /\nClaude Code's settings were not changed: .*settings\.json is not valid JSON/, named.stdout);
   assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
   // doctor --fix repairs; it never decides the tool rules.
@@ -1106,16 +1128,16 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
 
 test('PC-117: in a terminal the tool rules are one question of their own, default no', async (t) => {
   const api = await releaseServer(t);
-  const run = (m, answer) => {
+  const run = (m, answer, extra = {}) => {
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
       const asked = [];
-      S.setup({ online: false, noApps: true, ask: async (q) => { asked.push(q); return ${JSON.stringify(answer)}(q); } })
+      S.setup({ online: false, noApps: true, ...${JSON.stringify(extra)}, ask: async (q) => { asked.push(q); return ${JSON.stringify(answer)}(q); } })
         .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, permissions: r.permissions, actions: r.actions.map((a) => a.kind + ':' + a.outcome), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`.replace(`${JSON.stringify(answer)}(q)`, `(${answer})(q)`);
     const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr);
     return JSON.parse(r.stdout);
   };
-  const question = "Let Claude Code use PassionCode's own tools without asking (allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__observatory)? [y/N] ";
+  const question = "Let Claude Code use PassionCode's own tools without asking (allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory)? [y/N] ";
   // Enter keeps the default: no; the repairs still run.
   const enter = machine({ toolRules: false });
   const quiet = run(enter, "() => ''");
@@ -1128,7 +1150,17 @@ test('PC-117: in a terminal the tool rules are one question of their own, defaul
   const ruled = run(only, '(q) => (/^Let Claude Code/.test(q) ? "y" : "n")');
   assert.equal(ruled.declined, undefined, ruled.text);
   assert.deepEqual(ruled.actions, ['permissions:done'], ruled.text);
-  assert.match(ruled.text, /allowed mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__observatory in .*settings\.json: Claude Code uses these tools without asking/, ruled.text);
+  assert.match(ruled.text, /allowed mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory in .*settings\.json: Claude Code uses these tools without asking/, ruled.text);
+  // --allow-tools in a terminal is that yes already: the question is not asked again, and no means no elsewhere.
+  const given = machine({ toolRules: false });
+  const pre = run(given, '() => "n"', { allowTools: true });
+  assert.ok(!pre.asked.some((q) => /^Let Claude Code/.test(q)), JSON.stringify(pre.asked));
+  assert.ok(pre.actions.includes('permissions:done'), JSON.stringify(pre.actions));
+  // A declined named train lists no plan, yet still says how to add the rules.
+  const declined = run(onTrain(machine({ toolRules: false })), '() => "n"', { train: 'org-test' });
+  assert.equal(declined.declined, true, declined.text);
+  assert.doesNotMatch(declined.text, /let Claude Code use/, declined.text);
+  assert.match(declined.text, /setup --allow-tools/, declined.text);
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
