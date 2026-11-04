@@ -44,7 +44,7 @@ test('PC-123: the first run says so once on stderr, then sends installed, active
   const again = await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: err.stream, code: 1, command: 'setup' }));
   assert.equal(err.out.length, 1);
   assert.deepEqual(again.body.map((e) => e.eventName), ['command_run', 'app_error']);
-  assert.deepEqual(again.body[1].props, { where: 'setup', code: 'other', surface: 'cli', iid: id, environment: 'production' });
+  assert.deepEqual(again.body[1].props, { where: 'setup', code: 'other', surface: 'cli', iid: id, install_id: id, environment: 'production' });
   // A new version and a new day.
   const next = await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: err.stream, version: '0.2.77', now: new Date('2026-11-06T09:00:00Z') }));
   assert.deepEqual(next.body.map((e) => [e.eventName, e.props.from]), [['app_updated', '0.2.76'], ['app_active', undefined], ['command_run', undefined]]);
@@ -95,7 +95,7 @@ test('PC-123: no payload carries a path, a user name, a rule or a token', async 
   const text = JSON.stringify(r.calls[0].body);
   for (const planted of [h, 'example-person', 'Bash(rm', secret, os.userInfo().username]) assert.ok(!text.includes(planted), planted);
   assert.equal(r.calls[0].body.at(-1).props.command, 'other', 'a command not in the list is sent as other');
-  for (const e of r.calls[0].body) for (const [k, v] of Object.entries(e.props)) assert.ok(typeof v !== 'string' || k === 'iid' || /^[a-z0-9._-]+$/.test(v), `${k}=${v}`);
+  for (const e of r.calls[0].body) for (const [k, v] of Object.entries(e.props)) assert.ok(typeof v !== 'string' || k === 'iid' || k === 'install_id' || /^[a-z0-9._-]+$/.test(v), `${k}=${v}`);
 });
 
 test('PC-123: a failed or slow send never fails the command', async () => {
@@ -143,7 +143,7 @@ test('PC-123: every event carries iid, surface cli and an environment growth cou
       assert.equal(e.props.surface, 'cli');
       assert.equal(e.props.environment, environment, version);
       assert.equal(e.systemProps.isDebug, environment !== 'production');
-      assert.equal('install_id' in e.props, false);
+      assert.equal(e.props.install_id, e.props.iid, 'install_id is always iid: the family joins on it');
     }
   }
 });

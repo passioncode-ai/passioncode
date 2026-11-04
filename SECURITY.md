@@ -85,7 +85,8 @@ or a program, without checking which (PC-133 tracks a stronger gate for `bypassP
 Each command sends, when it ends, the events listed in [docs/analytics-events.md](docs/analytics-events.md) to
 `https://analytics.passioncode.ai`: fixed words and counts, the time, a random id for the run, the launcher version, the
 OS name and kernel release, the locale, the Node.js version (with the engine name `Node` and an empty build number), an
-SDK tag, a debug flag and the installation id every PassionCode app on the machine shares. Never a path, a name, a rule,
+SDK tag, a debug flag and the installation id every PassionCode app on the machine shares (sent as `iid` and, with the
+same value, `install_id`). Never a path, a name, a rule,
 an argument, a token, an error message or a file's content: every property is a fixed word, the previous launcher
 version or the installation id (`test/analytics.test.js` plants a home path, a user name, a rule
 and a token and fails if one is sent, and checks the exact fields sent). Only the published

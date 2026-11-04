@@ -14,14 +14,16 @@ from the release secret, so a checkout, a test or a fork sends nothing.
 
 Every event carries the time, a random id for the run (`sessionId`) and the fields Aptabase's SDKs send: the launcher
 version, the OS name and its kernel release (for example `Darwin 25.6.0`, not the macOS version), the locale, the
-Node.js version, an SDK tag and a debug flag (true for `sandbox`). And three properties: `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
-(created once if absent, never rewritten; growth counts installations by it); `surface`, `cli` (a value of its own is
+Node.js version, an SDK tag and a debug flag (true for `sandbox`). And four properties: `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
+(created once if absent, never rewritten; growth counts installations by it); `install_id`, always equal to `iid` (the
+key questions across PassionCode apps join on, which the apps send too; kept for the family's compatibility, never a
+second id); `surface`, `cli` (a value of its own is
 added if the SessionStart hook ever sends); and `environment`, `production` for a release version `x.y.z` and `sandbox`
 for any other (`-rc.N`, `-beta.N`, a build tag).
 
 | Event | Status | Sent from | When | Properties | Added |
 | --- | --- | --- | --- | --- | --- |
-| `app_installed` | live | lib/analytics.js:116 | the first command on this machine that sends anything | `existing`: `"true"` when the launcher was installed here before the counts existed (its `~/.passioncode/state.json` was there when the first run of a counting version started, whatever its flags; that answer is kept in `analytics.json` until it is sent), `"false"` for a new install (a string, as every property: growth filters only string properties) | 2026-11-04 |
+| `app_installed` | live | lib/analytics.js:116 | the first command on this machine that sends anything | `existing`: `"true"` when the launcher was installed here before the counts existed (its `~/.passioncode/state.json` was there when the first run of a counting version started, whatever its flags; that answer is kept in `analytics.json` until it is sent; so a machine an agent sets up with `setup --json` counts as a new install), `"false"` for a new install (a string, as every property: growth filters only string properties) | 2026-11-04 |
 | `app_updated` | live | lib/analytics.js:117 | the first command after the launcher's version changed (an update the SessionStart hook ran is counted at the next command, so it can arrive a session late) | `from`: the previous version | 2026-11-04 |
 | `app_active` | live | lib/analytics.js:120 | the first command of a UTC day on this machine (counts daily active machines; two commands that end at the same moment on a new day may both send it) | none | 2026-11-04 |
 | `command_run` | live | lib/analytics.js:123 | every command, when it ends | `command`: `setup`, `doctor`, `update`, `status`, `restore`, `config`, `uninstall`, `permissions`, `analytics` or `help` (any other word is sent as `other`, never as typed; a new command gets a new value here in the same change, a removed one is marked retired and its value is never reused); `outcome`: `ok` (exit 0), `failed` (exit 1: a check or a step failed) or `usage` (exit 2: the words given were not a command the launcher takes); `duration`: `under-1s`, `1-10s`, `10-60s` or `over-60s` (the bounds are part of the series: other bounds would be a new property, never new meanings of these); `json`: `"true"` or `"false"` (strings) | 2026-11-04 |
@@ -48,3 +50,10 @@ is no earlier "no" of its own to keep; a person who said no in an app says it ag
 
 The host sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing
 it; events are kept two years and the installation id is removed from them after 400 days.
+
+## Breaks in other products' series
+
+- From launcher 0.2.76 (released 2026-11-04 or later; the date is set when the tag is published), the launcher creates the
+  shared `installation.json` at its first counted run, often before any PassionCode app starts. On machines set up with
+  the launcher, the apps' `app_installed` then carries `first_passioncode_app` false more often. The drop is a change in
+  measurement, not in what people do: read it as a break in the series.
