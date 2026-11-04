@@ -8,13 +8,17 @@ event stays listed as retired with its date. `test/analytics.test.js` fails when
 ## What is sent
 
 One batch when a command ends, to `https://analytics.passioncode.ai` (the organization's Aptabase, app "PassionCode"),
-with a two-second ceiling; a failed send is dropped and never kept for a later run
+with a two-second ceiling (the run that shows the notice may first wait up to two seconds more for it to be written);
+a failed send is dropped and never kept for a later run
 ([lib/analytics.js](../lib/analytics.js)). Only the published package carries the App Key: the publish job writes it
 from the release secret, so a checkout, a test or a fork sends nothing.
 
 Every event carries the time, a random id for the run (`sessionId`) and the fields Aptabase's SDKs send: the launcher
 version, the OS name and its kernel release (for example `Darwin 25.6.0`, not the macOS version), the locale, the
-Node.js version, an SDK tag and a debug flag (true for `sandbox`). And four properties (a run that cannot read, find or create a usable id in the shared file sends nothing: no count without the id): `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
+Node.js version, an SDK tag and a debug flag (true for `sandbox`). The shared file is `~/Library/Application Support/PassionCode/installation.json` on macOS,
+`%APPDATA%\PassionCode\installation.json` on Windows and `$XDG_CONFIG_HOME/PassionCode/installation.json` (else
+`~/.config`) on Linux, where Fabric, Fabric Dashboards and Fabric Inbox keep it too; on Linux Fabric Switchboard keeps its
+own under `~/.local/share` for now, so there the two do not share an id. And four properties (a run that cannot read, find or create a usable id in the shared file sends nothing: no count without the id): `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
 (created once if absent, never rewritten; growth counts installations by it); `install_id`, always equal to `iid` (the
 key questions across PassionCode apps join on, which the apps send too; kept for the family's compatibility, never a
 second id); `surface`, `cli` (a value of its own is
@@ -48,7 +52,7 @@ on, `status` says whether they are sent and why not); the choice is saved in `~/
 `PASSIONCODE_HOME` when it is set), absent meaning on; a file that is there but cannot be read counts as off for that run
 and is not rewritten until `analytics on` or `off` writes it again. `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turns them off for
 one process. Off sends nothing and stores nothing new. The shared `installation.json` field `analytics` belongs to the
-apps; the launcher reads it once. A shared file that is there but cannot be read (a permission, a half-written file)
+apps; the launcher reads it only until it first counts. A shared file that is there but cannot be read (a permission, a half-written file)
 is not an answer: nothing is sent until it can be read, and the launcher looks again at the next run. Until the launcher first counts (its notice shown), every run looks: a shared `analytics: false` (a "no" the
 person already gave in a PassionCode app, such as Fabric's switch) is kept as the launcher's own off: nothing is sent,
 `analytics status` says why, and `analytics on` turns the counts on for the launcher alone. Once it has counted, the
@@ -58,7 +62,8 @@ final: a shared "no" is not read over it.
 
 Reading the launcher's own series: existing machines are counted from their first run without `--json` or `--quiet`
 after 0.2.76 (or the setup skill's `analytics status`), so the early `existing` installs and daily active machines are a
-floor that rises as machines run setup again, not adoption.
+floor that rises as machines run setup again, not adoption. A run of an older version after a newer one (a caller that pins a version) is also sent as
+`app_updated`, with the newer version in `from`.
 
 The host sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing
 it; events are kept two years and the installation id is removed from them after 400 days.

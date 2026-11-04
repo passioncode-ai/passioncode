@@ -12,7 +12,9 @@
   that (the setup skill has an agent show it to the person);
   `analytics off` turns the counts off for the launcher alone, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` for one
   process; a "no" already given in a PassionCode app (the shared `installation.json`) is kept as the launcher's off.
-  Only the published package carries the App Key. The events are listed in `docs/analytics-events.md`.
+  `analytics on` and `analytics status` turn them back on and say whether they are sent and why not; the background
+  update the SessionStart hook starts sends nothing. Only the published package carries the App Key. The events are
+  listed in `docs/analytics-events.md`.
 - **`doctor` checks what sessions Fabric starts need** (PC-124): a `sessions.on-demand` row names what a session Fabric
   starts on a board request still lacks with Claude Code as the default agent (Fabric Switchboard, Fabric's MCP server
   in Claude Code, the skill set, the tool rules), and is information only on Linux, while Fabric is not installed or when only the tool rules or Claude Code itself are

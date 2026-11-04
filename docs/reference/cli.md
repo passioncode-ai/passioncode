@@ -371,7 +371,8 @@ that would send something, without `--json` or `--quiet`, prints the notice once
 person); a `--json` or `--quiet` run prints nothing and sends nothing until such a run has shown it. `analytics off` turns the counts off for the launcher alone, saved in
 `~/.passioncode/analytics.json`; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turns them off for one process. A
 checkout or a test sends nothing: only the published package carries the App Key. A send never makes a command fail
-and never delays it by more than two seconds.
+and never delays it by more than two seconds (about four on the run that shows the notice, which first waits for it to be
+written).
 
 ## Uninstall and reinstall
 
