@@ -412,3 +412,22 @@ test('PC-123: the unreadable-switch message names the file where it is', () => {
   const r = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'passioncode.js'), 'analytics', 'status'], { env, encoding: 'utf8' });
   assert.ok(r.stdout.includes(path.join(state, 'analytics.json')), r.stdout);
 });
+
+test('PC-123: the notice is recorded only once printed: a run meanwhile waits, and an off saved meanwhile survives a failed notice', async () => {
+  const { EventEmitter } = require('events');
+  const h = home(); const r = recorder();
+  const opts = base(h, { fetchImpl: r.fetchImpl });
+  let held;
+  const stream = Object.assign(new EventEmitter(), { write: (text, cb) => { held = cb; return false; } });
+  const first = A.after({ ...opts, stderr: stream });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(A.readState(opts.state).noticeAt, undefined, 'not recorded while the write is unconfirmed');
+  fs.utimesSync(path.join(opts.state, 'analytics-notice'), opts.now, opts.now); // the claim is as fresh as this test's clock
+  assert.deepEqual(await A.after({ ...opts, stderr: quiet().stream }), { sent: 0, waiting: 'notice' }, 'a run meanwhile sends nothing');
+  A.setEnabled(opts.state, false); // the person turns them off while the notice is pending
+  stream.emit('error', new Error('EPIPE'));
+  assert.deepEqual(await first, { sent: 0 });
+  assert.equal(r.calls.length, 0);
+  assert.equal(A.readState(opts.state).enabled, false, 'the off survives');
+  assert.equal(typeof held, 'function');
+});

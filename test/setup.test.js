@@ -490,6 +490,11 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', a
   assert.ok(fabRow && fabRow.state !== 'ok' && fabRow.fix, JSON.stringify(fabRow));
   assert.match(bs.detail, /a usable Fabric MCP server in Claude Code/);
   assert.ok(bs.fix.includes(fabRow.fix), bs.fix);
+  // An entry in a form doctor does not read: a note, never 'missing' with a setup that would leave it alone.
+  const odd = JSON.parse(keep); odd.mcpServers = { ...(odd.mcpServers || {}), fabric: { weird: true } }; fs.writeFileSync(cj, JSON.stringify(odd));
+  const oddRow = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand');
+  assert.doesNotMatch(oddRow.detail, /missing Fabric's MCP server/);
+  assert.ok(!oddRow.fix || !oddRow.fix.endsWith('passioncode@latest setup'), String(oddRow.fix));
   fs.writeFileSync(cj, keep);
   // No Claude Code at all: the default agent may be another, so the row is information too.
   const noClaude = require('child_process').spawnSync(process.execPath, [BIN, 'doctor', '--json'], { env: { ...cliEnv(m, api), PASSIONCODE_CLAUDE: path.join(m.home, 'no-claude') }, encoding: 'utf8' });
