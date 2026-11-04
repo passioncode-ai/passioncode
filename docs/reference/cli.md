@@ -359,6 +359,10 @@ permissions ledger was not updated"); `permissions` then lists them as not in th
 
 ## Anonymous usage counts
 
+"Changes nothing" and "nothing was changed" across the CLI (doctor, status, a plan, a dry run, a refused argument) mean
+the setup: the counts' own files (`analytics.json`, its notice marker, the shared `installation.json`) and their one
+request are written and sent apart from that, unless they are off.
+
 Every command sends, when it ends, a few anonymous counts to PassionCode's analytics host: which command ran, how it
 ended, how long it took in coarse buckets, and once a day that the launcher was used (PC-123). The events, their fixed
 properties, the notice and what is never sent are in the [event catalogue](../analytics-events.md). The first command

@@ -481,6 +481,16 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', a
   const noRules = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand');
   assert.deepEqual([noRules.state, noRules.fix], ['info', 'npx @passioncode-ai/passioncode@latest setup --allow-tools'], 'declined rules alone are the person\'s choice: information');
   assert.match(noRules.detail, /missing Claude Code's rules for PassionCode's own tools$/);
+  // A Fabric entry Claude Code has but cannot use: the row reuses that entry's own repair (setup leaves it alone).
+  const cj = path.join(m.home, '.claude.json'); const keep = fs.readFileSync(cj, 'utf8');
+  const cdoc = JSON.parse(keep); cdoc.mcpServers = { ...(cdoc.mcpServers || {}), fabric: { command: '/bin/echo', args: [] } }; fs.writeFileSync(cj, JSON.stringify(cdoc));
+  const broken = (await cli(m, api, 'doctor', '--json')).json.checks;
+  const fabRow = broken.find((x) => x.id === 'mcp.claude.fabric');
+  const bs = broken.find((x) => x.id === 'sessions.on-demand');
+  assert.ok(fabRow && fabRow.state !== 'ok' && fabRow.fix, JSON.stringify(fabRow));
+  assert.match(bs.detail, /a usable Fabric MCP server in Claude Code/);
+  assert.ok(bs.fix.includes(fabRow.fix), bs.fix);
+  fs.writeFileSync(cj, keep);
   // No Claude Code at all: the default agent may be another, so the row is information too.
   const noClaude = require('child_process').spawnSync(process.execPath, [BIN, 'doctor', '--json'], { env: { ...cliEnv(m, api), PASSIONCODE_CLAUDE: path.join(m.home, 'no-claude') }, encoding: 'utf8' });
   const nc = JSON.parse(noClaude.stdout).checks.find((x) => x.id === 'sessions.on-demand');

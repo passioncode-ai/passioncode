@@ -249,7 +249,7 @@ test('PC-123: a machine an agent sets up with --json is a new install, and the f
   const status = run('analytics', 'status');
   assert.equal(status.status, 0, status.stderr);
   assert.doesNotMatch(status.stdout, /nothing is sent/);
-  assert.match(status.stdout, /this run shows the notice below/);
+  assert.match(status.stdout, /this run shows their notice on stderr/);
   assert.match(status.stderr, /The PassionCode launcher sends anonymous usage and error counts/);
   const first = JSON.parse(fs.readFileSync(log, 'utf8').trim().split('\n')[0]);
   assert.equal(first.find((e) => e.eventName === 'app_installed').props.existing, 'false');

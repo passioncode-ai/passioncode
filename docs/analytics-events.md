@@ -14,7 +14,8 @@ from the release secret, so a checkout, a test or a fork sends nothing.
 
 Every event carries the time, a random id for the run (`sessionId`) and the fields Aptabase's SDKs send: the launcher
 version, the OS name and its kernel release (for example `Darwin 25.6.0`, not the macOS version), the locale, the
-Node.js version, an SDK tag and a debug flag (true for `sandbox`). And four properties: `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
+Node.js version, an SDK tag and a debug flag (true for `sandbox`). And four properties (the two ids only when the shared file can be read; an install whose file cannot be read is counted
+without them): `iid`, the id in the shared `PassionCode/installation.json` that every PassionCode app on the machine uses
 (created once if absent, never rewritten; growth counts installations by it); `install_id`, always equal to `iid` (the
 key questions across PassionCode apps join on, which the apps send too; kept for the family's compatibility, never a
 second id); `surface`, `cli` (a value of its own is
