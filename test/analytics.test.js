@@ -77,14 +77,14 @@ test('PC-123: off, PASSIONCODE_ANALYTICS=off, DO_NOT_TRACK and a build with no k
     assert.equal(fs.existsSync(path.join(h, '.config', 'PassionCode', 'installation.json')), false, `${name}: no installation file`);
     assert.equal(A.status({ state: opts.state, env: opts.env, key: opts.key }).reason, name);
   }
-  // The shared file's own `analytics` field belongs to the apps: it never turns the launcher off.
+  // Another app made the shared file: its id is used as it is (its `analytics` no is the next test's).
   const h = home(); const r = recorder();
   const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
   fs.mkdirSync(path.dirname(shared), { recursive: true });
-  fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: false, created_at: 1 }));
+  fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: true, created_at: 1 }));
   const sent = await A.after(base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream }));
   assert.equal(sent.body[0].props.iid, '11111111-2222-4333-8444-555555555555');
-  assert.equal(JSON.parse(fs.readFileSync(shared, 'utf8')).analytics, false, 'the shared file is never rewritten');
+  assert.equal(JSON.parse(fs.readFileSync(shared, 'utf8')).analytics, true, 'the shared file is never rewritten');
 });
 
 test('PC-123: no payload carries a path, a user name, a rule or a token', async () => {
@@ -153,7 +153,7 @@ test('PC-123: the real command keeps its exit code, and a host that never answer
   const keyFile = path.join(h, 'key.json');
   fs.writeFileSync(keyFile, JSON.stringify({ appKey: KEY }));
   const preload = path.join(h, 'fetch.js'); // no request leaves the machine: fetch is replaced before the CLI loads
-  fs.writeFileSync(preload, `const fs = require('fs'); globalThis.fetch = (url, init) => { fs.appendFileSync(${JSON.stringify(path.join(h, 'sent.log'))}, init.body + '\\n'); return new Promise((resolve, reject) => { if (process.env.HANG) init.signal.addEventListener('abort', () => reject(new Error('aborted'))); else resolve({ ok: true, status: 200 }); }); };`);
+  fs.writeFileSync(preload, `const fs = require('fs'); globalThis.fetch = (url, init) => { fs.appendFileSync(${JSON.stringify(path.join(h, 'sent.log'))}, init.body + '\\n'); return new Promise((resolve, reject) => { if (process.env.HANG) { const hold = setInterval(() => {}, 1000); init.signal.addEventListener('abort', () => { clearInterval(hold); reject(new Error('aborted')); }); } else resolve({ ok: true, status: 200 }); }); };`);
   const env = { ...process.env, HOME: h, USERPROFILE: h, APPDATA: path.join(h, 'AppData'), XDG_CONFIG_HOME: path.join(h, '.config'),
     PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_ANALYTICS_KEY_FILE: keyFile };
   delete env.DO_NOT_TRACK; delete env.PASSIONCODE_ANALYTICS;
@@ -168,7 +168,8 @@ test('PC-123: the real command keeps its exit code, and a host that never answer
   const t0 = Date.now();
   const slow = run(['analytics', 'status'], { HANG: '1' });
   assert.equal(slow.status, 0);
-  assert.ok(Date.now() - t0 < 4000, `took ${Date.now() - t0} ms`);
+  const took = Date.now() - t0; // the stub holds the process until the ceiling aborts the send
+  assert.ok(took >= 1800 && took < 4000, `took ${took} ms`);
 });
 
 test('PC-124: on Linux the sessions row says doctor checks their apps on macOS and Windows only', () => {
@@ -248,7 +249,7 @@ test('PC-123: a machine an agent sets up with --json is a new install, and the f
   const status = run('analytics', 'status');
   assert.equal(status.status, 0, status.stderr);
   assert.doesNotMatch(status.stdout, /nothing is sent/);
-  assert.match(status.stdout, /the notice below is shown now/);
+  assert.match(status.stdout, /this run shows the notice below/);
   assert.match(status.stderr, /The PassionCode launcher sends anonymous usage and error counts/);
   const first = JSON.parse(fs.readFileSync(log, 'utf8').trim().split('\n')[0]);
   assert.equal(first.find((e) => e.eventName === 'app_installed').props.existing, 'false');
@@ -273,4 +274,29 @@ test('PC-123: a stale notice marker with no record behind it is claimed again, a
   fs.utimesSync(path.join(opts.state, 'analytics-notice'), old, old);
   assert.equal((await A.after(opts)).sent, 3, 'stale: the notice is shown again and counts resume');
   assert.equal(err.out.length, 2);
+});
+
+test('PC-123: a "no" already given in a PassionCode app is kept as the launcher\'s off, once; analytics on lifts it for the launcher alone', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  fs.mkdirSync(path.dirname(shared), { recursive: true });
+  fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: false, created_at: 1 }) + '\n');
+  assert.deepEqual(await A.after({ ...opts, json: true }), { sent: 0 }, 'decided by the first run, whatever its flags');
+  assert.deepEqual(await A.after(opts), { sent: 0 });
+  assert.equal(r.calls.length, 0); assert.equal(err.out.length, 0, 'no notice: they are off');
+  const st = () => A.status({ state: opts.state, env: opts.env, key: opts.key });
+  assert.deepEqual([st().enabled, st().reason], [false, 'off-elsewhere']);
+  A.setEnabled(opts.state, true);
+  assert.equal((await A.after(opts)).sent, 3, 'the person turned the launcher on: the shared field is not read again');
+  assert.equal(JSON.parse(fs.readFileSync(shared, 'utf8')).analytics, false, 'the shared file is never rewritten');
+});
+
+test('PC-123: a shared "no" written after the first counting run does not turn the launcher off', async () => {
+  const h = home(); const r = recorder();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: quiet().stream });
+  assert.equal((await A.after(opts)).sent, 3);
+  const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
+  const doc = JSON.parse(fs.readFileSync(shared, 'utf8')); doc.analytics = false; fs.writeFileSync(shared, JSON.stringify(doc));
+  assert.ok((await A.after(opts)).sent >= 1, 'one product\'s switch never turns another off later');
 });

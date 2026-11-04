@@ -9,16 +9,16 @@ Contract: brand-contract v1
 | status.npm.time | checked ${checkedAt} | bin/passioncode.js:9 | SCN-001 | proposed | copy |
 | status.npm.unknown-time | check time unknown | bin/passioncode.js:9 | SCN-001 | proposed | copy |
 | status.npm.stale | stale: older than installed | bin/passioncode.js:18 | SCN-001 | proposed | copy |
-| restore.empty | Nothing to restore. | bin/passioncode.js:259 | SCN-004 | proposed | copy |
-| uninstall.empty | Nothing was installed. | bin/passioncode.js:268 | SCN-005 | proposed | copy |
+| restore.empty | Nothing to restore. | bin/passioncode.js:257 | SCN-004 | proposed | copy |
+| uninstall.empty | Nothing was installed. | bin/passioncode.js:266 | SCN-005 | proposed | copy |
 | help.1 | passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills | bin/passioncode.js:21 | SCN-007 | proposed | layout |
 | help.2 | npx @passioncode-ai/passioncode@latest setup [--yes\|-y] [--with ids] [--without ids] [--train name\|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json] a new machine: install and configure everything; an existing one: check, repair, check again npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json] check everything (changes nothing but the anonymous counts); --fix repairs as setup does npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json] install or update the skill set and the apps' MCP registrations npx @passioncode-ai/passioncode@latest status [--json] what is installed where npx @passioncode-ai/passioncode@latest restore [--json] put back what the last update moved aside npx @passioncode-ai/passioncode@latest config set update.auto on\|off [--json] background updates at session start npx @passioncode-ai/passioncode@latest uninstall [--json] remove the set (quarantined items stay restorable) npx @passioncode-ai/passioncode@latest permissions [allow\|remove <rule>...\|mode <mode>] [--by who] [--json] Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules npx @passioncode-ai/passioncode@latest analytics [on\|off\|status] [--json] anonymous usage and error counts (on by default) | bin/passioncode.js:23 | SCN-007 | proposed | layout |
 | help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:35 | SCN-007 | proposed | layout |
-| args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:232 | SCN-007 | proposed | copy |
+| args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:230 | SCN-007 | proposed | copy |
 | args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:81 | SCN-007 | proposed | copy |
 | hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:66 | SCN-006 | proposed | copy |
-| update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files. | bin/passioncode.js:243 | SCN-003 | proposed | copy |
-| update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:243 | SCN-003 | proposed | copy |
+| update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files. | bin/passioncode.js:241 | SCN-003 | proposed | copy |
+| update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:241 | SCN-003 | proposed | copy |
 | setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:184 | SCN-008 | proposed | copy |
 | setup.install-question.preview | (early preview) | lib/setup.js:184 | SCN-008 | proposed | copy |
 | setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:192 | SCN-008, SCN-009 | proposed | copy |
@@ -127,7 +127,14 @@ Contract: brand-contract v1
 | doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:377 | SCN-010 | proposed | copy |
 | doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:395 | SCN-010 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch). | lib/analytics.js:28 | SCN-016 | proposed | copy |
-| analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:206 | SCN-016 | proposed | copy |
+| analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:204 | SCN-016 | proposed | copy |
+| analytics.why.off | turned off (analytics off) | bin/passioncode.js:202 | SCN-016 | proposed | copy |
+| analytics.why.off-elsewhere | off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone | bin/passioncode.js:202 | SCN-016 | proposed | copy |
+| analytics.why.env | off for this process (PASSIONCODE_ANALYTICS=off) | bin/passioncode.js:202 | SCN-016 | proposed | copy |
+| analytics.why.dnt | off for this process (DO_NOT_TRACK) | bin/passioncode.js:202 | SCN-016 | proposed | copy |
+| analytics.why.no-key | this build carries no App Key, so nothing is sent | bin/passioncode.js:202 | SCN-016 | proposed | copy |
+| analytics.why.notice | on: this run shows the notice below (unless another command is showing it right now), and counts are sent to ${A.HOST} from then on | bin/passioncode.js:202 | SCN-016 | proposed | copy |
+| analytics.save-failed | passioncode: the analytics switch could not be saved: ${error.message} | bin/passioncode.js:200 | SCN-016 | proposed | copy |
 | analytics.usage | analytics takes on, off or status | bin/passioncode.js:197 | SCN-016 | proposed | error |
 | perm.done | ${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')} | bin/passioncode.js:142 | SCN-015 | proposed | copy |
 | perm.mode-changed | Default mode: ${values[0]} (was ${r.from === null ? 'not set' : r.from}). | bin/passioncode.js:149 | SCN-015 | proposed | copy |

@@ -90,7 +90,8 @@ same value, `install_id`). Never a path, a name, a rule,
 an argument, a token, an error message or a file's content: every property is a fixed word, the previous launcher
 version or the installation id (`test/analytics.test.js` plants a home path, a user name, a rule
 and a token and fails if one is sent, and checks the exact fields sent). Only the published
-package carries the App Key; `analytics off`, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` stop it (PC-123). The host
+package carries the App Key; `analytics off`, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` stop it, and a "no" already
+given in a PassionCode app (the shared `installation.json` field `analytics: false`) is kept as the launcher's off (PC-123). The host
 sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing it;
 events are kept two years and the installation id is removed from them after 400 days.
 

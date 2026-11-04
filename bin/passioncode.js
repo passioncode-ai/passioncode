@@ -199,9 +199,7 @@ function analyticsCommand(rest) {
   try { if (verb !== 'status') A.setEnabled(state, verb === 'on'); }
   catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
   const s = A.status({ state });
-  const why = { off: 'turned off (analytics off)', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: 'on, and nothing is sent until this notice has been shown once by a command run without --json or --quiet' };
-  // Without --json this very run shows the notice and sends, so "nothing is sent yet" would be false by the time it exits.
-  if (!json && s.reason === 'notice') why.notice = `on: the notice below is shown now, and counts are sent to ${s.host} from this command on`;
+  const why = { off: 'turned off (analytics off)', 'off-elsewhere': 'off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: `on: this run shows the notice below (unless another command is showing it right now), and counts are sent to ${A.HOST} from then on` }; // the text says it; --json reports reason notice
   process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
     : `Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch.\n`);
   return 0;

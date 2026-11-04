@@ -15,7 +15,7 @@
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
 | SCN-009 | Check and repair an existing setup with the same command | setup | Operator | REQ-7a | implemented | 2026-10-13 |
-| SCN-010 | Check the setup without changing anything | doctor | Operator, Automation | REQ-6, REQ-8 | implemented | 2026-10-13 |
+| SCN-010 | Check the setup without changing anything (but the anonymous counts) | doctor | Operator, Automation | REQ-6, REQ-8 | implemented | 2026-10-13 |
 | SCN-011 | A download that fails verification installs nothing | setup | Newcomer | REQ-2 | implemented | 2026-10-13 |
 | SCN-012 | A coding agent sets the computer up from one pasted prompt | setting-up-passioncode | Newcomer | REQ-9, REQ-10 | implemented | 2026-10-13 |
 | SCN-013 | A new session names the problems of the last setup check | session start | Operator | REQ-9 | implemented | 2026-10-13 |
@@ -197,7 +197,7 @@
 - **Coverage:** `test/setup.test.js`, tests beginning `an existing broken setup:` and `a new machine:` (its no-op re-run), `PC-91:`, `PC-92:`, `PC-94:`, `PC-101:`, `PC-104:`, `PC-105:`, `PC-107:`, `PC-108:`, `PC-112:`, `PC-114:`, `PC-117:` and `PC-119:`; `test/windows.test.js` test beginning `PC-108:`.
 - **Product:** unobserved
 
-### SCN-010: Check the setup without changing anything
+### SCN-010: Check the setup without changing anything (but the anonymous counts)
 
 - **Persona:** Operator, Automation
 - **Feature:** doctor
@@ -206,7 +206,7 @@
 - **Steps:**
   1. Run doctor.
   2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
-- **Expected result:** Nothing is installed, registered, started, stopped or opened. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
+- **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
@@ -320,7 +320,7 @@
   2. Run `analytics off`: nothing is sent from then on; `analytics status` says "turned off (analytics off)" and that each PassionCode app has its own switch.
   3. Run `analytics on` to send them again.
 - **Expected result:** Each command sends, when it ends, the events of docs/analytics-events.md with fixed words only; the switch is the launcher's own and never turns another PassionCode app off.
-- **Alt paths:** `--json` and `--quiet` runs never print the notice and send nothing until it was shown, and `analytics status` then says nothing is sent until the notice has been shown once; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
+- **Alt paths:** `--json` and `--quiet` runs never print the notice and send nothing until it was shown, and `analytics status --json` then reports reason `notice`; a `no` given earlier in a PassionCode app (the shared file's `analytics: false`) is kept as the launcher's off, which `analytics status` names and `analytics on` lifts for the launcher alone; `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` turn the counts off for one process; the background update at session start sends nothing; a build without a key says "this build carries no App Key, so nothing is sent".
 - **UI elements:** The notice line on stderr, the status line, the JSON status, exit code.
 - **States covered:** success, empty, error
 - **Errors & recovery:** A send that fails or is slow is dropped after two seconds and never fails the command; a word other than on, off or status exits 2.
