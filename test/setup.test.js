@@ -80,7 +80,7 @@ function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign
 }
 
 // toolRules: PassionCode's Claude Code tool rules already in place (PC-117), so other tests see no such offer.
-function machine({ tools = TOOLS, toolRules = true } = {}) {
+function machine({ tools = TOOLS, toolRules = true, commandRules = true } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-setup-'));
   const payload = path.join(home, 'payload'); makePayload(payload);
   const bin = path.join(home, 'fakebin'); fs.mkdirSync(bin);
@@ -90,9 +90,10 @@ function machine({ tools = TOOLS, toolRules = true } = {}) {
   fs.writeFileSync(path.join(home, 'key.asc'), KEY.publicArmour);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: {} }));
   fs.mkdirSync(path.join(home, '.claude'), { recursive: true }); // Claude Code is here
-  if (toolRules) {
-    fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: [...require('../lib/permissions').RULES] } }));
-  }
+  // commandRules: the launcher's own command rules already in place too (PC-119).
+  const P = require('../lib/permissions');
+  const allow = [...(toolRules ? P.RULES : []), ...(commandRules ? P.COMMANDS.map((r) => r.rule) : [])];
+  if (allow.length) fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow } }));
   fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
   fs.mkdirSync(path.join(home, 'Applications'));
   fs.mkdirSync(path.join(home, 'services'));
@@ -1070,7 +1071,7 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const plain = machine({ toolRules: false });
   const yes = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.equal(yes.status, 0, yes.stderr + yes.stdout);
-  assert.equal((read(plain) || {}).permissions, undefined, 'no rule was written');
+  assert.ok(!(((read(plain) || {}).permissions || {}).allow || []).some((r) => P.RULES.includes(r)), 'no tool rule was written');
   assert.match(yes.stdout, /\nClaude Code still asks before it uses PassionCode's own tools\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, yes.stdout);
   // Run again with nothing else to do: not "everything ... is in place" while the rules are offered.
   const rerun = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
@@ -1190,7 +1191,7 @@ test('PC-117: in a terminal the tool rules are one question of their own, defaul
   assert.ok(quiet.asked.includes(question), JSON.stringify(quiet));
   assert.equal(quiet.permissions.taken, false);
   const after = path.join(enter.home, '.claude', 'settings.json');
-  assert.equal(fs.existsSync(after) ? JSON.parse(fs.readFileSync(after, 'utf8')).permissions : undefined, undefined, 'no rule was written');
+  assert.ok(!((JSON.parse(fs.readFileSync(after, 'utf8')).permissions || {}).allow || []).some((r) => require('../lib/permissions').RULES.includes(r)), 'no tool rule was written');
   // Yes to the rules alone, no to the repairs: the rules are added, and the run is not a declined one.
   const only = machine({ toolRules: false });
   const ruled = run(only, '(q) => (/^Let Claude Code/.test(q) ? "y" : "n")');
@@ -1226,6 +1227,80 @@ test('PC-117: in a terminal the tool rules are one question of their own, defaul
   assert.match(declined.text, /\nYou declined every offer/, declined.text);
   assert.doesNotMatch(declined.text, /Plan \(nothing was changed\)|let Claude Code use/, declined.text);
   assert.match(declined.text, /setup --allow-tools/, declined.text);
+});
+
+// PC-119: rules for shell commands, the launcher's own and those an agent declares on the machine, are a set of
+// their own: shown in the plan with what each allows, added only on their own yes.
+test('PC-119: setup offers the command rules apart, adds them only on their own yes, and names what it does not offer', async (t) => {
+  const api = await releaseServer(t);
+  const P = require('../lib/permissions');
+  const settingsOf = (m) => path.join(m.home, '.claude', 'settings.json');
+  const allowOf = (m) => ((JSON.parse(fs.readFileSync(settingsOf(m), 'utf8')).permissions || {}).allow || []);
+  const declare = (m, doc) => {
+    fs.mkdirSync(path.join(m.home, '.passioncode', 'rules.d'), { recursive: true });
+    fs.writeFileSync(path.join(m.home, '.passioncode', 'rules.d', 'own-agent.json'), JSON.stringify(doc));
+  };
+  // --yes alone takes nothing; the result names the set and the text says how to add it.
+  const m = machine({ commandRules: false });
+  declare(m, { by: 'Own Agent', rules: [{ rule: 'Bash(own-cli exempt:*)', why: 'let Own Agent exempt a chat' }, { rule: 'Bash(python3 *)', why: 'anything' }] });
+  const json = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
+  assert.equal(json.status, 0, json.stdout);
+  assert.deepEqual(json.json.commands.rules, [{ ...P.COMMANDS[0] }, { rule: 'Bash(own-cli exempt:*)', why: 'let Own Agent exempt a chat', by: 'Own Agent' }]);
+  assert.equal(json.json.commands.taken, false);
+  assert.equal(json.json.commands.refused.length, 1, json.stdout);
+  assert.ok(!json.json.actions.some((a) => a.kind === 'commands'), json.stdout);
+  assert.ok(!allowOf(m).includes('Bash(gh pr merge:*)'), 'nothing was added');
+  const text = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.match(text.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, text.stdout);
+  assert.match(text.stdout, /\nClaude Code still asks before it runs Bash\(gh pr merge:\*\), Bash\(own-cli exempt:\*\)\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands\n/, text.stdout);
+  assert.match(text.stdout, /\nRules declared on this machine and not offered:\n  .*own-agent\.json: Bash\(python3 \*\): it would allow any command of python3\n/, text.stdout);
+  // A dry run lists the set as one line, each rule under it with what it allows and who declared it.
+  const plan = await cli(m, api, 'setup', '--no-apps', '--offline', '--dry-run');
+  assert.match(plan.stdout, /\n  – let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) \(merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories\)\n      Bash\(own-cli exempt:\*\) \(let Own Agent exempt a chat; declared by Own Agent\)\n/, plan.stdout);
+  assert.match(plan.stdout, /\nRun it without --dry-run, in a terminal or with --allow-commands, to apply\.\n/, plan.stdout);
+  const bare = machine({ toolRules: false, commandRules: false });
+  assert.equal((await cli(bare, api, 'setup', '--yes', '--no-apps', '--offline')).status, 0); // set up, the rules aside
+  const both = await cli(bare, api, 'setup', '--no-apps', '--offline', '--dry-run');
+  assert.match(both.stdout, /\nRun it without --dry-run, in a terminal or with --allow-tools and --allow-commands, to apply\.\n/, both.stdout);
+  // --allow-commands takes the set: the rules are merged, the tool rules and other settings kept.
+  const taken = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands');
+  assert.equal(taken.status, 0, taken.stdout);
+  assert.match(taken.stdout, /done +allowed Bash\(gh pr merge:\*\), Bash\(own-cli exempt:\*\) in .*settings\.json \(an ask or deny rule for them still wins\)/, taken.stdout);
+  assert.deepEqual(allowOf(m), [...P.RULES, 'Bash(gh pr merge:*)', 'Bash(own-cli exempt:*)']);
+  assert.doesNotMatch(taken.stdout, /still asks before it runs/, taken.stdout);
+  const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
+  assert.deepEqual(again.json.commands.rules, [], 'a second run offers nothing');
+  // doctor --fix never decides them.
+  const fix = await cli(machine({ commandRules: false }), api, 'doctor', '--fix', '--offline', '--json');
+  assert.equal(fix.json.commands, undefined, fix.stdout);
+  // --allow-commands is setup's alone.
+  assert.equal((await cli(m, api, 'doctor', '--allow-commands')).status, 2);
+});
+
+test('PC-119: in a terminal the command rules are one question of their own, default no', async (t) => {
+  const api = await releaseServer(t);
+  const run = (m, answer, extra = {}) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      const asked = [];
+      S.setup({ online: false, noApps: true, ...${JSON.stringify(extra)}, ask: async (q) => { asked.push(q); return (${answer})(q); } })
+        .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, commands: r.commands, actions: r.actions.map((a) => a.kind + ':' + a.outcome), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  const question = 'Let Claude Code run these commands without asking: Bash(gh pr merge:*) (merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories)? [y/N] ';
+  const enter = run(machine({ commandRules: false }), "() => ''");
+  assert.ok(enter.asked.includes(question), JSON.stringify(enter.asked));
+  assert.equal(enter.commands.taken, false);
+  assert.ok(!enter.actions.some((a) => a.startsWith('commands:')), JSON.stringify(enter.actions));
+  // Yes to the commands alone, no to the repairs: added, and not a declined run.
+  const only = run(machine({ commandRules: false }), '(q) => (/^Let Claude Code run/.test(q) ? "y" : "n")');
+  assert.equal(only.declined, undefined, only.text);
+  assert.deepEqual(only.actions, ['commands:done'], only.text);
+  // --allow-commands is that yes already.
+  const pre = run(machine({ commandRules: false }), '() => "n"', { allowCommands: true });
+  assert.ok(!pre.asked.some((q) => /^Let Claude Code run/.test(q)), JSON.stringify(pre.asked));
+  assert.ok(pre.actions.includes('commands:done'), JSON.stringify(pre.actions));
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.73 - 2026-11-04
+
+### Added
+
+- **`setup` offers rules for shell commands** (PC-119), a set of its own beside PassionCode's tool rules: one question
+  in a terminal (default no) or `--allow-commands`, never `--yes` alone. The launcher carries `Bash(gh pr merge:*)` and
+  says it cannot be limited to your repositories; an agent of your own declares its rules on the machine in
+  `~/.passioncode/rules.d/<name>.json` (`by`, and each `rule` with `why` it is needed). The plan lists each rule with
+  what it allows and who declared it; a declared rule with a substitution, a separator, a redirection or a wildcard
+  that would allow more than it says is named and not offered. The result carries `commands`.
+
 ## 0.2.72 - 2026-11-04
 
 ### Changed

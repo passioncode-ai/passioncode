@@ -12,7 +12,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
-| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
+| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
@@ -78,7 +78,7 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
-humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
+humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `commands` (PC-119, below) when it lacks a command rule or a declared rule was not offered, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
 `none` when a train is saved) when a run named a train other than the saved one but was only a plan, or was a declined
 terminal run that named one.
 A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
@@ -142,6 +142,29 @@ shell commands (`gh pr merge`, a launchd job), other MCP servers and Fabric Inbo
 An `ask` or `deny` rule for one of these tools (in this file or a project's, local or managed settings file), or a
 managed policy that ignores user rules, still wins over them. They apply to Claude Code only. Existing machines are
 offered them the next time `setup` runs; `update` and the background update do not offer them.
+
+Rules for shell commands (PC-119) are a set of their own, with their own question in a terminal (default no) and
+`--allow-commands`; `--yes` alone does not take them and `doctor --fix` never offers them. The set is the launcher's own
+rules (`Bash(gh pr merge:*)`, to merge a pull request with the GitHub CLI: Claude Code cannot limit a command rule to
+your repositories, so it allows a merge in any) and the rules an agent of your own declares on this machine, each in a
+file `~/.passioncode/rules.d/<name>.json`:
+
+```json
+{ "by": "Your Agent", "rules": [{ "rule": "Bash(your-cli exempt:*)", "why": "let Your Agent exempt a chat" }] }
+```
+
+`by` names the agent and `why` (1 to 200 characters) says what the rule allows; the plan shows each rule with them. A
+rule names one MCP server (`mcp__<server>`) or one command (`Bash(<command>)`, with `:*` or a trailing ` *` for any
+arguments). A command with a substitution (`$(...)`), a separator (`&&`, `;`, `|`) or a redirection, a wildcard
+anywhere but the end, and a wildcard after a program that runs whatever it is given (a shell, `python3`, `node`, `uv
+run`, `npx` and the like) are refused, because Claude Code matches a rule against the command's text and such a rule
+would allow more than it says; the result lists them under `commands.refused` and the text under "Rules declared on
+this machine and not offered". Claude Code asks about a compound command unless every part matches a rule. A rule in
+`~/.claude/settings.json` lets a matching command run without the auto mode classifier (Claude Code's
+permission-modes docs), except writes to protected paths and critical `rm` targets, which no rule allows; for an act
+no rule can describe, Claude Code reads plain-language exceptions under `autoMode` in the same file, which `setup`
+never writes. The result carries `commands: { rules, refused, taken }`; `taken` is the yes, and the `commands` action
+is the proof the rules were written.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
