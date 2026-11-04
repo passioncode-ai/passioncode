@@ -26,8 +26,16 @@
 
 - **`~/.codex/config.toml` keeps its link and its mode** (PC-126): registering an MCP server there, and removing it
   through `restore` or `uninstall`, now writes the file where a link points and keeps its permission bits, as the JSON
-  settings files already did (PC-120); a file the launcher creates is private (0600). Before, a link was replaced by a
-  regular file and the file, which can hold server tokens under `env`, could become readable by others.
+  settings files already did (PC-120); a file the launcher creates is private (mode 600 on macOS and Linux). Before, a
+  link was replaced by a regular file and the file, which can hold server tokens under `env`, could become readable by
+  others.
+- What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
+  `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
+  on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it
+  finds). The file the link pointed at was not written then and holds what it held before that update; the regular
+  file in the link's place holds every change since, so merge that into it before linking again. The copy that update
+  took is in its `~/.passioncode/quarantine/<run>/` as `config.toml.before-mcp-codex-cli`; a removal by `restore` or
+  `uninstall` took none.
 
 ## 0.2.75 - 2026-11-04
 
