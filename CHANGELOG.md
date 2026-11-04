@@ -33,13 +33,14 @@
   files have done so since 0.2.74); make the folder writable, or declare the server in the file the link points to,
   which the update then finds already there.
 - **`restore` and `uninstall` go on past an MCP entry they cannot remove** (PC-127): an entry whose file cannot be
-  read or written now (a link into a locked folder) is kept and stays recorded; `restore` still puts back the rest of
+  opened now (its permissions, a link into a locked folder) is kept and stays recorded; `restore` still puts back the rest of
   the batch and `uninstall` finishes the rest, each lists what it did and exits 1 naming the file. Once the folder is
   readable and writable again, `uninstall` removes the entry, and so does `restore` while that batch is still the latest
-  (an update that prints `recovery entry(s) saved` starts a new one). With `--json`, stdout still holds what was done.
-  Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file could not be
-  read was dropped from the record: a `config.toml` was taken as already cleaned, the JSON files of Claude Code, Gemini
-  and Kimi were reported as kept and then forgotten.
+  (any update that registers or moves something starts a new one, a quiet or background one included). With
+  `--json`, stdout still holds what was done. A file that does not parse is still reported as kept and no longer
+  tracked. Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file the
+  system could not open was dropped from the record: a `config.toml` was taken as already cleaned, the JSON files of
+  Claude Code, Gemini and Kimi were reported as kept and then forgotten.
 - What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
   `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
   on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it

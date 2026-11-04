@@ -818,6 +818,27 @@ test('PC-126: a linked 0640 Codex config.toml stays a link with its mode through
   assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
 });
 
+test('PC-126: a Codex config.toml linked into a folder that cannot be written fails that registration and keeps the link', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, file);
+  fs.chmodSync(path.dirname(real), 0o555);
+  let r;
+  try { r = run(env, 'update', '--json'); } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  assert.equal(r.status, 1);
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  assert.ok(steps.some((s) => s.outcome === 'failed' && s.detail.includes('Codex CLI')), JSON.stringify(steps));
+  assert.equal(steps.filter((s) => s.outcome === 'done').length, 3, 'the other agents are still registered');
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'the link is kept');
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+  assert.deepEqual(fs.readdirSync(path.dirname(real)), ['codex.toml'], 'no temporary file is left');
+});
+
 test('PC-126: a Codex config.toml the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);
@@ -850,7 +871,7 @@ test('PC-127: restore keeps an MCP entry it cannot remove, puts back the rest, a
     const r = run(env, 'restore', '--json');
     assert.equal(r.status, 1, 'a partial restore is not a success');
     assert.ok(r.stderr.includes(`Restore incomplete: ${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
-    assert.match(r.stderr, /folder it points into\) and run restore again; once an update starts a new batch, uninstall removes it/);
+    assert.match(r.stderr, /folder it points into\) and run restore again; once any update has run since, uninstall removes it/);
     const notes = JSON.parse(r.stdout);
     assert.ok(notes.some((n) => n.includes('for Gemini CLI removed from')), 'what it did is still shown: ' + JSON.stringify(notes));
     const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
@@ -935,6 +956,22 @@ test('PC-127: a Gemini settings file that cannot be read is kept recorded, not d
   } finally { fs.chmodSync(path.dirname(real), 0o755); }
   assert.equal(run(env, 'uninstall').status, 0);
   assert.equal(mcpEntry(real), undefined, 'the retry removes it');
+});
+
+test('PC-127: an MCP file whose path now runs through a file, or is a folder, does not hold uninstall back', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  fs.rmSync(path.join(env.home, '.gemini'), { recursive: true });
+  fs.writeFileSync(path.join(env.home, '.gemini'), 'not a folder\n');
+  const kimi = path.join(env.home, '.kimi-code', 'mcp.json');
+  fs.rmSync(kimi);
+  fs.mkdirSync(kimi);
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /mcp\.json: fabric-dashboards for Kimi Code is a folder; kept/);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8')).mcpRegistrations, undefined);
 });
 
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {

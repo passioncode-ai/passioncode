@@ -314,15 +314,19 @@ is treated as consumed, without deleting the destination. If a recorded source
 is present but a user replacement occupies the destination, restore reports a
 conflict; move that replacement aside yourself and retry. If a marketplace cannot
 be re-added or its settings cannot be restored, exit 1 leaves it retryable.
-An MCP registration whose file cannot be read or written now (for example a link
-into a folder that is locked) is kept and left unrestored, the rest of the batch
-is still put back and listed, and restore exits 1 naming the file. Make the file
-and its folder readable and writable (for a link, the folder it points into) and
-run `restore` again: it removes the entry while that batch is still the latest. An
-update that prints `recovery entry(s) saved` starts a new batch, and restore reads
-only the latest, so then `uninstall` removes the entry, or delete it by hand. A
-conflict in the same batch stops restore before it lists the rest; the kept entry
-stays unrestored and the retry names it (PC-127).
+An MCP registration whose file the system cannot open now (its permissions, or a
+link into a folder that is locked) is kept and left unrestored, the rest of the
+batch is still put back and listed, and restore exits 1 naming the file. Make the
+file and its folder readable and writable (for a link, the folder it points into)
+and run `restore` again: it removes the entry while that batch is still the latest.
+Any update that registers or moves something starts a new batch, including
+`update --quiet` and the background update a session start runs, and restore reads
+only the latest: if a later restore succeeds while the entry is still in the file,
+`uninstall` removes it, or delete it by hand. A file that does not parse, or a folder
+in the file's place, is reported as kept and no longer tracked: fix it and remove the
+entry by hand. A conflict in the same batch stops restore with nothing listed,
+although MCP entries it reached first are already removed; after you move the
+replacement aside, the retry puts back the rest and names the kept entry (PC-127).
 
 Keep quarantine directories and settings backups until recovery is complete.
 Do not delete a corrupted `state.json` to silence the error: it indexes the
@@ -408,10 +412,12 @@ and the rules `permissions allow` added and the default mode `permissions mode` 
 the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained. An MCP registration
-whose file cannot be read or written now (for example a link into a locked folder)
-does not stop the rest: uninstall finishes and lists what it removed, keeps that
-entry recorded in `state.json`, and exits 1 naming the file; once it can be written,
-another uninstall removes the entry (PC-127).
+whose file the system cannot open now (its permissions, or a link into a locked
+folder) does not stop the rest: uninstall finishes and lists what it removed, keeps
+that entry recorded in `state.json`, and exits 1 naming the file; once it can be
+written, another uninstall removes the entry. A file that does not parse, or a folder
+in its place, is reported as kept and no longer tracked; remove that entry by hand
+(PC-127).
 
 After success, `current` is removed, `installed` becomes null, member bookkeeping
 is cleared, and automatic updates are off. The current and previous release

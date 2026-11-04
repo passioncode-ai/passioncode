@@ -212,6 +212,18 @@
       "file": "test/launcher.test.js",
       "test": "PC-127: a Gemini settings file that cannot be read is kept recorded, not dropped",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-36",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a Codex config.toml linked into a folder that cannot be written fails that registration and keeps the link",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-37",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: an MCP file whose path now runs through a file, or is a folder, does not hold uninstall back",
+      "scenario": "SCN-005"
     }
   ]
 }
