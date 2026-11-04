@@ -1131,7 +1131,10 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   assert.equal(named.status, 1, named.stdout + named.stderr);
   assert.match(named.stdout, /FAILED allow PassionCode's own tools in .*settings\.json\n.*is not valid JSON/, named.stdout);
   assert.doesNotMatch(named.stdout, /still asks/, named.stdout); // --allow-tools cannot help while the file is unreadable
+  const failsPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-tools');
+  assert.match(failsPlan.stdout, /is not valid JSON[^\n]*\nA run with --allow-tools fails until they can be read\.\n/, failsPlan.stdout);
   const brokenPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run');
+  assert.doesNotMatch(brokenPlan.stdout, /fails until/, brokenPlan.stdout);
   assert.doesNotMatch(brokenPlan.stdout, /let Claude Code use|still asks/, brokenPlan.stdout);
   assert.match(brokenPlan.stdout, /\nClaude Code's settings were not changed: /, brokenPlan.stdout);
   const brokenRun = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline');
@@ -1206,8 +1209,16 @@ test('PC-117: in a terminal the tool rules are one question of their own, defaul
     return 'y'; }`;
   const already = run(raced, racer);
   assert.deepEqual(already.actions, ['permissions:done'], already.text);
-  assert.match(already.text, /done +already allowed in .*settings\.json\n/, already.text);
-  assert.doesNotMatch(already.text, /allowed {2}in/, already.text);
+  assert.match(already.text, /done +nothing to add in .*settings\.json: each rule is already allowed, asked about or denied there\n/, already.text);
+  // Settings that become readable before the write (the update writes the file too) are no longer named as unread.
+  const mended = machine({ toolRules: false });
+  const mendedFile = path.join(mended.home, '.claude', 'settings.json');
+  fs.writeFileSync(mendedFile, '{ not json');
+  const fixer = `(q) => { require('fs').writeFileSync(require('path').join(process.env.HOME, '.claude', 'settings.json'), '{}'); return 'y'; }`;
+  const fixed = run(mended, fixer, { allowTools: true });
+  assert.ok(fixed.actions.includes('permissions:done'), fixed.text);
+  assert.doesNotMatch(fixed.text, /were not changed/, fixed.text);
+  assert.deepEqual(JSON.parse(fs.readFileSync(mendedFile, 'utf8')).permissions.allow, [...require('../lib/permissions').RULES]);
   // A declined named train lists no plan, yet still says how to add the rules.
   const declined = run(onTrain(machine({ toolRules: false })), '() => "n"', { train: 'org-test' });
   assert.equal(declined.declined, true, declined.text);

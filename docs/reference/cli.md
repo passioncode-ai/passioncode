@@ -122,14 +122,16 @@ project's or a managed settings file, or in another spelling such as `mcp__fabri
 are offered only where Claude Code is (its `~/.claude` folder exists). Without a terminal and without `--yes`,
 `--allow-tools` adds them when nothing else would change, and is part of the plan otherwise. A settings file that cannot
 be read, is not valid JSON, or whose `permissions`, `allow`, `deny` or `ask` has the wrong shape, is left as it is and
-named; with `--allow-tools` that is a failed step (exit 1). A settings file that is a link, or a chain of links, is
-written where it ends, keeping every link and the file's permission bits; the merged file is written back as JSON
-indented by two spaces. The result carries `permissions: { rules, error, taken }` only while
+named; a run with `--allow-tools` fails that step (exit 1), and a `--dry-run` with it says so ("A run with
+--allow-tools fails until they can be read.") and exits 0. The rules merge writes a settings file that is a link, or a
+chain of links, where the system says it ends (linked folders and `..` included), keeping every link and the file's
+permission bits, and writes the merged file back as JSON indented by two spaces; the skill update's own write to that
+file, which retires an old marketplace, does not keep a link yet (PC-120). The result carries `permissions: { rules, error, taken }` only while
 rules are missing (or the file cannot be read); `taken` is the person's yes, and the `permissions` action is the proof
 they were written (a plan agreed to but not run writes nothing). The plan lists them as a line of their own (after a
 train's line; while they are offered a terminal asks about them, so a train-only plan closes with "Run it with --yes to
-apply, or in a terminal to answer its questions.", and a `--dry-run` whose only changes are questions `--yes` does not
-answer, the rules or an offer that defaults to no, closes with "Run it without --dry-run, in a terminal or with
+apply, or in a terminal to answer its questions.", and a `--dry-run` whose only change is the rules (an offer that
+defaults to no may stand beside them, unticked) closes with "Run it without --dry-run, in a terminal or with
 --allow-tools, to apply."), a run that leaves them out says how to add them under its
 headline (`setup --allow-tools`), and a run that changed nothing else says "Everything else this command can set up is
 in place". Yes to the rules alone is not a declined run, so with a named train it saves that train too.

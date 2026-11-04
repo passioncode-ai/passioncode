@@ -208,3 +208,34 @@ test('PC-117: a loop of links is named, never written', { skip: process.platform
   assert.throws(() => P.apply(path.join(dir, 'settings.json')));
   assert.ok(fs.lstatSync(path.join(dir, 'settings.json')).isSymbolicLink());
 });
+
+test('PC-117: a link in a linked folder whose target climbs with .. is written where the system says it ends', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
+  const root = path.dirname(path.dirname(tmp()));
+  fs.mkdirSync(path.join(root, 'dotfiles', 'claude-config'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'dotfiles', 'shared'), { recursive: true });
+  const real = path.join(root, 'dotfiles', 'shared', 'settings.json');
+  fs.writeFileSync(real, JSON.stringify({ model: 'opus' }));
+  fs.symlinkSync(path.join(root, 'dotfiles', 'claude-config'), path.join(root, '.claude')); // the folder is a link
+  fs.symlinkSync(path.join('..', 'shared', 'settings.json'), path.join(root, 'dotfiles', 'claude-config', 'settings.json'));
+  const file = path.join(root, '.claude', 'settings.json');
+  assert.deepEqual(P.missing(file).rules, [...P.RULES]);
+  assert.deepEqual(P.apply(file), [...P.RULES]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')), { model: 'opus', permissions: { allow: [...P.RULES] } });
+  assert.ok(!fs.existsSync(path.join(root, 'shared')), 'no stray copy beside the linked folder');
+  assert.deepEqual(P.apply(file), [], 'a second run adds nothing');
+});
+
+test('PC-117: a loop of links met while walking to a missing end is named', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
+  const dir = path.dirname(tmp());
+  fs.mkdirSync(dir, { recursive: true });
+  fs.symlinkSync('b.json', path.join(dir, 'settings.json'));
+  fs.symlinkSync('settings.json', path.join(dir, 'b.json'));
+  const realpath = fs.realpathSync;
+  // The system names a loop itself; a file changed under the walk could still make one, which the walk names too.
+  fs.realpathSync = (p) => { if (p === path.join(dir, 'settings.json')) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' }); return realpath(p); };
+  try {
+    assert.throws(() => P.endOf(path.join(dir, 'settings.json')), /too many levels of links/);
+  } finally {
+    fs.realpathSync = realpath;
+  }
+});
