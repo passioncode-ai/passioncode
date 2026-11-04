@@ -293,7 +293,7 @@ test('PC-119: a declared rule is offered only when it allows no more than it say
 
 test('PC-119: rules agents declare on the machine are read, and what is not offered is named', () => {
   const dir = path.join(path.dirname(tmp()), 'rules.d');
-  assert.deepEqual(P.declared(dir, CTX), { rules: [], refused: [] }, 'no folder: nothing declared');
+  assert.deepEqual(P.declared(dir, CTX), { rules: [], refused: [], sources: {} }, 'no folder: nothing declared');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'b-agent.json'), JSON.stringify({ by: 'B Agent', rules: [
     { rule: 'Bash(b-cli sync:*)', why: 'let B Agent sync its data' },
