@@ -19,6 +19,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
+| `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds `changed` and `from`) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
 Exit codes: **0** means the command completed (an update can include explicitly
@@ -303,11 +304,48 @@ from physically missing backups is manual; the launcher reports the missing path
 Evidence: `restore()` and `restoreMarketplace()` in the launcher; repeated restore,
 conflict and interrupted-move regression tests in `test/launcher.test.js`.
 
+## Permissions ledger
+
+`permissions` shows what PassionCode allowed Claude Code to do without asking, for a person and for Fabric's
+permissions screen (PC-125). Setup keeps a ledger, `~/.passioncode/permissions.json` (under `PASSIONCODE_HOME` when it
+is set; private, mode 600, a link kept): each rule it added with `--allow-tools`, `--allow-commands` or a yes in a
+terminal, its set (`tools` or `commands`), what it allows (`why`), who declared it (`by`), where it came from
+(`source`: `launcher`, or `rules.d/<file>.json` for an agent's declaration), when (`installedAt`) and the launcher
+version. The ledger never decides what Claude Code allows; `~/.claude/settings.json` does, and the view joins the two:
+
+```json
+{ "schema": "passioncode-permissions/1", "settingsFile": "/home/you/.claude/settings.json", "readable": true,
+  "mode": { "value": "acceptEdits", "file": "/home/you/.claude/settings.json" },
+  "rules": [ { "rule": "Bash(gh pr merge:*)", "set": "commands", "why": "...", "by": "PassionCode setup",
+               "source": "launcher", "installedAt": "2026-11-04T09:30:00.000Z", "version": "0.2.75", "state": "allowed" } ],
+  "offered": [ { "rule": "...", "set": "...", "why": "...", "by": "...", "source": "..." } ],
+  "refused": [ "<a declaration not offered as declared, with why>" ],
+  "foreign": [ "Bash(npm test)" ] }
+```
+
+`rules` holds every rule the ledger names and every rule of PassionCode's sets allowed, asked about or denied before
+the ledger existed (`installedAt: null`), each with its `state` now: `allowed`, `asked`, `denied`, or `missing` (taken
+out since; `removedAt` and `removedBy` say when and by whom), or `unknown` while the settings cannot be read.
+`offered` is what setup would offer now; `refused` is setup's list of declarations it does not offer as declared;
+`foreign` is every other allow rule, listed and never changed here. `mode.value` is `permissions.defaultMode` or null;
+after `permissions mode`, `mode.changed` names the value, the one before (`from`), who asked and when.
+
+`permissions allow <rule>...` adds rules PassionCode offers (any other is refused, exit 2) and `remove <rule>...` takes
+out of `permissions.allow` only rules PassionCode offers or the ledger names (a foreign rule is refused, exit 2; the
+person removes it in the file). `permissions mode <mode>` sets `permissions.defaultMode` to one of Claude Code's modes:
+`default`, `acceptEdits`, `plan`, `auto`, `dontAsk` or `bypassPermissions`; nothing else in the file changes.
+`--by <who>` (at most 80 characters of plain text) records who asked, for example `"Fabric (operator)"`; without it the
+ledger says `PassionCode setup`. Each change is written the way setup writes (a link is written where it points, its
+permission bits kept) and each answers the view again. Settings or a ledger that cannot be read make the command exit
+1 and are never written; the view then says so (`readable: false` with `error`, or `ledgerError`) beside every list it
+could read.
+
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
 equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119) in
-`~/.claude/settings.json`, and the declarations in `~/.passioncode/rules.d/` (under `PASSIONCODE_HOME` when it is set);
+`~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
+(under `PASSIONCODE_HOME` when it is set);
 the person removes them there. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.

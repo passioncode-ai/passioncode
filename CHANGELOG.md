@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.75 - 2026-11-04
+
+### Added
+
+- **`permissions`** (PC-125): what PassionCode allowed Claude Code to do without asking, and its default mode, for a
+  person and for Fabric's permissions screen. Setup keeps a private ledger, `~/.passioncode/permissions.json`: each rule
+  it added, its set, what it allows, who declared it, from where, when and the launcher version. `permissions` joins
+  it with `~/.claude/settings.json` (each rule's state, the rules offered and not allowed yet, declarations not offered
+  as declared, every other allow rule, the mode); `permissions allow` and `remove` change only PassionCode's rules,
+  `permissions mode <mode>` sets `permissions.defaultMode` to one of Claude Code's modes, and `--by` records who asked.
+  `--json` answers the same view; a settings file that is a link stays a link with its mode.
+
 ## 0.2.74 - 2026-11-04
 
 ### Fixed

@@ -149,6 +149,7 @@ observation, not a live registry check. With no saved version it says
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows
 npx @passioncode-ai/passioncode@latest update --dry-run
 npx @passioncode-ai/passioncode@latest uninstall
+npx @passioncode-ai/passioncode@latest permissions   # what Claude Code may do without asking, and who allowed it
 ```
 
 For supported flags, JSON fields, exit codes and partial-failure recovery, read the

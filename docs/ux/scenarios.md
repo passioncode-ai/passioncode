@@ -20,6 +20,7 @@
 | SCN-012 | A coding agent sets the computer up from one pasted prompt | setting-up-passioncode | Newcomer | REQ-9, REQ-10 | implemented | 2026-10-13 |
 | SCN-013 | A new session names the problems of the last setup check | session start | Operator | REQ-9 | implemented | 2026-10-13 |
 | SCN-014 | Follow an organization's release train | setup, doctor | Operator | PC-89 | implemented | 2026-10-28 |
+| SCN-015 | See and change what Claude Code may do without asking | permissions | Operator | PC-125 | implemented | 2026-11-04 |
 
 ## Personas
 
@@ -286,4 +287,23 @@
 - **Errors & recovery:** An unknown train exits 2 before anything changes; a saved train this launcher no longer ships is a `fail` line whose fix is `setup --yes --no-apps --train none`.
 - **Status:** implemented
 - **Coverage:** `test/setup.test.js` tests beginning `PC-89`, `PC-91:`, `PC-94:`, `PC-105:` and `PC-110:`; `test/windows.test.js` test beginning `PC-89`.
+- **Product:** unobserved
+
+### SCN-015: See and change what Claude Code may do without asking
+
+- **Persona:** Operator, or Fabric's permissions screen on the operator's behalf
+- **Feature:** permissions
+- **Entry point:** `npx @passioncode-ai/passioncode@latest permissions`
+- **Preconditions:** Node 18+; Claude Code's settings in `~/.claude/settings.json` (absent is an empty file).
+- **Steps:**
+  1. Run `permissions`: the rules PassionCode installed, each with its state, what it allows, who declared it and when; the rules offered and not allowed yet; the declarations not offered as declared; every other allow rule; the default mode.
+  2. Take a rule out with `permissions remove <rule>`, or allow an offered one with `permissions allow <rule>`.
+  3. Switch the default mode with `permissions mode <mode>`.
+- **Expected result:** Only rules PassionCode offers or installed change; every other key and rule of the settings file is kept; the ledger records who asked (`--by`) and when, and keeps a removed rule with `removedAt` and `removedBy`.
+- **Alt paths:** `--json` answers the same view for a program (Fabric); a rule PassionCode does not offer is refused for `allow`, and one it did not install for `remove` (exit 2, nothing written); a mode Claude Code does not have is refused (exit 2); rules of PassionCode's sets allowed before the ledger existed are listed with no install time; a settings file that is a link stays a link with its mode.
+- **UI elements:** The view's sections in text, the JSON view, exit code.
+- **States covered:** success, empty, error
+- **Errors & recovery:** Settings or a ledger that cannot be read are named and exit 1, and nothing is written; the person repairs the file and runs the command again.
+- **Status:** implemented
+- **Coverage:** `test/ledger.test.js` tests beginning `PC-125:`; `test/setup.test.js` tests beginning `PC-117:` and `PC-119:` (the ledger setup writes).
 - **Product:** unobserved

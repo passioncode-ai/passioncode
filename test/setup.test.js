@@ -1088,6 +1088,8 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const doc = read(kept); // the update adds its own marketplace key beside them
   assert.equal(doc.model, 'opus');
   assert.deepEqual(doc.permissions, { allow: ['Bash(npm test)', ...P.RULES], deny: ['Bash(rm -rf:*)'] });
+  // PC-125: the ledger names the tool rules setup added (not the person's own rule).
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(kept.home, '.passioncode', 'permissions.json'), 'utf8')).rules.map((r) => [r.rule, r.set, r.by]), P.RULES.map((rule) => [rule, 'tools', 'PassionCode setup']));
   assert.ok(allowed.json.actions.some((a) => a.kind === 'permissions' && a.outcome === 'done'), allowed.stdout);
   const allowedText = await cli(machine({ toolRules: false }), api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
   assert.doesNotMatch(allowedText.stdout, /still asks/, allowedText.stdout); // they were just added
@@ -1277,6 +1279,13 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   assert.match(taken.stdout, /done +allowed Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\) in .*settings\.json \(an ask or deny rule for them still wins; a rule ending in \* allows any arguments after its words\)/, taken.stdout);
   assert.deepEqual(allowOf(m), [...P.RULES, 'Bash(gh pr merge:*)', 'Bash(own-cli sync:*)']);
   assert.doesNotMatch(taken.stdout, /still asks before it runs/, taken.stdout);
+  // PC-125: the ledger names what setup installed, who declared it, from where, and when.
+  const ledgerDoc = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode', 'permissions.json'), 'utf8'));
+  assert.equal(ledgerDoc.schema, 'passioncode-permissions/1');
+  assert.deepEqual(ledgerDoc.rules.map(({ installedAt, ...r }) => (assert.ok(Date.parse(installedAt)), r)), [
+    { rule: 'Bash(gh pr merge:*)', set: 'commands', why: P.COMMANDS[0].why, by: 'PassionCode setup', source: 'launcher', version: require('../package.json').version },
+    { rule: 'Bash(own-cli sync:*)', set: 'commands', why: 'let Own Agent sync its data', by: 'Own Agent', source: 'rules.d/own-agent.json', version: require('../package.json').version },
+  ]);
   const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
   assert.deepEqual(again.json.commands.rules, [], 'a second run offers nothing');
   // --allow-commands asked for them: settings that cannot be read are a failed step (exit 1), and a dry run says so.
