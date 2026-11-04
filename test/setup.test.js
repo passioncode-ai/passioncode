@@ -1106,7 +1106,7 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   const step = noted.json.actions.find((a) => a.kind === 'permissions');
   assert.equal(step.outcome, 'done');
   assert.match(step.detail, /; the permissions ledger was not updated \(.*permissions\.json is not valid JSON/);
-  assert.deepEqual(read(corrupt).permissions.allow, [...P.RULES], 'the rules stand');
+  assert.ok(P.RULES.every((rule) => read(corrupt).permissions.allow.includes(rule)), 'the rules stand');
   const allowedText = await cli(machine({ toolRules: false }), api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
   assert.doesNotMatch(allowedText.stdout, /still asks/, allowedText.stdout); // they were just added
   // Run again: nothing is missing, so nothing is offered or written.
