@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -24,9 +24,17 @@ if (!tests.length) throw new Error('No test files found.');
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-test-'));
 let status = 1;
 try {
-  const result = spawnSync(process.execPath, ['--test', ...flags, ...tests], { stdio: 'inherit', env: { ...process.env, PASSIONCODE_TEST_RUN: '1', TMPDIR: scratch, TMP: scratch, TEMP: scratch } });
-  if (result.error) console.error(result.error.message);
-  status = result.status ?? 1;
+  const child = spawn(process.execPath, ['--test', ...flags, ...tests], { stdio: 'inherit', env: { ...process.env, PASSIONCODE_TEST_RUN: '1', TMPDIR: scratch, TMP: scratch, TEMP: scratch } });
+  // PC-116: an interrupted run (Ctrl-C, SIGTERM) stops its tests and still removes its folder: the signal goes
+  // to node --test, and this process waits for it to end instead of ending first.
+  let interrupted = false;
+  // On Windows the console delivers Ctrl-C to node --test itself, and kill() there would end it outright.
+  for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { interrupted = true; if (process.platform !== 'win32') child.kill(signal); });
+  const code = await new Promise((resolve) => {
+    child.once('error', (error) => { console.error(error.message); resolve(1); });
+    child.once('exit', (exitCode) => resolve(exitCode ?? 1));
+  });
+  status = interrupted ? code || 1 : code; // an interrupted run never reads as passed
 } finally {
   try { fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
   catch (error) { console.error(error.message); } // a file held open (Windows) is named below, not thrown
