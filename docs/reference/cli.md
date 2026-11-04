@@ -138,7 +138,7 @@ in place". Yes to the rules alone is not a declined run, so with a named train i
 
 What the rules do not cover: each one allows every tool of the server registered under that name (Fabric Dashboards'
 `control`, which restarts a service, included), whatever program answers under the name. They allow MCP tools only:
-shell commands (`gh pr merge`, a launchd job), the Data Room and Fabric Inbox (`fabric-inbox`) need rules of their own.
+shell commands (`gh pr merge`, a launchd job), other MCP servers and Fabric Inbox (`fabric-inbox`) need rules of their own.
 An `ask` or `deny` rule for one of these tools (in this file or a project's, local or managed settings file), or a
 managed policy that ignores user rules, still wins over them. They apply to Claude Code only. Existing machines are
 offered them the next time `setup` runs; `update` and the background update do not offer them.
