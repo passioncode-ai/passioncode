@@ -264,20 +264,20 @@ test('PC-119: the launcher carries only rules any person may want, each passing 
 });
 
 test('PC-119: a declared rule is offered only when it allows no more than it says', () => {
-  for (const ok of ['mcp__some-agent', 'Bash(gh pr merge:*)', 'Bash(uv run app sync:*)', 'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(python3 tool.py sync:*)', 'Bash(git log --oneline)']) {
+  for (const ok of ['mcp__some-agent', 'Bash(gh pr merge:*)',  'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(python3 tool.py sync)', 'Bash(bash -c ls)', 'Bash(git log --oneline)']) {
     assert.equal(P.refusal(ok), null, ok);
   }
   for (const [no, why] of [
-    ['Bash(*)', /any command$/], ['Bash(:*)', /any command$/], ['Bash(python3 *)', /over python3 needs two words after it/], ['Bash(uv run *)', /over uv needs two words/],
-    ['Bash(npx:*)', /over npx needs two words/], ['Bash(python3 tool.py:*)', /over python3 needs two words/], ['Bash(gh:*)', /any command of gh/],
+    ['Bash(*)', /any command$/], ['Bash(:*)', /any command$/], ['Bash(python3 *)', /wildcard over python could run any code/], ['Bash(uv run *)', /wildcard over uv could run/],
+    ['Bash(npx:*)', /wildcard over npx could run/], ['Bash(python3 tool.py:*)', /wildcard over python/], ['Bash(gh:*)', /any command of gh/],
     ['Bash(gh *pr)', /only at the end/], ['Bash(own-cli status*)', /needs :\* or a space before it/],
     // A runner or a wrapper written another way, or given an option, could run any code.
     ['Bash(/bin/bash -c:*)', /plain name/], ['Bash(Bash -c:*)', /plain name/], ['Bash(/usr/bin/env bash:*)', /plain name/],
     ['Bash(env -i bash:*)', /env runs another program/], ['Bash(sudo -u root:*)', /sudo runs another program/],
     ['Bash(command bash:*)', /command runs another program/], ['Bash(nohup sh:*)', /nohup runs another program/],
-    ['Bash(cmd.exe /c:*)', /over cmd needs two words after it and no option/], ['Bash(osascript -e:*)', /over osascript/],
-    ['Bash(bash -c ls:*)', /over bash needs two words after it and no option/], ['Bash(python3 -m pip:*)', /no option/],
-    ['Bash(uv run --with x y:*)', /no option/], ['Bash(git -c x=y push:*)', /no option/],
+    ['Bash(cmd.exe /c:*)', /wildcard over cmd/], ['Bash(osascript -e:*)', /wildcard over osascript/],
+    ['Bash(bash -c ls:*)', /wildcard over bash/], ['Bash(python3 -m pip:*)', /wildcard over python/],
+    ['Bash(uv run app sync:*)', /wildcard over uv/], ['Bash(find src docs:*)', /wildcard over find/], ['Bash(ssh myhost uptime:*)', /wildcard over ssh/], ['Bash(perl5.34 -e:*)', /wildcard over perl/], ['Bash(python3.12 -c:*)', /wildcard over python/], ['Bash(node22 -e:*)', /wildcard over node/], ['Bash(xcrun python3:*)', /xcrun runs another program/], ['Bash(gtimeout 5:*)', /gtimeout runs another/], ['Bash(git grep foo src:*)', /wildcard over git/], ['Bash(own-cli\u00a0x sync:*)', /not plain text/], ['Bash(own-cli \u202esync:*)', /not plain text/],
     ['Bash(sh -c "echo:*)', /quote/], ["Bash(bash -c 'ls:*)", /quote/], ['Bash(a\\b)', /escape/], ['Bash(a (b))', /substitution/],
     ['Bash(a $(b))', /substitution/], ['Bash(a `b`)', /substitution/], ['Bash(ls && rm x)', /separator/], ['Bash(a | b)', /separator/], ['Bash(a\nb)', /separator/],
     ['Bash(a > f)', /redirection/], ['Read(**)', /names an MCP server/], ['mcp__a__b c', /names an MCP server/], [42, /not text/],
@@ -305,7 +305,7 @@ test('PC-119: rules agents declare on the machine are read, and what is not offe
     { rule: 'Bash(b-cli sync:*)', why: 'let B Agent sync its data', by: 'B Agent' },
   ]);
   assert.equal(got.refused.length, 6, got.refused.join('\n'));
-  assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(python3 \*\): a rule over python3 needs two words after it and no option, or it could run any code/);
+  assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(python3 \*\): a wildcard over python could run any code/);
   assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(b-cli list\): "why" says what it allows, in 1 to 200 characters/);
   assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(b-cli show\): "why"/);
   assert.match(got.refused.join('\n'), /b-agent\.json: a rule is not an object/);
@@ -331,4 +331,11 @@ test('PC-119: a declaration whose name or reason holds a control character is no
   const got = P.declared(dir);
   assert.deepEqual(got.rules, []);
   assert.equal(got.refused.length, 2, got.refused.join('\n'));
+});
+
+test('PC-119: an invisible or line-breaking character in a rule is refused, so the plan shows what is allowed', () => {
+  for (const rule of ['Bash(gh pr \u009b2J:*)', 'Bash(gh pr merge:*)', 'Bash(gh pr\u0085merge:*)', 'Bash(gh pr merge:*)']) {
+    assert.match(P.refusal(rule) || '', /quote, an escape|not plain text/, JSON.stringify(rule));
+  }
+  assert.equal(P.refusal('Bash(bash -c ls)'), null, 'an exact rule allows only its own text');
 });

@@ -1249,17 +1249,16 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   assert.equal(json.status, 0, json.stdout);
   assert.deepEqual(json.json.commands.rules, [{ ...P.COMMANDS[0] }, { rule: 'Bash(own-cli sync:*)', why: 'let Own Agent sync its data', by: 'Own Agent' }]);
   assert.equal(json.json.commands.taken, false);
-  assert.equal(json.json.commands.refused.length, 2, json.stdout);
-  assert.match(json.json.commands.refused.join('\n'), /mcp__fabric: one of PassionCode's own tool rules, offered on its own question \(declared by Own Agent\)/);
+  assert.equal(json.json.commands.refused.length, 1, json.stdout); // mcp__fabric is allowed already: nothing to say about it
   assert.ok(!json.json.actions.some((a) => a.kind === 'commands'), json.stdout);
   assert.ok(!allowOf(m).includes('Bash(gh pr merge:*)'), 'nothing was added');
   const text = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.match(text.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, text.stdout);
   assert.match(text.stdout, /\nClaude Code still asks before it runs Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\)\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands\n/, text.stdout);
-  assert.match(text.stdout, /\nRules declared on this machine and not offered:\n  .*own-agent\.json: Bash\(python3 \*\): a rule over python3 needs two words after it and no option, or it could run any code\n/, text.stdout);
+  assert.match(text.stdout, /\nRules declared on this machine and not offered:\n  .*own-agent\.json: Bash\(python3 \*\): a wildcard over python could run any code; declare the exact command, or a command of your own\n/, text.stdout);
   // A dry run lists the set as one line, each rule under it with what it allows and who declared it.
   const plan = await cli(m, api, 'setup', '--no-apps', '--offline', '--dry-run');
-  assert.match(plan.stdout, /\n  – let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) \(merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories\)\n      Bash\(own-cli sync:\*\) \(let Own Agent sync its data; declared by Own Agent\)\n/, plan.stdout);
+  assert.match(plan.stdout, /\n  – let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) \(merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories\)\n      Bash\(own-cli sync:\*\) \(let Own Agent sync its data; declared by Own Agent\)\n      \(a rule ending in \* allows any arguments after its words, options included\)\n/, plan.stdout);
   assert.match(plan.stdout, /\nRun it without --dry-run, in a terminal or with --allow-commands, to apply\.\n/, plan.stdout);
   assert.doesNotMatch(plan.stdout, /still asks before it runs|merge, declared again/, plan.stdout); // a plan names how to take them; the hint is a run's
   const bare = machine({ toolRules: false, commandRules: false });
@@ -1304,18 +1303,28 @@ test('PC-119: in a terminal the command rules are one question of their own, def
     assert.equal(r.status, 0, r.stderr);
     return JSON.parse(r.stdout);
   };
-  const question = 'Let Claude Code run these commands without asking: Bash(gh pr merge:*) (merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories)? [y/N] ';
+  const question = 'Let Claude Code run these commands without asking: Bash(gh pr merge:*) (merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories); a rule ending in * allows any arguments after its words? [y/N] ';
   const enter = run(machine({ commandRules: false }), "() => ''");
   assert.ok(enter.asked.includes(question), JSON.stringify(enter.asked));
   assert.equal(enter.commands.taken, false);
   assert.ok(!enter.actions.some((a) => a.startsWith('commands:')), JSON.stringify(enter.actions));
   // Yes to the commands alone, no to the repairs: added, and not a declined run.
   const lacking = machine({ toolRules: false, commandRules: false });
+  fs.mkdirSync(path.join(lacking.home, '.passioncode', 'rules.d'), { recursive: true });
+  fs.writeFileSync(path.join(lacking.home, '.passioncode', 'rules.d', 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'mcp__fabric', why: 'every Fabric tool' }] }));
   const only = run(lacking, '(q) => (/^Let Claude Code run/.test(q) ? "y" : "n")');
   assert.equal(only.declined, undefined, only.text);
   assert.deepEqual(only.actions, ['commands:done'], only.text);
   const allow = JSON.parse(fs.readFileSync(path.join(lacking.home, '.claude', 'settings.json'), 'utf8')).permissions.allow;
   assert.deepEqual(allow, ['Bash(gh pr merge:*)'], 'the tool rules, declined, are not written with the commands');
+  assert.match(only.text, /mcp__fabric: one of PassionCode's own tool rules, offered on its own question \(declared by A\)/, only.text);
+  // Settings unreadable at the plan and mended before the write: the whole set is added, never "nothing to add".
+  const mended = machine({ commandRules: false });
+  fs.writeFileSync(path.join(mended.home, '.claude', 'settings.json'), '{ not json');
+  const fixer = `(q) => { require('fs').writeFileSync(require('path').join(process.env.HOME, '.claude', 'settings.json'), '{}'); return 'y'; }`;
+  const fixed = run(mended, fixer, { allowCommands: true });
+  assert.ok(fixed.actions.includes('commands:done'), fixed.text);
+  assert.match(fixed.text, /done +allowed Bash\(gh pr merge:\*\) in /, fixed.text);
   // --allow-commands is that yes already.
   const pre = run(machine({ commandRules: false }), '() => "n"', { allowCommands: true });
   assert.ok(!pre.asked.some((q) => /^Let Claude Code run/.test(q)), JSON.stringify(pre.asked));

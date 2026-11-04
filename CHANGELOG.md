@@ -9,7 +9,9 @@
   says it cannot be limited to your repositories; an agent of your own declares its rules on the machine in
   `~/.passioncode/rules.d/<name>.json` (`by`, and each `rule` with `why` it is needed). The plan lists each rule with
   what it allows and who declared it; a declared rule with a substitution, a separator, a redirection or a wildcard
-  that would allow more than it says is named and not offered. The result carries `commands`.
+  that would allow more than it says is named and not offered: only a plain form is offered (the program by its bare
+  name, no wrapper such as `env` or `sudo`, and no wildcard over a shell, an interpreter or a program whose options can
+  run other code). The plan and the question say a rule ending in `*` allows any arguments after its words. With `--allow-commands`, settings that cannot be read are a failed step (exit 1). The result carries `commands`.
 
 ## 0.2.72 - 2026-11-04
 

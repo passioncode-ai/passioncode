@@ -156,14 +156,18 @@ file `~/.passioncode/rules.d/<name>.json`:
 `by` names the agent as the file says (nothing checks it) and `why` (1 to 200 characters) says what the rule allows;
 the plan shows each rule with them. A declared rule that is one of PassionCode's own tool rules is left to their own
 question and listed as not offered. The folder follows `PASSIONCODE_HOME` when it is set. A rule names one MCP server (`mcp__<server>`) or one command (`Bash(<command>)`,
-with `:*` or a trailing ` *` for any arguments). Claude Code matches a rule against the command's text, so only a plain
-form is offered, and every other rule is refused because it could allow more than it says: the program by its bare
-name in lower case (no path, so not `/bin/bash`); no quote, escape, substitution (`$(...)`), separator (`&&`, `;`, `|`,
-a line break) or redirection; a wildcard only at the end, after `:` or a space, and after at least two words (not
-`Bash(gh:*)`); never a program that runs another one (`env`, `sudo`, `command`, `nohup`, `xargs` and the like); and a
-program that runs whatever it is given (a shell, `python3`, `node`, `osascript`, `uv`, `npx`, `git` and the like) only
-with at least two plain words after it and no option among them (`Bash(python3 tool.py sync:*)` is offered,
-`Bash(python3 -c:*)` and `Bash(bash -c ls:*)` are not). A `by` or `why` with a control character is refused too.
+with `:*` or a trailing ` *` for any arguments). Claude Code matches a rule against the command's text, and a rule
+ending in `*` allows any arguments after its words, options included (the plan and the question say so). So only a
+plain form is offered, and every other rule is refused because it could allow more than it says: printable ASCII only;
+the program by its bare name in lower case (no path, so not `/bin/bash`; a version in the name is read as the program,
+so `perl5.34` is `perl` and `python3.12` is `python`); no quote, escape, substitution (`$(...)`), separator (`&&`, `;`,
+`|`, a line break) or redirection; a wildcard only at the end, after `:` or a space, and after at least two words (not
+`Bash(gh:*)`); never a program that runs another one (`env`, `sudo`, `command`, `nohup`, `xargs`, `xcrun` and the
+like); and no wildcard at all over a program that runs whatever it is given, or takes options after its words that run
+other code (a shell, `python3`, `node`, `perl`, `osascript`, `uv`, `npx`, `find`, `ssh`, `make`, `sed`, `git` and the
+like): declare the exact command, or a command of your own. An exact rule, with no wildcard, allows only its own text
+and is offered. A control character in `by` or `why` is refused too. These are lists of known programs, not a proof:
+the person's yes on each rule shown is the gate.
 The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered".
 Existing machines are offered the set the next time `setup` runs, until the person takes it; a rule the person lists
 under `permissions.ask` or `permissions.deny` is not offered again. When Claude Code's settings cannot be read, that is
@@ -285,9 +289,9 @@ conflict and interrupted-move regression tests in `test/launcher.test.js`.
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
-equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119), and the
-declarations in `~/.passioncode/rules.d/`, in
-`~/.claude/settings.json`; the person removes them there. Other user files stay in place. Failed plugin removal
+equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119) in
+`~/.claude/settings.json`, and the declarations in `~/.passioncode/rules.d/` (under `PASSIONCODE_HOME` when it is set);
+the person removes them there. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 
