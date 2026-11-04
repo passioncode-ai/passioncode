@@ -25,6 +25,20 @@ jobs:
           node-version: "22"
       - run: npm test
 
+  # PC-132: macOS, where the apps install, runs the whole gate as Linux does (the suite's fake codesign and hdiutil
+  # stand in for the real ones there too).
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm test
+
   # PC-85 and PC-86 are Windows defects: their tests run on Windows itself, where `current` is
   # replaced by the real rename that failed on the tester's machine (2026-10-28).
   windows:
