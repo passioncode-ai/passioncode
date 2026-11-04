@@ -506,6 +506,9 @@ test('PC-119: a rule two files declare is offered once, as the first says it, an
   assert.match(again.refused.join('\n'), /c\.json: Bash\(own-cli two:\*\) is declared twice in this file; it is counted once/);
   assert.deepEqual(again.rules.find((r) => r.rule === 'Bash(own-cli bad:*)'), { rule: 'Bash(own-cli bad:*)', why: 'valid', by: 'Fourth' }, 'the first file not refused for it says it');
   assert.equal(again.rules.every((r) => !('file' in r)), true);
+  fs.writeFileSync(path.join(dir, 'e.json'), JSON.stringify({ by: 'Fifth', rules: [{ rule: 'Bash(own-cli dup:*)', why: 'x' }, { rule: 'Bash(own-cli dup:*)', why: 'y' }] }));
+  const lines = P.declared(dir, CTX).refused.filter((l) => /e\.json: Bash\(own-cli dup:\*\)/.test(l));
+  assert.equal(lines.length, 1, 'the same line said twice is listed once');
 });
 
 test('PC-119: on Windows a .cmd or .bat takes no wildcard, and a file Git Bash would not run is skipped', () => {

@@ -1258,7 +1258,7 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   const text = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.match(text.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, text.stdout);
   assert.match(text.stdout, /\nClaude Code still asks before it runs Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\)\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands \(a rule ending in \* allows any arguments after its words\)\n/, text.stdout);
-  assert.match(text.stdout, /\nRules declared on this machine and not offered:\n  .*own-agent\.json: Bash\(python3 \*\): a wildcard over python could run any code; declare the exact command, or a command of your own\n/, text.stdout);
+  assert.match(text.stdout, /\nRules declared on this machine and not offered as declared:\n  .*own-agent\.json: Bash\(python3 \*\): a wildcard over python could run any code; declare the exact command, or a command of your own\n/, text.stdout);
   // A dry run lists the set as one line, each rule under it with what it allows and who declared it.
   const plan = await cli(m, api, 'setup', '--no-apps', '--offline', '--dry-run');
   assert.match(plan.stdout, /\n  – let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) \(merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories\)\n      Bash\(own-cli sync:\*\) \(let Own Agent sync its data; declared by Own Agent\)\n      \(a rule ending in \* allows any arguments after its words, options included\)\n/, plan.stdout);
