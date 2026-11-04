@@ -311,7 +311,9 @@ test('PC-108: on Windows a declined run changes nothing and keeps setup among th
   assert.equal(r.status, 0, r.stderr);
   const out = JSON.parse(r.stdout);
   // No install is asked on Windows, though no app is installed (an empty applications folder, not this host's).
-  assert.ok(out.asked.length >= 1 && out.asked.every((q) => /^Apply \d+ repair\(s\)/.test(q)), JSON.stringify(out.asked));
+  // PC-117: the tool rules for Claude Code are offered on Windows too, as their own question.
+  assert.ok(out.asked.some((q) => /^Apply \d+ repair\(s\)/.test(q)), JSON.stringify(out.asked));
+  assert.ok(out.asked.every((q) => /^Apply \d+ repair\(s\)|^Let Claude Code use PassionCode's own tools/.test(q)), JSON.stringify(out.asked));
   assert.equal(out.declined, true, out.text);
   assert.deepEqual(out.actions, [], out.text);
   assert.match(out.text, /You declined every offer; nothing was changed\. The checks below still stand\./, out.text);

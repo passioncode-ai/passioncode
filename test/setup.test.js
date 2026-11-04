@@ -79,7 +79,8 @@ function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign
   }));
 }
 
-function machine({ tools = TOOLS } = {}) {
+// toolRules: PassionCode's Claude Code tool rules already in place (PC-117), so other tests see no such offer.
+function machine({ tools = TOOLS, toolRules = true } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-setup-'));
   const payload = path.join(home, 'payload'); makePayload(payload);
   const bin = path.join(home, 'fakebin'); fs.mkdirSync(bin);
@@ -88,6 +89,10 @@ function machine({ tools = TOOLS } = {}) {
   for (const name of TOOLS.filter((x) => !tools.includes(x))) fs.writeFileSync(path.join(bin, name), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
   fs.writeFileSync(path.join(home, 'key.asc'), KEY.publicArmour);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: {} }));
+  fs.mkdirSync(path.join(home, '.claude'), { recursive: true }); // Claude Code is here
+  if (toolRules) {
+    fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: [...require('../lib/permissions').RULES] } }));
+  }
   fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
   fs.mkdirSync(path.join(home, 'Applications'));
   fs.mkdirSync(path.join(home, 'services'));
@@ -1053,6 +1058,174 @@ test('PC-112: a bundled install that fails runs no update and was not asked abou
   assert.deepEqual(out.actions.filter((a) => a.kind !== 'train').map((a) => `${a.kind}:${a.outcome}`), ['install:failed'], run.stdout);
   assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), run.stdout);
   assert.ok(out.plan.some((i) => i.kind === 'update' && !i.selected), run.stdout); // the plan says what ran
+});
+
+// PC-117: Claude Code's rules for PassionCode's own tools are added only on the person's yes to that set.
+test('PC-117: setup offers the tool rules, adds them only on their own yes, and keeps the settings it finds', async (t) => {
+  const api = await releaseServer(t);
+  const P = require('../lib/permissions');
+  const settingsOf = (m) => path.join(m.home, '.claude', 'settings.json');
+  const read = (m) => (fs.existsSync(settingsOf(m)) ? JSON.parse(fs.readFileSync(settingsOf(m), 'utf8')) : null);
+  // --yes alone does not decide it: nothing is written, the run says how to allow them.
+  const plain = machine({ toolRules: false });
+  const yes = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.equal(yes.status, 0, yes.stderr + yes.stdout);
+  assert.equal((read(plain) || {}).permissions, undefined, 'no rule was written');
+  assert.match(yes.stdout, /\nClaude Code still asks before it uses PassionCode's own tools\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, yes.stdout);
+  // Run again with nothing else to do: not "everything ... is in place" while the rules are offered.
+  const rerun = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.match(rerun.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, rerun.stdout);
+  assert.doesNotMatch(rerun.stdout, /\nEverything this command can set up is in place/, rerun.stdout);
+  const json = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
+  assert.deepEqual(json.json.permissions, { rules: [...P.RULES], error: null, taken: false });
+  // --allow-tools is that yes: the rules are merged in, every other setting kept.
+  const kept = machine({ toolRules: false });
+  fs.mkdirSync(path.dirname(settingsOf(kept)), { recursive: true });
+  fs.writeFileSync(settingsOf(kept), JSON.stringify({ model: 'opus', permissions: { allow: ['Bash(npm test)'], deny: ['Bash(rm -rf:*)'] } }));
+  const allowed = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.equal(allowed.status, 0, allowed.stderr + allowed.stdout);
+  const doc = read(kept); // the update adds its own marketplace key beside them
+  assert.equal(doc.model, 'opus');
+  assert.deepEqual(doc.permissions, { allow: ['Bash(npm test)', ...P.RULES], deny: ['Bash(rm -rf:*)'] });
+  assert.ok(allowed.json.actions.some((a) => a.kind === 'permissions' && a.outcome === 'done'), allowed.stdout);
+  const allowedText = await cli(machine({ toolRules: false }), api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
+  assert.doesNotMatch(allowedText.stdout, /still asks/, allowedText.stdout); // they were just added
+  // Run again: nothing is missing, so nothing is offered or written.
+  const again = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.equal(again.json.permissions, undefined);
+  assert.ok(!again.json.actions.some((a) => a.kind === 'permissions'), again.stdout);
+  // A plan lists them as a line of its own, not taken.
+  const plan = await cli(machine({ toolRules: false }), api, 'setup', '--offline', '--dry-run');
+  assert.doesNotMatch(plan.stdout, /still asks/, plan.stdout); // a plan lists them; the hint is for a run
+  assert.match(plan.stdout, /\n  – let Claude Code use PassionCode's own tools without asking: allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory \(asked in a terminal, or --allow-tools\)\n/, plan.stdout);
+  // A dry run with --allow-tools shows them taken, as the run would take them.
+  const dryAllowed = await cli(machine({ toolRules: false }), api, 'setup', '--offline', '--dry-run', '--allow-tools');
+  assert.match(dryAllowed.stdout, /\n  • let Claude Code use PassionCode's own tools without asking: /, dryAllowed.stdout);
+  // While they are offered, a train-only plan lists them after the train and promises the question they get.
+  const { render } = require('../lib/setup');
+  const empty = { summary: {}, checks: [] };
+  const trainPlan = render({ mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true, trainNotSaved: 'org-test', permissions: { rules: [...P.RULES], error: null, taken: false } });
+  assert.match(trainPlan, /\n  • save release train org-test\n  – let Claude Code use PassionCode's own tools without asking: [^\n]*\n/, trainPlan);
+  assert.match(trainPlan, /\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/, trainPlan);
+  // Taken already (--allow-tools), they ask nothing: a train-only plan keeps the quiet footer.
+  const takenPlan = render({ mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true, trainNotSaved: 'org-test', permissions: { rules: [...P.RULES], error: null, taken: true } });
+  assert.match(takenPlan, /\n  • let Claude Code use PassionCode's own tools without asking: /, takenPlan);
+  assert.match(takenPlan, /\nRun it with --yes, or in a terminal, to apply\.\n/, takenPlan);
+  // A dry run whose only changes are questions --yes does not answer names how they are applied; any change --yes
+  // does take, or rules taken already, keeps the dry run's own footer.
+  const offer = { kind: 'install', product: 'fabric', selected: false, detail: 'install Fabric (early preview)', note: 'needs Docker' };
+  const dryOf = (over, taken) => render({ mode: 'existing', platform: 'darwin', before: empty, after: empty, plan: [], actions: [], humanSteps: [], planOnly: true, dryRun: true, ...over, permissions: { rules: [...P.RULES], error: null, taken } });
+  const asking = 'Run it without --dry-run, in a terminal or with --allow-tools, to apply.';
+  const dryYes = 'Run it without --dry-run (with --yes, or in a terminal) to apply.';
+  for (const [over, taken, footer] of [[{}, false, asking], [{ plan: [offer] }, false, asking], [{}, true, dryYes],
+    [{ trainNotSaved: 'org-test' }, false, dryYes], [{ plan: [{ ...offer, selected: true }] }, false, dryYes]]) {
+    const out = dryOf(over, taken).split('\n');
+    assert.ok(out.includes(footer) && !out.includes(footer === dryYes ? asking : dryYes), out.join('\n'));
+  }
+  // Settings that cannot be read are named and left as they are.
+  const broken = machine({ toolRules: false });
+  fs.mkdirSync(path.dirname(settingsOf(broken)), { recursive: true });
+  fs.writeFileSync(settingsOf(broken), '{ not json');
+  // --allow-tools asked for the rules: settings it cannot read make that a failed step (exit 1), not a quiet success.
+  const named = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
+  assert.equal(named.status, 1, named.stdout + named.stderr);
+  assert.match(named.stdout, /FAILED allow PassionCode's own tools in .*settings\.json\n.*is not valid JSON/, named.stdout);
+  assert.doesNotMatch(named.stdout, /fails until/, named.stdout); // the run failed; the warning is a plan's
+  assert.doesNotMatch(named.stdout, /still asks/, named.stdout); // --allow-tools cannot help while the file is unreadable
+  const failsPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-tools');
+  assert.match(failsPlan.stdout, /is not valid JSON[^\n]*\nA run with --allow-tools fails until that is fixed\.\n/, failsPlan.stdout);
+  const brokenPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run');
+  assert.doesNotMatch(brokenPlan.stdout, /fails until/, brokenPlan.stdout);
+  assert.doesNotMatch(brokenPlan.stdout, /let Claude Code use|still asks/, brokenPlan.stdout);
+  assert.match(brokenPlan.stdout, /\nClaude Code's settings were not changed: /, brokenPlan.stdout);
+  const brokenRun = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.match(brokenRun.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, brokenRun.stdout);
+  // A set-up machine that lacks only the rules: its plan is the rules, not "Nothing to do".
+  const lacking = machine({ toolRules: false });
+  assert.equal((await cli(lacking, api, 'setup', '--yes', '--no-apps', '--offline')).status, 0);
+  for (const extra of [[], ['--allow-tools']]) {
+    const only = await cli(lacking, api, 'setup', '--no-apps', '--offline', '--dry-run', ...extra);
+    assert.match(only.stdout, /\nPlan \(nothing was changed\):\n/, only.stdout);
+    assert.doesNotMatch(only.stdout, /Nothing to do/, only.stdout);
+    // --yes alone never takes the rules, so a plan of nothing else is not applied with it.
+    assert.match(only.stdout, extra.length ? /\nRun it without --dry-run \(with --yes, or in a terminal\) to apply\.\n/
+      : /\nRun it without --dry-run, in a terminal or with --allow-tools, to apply\.\n/, only.stdout);
+    if (!extra.length) assert.doesNotMatch(only.stdout, /with --yes/, only.stdout);
+  }
+  assert.match(named.stdout, /\nClaude Code's settings were not changed: .*settings\.json is not valid JSON/, named.stdout);
+  assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
+  // Where Claude Code is not (no claude, no ~/.claude), nothing about its rules is offered, said or written.
+  const noClaude = machine({ toolRules: false });
+  fs.rmSync(path.join(noClaude.home, '.claude'), { recursive: true, force: true });
+  const bareRun = (...args) => {
+    const r = require('child_process').spawnSync(process.execPath, [BIN, ...args], { env: { ...cliEnv(noClaude, api), PASSIONCODE_CLAUDE: path.join(noClaude.home, 'no-claude') }, encoding: 'utf8' });
+    return { stdout: r.stdout, json: (() => { try { return JSON.parse(r.stdout); } catch (_) { return null; } })() };
+  };
+  const bare = bareRun('setup', '--yes', '--no-apps', '--offline', '--json');
+  assert.equal(bare.json.permissions, undefined, bare.stdout);
+  assert.ok(!bare.json.actions.some((a) => a.kind === 'permissions'), bare.stdout);
+  assert.ok(!fs.existsSync(settingsOf(noClaude)), 'no settings file is made');
+  assert.doesNotMatch(bareRun('setup', '--no-apps', '--offline', '--dry-run').stdout, /PassionCode's own tools|allow-tools/);
+  // doctor --fix repairs; it never decides the tool rules.
+  const fix = await cli(machine({ toolRules: false }), api, 'doctor', '--fix', '--offline', '--json');
+  assert.ok(!fix.json.actions.some((a) => a.kind === 'permissions'), fix.stdout);
+  assert.equal(fix.json.permissions, undefined);
+});
+
+test('PC-117: in a terminal the tool rules are one question of their own, default no', async (t) => {
+  const api = await releaseServer(t);
+  const run = (m, answer, extra = {}) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      const asked = [];
+      S.setup({ online: false, noApps: true, ...${JSON.stringify(extra)}, ask: async (q) => { asked.push(q); return ${JSON.stringify(answer)}(q); } })
+        .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, permissions: r.permissions, actions: r.actions.map((a) => a.kind + ':' + a.outcome), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`.replace(`${JSON.stringify(answer)}(q)`, `(${answer})(q)`);
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  const question = "Let Claude Code use PassionCode's own tools without asking (allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory)? [y/N] ";
+  // Enter keeps the default: no; the repairs still run.
+  const enter = machine({ toolRules: false });
+  const quiet = run(enter, "() => ''");
+  assert.ok(quiet.asked.includes(question), JSON.stringify(quiet));
+  assert.equal(quiet.permissions.taken, false);
+  const after = path.join(enter.home, '.claude', 'settings.json');
+  assert.equal(fs.existsSync(after) ? JSON.parse(fs.readFileSync(after, 'utf8')).permissions : undefined, undefined, 'no rule was written');
+  // Yes to the rules alone, no to the repairs: the rules are added, and the run is not a declined one.
+  const only = machine({ toolRules: false });
+  const ruled = run(only, '(q) => (/^Let Claude Code/.test(q) ? "y" : "n")');
+  assert.equal(ruled.declined, undefined, ruled.text);
+  assert.deepEqual(ruled.actions, ['permissions:done'], ruled.text);
+  assert.match(ruled.text, /allowed mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__plugin_switchboard_switchboard, mcp__observatory in .*settings\.json \(an ask or deny rule for them still wins\)/, ruled.text);
+  // --allow-tools in a terminal is that yes already: the question is not asked again, and no means no elsewhere.
+  const given = machine({ toolRules: false });
+  const pre = run(given, '() => "n"', { allowTools: true });
+  assert.ok(!pre.asked.some((q) => /^Let Claude Code/.test(q)), JSON.stringify(pre.asked));
+  assert.ok(pre.actions.includes('permissions:done'), JSON.stringify(pre.actions));
+  // Rules added by someone else between the plan and the write: the step says they were there already.
+  const raced = machine({ toolRules: false });
+  const racer = `(q) => { if (!/^Let Claude Code/.test(q)) return 'n';
+    require('fs').writeFileSync(require('path').join(process.env.HOME, '.claude', 'settings.json'),
+      JSON.stringify({ permissions: { allow: [...require(${JSON.stringify(path.join(__dirname, '../lib/permissions'))}).RULES] } }));
+    return 'y'; }`;
+  const already = run(raced, racer);
+  assert.deepEqual(already.actions, ['permissions:done'], already.text);
+  assert.match(already.text, /done +nothing to add in .*settings\.json: each rule is already allowed, asked about or denied there\n/, already.text);
+  // Settings that become readable before the write (the update writes the file too) are no longer named as unread.
+  const mended = machine({ toolRules: false });
+  const mendedFile = path.join(mended.home, '.claude', 'settings.json');
+  fs.writeFileSync(mendedFile, '{ not json');
+  const fixer = `(q) => { require('fs').writeFileSync(require('path').join(process.env.HOME, '.claude', 'settings.json'), '{}'); return 'y'; }`;
+  const fixed = run(mended, fixer, { allowTools: true });
+  assert.ok(fixed.actions.includes('permissions:done'), fixed.text);
+  assert.doesNotMatch(fixed.text, /were not changed/, fixed.text);
+  assert.deepEqual(JSON.parse(fs.readFileSync(mendedFile, 'utf8')).permissions.allow, [...require('../lib/permissions').RULES]);
+  // A declined named train lists no plan, yet still says how to add the rules.
+  const declined = run(onTrain(machine({ toolRules: false })), '() => "n"', { train: 'org-test' });
+  assert.equal(declined.declined, true, declined.text);
+  assert.match(declined.text, /\nYou declined every offer/, declined.text);
+  assert.doesNotMatch(declined.text, /Plan \(nothing was changed\)|let Claude Code use/, declined.text);
+  assert.match(declined.text, /setup --allow-tools/, declined.text);
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.

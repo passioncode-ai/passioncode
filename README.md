@@ -44,9 +44,10 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
 
 1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
    `npx @passioncode-ai/passioncode@latest setup`, then restart your agents. In a terminal it asks
-   one question per absent app (on macOS) and one for the repairs, if any are left (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
+   one question per absent app (on macOS), one for the repairs, if any are left, and one for Claude Code's rules for PassionCode's own tools where Claude Code is and they are missing (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
    (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`), `--no-apps` sets up the skills
-   and MCP only, `--dry-run` shows the plan. Apps are installed on macOS; on other systems setup
+   and MCP only, `--dry-run` shows the plan, `--allow-tools` lets Claude Code use PassionCode's own tools without asking (offered as
+   its own question in a terminal, never by `--yes` alone). Apps are installed on macOS; on other systems setup
    names each download page, and on Windows `doctor` reads which version of each app is installed. Skills only: `npx @passioncode-ai/passioncode@latest update`.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
    `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. Each app's
@@ -90,7 +91,8 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   for every agent that is present: Claude Code (through `claude mcp add --scope user`), Codex CLI
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
-  is reported and kept. `restore` and `uninstall` remove what the launcher added
+  is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
+  tool rules setup added stay in `~/.claude/settings.json`)
   ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
   [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
 

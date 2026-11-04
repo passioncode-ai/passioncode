@@ -12,7 +12,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
-| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
+| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
@@ -78,7 +78,7 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
-humanSteps, planOnly, ok, keyOverride }`, plus `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
+humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
 `none` when a train is saved) when a run named a train other than the saved one but was only a plan, or was a declined
 terminal run that named one.
 A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
@@ -99,8 +99,9 @@ fix, each product's onboarding for apps installed in this run, and the restart. 
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
-Questions are asked only on a terminal: one per absent app (on macOS) and one for the
-repairs, if any are left after the installs (see PC-112 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
+Questions are asked only on a terminal: one per absent app (on macOS), one for the
+repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
+tools where Claude Code is and they are missing (default no; see PC-117 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
 something (an offer selected, or a train other than the saved one named, `none` included when a
 train is saved; a `--json` run never asks, so it counts as one without a terminal), the plan is returned with `planOnly: true`,
 nothing changes, and the exit code is 0; without a terminal and without `--yes` a run with nothing
@@ -109,6 +110,38 @@ to change runs as `setup` does and exits by its checks.
 repairs. A terminal run that declined every offer (PC-91) exits by its checks the
 same way, 1 when a check still fails, whether or not it named a train (PC-93). `doctor --fix` is `setup --yes` with no `install` items and nothing
 opened.
+
+Claude Code's rules for PassionCode's own tools (PC-117; fabric-workspace `knowledge/agents-first.md`, "When Claude
+Code's auto mode refuses..."): `setup` offers to add `mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard`,
+`mcp__plugin_switchboard_switchboard` (Switchboard through its Claude Code plugin) and `mcp__observatory` to `permissions.allow` in `~/.claude/settings.json`, so Claude Code uses those servers' tools without
+asking. It is the person's security decision, taken only on its own yes: one question in a terminal (default no), or
+`--allow-tools`; `--yes` alone does not take it, a `--dry-run` shows it, and `doctor --fix` never offers it. The rules
+are merged: every other key and rule, and their order, is kept; a rule the person lists under `permissions.deny` or
+`permissions.ask` is not added; a second run adds nothing. Only `~/.claude/settings.json` is read (a rule granted in a
+project's or a managed settings file, or in another spelling such as `mcp__fabric__*`, is offered again), and the rules
+are offered only where Claude Code is (its `~/.claude` folder exists). Without a terminal and without `--yes`,
+`--allow-tools` adds them when nothing else would change, and is part of the plan otherwise. A settings file that cannot
+be read, is not valid JSON, or whose `permissions`, `allow`, `deny` or `ask` has the wrong shape, is left as it is and
+named; a run with `--allow-tools` fails that step (exit 1), and a `--dry-run` with it says so ("A run with
+--allow-tools fails until that is fixed.") and exits 0. The rules merge writes a settings file that is a link, or a
+chain of links, where the system says it ends (linked folders and `..` included), keeping every link and the file's
+permission bits, and writes the merged file back as JSON indented by two spaces; the skill update's own write to that
+file, which retires an old marketplace, does not keep a link yet (PC-120). The result carries `permissions: { rules, error, taken }` only while
+rules are missing (or the file cannot be read); `taken` is the person's yes, and the `permissions` action is the proof
+they were written (a plan agreed to but not run writes nothing). The plan lists them as a line of their own (after a
+train's line; while they are offered a terminal asks about them, so a train-only plan closes with "Run it with --yes to
+apply, or in a terminal to answer its questions.", and a `--dry-run` whose only change is the rules (an offer that
+defaults to no may stand beside them, unticked) closes with "Run it without --dry-run, in a terminal or with
+--allow-tools, to apply."), a run that leaves them out says how to add them under its
+headline (`setup --allow-tools`), and a run that changed nothing else says "Everything else this command can set up is
+in place". Yes to the rules alone is not a declined run, so with a named train it saves that train too.
+
+What the rules do not cover: each one allows every tool of the server registered under that name (Fabric Dashboards'
+`control`, which restarts a service, included), whatever program answers under the name. They allow MCP tools only:
+shell commands (`gh pr merge`, a launchd job), the Data Room and Fabric Inbox (`fabric-inbox`) need rules of their own.
+An `ask` or `deny` rule for one of these tools (in this file or a project's, local or managed settings file), or a
+managed policy that ignores user rules, still wins over them. They apply to Claude Code only. Existing machines are
+offered them the next time `setup` runs; `update` and the background update do not offer them.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
@@ -217,7 +250,8 @@ conflict and interrupted-move regression tests in `test/launcher.test.js`.
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
-equivalent relative links. Other user files stay in place. Failed plugin removal
+equivalent relative links. It leaves the Claude Code tool rules setup added (PC-117) in
+`~/.claude/settings.json`; the person removes them there. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
 

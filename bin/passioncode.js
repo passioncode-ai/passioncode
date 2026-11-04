@@ -19,7 +19,7 @@ function cachedNpmStatus({ latest, checkedAt, installed }) {
 
 const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
 
-  npx @passioncode-ai/passioncode@latest setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--offline] [--json]
+  npx @passioncode-ai/passioncode@latest setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
   npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json]     check everything (read-only); --fix repairs as setup does
   npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
@@ -29,7 +29,8 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
   npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
 
 onboard is another name for setup, install for update. --offline skips the check for newer app
-releases; --quiet prints nothing when an update succeeds. App ids: switchboard, dashboards,
+releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
+PassionCode's own tools without asking (--yes never does). App ids: switchboard, dashboards,
 observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
 or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode"
 marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after
@@ -39,7 +40,7 @@ const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric'];
 
 /** Flags of setup and doctor: booleans, plus --with/--without taking a comma list. Null when invalid. */
 function parseSetupArgs(cmd, rest) {
-  const allowed = cmd === 'doctor' ? ['--fix', '--json', '--offline'] : ['--yes', '-y', '--json', '--offline', '--no-apps', '--no-open', '--dry-run'];
+  const allowed = cmd === 'doctor' ? ['--fix', '--json', '--offline'] : ['--yes', '-y', '--json', '--offline', '--no-apps', '--no-open', '--dry-run', '--allow-tools'];
   const o = { flags: new Set(), withIds: null, withoutIds: [], train: undefined };
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
@@ -92,6 +93,7 @@ async function setupOrDoctor(cmd, rest) {
   const r = await S.setup({
     yes: repairOnly || o.flags.has('--yes'), withIds: o.withIds, withoutIds: o.withoutIds, noApps: o.flags.has('--no-apps'),
     noOpen: o.flags.has('--no-open'), dryRun: o.flags.has('--dry-run'), repairOnly, online, ask: json ? null : asker(), log, train: o.train,
+    allowTools: o.flags.has('--allow-tools'),
   });
   process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : S.render(r, { repairOnly }) + '\n');
   return S.exitCode(r);
