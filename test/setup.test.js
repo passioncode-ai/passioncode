@@ -1300,6 +1300,10 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   const npx = require('child_process').spawnSync(process.execPath, [BIN, 'setup', '--yes', '--no-apps', '--offline', '--json'],
     { env: { ...cliEnv(viaNpx, api), PATH: `${proj}${path.delimiter}${cliEnv(viaNpx, api).PATH}` }, encoding: 'utf8' });
   assert.match(JSON.parse(npx.stdout).commands.refused.join('\n'), /own-npx is not found on PATH/, npx.stdout);
+  // A relative node_modules/.bin, which a shell reads in each repository, is not left out: it refuses the wildcard.
+  const rel = require('child_process').spawnSync(process.execPath, [BIN, 'setup', '--yes', '--no-apps', '--offline', '--json'],
+    { env: { ...cliEnv(viaNpx, api), PATH: `./node_modules/.bin${path.delimiter}${cliEnv(viaNpx, api).PATH}` }, encoding: 'utf8' });
+  assert.match(JSON.parse(rel.stdout).commands.refused.join('\n'), /empty or relative folder/, rel.stdout);
   // doctor --fix never decides them.
   const fix = await cli(machine({ commandRules: false }), api, 'doctor', '--fix', '--offline', '--json');
   assert.equal(fix.json.commands, undefined, fix.stdout);

@@ -400,6 +400,16 @@ test('PC-119: PATH is read as a shell in any folder reads it, so a name cannot r
     assert.match(P.refusal('Bash(ls -la *)', at(`${shadow}${path.delimiter}/bin`)) || '', /outside your home folder/);
   }
   // A home folder at the root holds every program, so it holds none for this check.
-  assert.match(P.refusal('Bash(ls -la *)', at('/bin', '/')) || '', /outside your home folder/);
+  assert.match(P.refusal('Bash(ls -la *)', at('/bin', '/')) || '', /your home folder is the root folder/);
   fs.rmSync(out, { recursive: true, force: true });
+});
+
+test('PC-119: a control character in a declaration is named as the reason', () => {
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A\tB', rules: [] }));
+  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B', rules: [{ rule: 'Bash(b-cli sync:*)', why: 'sync\tall' }] }));
+  const { refused } = P.declared(dir, CTX);
+  assert.match(refused.join('\n'), /a\.json: "by" holds a control character/);
+  assert.match(refused.join('\n'), /b\.json: Bash\(b-cli sync:\*\): "why" holds a control character/);
 });
