@@ -19,7 +19,7 @@
   those tools without asking. Every other setting and rule is kept, a denied rule is not added, a second run adds
   nothing, and settings that cannot be read are named and left as they are. The plan lists the rules; a run that
   leaves them out says how to add them; the result carries `permissions`. Each rule allows every tool of its server;
-  shell commands, the Data Room and Fabric Inbox are not covered, and an `ask` or `deny` rule still wins. Existing
+  shell commands, other servers and Fabric Inbox are not covered, and an `ask` or `deny` rule still wins. Existing
   machines are offered the rules the next time `setup` runs. The rules merge writes a settings file that is a link, or a
   chain of links, where it ends (the skill update's own write to that file does not keep a link yet, PC-120); with `--allow-tools`, settings that cannot be read are a failed step (exit 1).
 
