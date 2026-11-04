@@ -12,6 +12,12 @@ test('leaves its temporary folders', () => {
   assert.match(path.basename(os.tmpdir()), /^pc-test-/);
   assert.equal(process.env.PASSIONCODE_TEST_RUN, '1');
   if (process.env.PC115_FIXTURE_FAILS) assert.fail('the fixture fails on request');
+  if (process.env.PC115_FIXTURE_STUCK) { // a folder the run cannot remove (POSIX: no write permission on it)
+    const stuck = path.join(os.tmpdir(), 'stuck');
+    fs.mkdirSync(stuck);
+    fs.writeFileSync(path.join(stuck, 'held'), '');
+    fs.chmodSync(stuck, 0o500);
+  }
   fs.mkdtempSync(path.join(os.tmpdir(), 'pc-fixture-'));
   require('node:child_process').execFileSync(process.execPath, ['-e', "require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'pc-child-'))"]);
 });

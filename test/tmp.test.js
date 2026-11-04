@@ -12,11 +12,12 @@ const ROOT = path.resolve(__dirname, '..');
 
 // Runs scripts/test.mjs on the fixture with the outer temporary folder pointed at `outer`. A timeout: a runner
 // that ignored its arguments would start the whole suite again, inside itself.
-function runFixture(outer, extra = {}) {
+function runFixture(outer, extra = {}, flags = []) {
   // Without NODE_TEST_CONTEXT the inner run reports as a run of its own, not to this one.
   const { NODE_TEST_CONTEXT, ...env } = process.env; // eslint-disable-line no-unused-vars
-  return spawnSync(process.execPath, [path.join(ROOT, 'scripts/test.mjs'), path.join(__dirname, 'fixtures/leaves-temp.fixture.js')], {
-    encoding: 'utf8', timeout: 60000, env: { ...env, TMPDIR: outer, TMP: outer, TEMP: outer, ...extra },
+  return spawnSync(process.execPath, [path.join(ROOT, 'scripts/test.mjs'), ...flags, path.join(__dirname, 'fixtures/leaves-temp.fixture.js')], {
+    // Named files run inside a marked run too: the nesting guard refuses only a whole run.
+    encoding: 'utf8', timeout: 60000, env: { ...env, PASSIONCODE_TEST_RUN: '1', TMPDIR: outer, TMP: outer, TEMP: outer, ...extra },
   });
 }
 
@@ -32,7 +33,28 @@ test('PC-115: a test run leaves nothing in the temporary folder, a child process
     assert.notEqual(failing.status, 0, failing.stdout + failing.stderr);
     assert.match(failing.stdout, /fail 1/, failing.stdout);
     assert.deepEqual(fs.readdirSync(outer), []);
+    // An argument that starts with - reaches node --test: a pattern no test matches skips the failing one.
+    const filtered = runFixture(outer, { PC115_FIXTURE_FAILS: '1' }, ['--test-name-pattern=no-such-test']);
+    assert.equal(filtered.status, 0, filtered.stdout + filtered.stderr);
+    assert.doesNotMatch(filtered.stdout, /fail 1/, filtered.stdout);
+    assert.deepEqual(fs.readdirSync(outer), []);
   } finally {
+    fs.rmSync(outer, { recursive: true, force: true });
+  }
+});
+
+test('PC-115: a run whose folder cannot be removed fails, and says so', { skip: process.platform === 'win32' && 'a folder without write permission is a POSIX case' }, () => {
+  const outer = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-tmp-'));
+  try {
+    const r = runFixture(outer, { PC115_FIXTURE_STUCK: '1' });
+    assert.notEqual(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /pass 1/, r.stdout); // the tests passed; the run fails for its folder
+    assert.match(r.stderr, /could not be removed/, r.stderr);
+  } finally {
+    for (const run of fs.readdirSync(outer)) {
+      const stuck = path.join(outer, run, 'stuck');
+      if (fs.existsSync(stuck)) fs.chmodSync(stuck, 0o700);
+    }
     fs.rmSync(outer, { recursive: true, force: true });
   }
 });
