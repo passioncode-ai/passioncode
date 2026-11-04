@@ -231,3 +231,33 @@ test('PC-123: status says nothing is sent until the notice has been shown once',
   await A.after(opts);
   assert.deepEqual([st().sending, st().reason], [true, null]);
 });
+
+test('PC-123: a machine an agent sets up with --json is a new install, and the first status run says it sends', () => {
+  const h = home();
+  const keyFile = path.join(h, 'key.json');
+  fs.writeFileSync(keyFile, JSON.stringify({ appKey: KEY }));
+  const log = path.join(h, 'sent.log');
+  const preload = path.join(h, 'fetch.js');
+  fs.writeFileSync(preload, `globalThis.fetch = async (url, init) => { require('fs').appendFileSync(${JSON.stringify(log)}, init.body + '\\n'); return { ok: true, status: 200 }; };`);
+  const env = { ...process.env, HOME: h, USERPROFILE: h, XDG_CONFIG_HOME: path.join(h, '.config'), APPDATA: path.join(h, 'AppData'),
+    PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_ANALYTICS_KEY_FILE: keyFile };
+  delete env.DO_NOT_TRACK; delete env.PASSIONCODE_ANALYTICS;
+  const run = (...args) => spawnSync(process.execPath, ['--require', preload, path.join(ROOT, 'bin', 'passioncode.js'), ...args], { env, encoding: 'utf8' });
+  assert.equal(run('config', 'set', 'update.auto', 'off', '--json').status, 0); // writes the launcher state, sends nothing yet
+  assert.equal(fs.existsSync(log), false, 'nothing sent before the notice');
+  const status = run('analytics', 'status');
+  assert.equal(status.status, 0, status.stderr);
+  assert.doesNotMatch(status.stdout, /nothing is sent/);
+  assert.match(status.stdout, /the notice below is shown now/);
+  assert.match(status.stderr, /The PassionCode launcher sends anonymous usage and error counts/);
+  const first = JSON.parse(fs.readFileSync(log, 'utf8').trim().split('\n')[0]);
+  assert.equal(first.find((e) => e.eventName === 'app_installed').props.existing, 'false');
+  assert.match(run('analytics', 'status', '--json').stdout, /"sending": true/);
+});
+
+test('PC-124: the sessions row never becomes a step the person owes', () => {
+  const S = require('../lib/setup');
+  const after = [{ id: 'sessions.on-demand', area: 'services', state: 'warn', fix: 'install Claude Code' }, { id: 'x', state: 'warn', fix: 'do x' }];
+  const steps = S.humanSteps({ actions: [] }, after, [], []);
+  assert.deepEqual(steps, ['do x']);
+});

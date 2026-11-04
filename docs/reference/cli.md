@@ -13,7 +13,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
 | `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
-| `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
+| `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Check of everything that changes nothing but the [anonymous counts](#anonymous-usage-counts); `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |

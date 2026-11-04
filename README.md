@@ -34,7 +34,8 @@ Paste this into Claude Code, Codex or another coding agent:
 > chat (the tools open their own hidden prompts), and finish with
 > `npx --yes @passioncode-ai/passioncode@latest doctor`. Tell me briefly what you set up or
 > fixed, what still fails, and the numbered steps only I can do, such as signing in, and
-> remind me to restart you so the new skills and MCP servers load.
+> remind me to restart you so the new skills and MCP servers load. If the launcher prints a line
+> about anonymous usage counts, give it to me word for word.
 
 Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a

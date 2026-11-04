@@ -22,7 +22,7 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
 
   npx @passioncode-ai/passioncode@latest setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
-  npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json]     check everything (read-only); --fix repairs as setup does
+  npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json]     check everything (changes nothing but the anonymous counts); --fix repairs as setup does
   npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
   npx @passioncode-ai/passioncode@latest status [--json]                         what is installed where
   npx @passioncode-ai/passioncode@latest restore [--json]                        put back what the last update moved aside
@@ -200,6 +200,8 @@ function analyticsCommand(rest) {
   catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
   const s = A.status({ state });
   const why = { off: 'turned off (analytics off)', env: 'off for this process (PASSIONCODE_ANALYTICS=off)', 'do-not-track': 'off for this process (DO_NOT_TRACK)', 'no-key': 'this build carries no App Key, so nothing is sent', notice: 'on, and nothing is sent until this notice has been shown once by a command run without --json or --quiet' };
+  // Without --json this very run shows the notice and sends, so "nothing is sent yet" would be false by the time it exits.
+  if (!json && s.reason === 'notice') why.notice = `on: the notice below is shown now, and counts are sent to ${s.host} from this command on`;
   process.stdout.write(json ? JSON.stringify(s, null, 2) + '\n'
     : `Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch.\n`);
   return 0;
