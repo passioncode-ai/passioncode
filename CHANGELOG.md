@@ -28,14 +28,21 @@
   through `restore` or `uninstall`, now writes the file where a link points and keeps its permission bits, as the JSON
   settings files already did (PC-120); a file the launcher creates is private (mode 600 on macOS and Linux). Before, a
   link was replaced by a regular file and the file, which can hold server tokens under `env`, could become readable by
-  others.
+  others. When the file is a link into a folder the launcher cannot write, the update now reports the registration as
+  failed instead of replacing the link (the Gemini and Kimi files have done so since 0.2.74); make the folder writable,
+  or declare the server in the file the link comes from, which the update then finds already there.
+- **`restore` and `uninstall` go on past an MCP entry they cannot remove** (PC-127): an entry whose file cannot be
+  written now (a link into a locked folder) is reported as kept with its error; `restore` still puts back the rest of
+  the batch and removes the entry on its next run, and `uninstall` finishes the rest, keeps the entry recorded and exits
+  1 naming the file, so a retry removes it. Before, both stopped at that entry, `uninstall` with `current` already gone.
 - What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
   `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
   on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it
   finds). The file the link pointed at was not written then and holds what it held before that update; the regular
   file in the link's place holds every change since, so merge that into it before linking again. The copy that update
   took is in its `~/.passioncode/quarantine/<run>/` as `config.toml.before-mcp-codex-cli`; a removal by `restore` or
-  `uninstall` took none.
+  `uninstall` took none. A link to a missing file was replaced by 0.2.74 and 0.2.75 with a file holding only the
+  launcher's entries, and no copy was taken: move that file to where the link pointed and link again.
 
 ## 0.2.75 - 2026-11-04
 

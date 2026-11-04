@@ -828,6 +828,60 @@ test('PC-126: a Codex config.toml the launcher creates is private', { skip: proc
   assert.equal(fs.statSync(file).mode & 0o777, 0o600);
 });
 
+// A Codex config.toml linked into a folder the launcher cannot write: the removal fails for that entry only.
+function lockedCodexLink(env) {
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, file);
+  assert.equal(run(env, 'update').status, 0);
+  fs.chmodSync(path.dirname(real), 0o555);
+  return { file, real, unlock: () => fs.chmodSync(path.dirname(real), 0o755) };
+}
+const lockSkip = (process.platform === 'win32' && 'POSIX modes') || (process.getuid && process.getuid() === 0 && 'root writes a locked folder');
+
+test('PC-127: restore keeps an MCP entry it cannot remove, puts back the rest, and removes it on the next run', { skip: lockSkip }, () => {
+  const env = setup();
+  const { file, real, unlock } = lockedCodexLink(env);
+  try {
+    const r = run(env, 'restore', '--json');
+    assert.equal(r.status, 0, r.stderr);
+    const notes = JSON.parse(r.stdout);
+    assert.ok(notes.some((n) => n.startsWith(`${file}: fabric-dashboards for Codex CLI could not be removed`) && n.includes('run restore again')), JSON.stringify(notes));
+    assert.equal(mcpEntry(path.join(env.home, '.gemini', 'settings.json')), undefined, 'the other agents are still cleaned');
+    assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'), 'quarantined skills still come back');
+    assert.ok(fs.lstatSync(file).isSymbolicLink());
+    assert.ok(fs.readFileSync(real, 'utf8').includes('"fabric-dashboards"'), 'the entry is kept where it was');
+  } finally { unlock(); }
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink());
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF, 'the next restore removes it');
+});
+
+test('PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it recorded, and a retry removes it', { skip: lockSkip }, () => {
+  const env = setup();
+  const { file, real, unlock } = lockedCodexLink(env);
+  const stateFile = path.join(env.home, '.passioncode', 'state.json');
+  try {
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /Uninstall incomplete: /);
+    assert.ok(r.stderr.includes(`${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
+    const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+    assert.equal(state.installed, null, 'the rest of uninstall is done');
+    assert.equal(state.config.auto, false);
+    assert.deepEqual(state.mcpRegistrations.map((m) => m.agent), ['Codex CLI'], 'only the kept entry stays recorded');
+    assert.equal(mcpEntry(path.join(env.home, '.kimi-code', 'mcp.json')), undefined);
+  } finally { unlock(); }
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+  assert.ok(fs.lstatSync(file).isSymbolicLink());
+  assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).mcpRegistrations, undefined);
+});
+
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);

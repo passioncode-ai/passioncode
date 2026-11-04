@@ -300,6 +300,10 @@ is treated as consumed, without deleting the destination. If a recorded source
 is present but a user replacement occupies the destination, restore reports a
 conflict; move that replacement aside yourself and retry. If a marketplace cannot
 be re-added or its settings cannot be restored, exit 1 leaves it retryable.
+An MCP registration whose file cannot be written now (for example a link into a
+folder that is not writable) is reported as kept with its error and left
+unrestored, the rest of the batch is still put back, and the next `restore`
+removes it once the file can be written (PC-127).
 
 Keep quarantine directories and settings backups until recovery is complete.
 Do not delete a corrupted `state.json` to silence the error: it indexes the
@@ -307,7 +311,7 @@ quarantine batches. Preserve a copy, repair its JSON object, then retry. Recover
 from physically missing backups is manual; the launcher reports the missing path.
 
 Evidence: `restore()` and `restoreMarketplace()` in the launcher; repeated restore,
-conflict and interrupted-move regression tests in `test/launcher.test.js`.
+conflict and interrupted-move regression tests and the PC-127 restore test in `test/launcher.test.js`.
 
 ## Permissions ledger
 
@@ -384,7 +388,11 @@ and the rules `permissions allow` added and the default mode `permissions mode` 
 (under `PASSIONCODE_HOME` when it is set);
 the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
-marketplace still serving another installed plugin is retained.
+marketplace still serving another installed plugin is retained. An MCP registration
+whose file cannot be written now (for example a link into a folder that is not
+writable) does not stop the rest: uninstall finishes, keeps that entry recorded in
+`state.json`, and exits 1 naming the file; once it can be written, another uninstall
+removes the entry (PC-127).
 
 After success, `current` is removed, `installed` becomes null, member bookkeeping
 is cleared, and automatic updates are off. The current and previous release
@@ -392,7 +400,7 @@ directories and the quarantines remain available; `restore` still works. Repeate
 manual install preserves the off preference; enable it explicitly with
 `config set update.auto on` if wanted.
 
-Evidence: `uninstall()` in the launcher and both `uninstall...` regressions.
+Evidence: `uninstall()` in the launcher, both `uninstall...` regressions and the PC-127 uninstall test.
 
 ## Background checks and trust
 
