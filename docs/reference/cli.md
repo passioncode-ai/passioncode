@@ -269,8 +269,9 @@ and `test/openpgp.test.js`.
 4. Link supported existing agent channels, including directory symlinks. Record
    each quarantine move before applying it. Re-read state before the final write
    to retain config/probe results written while plugin subprocesses ran.
-5. Register the Fabric Dashboards MCP server (`mcp` steps) for every agent that is
-   present, when the Fabric Dashboards app is installed: Claude Code through its CLI,
+5. Register the MCP server of each installed app (`mcp` steps): Fabric Dashboards and
+   Fabric Switchboard (not for Claude Code when its `switchboard` plugin already brings
+   it), for every agent that is present: Claude Code through its CLI,
    `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`
    directly. An entry already there is kept and reported, each existing file is
    copied into the quarantine first, and a file that is a link is written where it
@@ -278,8 +279,9 @@ and `test/openpgp.test.js`.
    Linux). A link into a folder the launcher cannot write fails that agent's step
    and leaves the link (setup and `doctor --fix`, which run an update, report it
    too): make the folder writable, or declare the server in the file the link points
-   to, which the next update finds already there. The other agents are still
-   registered. Early-preview servers are registered by `setup`, not by an update.
+   to, which the next update finds already there; a registration that failed is never
+   taken out by `restore`. The other agents are still registered. Fabric's early-preview
+   server is registered by `setup`, not by an update.
 6. Prune the launcher's own releases (`prune` step): keep the release just
    installed and the one it replaced (the newest other release when it replaced
    none), and remove older ones and `*.partial` copies a killed update left
@@ -319,12 +321,13 @@ link into a folder that is locked) is kept and left unrestored, the rest of the
 batch is still put back and listed, and restore exits 1 naming the file. Make the
 file and its folder readable and writable (for a link, the folder it points into)
 and run `restore` again: it removes the entry while that batch is still the latest.
-Any update that registers or moves something starts a new batch, including
+Any update that registers, tries to register or moves something starts a new batch, including
 `update --quiet` and the background update a session start runs, and restore reads
 only the latest: if a later restore succeeds while the entry is still in the file,
-`uninstall` removes it, or delete it by hand. A file that does not parse, or a folder
-in the file's place, is reported as kept and no longer tracked: fix it and remove the
-entry by hand. A conflict in the same batch stops restore with nothing listed,
+delete it by hand (`uninstall`, which removes PassionCode too, also does). A file
+that does not parse, or a folder in the file's place, is reported as kept and no
+longer tracked: fix it and remove the entry by hand. A path that now runs through a
+file is taken as already gone. A conflict in the same batch stops restore with nothing listed,
 although MCP entries it reached first are already removed; after you move the
 replacement aside, the retry puts back the rest and names the kept entry (PC-127).
 

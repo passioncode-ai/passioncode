@@ -98,7 +98,7 @@
 - **Alt paths:** Old journals without checkpoints are handled without deleting a destination whose quarantine source is absent.
 - **UI elements:** Restored paths, conflict/error text, empty result.
 - **States covered:** empty, error, success
-- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded. An MCP entry whose file the system cannot open now is kept; the rest of the batch is still put back and listed, and restore exits 1 naming the file. Once the folder is writable, a restore removes it while that batch is still the latest; after any update (a quiet or background one included) starts a new batch, uninstall does. A file that does not parse is reported as kept and no longer tracked (PC-127).
+- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded. An MCP entry whose file the system cannot open now is kept; the rest of the batch is still put back and listed, and restore exits 1 naming the file. Once the folder is writable, a restore removes it while that batch is still the latest; after any update (a quiet or background one included) starts a new batch, delete it by hand (uninstall, which removes PassionCode too, also does). A file that does not parse, or a folder in its place, is reported as kept and no longer tracked (PC-127).
 - **Status:** implemented
 - **Coverage:** `test/launcher.test.js`; SCN-004 evidence includes repeat, conflict and interruption regressions and the PC-127 restore test.
 - **Product:** unobserved

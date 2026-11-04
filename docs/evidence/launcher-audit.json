@@ -224,6 +224,18 @@
       "file": "test/launcher.test.js",
       "test": "PC-127: an MCP file whose path now runs through a file, or is a folder, does not hold uninstall back",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-38",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: an entry a person declares after a failed registration is never taken out by restore",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-39",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex config.toml whose path now runs through a file is taken as gone",
+      "scenario": "SCN-005"
     }
   ]
 }

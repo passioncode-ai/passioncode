@@ -836,7 +836,27 @@ test('PC-126: a Codex config.toml linked into a folder that cannot be written fa
   assert.equal(steps.filter((s) => s.outcome === 'done').length, 3, 'the other agents are still registered');
   assert.ok(fs.lstatSync(file).isSymbolicLink(), 'the link is kept');
   assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
-  assert.deepEqual(fs.readdirSync(path.dirname(real)), ['codex.toml'], 'no temporary file is left');
+  assert.deepEqual(fs.readdirSync(path.dirname(real)), ['codex.toml'], 'the folder holds only the original file');
+});
+
+test('PC-126: an entry a person declares after a failed registration is never taken out by restore', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, path.join(env.home, '.codex', 'config.toml'));
+  fs.chmodSync(path.dirname(real), 0o555);
+  try { assert.equal(run(env, 'update').status, 1); } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  const mine = `${CODEX_CONF}\n["mcp_servers"."fabric-dashboards"]\ncommand = ${JSON.stringify(bin)}\nargs = []\n`;
+  fs.writeFileSync(real, mine);
+  const second = run(env, 'update');
+  assert.equal(second.status, 0, second.stderr);
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(!JSON.parse(r.stdout).some((n) => n.includes('Codex CLI')), r.stdout);
+  assert.equal(fs.readFileSync(real, 'utf8'), mine, 'the hand-written table stays');
 });
 
 test('PC-126: a Codex config.toml the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
@@ -871,7 +891,7 @@ test('PC-127: restore keeps an MCP entry it cannot remove, puts back the rest, a
     const r = run(env, 'restore', '--json');
     assert.equal(r.status, 1, 'a partial restore is not a success');
     assert.ok(r.stderr.includes(`Restore incomplete: ${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
-    assert.match(r.stderr, /folder it points into\) and run restore again; once any update has run since, uninstall removes it/);
+    assert.match(r.stderr, /folder it points into\) and run restore again; once any update has run since, delete the entry by hand/);
     const notes = JSON.parse(r.stdout);
     assert.ok(notes.some((n) => n.includes('for Gemini CLI removed from')), 'what it did is still shown: ' + JSON.stringify(notes));
     const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
@@ -968,9 +988,26 @@ test('PC-127: an MCP file whose path now runs through a file, or is a folder, do
   const kimi = path.join(env.home, '.kimi-code', 'mcp.json');
   fs.rmSync(kimi);
   fs.mkdirSync(kimi);
+  const codex = path.join(env.home, '.codex', 'config.toml'); // the TOML branch maps them the same way
+  fs.rmSync(codex);
+  fs.mkdirSync(codex);
   const r = run(env, 'uninstall');
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /mcp\.json: fabric-dashboards for Kimi Code is a folder; kept/);
+  assert.match(r.stdout, /config\.toml: fabric-dashboards for Codex CLI is a folder; kept/);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8')).mcpRegistrations, undefined);
+});
+
+test('PC-127: a Codex config.toml whose path now runs through a file is taken as gone', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  fs.rmSync(path.join(env.home, '.codex'), { recursive: true });
+  fs.writeFileSync(path.join(env.home, '.codex'), 'not a folder\n');
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stdout, /Codex CLI/);
   assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8')).mcpRegistrations, undefined);
 });
 
