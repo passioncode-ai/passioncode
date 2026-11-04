@@ -408,8 +408,30 @@ test('PC-119: a control character in a declaration is named as the reason', () =
   const dir = path.join(path.dirname(tmp()), 'rules.d');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A\tB', rules: [] }));
-  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B', rules: [{ rule: 'Bash(b-cli sync:*)', why: 'sync\tall' }] }));
+  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B', rules: [{ rule: 'Bash(b-cli sync:*)', why: 'sync\tall' }, { rule: 'Bash(a-cli sync:*)', why: 'sync\n' }] }));
   const { refused } = P.declared(dir, CTX);
   assert.match(refused.join('\n'), /a\.json: "by" holds a control character/);
   assert.match(refused.join('\n'), /b\.json: Bash\(b-cli sync:\*\): "why" holds a control character/);
+  assert.match(refused.join('\n'), /b\.json: Bash\(a-cli sync:\*\): "why" holds a control character/, 'a line break at the end counts too');
+});
+
+test('PC-119: a refusal line never carries a control character from the declaration it repeats', () => {
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'Bash(x\u001b[3A\u001b[2K:*)', why: 'x' }] }));
+  fs.writeFileSync(path.join(dir, 'b.json'), '\u001b[3A\u001b[2Kgarbage');
+  if (process.platform !== 'win32') fs.writeFileSync(path.join(dir, 'c\u001b[2K.json'), JSON.stringify({ by: 'C', rules: 1 }));
+  const { refused } = P.declared(dir, CTX);
+  assert.equal(refused.length, process.platform === 'win32' ? 2 : 3);
+  for (const line of refused) assert.doesNotMatch(line, /[\u0000-\u001f\u007f-\u009f]/, JSON.stringify(line));
+  assert.match(refused.join('\n'), /\\u001b\[3A/, 'the character is written as its escape');
+});
+
+test('PC-119: the programs added to the lists in this release are refused as their list says', () => {
+  for (const name of ['trap', 'enable', 'watchexec', 'rlwrap', 'faketime', 'torsocks', 'numactl', 'cpulimit', 'runcon', 'dotenvx']) {
+    assert.match(P.refusal(`Bash(${name} x)`, CTX) || '', /runs another program/, name);
+  }
+  for (const name of ['rustup', 'pm2', 'proto', 'aqua', 'goenv', 'jenv', 'xonsh', 'nu', 'elvish', 'mksh', 'yash', 'op', 'aws-vault', 'doppler']) {
+    assert.match(P.refusal(`Bash(${name} run:*)`, CTX) || '', /could run any code/, name);
+  }
 });

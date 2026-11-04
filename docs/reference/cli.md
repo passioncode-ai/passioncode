@@ -165,7 +165,7 @@ name is read as the program, so `perl5.34` is `perl` and `python3.12` is `python
 `sudo`, `command`, `nohup`, `xargs`, `xcrun`, `lockf` and the like), not even exactly. A wildcard comes only at the
 end, after `:` or a space, and only over a command installed in your home folder, as an agent's own command is (in
 `~/.local/bin`, say). The program is looked up on the `PATH` setup runs with, as the kernel runs it (links and `..`
-followed physically, a file the user may not execute skipped), leaving out the `node_modules/.bin` folders `npx` adds (absolute ones; a relative one stays and refuses the wildcard);
+followed physically, a file the user may not execute skipped), leaving out the `node_modules/.bin` folders `npx` adds (absolute ones; a relative one stays);
 a program that is not found, or that the system or a package manager installed elsewhere, takes no wildcard, and
 neither does any program when a `PATH` folder ahead of it is empty or relative (a shell reads that from wherever it
 runs) or when the home folder is the root folder. Claude Code's shell may still find another program of the same name
@@ -176,7 +176,9 @@ name alone (`gh`, `aws`, `rm`, `curl` and the like): declare the exact command, 
 rule, with no wildcard, allows only its own text and is offered over any program but a wrapper. A control character in
 `by` or `why` is refused too. The lists name known programs, not every one: the person's yes on each rule shown is
 the gate. A declared rule the launcher carries (`Bash(gh pr merge:*)`) is offered once, as the launcher says it.
-The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered".
+The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered"; a
+control character a refusal line repeats from the declaration (its rule, file name or text) is written as its
+`\uXXXX` escape.
 Existing machines are offered the set the next time `setup` runs, until the person takes it; a rule the person lists
 under `permissions.ask` or `permissions.deny` is not offered again. When Claude Code's settings cannot be read, that is
 named once (above), and a run with `--allow-commands` fails that step (exit 1), as one with `--allow-tools` does.
