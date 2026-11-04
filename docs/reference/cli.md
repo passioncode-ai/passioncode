@@ -345,7 +345,9 @@ ledger says `permissions command`. It is the caller's own words, not a proof of 
 way setup writes (a link is written where it points, its permission bits kept) and each answers the view again.
 Settings or a ledger that cannot be read, or a ledger that cannot be written, make an act exit 1 before the settings
 change; the act prints its reason on stderr and no view, `--json` included, and `permissions --json` then shows the
-view with `readable: false` and `error`, or `ledgerError`, beside every list it could read. A rule taken out here is
+view with `readable: false` and `error`, or `ledgerError`, beside every list it could read; that read exits 1, prints
+the view on stdout and nothing on stderr, so a program reads the view on exit 1 (the one exception to reading stdout
+only on exit 0). A rule taken out here is
 offered again by the next `setup`, which adds it back on a yes: its question in a terminal, or `--allow-tools` or
 `--allow-commands` given in advance, which do not ask (a removal does not stay removed against them yet, PC-133).
 When setup can write the settings but not the ledger, it still adds the rules and says so on that step ("the
