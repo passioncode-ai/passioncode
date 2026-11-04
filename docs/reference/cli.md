@@ -150,21 +150,33 @@ your repositories, so it allows a merge in any) and the rules an agent of your o
 file `~/.passioncode/rules.d/<name>.json`:
 
 ```json
-{ "by": "Your Agent", "rules": [{ "rule": "Bash(your-cli exempt:*)", "why": "let Your Agent exempt a chat" }] }
+{ "by": "Your Agent", "rules": [{ "rule": "Bash(your-cli sync:*)", "why": "let Your Agent sync its data" }] }
 ```
 
-`by` names the agent and `why` (1 to 200 characters) says what the rule allows; the plan shows each rule with them. A
-rule names one MCP server (`mcp__<server>`) or one command (`Bash(<command>)`, with `:*` or a trailing ` *` for any
-arguments). A command with a substitution (`$(...)`), a separator (`&&`, `;`, `|`) or a redirection, a wildcard
-anywhere but the end, and a wildcard after a program that runs whatever it is given (a shell, `python3`, `node`, `uv
-run`, `npx` and the like) are refused, because Claude Code matches a rule against the command's text and such a rule
-would allow more than it says; the result lists them under `commands.refused` and the text under "Rules declared on
-this machine and not offered". Claude Code asks about a compound command unless every part matches a rule. A rule in
-`~/.claude/settings.json` lets a matching command run without the auto mode classifier (Claude Code's
-permission-modes docs), except writes to protected paths and critical `rm` targets, which no rule allows; for an act
-no rule can describe, Claude Code reads plain-language exceptions under `autoMode` in the same file, which `setup`
-never writes. The result carries `commands: { rules, refused, taken }`; `taken` is the yes, and the `commands` action
-is the proof the rules were written.
+`by` names the agent as the file says (nothing checks it) and `why` (1 to 200 characters) says what the rule allows;
+the plan shows each rule with them. A declared rule that is one of PassionCode's own tool rules is left to their own
+question and listed as not offered. The folder follows `PASSIONCODE_HOME` when it is set. A rule names one MCP server (`mcp__<server>`) or one command (`Bash(<command>)`,
+with `:*` or a trailing ` *` for any arguments). Claude Code matches a rule against the command's text, so only a plain
+form is offered, and every other rule is refused because it could allow more than it says: the program by its bare
+name in lower case (no path, so not `/bin/bash`); no quote, escape, substitution (`$(...)`), separator (`&&`, `;`, `|`,
+a line break) or redirection; a wildcard only at the end, after `:` or a space, and after at least two words (not
+`Bash(gh:*)`); never a program that runs another one (`env`, `sudo`, `command`, `nohup`, `xargs` and the like); and a
+program that runs whatever it is given (a shell, `python3`, `node`, `osascript`, `uv`, `npx`, `git` and the like) only
+with at least two plain words after it and no option among them (`Bash(python3 tool.py sync:*)` is offered,
+`Bash(python3 -c:*)` and `Bash(bash -c ls:*)` are not). A `by` or `why` with a control character is refused too.
+The result lists them under `commands.refused` and the text under "Rules declared on this machine and not offered".
+Existing machines are offered the set the next time `setup` runs, until the person takes it; a rule the person lists
+under `permissions.ask` or `permissions.deny` is not offered again. When Claude Code's settings cannot be read, that is
+named once (above), and a run with `--allow-commands` fails that step (exit 1), as one with `--allow-tools` does.
+
+What Claude Code does with them, from its own docs (permissions, "Compound commands"; permission-modes, "How the
+classifier evaluates actions"): every subcommand of a compound command must be allowed for it to run without a prompt;
+an allow rule resolves before the auto mode classifier, except writes to protected paths, which still go to the
+classifier, and critical `rm` targets, which no rule approves; on entering auto mode Claude Code drops broad rules that
+grant arbitrary code execution (package-manager run commands among them), so a rule over such a runner may not apply
+there. For an act no rule can describe, Claude Code reads plain-language exceptions under `autoMode` in the same file,
+which `setup` never writes. The result carries `commands: { rules, refused, taken }`; `taken` is the yes, and the
+`commands` action is the proof the rules were written.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
@@ -273,7 +285,8 @@ conflict and interrupted-move regression tests in `test/launcher.test.js`.
 ## Uninstall and reinstall
 
 Uninstall removes only links targeting this launcher's active release/hub, including
-equivalent relative links. It leaves the Claude Code tool rules setup added (PC-117) in
+equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119), and the
+declarations in `~/.passioncode/rules.d/`, in
 `~/.claude/settings.json`; the person removes them there. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained.
@@ -315,7 +328,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.agents/skills` | Shared skill hub |
 | Existing paths in `CHANNELS` in `lib/launcher.js` | Supported agent channels; an absent channel is not created |
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |
-| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root; agent directories still use the user's home |
+| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root, and with it the `rules.d` folder `setup` reads declared rules from; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |

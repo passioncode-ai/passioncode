@@ -1242,34 +1242,50 @@ test('PC-119: setup offers the command rules apart, adds them only on their own 
   };
   // --yes alone takes nothing; the result names the set and the text says how to add it.
   const m = machine({ commandRules: false });
-  declare(m, { by: 'Own Agent', rules: [{ rule: 'Bash(own-cli exempt:*)', why: 'let Own Agent exempt a chat' }, { rule: 'Bash(python3 *)', why: 'anything' }] });
+  declare(m, { by: 'Own Agent', rules: [{ rule: 'Bash(own-cli sync:*)', why: 'let Own Agent sync its data' }, { rule: 'Bash(python3 *)', why: 'anything' },
+    { rule: 'Bash(gh pr merge:*)', why: 'merge, declared again' }, { rule: 'mcp__fabric', why: 'every Fabric tool' }] });
+  // a rule the launcher carries is listed once, as the launcher says it; one of PassionCode's tool rules keeps its own question
   const json = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
   assert.equal(json.status, 0, json.stdout);
-  assert.deepEqual(json.json.commands.rules, [{ ...P.COMMANDS[0] }, { rule: 'Bash(own-cli exempt:*)', why: 'let Own Agent exempt a chat', by: 'Own Agent' }]);
+  assert.deepEqual(json.json.commands.rules, [{ ...P.COMMANDS[0] }, { rule: 'Bash(own-cli sync:*)', why: 'let Own Agent sync its data', by: 'Own Agent' }]);
   assert.equal(json.json.commands.taken, false);
-  assert.equal(json.json.commands.refused.length, 1, json.stdout);
+  assert.equal(json.json.commands.refused.length, 2, json.stdout);
+  assert.match(json.json.commands.refused.join('\n'), /mcp__fabric: one of PassionCode's own tool rules, offered on its own question \(declared by Own Agent\)/);
   assert.ok(!json.json.actions.some((a) => a.kind === 'commands'), json.stdout);
   assert.ok(!allowOf(m).includes('Bash(gh pr merge:*)'), 'nothing was added');
   const text = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline');
   assert.match(text.stdout, /\nEverything else this command can set up is in place; nothing was changed\./, text.stdout);
-  assert.match(text.stdout, /\nClaude Code still asks before it runs Bash\(gh pr merge:\*\), Bash\(own-cli exempt:\*\)\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands\n/, text.stdout);
-  assert.match(text.stdout, /\nRules declared on this machine and not offered:\n  .*own-agent\.json: Bash\(python3 \*\): it would allow any command of python3\n/, text.stdout);
+  assert.match(text.stdout, /\nClaude Code still asks before it runs Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\)\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-commands\n/, text.stdout);
+  assert.match(text.stdout, /\nRules declared on this machine and not offered:\n  .*own-agent\.json: Bash\(python3 \*\): a rule over python3 needs two words after it and no option, or it could run any code\n/, text.stdout);
   // A dry run lists the set as one line, each rule under it with what it allows and who declared it.
   const plan = await cli(m, api, 'setup', '--no-apps', '--offline', '--dry-run');
-  assert.match(plan.stdout, /\n  – let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) \(merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories\)\n      Bash\(own-cli exempt:\*\) \(let Own Agent exempt a chat; declared by Own Agent\)\n/, plan.stdout);
+  assert.match(plan.stdout, /\n  – let Claude Code run these commands without asking \(asked in a terminal, or --allow-commands\):\n      Bash\(gh pr merge:\*\) \(merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories\)\n      Bash\(own-cli sync:\*\) \(let Own Agent sync its data; declared by Own Agent\)\n/, plan.stdout);
   assert.match(plan.stdout, /\nRun it without --dry-run, in a terminal or with --allow-commands, to apply\.\n/, plan.stdout);
+  assert.doesNotMatch(plan.stdout, /still asks before it runs|merge, declared again/, plan.stdout); // a plan names how to take them; the hint is a run's
   const bare = machine({ toolRules: false, commandRules: false });
   assert.equal((await cli(bare, api, 'setup', '--yes', '--no-apps', '--offline')).status, 0); // set up, the rules aside
   const both = await cli(bare, api, 'setup', '--no-apps', '--offline', '--dry-run');
   assert.match(both.stdout, /\nRun it without --dry-run, in a terminal or with --allow-tools and --allow-commands, to apply\.\n/, both.stdout);
+  // One set taken already: the footer names the flag of the one still asked about.
+  const half = await cli(bare, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-tools');
+  assert.match(half.stdout, /\nRun it without --dry-run, in a terminal or with --allow-commands, to apply\.\n/, half.stdout);
   // --allow-commands takes the set: the rules are merged, the tool rules and other settings kept.
   const taken = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands');
   assert.equal(taken.status, 0, taken.stdout);
-  assert.match(taken.stdout, /done +allowed Bash\(gh pr merge:\*\), Bash\(own-cli exempt:\*\) in .*settings\.json \(an ask or deny rule for them still wins\)/, taken.stdout);
-  assert.deepEqual(allowOf(m), [...P.RULES, 'Bash(gh pr merge:*)', 'Bash(own-cli exempt:*)']);
+  assert.match(taken.stdout, /done +allowed Bash\(gh pr merge:\*\), Bash\(own-cli sync:\*\) in .*settings\.json \(an ask or deny rule for them still wins\)/, taken.stdout);
+  assert.deepEqual(allowOf(m), [...P.RULES, 'Bash(gh pr merge:*)', 'Bash(own-cli sync:*)']);
   assert.doesNotMatch(taken.stdout, /still asks before it runs/, taken.stdout);
   const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
   assert.deepEqual(again.json.commands.rules, [], 'a second run offers nothing');
+  // --allow-commands asked for them: settings that cannot be read are a failed step (exit 1), and a dry run says so.
+  const broken = machine({ commandRules: false });
+  fs.writeFileSync(settingsOf(broken), '{ not json');
+  const failed = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands');
+  assert.equal(failed.status, 1, failed.stdout);
+  assert.match(failed.stdout, /FAILED allow the rules for commands in .*settings\.json\n.*is not valid JSON/, failed.stdout);
+  const failsPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-commands');
+  assert.match(failsPlan.stdout, /\nA run with --allow-commands fails until that is fixed\.\n/, failsPlan.stdout);
+  assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
   // doctor --fix never decides them.
   const fix = await cli(machine({ commandRules: false }), api, 'doctor', '--fix', '--offline', '--json');
   assert.equal(fix.json.commands, undefined, fix.stdout);
@@ -1294,9 +1310,12 @@ test('PC-119: in a terminal the command rules are one question of their own, def
   assert.equal(enter.commands.taken, false);
   assert.ok(!enter.actions.some((a) => a.startsWith('commands:')), JSON.stringify(enter.actions));
   // Yes to the commands alone, no to the repairs: added, and not a declined run.
-  const only = run(machine({ commandRules: false }), '(q) => (/^Let Claude Code run/.test(q) ? "y" : "n")');
+  const lacking = machine({ toolRules: false, commandRules: false });
+  const only = run(lacking, '(q) => (/^Let Claude Code run/.test(q) ? "y" : "n")');
   assert.equal(only.declined, undefined, only.text);
   assert.deepEqual(only.actions, ['commands:done'], only.text);
+  const allow = JSON.parse(fs.readFileSync(path.join(lacking.home, '.claude', 'settings.json'), 'utf8')).permissions.allow;
+  assert.deepEqual(allow, ['Bash(gh pr merge:*)'], 'the tool rules, declined, are not written with the commands');
   // --allow-commands is that yes already.
   const pre = run(machine({ commandRules: false }), '() => "n"', { allowCommands: true });
   assert.ok(!pre.asked.some((q) => /^Let Claude Code run/.test(q)), JSON.stringify(pre.asked));

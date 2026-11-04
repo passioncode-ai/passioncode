@@ -264,13 +264,22 @@ test('PC-119: the launcher carries only rules any person may want, each passing 
 });
 
 test('PC-119: a declared rule is offered only when it allows no more than it says', () => {
-  for (const ok of ['mcp__some-agent', 'Bash(gh pr merge:*)', 'Bash(uv run app exempt:*)', 'Bash(make deploy)', 'Bash(git status *)']) {
+  for (const ok of ['mcp__some-agent', 'Bash(gh pr merge:*)', 'Bash(uv run app sync:*)', 'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(python3 tool.py sync:*)', 'Bash(git log --oneline)']) {
     assert.equal(P.refusal(ok), null, ok);
   }
   for (const [no, why] of [
-    ['Bash(*)', /any command$/], ['Bash(:*)', /any command$/], ['Bash(python3 *)', /any command of python3/], ['Bash(uv run *)', /any command of uv/],
-    ['Bash(npx:*)', /any command of npx/], ['Bash(gh:*)', /any command of gh/], ['Bash(gh *pr)', /only at the end/],
-    ['Bash(a $(b))', /substitution/], ['Bash(a `b`)', /substitution/], ['Bash(ls && rm x)', /separator/], ['Bash(a | b)', /separator/],
+    ['Bash(*)', /any command$/], ['Bash(:*)', /any command$/], ['Bash(python3 *)', /over python3 needs two words after it/], ['Bash(uv run *)', /over uv needs two words/],
+    ['Bash(npx:*)', /over npx needs two words/], ['Bash(python3 tool.py:*)', /over python3 needs two words/], ['Bash(gh:*)', /any command of gh/],
+    ['Bash(gh *pr)', /only at the end/], ['Bash(own-cli status*)', /needs :\* or a space before it/],
+    // A runner or a wrapper written another way, or given an option, could run any code.
+    ['Bash(/bin/bash -c:*)', /plain name/], ['Bash(Bash -c:*)', /plain name/], ['Bash(/usr/bin/env bash:*)', /plain name/],
+    ['Bash(env -i bash:*)', /env runs another program/], ['Bash(sudo -u root:*)', /sudo runs another program/],
+    ['Bash(command bash:*)', /command runs another program/], ['Bash(nohup sh:*)', /nohup runs another program/],
+    ['Bash(cmd.exe /c:*)', /over cmd needs two words after it and no option/], ['Bash(osascript -e:*)', /over osascript/],
+    ['Bash(bash -c ls:*)', /over bash needs two words after it and no option/], ['Bash(python3 -m pip:*)', /no option/],
+    ['Bash(uv run --with x y:*)', /no option/], ['Bash(git -c x=y push:*)', /no option/],
+    ['Bash(sh -c "echo:*)', /quote/], ["Bash(bash -c 'ls:*)", /quote/], ['Bash(a\\b)', /escape/], ['Bash(a (b))', /substitution/],
+    ['Bash(a $(b))', /substitution/], ['Bash(a `b`)', /substitution/], ['Bash(ls && rm x)', /separator/], ['Bash(a | b)', /separator/], ['Bash(a\nb)', /separator/],
     ['Bash(a > f)', /redirection/], ['Read(**)', /names an MCP server/], ['mcp__a__b c', /names an MCP server/], [42, /not text/],
   ]) assert.match(P.refusal(no) || '', why, String(no));
 });
@@ -280,7 +289,7 @@ test('PC-119: rules agents declare on the machine are read, and what is not offe
   assert.deepEqual(P.declared(dir), { rules: [], refused: [] }, 'no folder: nothing declared');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'b-agent.json'), JSON.stringify({ by: 'B Agent', rules: [
-    { rule: 'Bash(b-cli exempt:*)', why: 'let B Agent exempt a chat' },
+    { rule: 'Bash(b-cli sync:*)', why: 'let B Agent sync its data' },
     { rule: 'Bash(python3 *)', why: 'anything' },
     { rule: 'Bash(b-cli list)' },
     { rule: 'Bash(b-cli show)', why: 'x'.repeat(201) },
@@ -293,10 +302,10 @@ test('PC-119: rules agents declare on the machine are read, and what is not offe
   const got = P.declared(dir);
   assert.deepEqual(got.rules, [
     { rule: 'mcp__a-agent', why: 'every tool of A Agent', by: 'A Agent' },
-    { rule: 'Bash(b-cli exempt:*)', why: 'let B Agent exempt a chat', by: 'B Agent' },
+    { rule: 'Bash(b-cli sync:*)', why: 'let B Agent sync its data', by: 'B Agent' },
   ]);
   assert.equal(got.refused.length, 6, got.refused.join('\n'));
-  assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(python3 \*\): it would allow any command of python3/);
+  assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(python3 \*\): a rule over python3 needs two words after it and no option, or it could run any code/);
   assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(b-cli list\): "why" says what it allows, in 1 to 200 characters/);
   assert.match(got.refused.join('\n'), /b-agent\.json: Bash\(b-cli show\): "why"/);
   assert.match(got.refused.join('\n'), /b-agent\.json: a rule is not an object/);
@@ -306,10 +315,20 @@ test('PC-119: rules agents declare on the machine are read, and what is not offe
 
 test('PC-119: command rules merge like the tool rules, keeping what is there', () => {
   const file = tmp();
-  write(file, { permissions: { allow: ['mcp__fabric'], ask: ['Bash(b-cli exempt:*)'] } });
-  const wanted = ['Bash(gh pr merge:*)', 'Bash(b-cli exempt:*)'];
+  write(file, { permissions: { allow: ['mcp__fabric'], ask: ['Bash(b-cli sync:*)'] } });
+  const wanted = ['Bash(gh pr merge:*)', 'Bash(b-cli sync:*)'];
   assert.deepEqual(P.missing(file, wanted).rules, ['Bash(gh pr merge:*)']);
   assert.deepEqual(P.apply(file, wanted), ['Bash(gh pr merge:*)']);
-  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')).permissions, { allow: ['mcp__fabric', 'Bash(gh pr merge:*)'], ask: ['Bash(b-cli exempt:*)'] });
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')).permissions, { allow: ['mcp__fabric', 'Bash(gh pr merge:*)'], ask: ['Bash(b-cli sync:*)'] });
   assert.deepEqual(P.apply(file, wanted), []);
+});
+
+test('PC-119: a declaration whose name or reason holds a control character is not offered', () => {
+  const dir = path.join(path.dirname(tmp()), 'rules.d');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ by: 'A', rules: [{ rule: 'Bash(a-cli sync:*)', why: 'sync\u001b[2K the data' }] }));
+  fs.writeFileSync(path.join(dir, 'b.json'), JSON.stringify({ by: 'B\rPassionCode', rules: [{ rule: 'Bash(b-cli sync:*)', why: 'sync' }] }));
+  const got = P.declared(dir);
+  assert.deepEqual(got.rules, []);
+  assert.equal(got.refused.length, 2, got.refused.join('\n'));
 });
