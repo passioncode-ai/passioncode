@@ -545,6 +545,25 @@ test('PC-120: retiring and restoring a legacy marketplace writes a linked settin
   assert.deepEqual(settingsOf(env.home).extraKnownMarketplaces['fabric-agent-adapter'], { source: LEGACY_SOURCE, autoUpdate: true });
 });
 
+test('PC-120: a linked settings.json whose folder cannot be written fails the retirement and keeps everything', { skip: (process.platform === 'win32' && 'POSIX modes') || (process.getuid?.() === 0 && 'root writes anyway') }, () => {
+  const env = setup();
+  withLegacyMarketplace(env);
+  const file = path.join(env.home, '.claude/settings.json');
+  const dir = path.join(env.home, 'locked');
+  fs.mkdirSync(dir);
+  fs.renameSync(file, path.join(dir, 'settings.json'));
+  fs.symlinkSync(path.join(dir, 'settings.json'), file);
+  fs.chmodSync(dir, 0o555);
+  try {
+    const r = run(env, 'update', '--json');
+    assert.equal(r.status, 1, r.stdout);
+    assert.ok(fs.lstatSync(file).isSymbolicLink());
+    assert.deepEqual(fs.readdirSync(dir), ['settings.json'], 'no temporary file is left');
+    assert.ok(settingsOf(env.home).extraKnownMarketplaces['fabric-agent-adapter'], 'the entry stays declared');
+    assert.ok(known(env.home)['fabric-agent-adapter'], 'and registered');
+  } finally { fs.chmodSync(dir, 0o755); }
+});
+
 test('a machine that already lost the legacy plugin still loses the leftover marketplace', () => {
   const env = setup();
   fs.writeFileSync(path.join(env.home, '.claude/plugins/installed_plugins.json'), JSON.stringify({ version: 2, plugins: {} })); // what 0.1.1 left
@@ -730,6 +749,27 @@ test('restore removes the MCP registrations the last update added', () => {
   assert.equal(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8'), CODEX_CONF, 'the added table is gone and the rest is byte-identical');
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.home, '.gemini', 'settings.json'), 'utf8')).mcpServers, {});
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.home, '.kimi-code', 'mcp.json'), 'utf8')).mcpServers, {});
+});
+
+test('PC-120: a linked Gemini settings file stays a link with its mode through MCP registration and its removal', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env);
+  const file = path.join(env.home, '.gemini', 'settings.json');
+  const real = path.join(env.home, 'dotfiles', 'gemini.json');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, JSON.stringify({ theme: 'dark', mcpServers: {} }, null, 2));
+  fs.chmodSync(real, 0o600);
+  fs.symlinkSync(real, file);
+  assert.equal(run(env, 'update').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'registration keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.deepEqual(mcpEntry(real), { command: bin, args: [], env: {} });
+  assert.equal(JSON.parse(fs.readFileSync(real, 'utf8')).theme, 'dark');
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'removal keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers, {});
 });
 
 test('uninstall removes what it registered and keeps an entry it did not add', () => {

@@ -6,7 +6,10 @@
 
 - When the skill update retires an old marketplace, and when `restore` declares it again, a `~/.claude/settings.json`
   that is a link stays a link: the change is written where the link points and the file keeps its permission bits, as
-  the PC-117 rules merge already did (PC-120).
+  the PC-117 rules merge already did (PC-120). The MCP registration in `~/.gemini/settings.json` and
+  `~/.kimi-code/mcp.json`, and its removal, do the same, and a file the launcher creates there is private. A link an
+  earlier update already replaced is not put back; the file it held then is in the quarantine as
+  `settings.json.before-<marketplace>`.
 
 ## 0.2.73 - 2026-11-04
 

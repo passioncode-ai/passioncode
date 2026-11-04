@@ -10,13 +10,15 @@ logs); Claude Code's plugin registry through the `claude plugin` CLI only;
 that replaces it is verified. For a member's old single-member marketplace
 (`legacyMarketplaces` in `family.json`), once that plugin is verified and nothing else
 installed comes from it, it also moves the `extraKnownMarketplaces` entry out of
-`~/.claude/settings.json` (a copy of the file is kept in the quarantine) and runs
+`~/.claude/settings.json` (a copy of the file is kept in the quarantine; a file that is a link is written where it
+points and keeps its permission bits, PC-120) and runs
 `claude plugin marketplace remove <name>`. For each installed app with an MCP server in its
 bundle (Fabric Dashboards, Fabric, Fabric Switchboard) it also registers that entry for every
 agent that is present: through
 `claude mcp add --scope user` for Claude Code (it never writes `~/.claude.json` itself),
 and in `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`,
-copying each existing file into the quarantine first; an entry that already exists is
+copying each existing file into the quarantine first (the two JSON files, like `~/.claude/settings.json`, are written
+where a link points and keep their permission bits; a new one is private); an entry that already exists is
 left alone and reported. Displaced files are moved rather than
 deleted: a recovery record is written before the move in
 `~/.passioncode/quarantine/<run>/moved.json`. `restore` processes the latest batch,
@@ -45,7 +47,7 @@ each app), copies a verified app into `/Applications`, moves an app it replaces 
 runs `update` (above), on the person's own yes (a terminal question, default no, or `--allow-tools`) merges
 Claude Code's rules for PassionCode's own MCP tools (`mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard`,
 `mcp__plugin_switchboard_switchboard`, `mcp__observatory`) into `permissions.allow` in `~/.claude/settings.json`,
-keeping every other key and rule, and, in that merge, the file's permission bits and link, so Claude Code uses those
+keeping every other key and rule, and the file's permission bits and link, so Claude Code uses those
 tools without asking (PC-117; `uninstall` leaves them, the person removes them; each rule allows every tool of the
 server registered under its name, shell commands and other servers need rules of their own, and an `ask` or `deny`
 rule or a managed policy still wins); on a yes of its own (a second question, or `--allow-commands`) it merges rules
