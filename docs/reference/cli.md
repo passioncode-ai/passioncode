@@ -415,7 +415,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
-| `~/.passioncode/analytics-notice` | An empty marker: the notice was claimed by one command, so two commands started together never both print it (PC-123) |
+| `~/.passioncode/analytics-notice` | An empty marker: the notice was claimed by one command, so two commands started together never both print it; one older than a minute with no record of the notice in `analytics.json` is claimed again (PC-123) |
 | `PassionCode/installation.json` in the user's application data folder | The installation id every PassionCode app on the machine shares (PC-123; created once with `analytics: true`, the apps' own field, never rewritten) |
 | `PASSIONCODE_ANALYTICS=off`, `DO_NOT_TRACK` | Turn the anonymous counts off for one process (PC-123) |
 | `~/.agents/skills` | Shared skill hub |

@@ -261,3 +261,16 @@ test('PC-124: the sessions row never becomes a step the person owes', () => {
   const steps = S.humanSteps({ actions: [] }, after, [], []);
   assert.deepEqual(steps, ['do x']);
 });
+
+test('PC-123: a stale notice marker with no record behind it is claimed again, a fresh one is not', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  assert.equal((await A.after(opts)).sent, 3);
+  fs.rmSync(path.join(opts.state, 'analytics.json')); // the record is gone, the marker stays
+  fs.utimesSync(path.join(opts.state, 'analytics-notice'), opts.now, opts.now); // as fresh as this run's clock
+  assert.deepEqual(await A.after(opts), { sent: 0, waiting: 'notice' }, 'a marker younger than a minute is another command saying it');
+  const old = new Date(opts.now.getTime() - 120_000);
+  fs.utimesSync(path.join(opts.state, 'analytics-notice'), old, old);
+  assert.equal((await A.after(opts)).sent, 3, 'stale: the notice is shown again and counts resume');
+  assert.equal(err.out.length, 2);
+});
