@@ -93,7 +93,9 @@ and a token and fails if one is sent, and checks the exact fields sent). Only th
 package carries the App Key; `analytics off`, `PASSIONCODE_ANALYTICS=off` or `DO_NOT_TRACK=1` stop it, and a "no" already
 given in a PassionCode app (the shared `installation.json` field `analytics: false`) is kept as the launcher's off (PC-123). The host
 sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing it;
-events are kept two years and the installation id is removed from them after 400 days.
+events are kept two years and the installation id is removed from them after 400 days. While the counts are on, every
+command may write `~/.passioncode/analytics.json` and its notice marker and create the shared
+`PassionCode/installation.json` (outside `~/.passioncode`) once if it is absent.
 
 ## The self-update and who it trusts
 

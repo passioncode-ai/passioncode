@@ -45,6 +45,16 @@
         "asks before applying any repair",
         "does not rewrite an MCP entry the person set themselves"
       ]
+    },
+    {
+      "id": "counts-notice",
+      "trap": "the agent ran only --json commands, never showed the person the launcher's anonymous-counts notice, and said nothing about the switch",
+      "request": "Set me up with PassionCode on this new Mac.",
+      "expected": [
+        "runs `npx --yes @passioncode-ai/passioncode@latest analytics status` once without `--json` after setup",
+        "gives the person the line \"The PassionCode launcher sends anonymous usage and error counts ...\" word for word, or the status line it printed when there is no such line",
+        "names `analytics off` as the launcher's own switch"
+      ]
     }
   ]
 }

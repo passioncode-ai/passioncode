@@ -196,6 +196,7 @@ function analyticsCommand(rest) {
   const [verb = 'status', ...extra] = rest.filter((a) => a !== '--json');
   if (extra.length || !['on', 'off', 'status'].includes(verb)) return usage('analytics takes on, off or status');
   const state = L.paths().state;
+  if (verb === 'status') A.honourSharedNo({ state }); // a no given earlier in another app is the answer from the first status on
   try { if (verb !== 'status') A.setEnabled(state, verb === 'on'); }
   catch (error) { process.stderr.write(`passioncode: the analytics switch could not be saved: ${error.message}\n`); return 1; }
   const s = A.status({ state });

@@ -210,7 +210,7 @@ test('PC-123: a first command that writes the launcher state itself is still a n
   assert.equal(first.find((e) => e.eventName === 'app_installed').props.existing, 'false');
 });
 
-test('PC-123: a state that cannot be written, or an off given meanwhile, leaves no notice claimed and no installation file', async () => {
+test('PC-123: a state that cannot be written leaves no notice claimed and no installation file', async () => {
   const h = home(); const r = recorder(); const err = quiet();
   const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
   fs.mkdirSync(path.join(opts.state, 'analytics.json'), { recursive: true }); // a folder where the file goes: the write fails
@@ -299,4 +299,49 @@ test('PC-123: a shared "no" written after the first counting run does not turn t
   const shared = path.join(h, '.config', 'PassionCode', 'installation.json');
   const doc = JSON.parse(fs.readFileSync(shared, 'utf8')); doc.analytics = false; fs.writeFileSync(shared, JSON.stringify(doc));
   assert.ok((await A.after(opts)).sent >= 1, 'one product\'s switch never turns another off later');
+});
+
+test('PC-123: with a shared no, the first analytics status says off and the first analytics on is final', () => {
+  const run = (h, ...args) => {
+    const keyFile = path.join(h, 'key.json');
+    fs.writeFileSync(keyFile, JSON.stringify({ appKey: KEY }));
+    const log = path.join(h, 'sent.log');
+    const preload = path.join(h, 'fetch.js');
+    fs.writeFileSync(preload, `globalThis.fetch = async (url, init) => { require('fs').appendFileSync(${JSON.stringify(log)}, init.body + '\\n'); return { ok: true, status: 200 }; };`);
+    const env = { ...process.env, HOME: h, USERPROFILE: h, XDG_CONFIG_HOME: path.join(h, '.config'), APPDATA: path.join(h, 'AppData'),
+      PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_ANALYTICS_KEY_FILE: keyFile };
+    delete env.DO_NOT_TRACK; delete env.PASSIONCODE_ANALYTICS;
+    return spawnSync(process.execPath, ['--require', preload, path.join(ROOT, 'bin', 'passioncode.js'), ...args], { env, encoding: 'utf8' });
+  };
+  const sharedNo = (h) => {
+    const shared = A.installationPath(process.platform, { APPDATA: path.join(h, 'AppData'), XDG_CONFIG_HOME: path.join(h, '.config') }, h);
+    fs.mkdirSync(path.dirname(shared), { recursive: true });
+    fs.writeFileSync(shared, JSON.stringify({ version: 1, id: '11111111-2222-4333-8444-555555555555', analytics: false, created_at: 1 }));
+  };
+  const a = home(); sharedNo(a);
+  assert.equal(JSON.parse(run(a, 'analytics', 'status', '--json').stdout).reason, 'off-elsewhere', 'the first --json status already knows');
+  const b = home(); sharedNo(b);
+  const first = run(b, 'analytics', 'status');
+  assert.match(first.stdout, /off, because they were turned off in another PassionCode app/);
+  assert.doesNotMatch(first.stderr, /sends anonymous usage/);
+  assert.equal(fs.existsSync(path.join(b, 'sent.log')), false);
+  const c = home(); sharedNo(c);
+  const on = run(c, 'analytics', 'on');
+  assert.equal(on.status, 0);
+  assert.match(on.stderr, /sends anonymous usage/, 'the person\'s on stands: this run shows the notice');
+  assert.ok(fs.existsSync(path.join(c, 'sent.log')), 'and counts are sent');
+  assert.equal(JSON.parse(run(c, 'analytics', 'status', '--json').stdout).reason, null);
+});
+
+test('PC-123: an analytics off given while the command ran wins: nothing said, sent or stored, the claim released', async () => {
+  const h = home(); const r = recorder(); const err = quiet();
+  const opts = base(h, { fetchImpl: r.fetchImpl, stderr: err.stream });
+  const t = opts.startedAt;
+  // The duration is read between after()'s first read of the switch and its write: the off lands exactly there.
+  const startedAt = { valueOf: () => { A.setEnabled(opts.state, false); return t; } };
+  assert.deepEqual(await A.after({ ...opts, startedAt }), { sent: 0 });
+  assert.equal(r.calls.length, 0); assert.equal(err.out.length, 0);
+  assert.equal(fs.existsSync(path.join(opts.state, 'analytics-notice')), false, 'the notice claim is released');
+  assert.equal(fs.existsSync(path.join(h, '.config', 'PassionCode', 'installation.json')), false);
+  assert.equal(A.readState(opts.state).enabled, false);
 });

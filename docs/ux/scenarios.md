@@ -244,8 +244,8 @@
 - **Preconditions:** A coding agent that can run commands; Node 18+.
 - **Steps:**
   1. Paste the prompt.
-  2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor`, and reports.
-- **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; no secret is asked for in the chat.
+  2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor`, runs `analytics status` once without `--json`, and reports.
+- **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; the launcher's anonymous-counts notice word for word, or the status line it printed (SCN-016); no secret is asked for in the chat.
 - **Alt paths:** "Don't change anything" → the agent runs doctor only.
 - **UI elements:** The agent's reply.
 - **States covered:** success, error
