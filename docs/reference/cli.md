@@ -127,7 +127,7 @@ named; a run with `--allow-tools` fails that step (exit 1), and a `--dry-run` wi
 --allow-tools fails until that is fixed.") and exits 0. The rules merge writes a settings file that is a link, or a
 chain of links, where the system says it ends (linked folders and `..` included), keeping every link and the file's
 permission bits, and writes the merged file back as JSON indented by two spaces; the skill update's own write to that
-file, which retires an old marketplace, does not keep a link yet (PC-120). The result carries `permissions: { rules, error, taken }` only while
+file, which retires an old marketplace, and `restore`'s, which declares it again, do the same (PC-120). The result carries `permissions: { rules, error, taken }` only while
 rules are missing (or the file cannot be read); `taken` is the person's yes, and the `permissions` action is the proof
 they were written (a plan agreed to but not run writes nothing). The plan lists them as a line of their own (after a
 train's line; while they are offered a terminal asks about them, so a train-only plan closes with "Run it with --yes to
