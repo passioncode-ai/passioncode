@@ -48,6 +48,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 
 The person asked you to do this, so `--yes` is their consent to the plan for this run. If they
 asked only to look, use `--dry-run` or `doctor` and ask before applying.
+`--allow-tools` adds Claude Code's rules for PassionCode's own tools to the person's settings: a security
+decision, so pass it only on the person's own yes to that set; `permissions` in the result lists the rules still missing.
 
 ## 2. Read the result
 

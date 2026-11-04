@@ -79,7 +79,8 @@ function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign
   }));
 }
 
-function machine({ tools = TOOLS } = {}) {
+// toolRules: PassionCode's Claude Code tool rules already in place (PC-117), so other tests see no such offer.
+function machine({ tools = TOOLS, toolRules = true } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-setup-'));
   const payload = path.join(home, 'payload'); makePayload(payload);
   const bin = path.join(home, 'fakebin'); fs.mkdirSync(bin);
@@ -88,6 +89,10 @@ function machine({ tools = TOOLS } = {}) {
   for (const name of TOOLS.filter((x) => !tools.includes(x))) fs.writeFileSync(path.join(bin, name), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
   fs.writeFileSync(path.join(home, 'key.asc'), KEY.publicArmour);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: {} }));
+  if (toolRules) {
+    fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
+    fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: [...require('../lib/permissions').RULES] } }));
+  }
   fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
   fs.mkdirSync(path.join(home, 'Applications'));
   fs.mkdirSync(path.join(home, 'services'));
@@ -1053,6 +1058,77 @@ test('PC-112: a bundled install that fails runs no update and was not asked abou
   assert.deepEqual(out.actions.filter((a) => a.kind !== 'train').map((a) => `${a.kind}:${a.outcome}`), ['install:failed'], run.stdout);
   assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), run.stdout);
   assert.ok(out.plan.some((i) => i.kind === 'update' && !i.selected), run.stdout); // the plan says what ran
+});
+
+// PC-117: Claude Code's rules for PassionCode's own tools are added only on the person's yes to that set.
+test('PC-117: setup offers the tool rules, adds them only on their own yes, and keeps the settings it finds', async (t) => {
+  const api = await releaseServer(t);
+  const P = require('../lib/permissions');
+  const settingsOf = (m) => path.join(m.home, '.claude', 'settings.json');
+  const read = (m) => (fs.existsSync(settingsOf(m)) ? JSON.parse(fs.readFileSync(settingsOf(m), 'utf8')) : null);
+  // --yes alone does not decide it: nothing is written, the run says how to allow them.
+  const plain = machine({ toolRules: false });
+  const yes = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline');
+  assert.equal(yes.status, 0, yes.stderr + yes.stdout);
+  assert.equal((read(plain) || {}).permissions, undefined, 'no rule was written');
+  assert.match(yes.stdout, /\nClaude Code still asks before it uses PassionCode's own tools\. To allow them: npx @passioncode-ai\/passioncode@latest setup --allow-tools\n/, yes.stdout);
+  const json = await cli(plain, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
+  assert.deepEqual(json.json.permissions, { rules: [...P.RULES], error: null, taken: false });
+  // --allow-tools is that yes: the rules are merged in, every other setting kept.
+  const kept = machine({ toolRules: false });
+  fs.mkdirSync(path.dirname(settingsOf(kept)), { recursive: true });
+  fs.writeFileSync(settingsOf(kept), JSON.stringify({ model: 'opus', permissions: { allow: ['Bash(npm test)'], deny: ['Bash(rm -rf:*)'] } }));
+  const allowed = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.equal(allowed.status, 0, allowed.stderr + allowed.stdout);
+  const doc = read(kept); // the update adds its own marketplace key beside them
+  assert.equal(doc.model, 'opus');
+  assert.deepEqual(doc.permissions, { allow: ['Bash(npm test)', ...P.RULES], deny: ['Bash(rm -rf:*)'] });
+  assert.ok(allowed.json.actions.some((a) => a.kind === 'permissions' && a.outcome === 'done'), allowed.stdout);
+  // Run again: nothing is missing, so nothing is offered or written.
+  const again = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.equal(again.json.permissions, undefined);
+  assert.ok(!again.json.actions.some((a) => a.kind === 'permissions'), again.stdout);
+  // A plan lists them as a line of its own, not taken.
+  const plan = await cli(machine({ toolRules: false }), api, 'setup', '--offline', '--dry-run');
+  assert.match(plan.stdout, /\n  – let Claude Code use PassionCode's own tools without asking: allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__observatory \(asked in a terminal, or --allow-tools\)\n/, plan.stdout);
+  // Settings that cannot be read are named and left as they are.
+  const broken = machine({ toolRules: false });
+  fs.mkdirSync(path.dirname(settingsOf(broken)), { recursive: true });
+  fs.writeFileSync(settingsOf(broken), '{ not json');
+  const named = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
+  assert.match(named.stdout, /\nClaude Code's settings were not changed: .*settings\.json is not valid JSON/, named.stdout);
+  assert.equal(fs.readFileSync(settingsOf(broken), 'utf8'), '{ not json');
+  // doctor --fix repairs; it never decides the tool rules.
+  const fix = await cli(machine({ toolRules: false }), api, 'doctor', '--fix', '--offline', '--json');
+  assert.ok(!fix.json.actions.some((a) => a.kind === 'permissions'), fix.stdout);
+  assert.equal(fix.json.permissions, undefined);
+});
+
+test('PC-117: in a terminal the tool rules are one question of their own, default no', async (t) => {
+  const api = await releaseServer(t);
+  const run = (m, answer) => {
+    const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+      const asked = [];
+      S.setup({ online: false, noApps: true, ask: async (q) => { asked.push(q); return ${JSON.stringify(answer)}(q); } })
+        .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, permissions: r.permissions, actions: r.actions.map((a) => a.kind + ':' + a.outcome), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`.replace(`${JSON.stringify(answer)}(q)`, `(${answer})(q)`);
+    const r = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  const question = "Let Claude Code use PassionCode's own tools without asking (allow mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__observatory)? [y/N] ";
+  // Enter keeps the default: no; the repairs still run.
+  const enter = machine({ toolRules: false });
+  const quiet = run(enter, "() => ''");
+  assert.ok(quiet.asked.includes(question), JSON.stringify(quiet));
+  assert.equal(quiet.permissions.taken, false);
+  const after = path.join(enter.home, '.claude', 'settings.json');
+  assert.equal(fs.existsSync(after) ? JSON.parse(fs.readFileSync(after, 'utf8')).permissions : undefined, undefined, 'no rule was written');
+  // Yes to the rules alone, no to the repairs: the rules are added, and the run is not a declined one.
+  const only = machine({ toolRules: false });
+  const ruled = run(only, '(q) => (/^Let Claude Code/.test(q) ? "y" : "n")');
+  assert.equal(ruled.declined, undefined, ruled.text);
+  assert.deepEqual(ruled.actions, ['permissions:done'], ruled.text);
+  assert.match(ruled.text, /allowed mcp__fabric, mcp__fabric-dashboards, mcp__switchboard, mcp__observatory in .*settings\.json: Claude Code uses these tools without asking/, ruled.text);
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.

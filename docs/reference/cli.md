@@ -12,7 +12,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
-| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
+| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Read-only check of everything; `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
@@ -78,7 +78,7 @@ failures. Doctor writes nothing else and starts, stops or opens nothing.
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
-humanSteps, planOnly, ok, keyOverride }`, plus `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
+humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
 `none` when a train is saved) when a run named a train other than the saved one but was only a plan, or was a declined
 terminal run that named one.
 A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
@@ -109,6 +109,18 @@ to change runs as `setup` does and exits by its checks.
 repairs. A terminal run that declined every offer (PC-91) exits by its checks the
 same way, 1 when a check still fails, whether or not it named a train (PC-93). `doctor --fix` is `setup --yes` with no `install` items and nothing
 opened.
+
+Claude Code's rules for PassionCode's own tools (PC-117; fabric-workspace `knowledge/agents-first.md`, "When Claude
+Code's auto mode refuses..."): `setup` offers to add `mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard` and
+`mcp__observatory` to `permissions.allow` in `~/.claude/settings.json`, so Claude Code uses those servers' tools without
+asking. It is the person's security decision, taken only on its own yes: one question in a terminal (default no), or
+`--allow-tools`; `--yes` alone does not take it, a `--dry-run` shows it, and `doctor --fix` never offers it. The rules
+are merged: every other key and rule, and their order, is kept; a rule the person lists under `permissions.deny` is not
+added; a second run adds nothing. A settings file that is not valid JSON, or whose `permissions`, `allow` or `deny` has
+the wrong shape, is left as it is and named. The result carries `permissions: { rules, error, taken }` only while
+rules are missing (or the file cannot be read), the plan lists them as a line of their own, a run that adds them lists
+a `permissions` action, and a run that leaves them out ends with how to add them (`setup --allow-tools`). Yes to the
+rules alone is not a declined run.
 
 `--train <name>` follows a release train (`trains/<name>.json`): `install` and
 `replace` take the pinned release (`GET /repos/<repo>/releases/tags/v<version>`)
