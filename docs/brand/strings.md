@@ -66,12 +66,12 @@ Contract: brand-contract v1
 | setup.tools-pending | allow ${result.permissions.rules.join(', ') \|\| "PassionCode's own tools"} in ${file} | lib/setup.js:298 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins) | lib/setup.js:302 | SCN-008, SCN-009 | proposed | copy |
 | setup.tools-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:303 | SCN-008, SCN-009 | proposed | copy |
-| permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:118 | SCN-008, SCN-009 | proposed | error |
-| permissions.unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:68 | SCN-008, SCN-009 | proposed | error |
-| permissions.invalid-json | ${file} is not valid JSON: ${error.message} | lib/permissions.js:90 | SCN-008, SCN-009 | proposed | error |
-| permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:91 | SCN-008, SCN-009 | proposed | error |
-| permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:93 | SCN-008, SCN-009 | proposed | error |
-| permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:95 | SCN-008, SCN-009 | proposed | error |
+| permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:127 | SCN-008, SCN-009 | proposed | error |
+| permissions.unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:96 | SCN-008, SCN-009 | proposed | error |
+| permissions.invalid-json | ${file} is not valid JSON: ${error.message} | lib/permissions.js:99 | SCN-008, SCN-009 | proposed | error |
+| permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:100 | SCN-008, SCN-009 | proposed | error |
+| permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:102 | SCN-008, SCN-009 | proposed | error |
+| permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:104 | SCN-008, SCN-009 | proposed | error |
 | setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:407 | SCN-008 | proposed | copy |
 | setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:431 | SCN-008 | proposed | copy |
 | setup.tools-fails | A run with ${failing.join(' or ')} fails until that is fixed. | lib/setup.js:467 | SCN-008 | proposed | copy |
@@ -89,21 +89,21 @@ Contract: brand-contract v1
 | setup.commands-refused | Rules declared on this machine and not offered: | lib/setup.js:475 | SCN-008 | proposed | copy |
 | setup.commands-own-rule | ${r.rule}: one of PassionCode's own tool rules, offered on its own question (declared by ${r.by}) | lib/setup.js:143 | SCN-008 | proposed | copy |
 | permissions.gh-merge | merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories | lib/permissions.js:16 | SCN-008 | proposed | copy |
-| permissions.rule-not-text | a rule is not text | lib/permissions.js:38 | SCN-008 | proposed | error |
-| permissions.rule-kind | ${rule}: a rule names an MCP server (mcp__<server>) or a command (Bash(<command>)) | lib/permissions.js:41 | SCN-008 | proposed | error |
-| permissions.rule-compound | ${rule}: a command with a quote, an escape, a substitution, a separator, a redirection or a character that is not plain text is not offered | lib/permissions.js:42 | SCN-008 | proposed | error |
-| permissions.rule-any | ${rule}: it would allow any command | lib/permissions.js:45 | SCN-008 | proposed | error |
-| permissions.rule-wildcard | ${rule}: a wildcard is allowed only at the end | lib/permissions.js:47 | SCN-008 | proposed | error |
-| permissions.rule-runner | ${rule}: a wildcard over ${program} could run any code; declare the exact command, or a command of your own | lib/permissions.js:53 | SCN-008 | proposed | error |
-| permissions.rule-one-word | ${rule}: it would allow any command of ${program} | lib/permissions.js:54 | SCN-008 | proposed | error |
-| permissions.rule-plain-name | ${rule}: name the program by its plain name, in lower case, without a path | lib/permissions.js:49 | SCN-008 | proposed | error |
-| permissions.rule-wrapper | ${rule}: ${program} runs another program, so the rule could run any code | lib/permissions.js:52 | SCN-008 | proposed | error |
-| permissions.declared-dir-unreadable | ${dir} cannot be read: ${error.message} | lib/permissions.js:62 | SCN-008 | proposed | error |
-| permissions.rule-not-object | a rule is not an object | lib/permissions.js:74 | SCN-008 | proposed | error |
-| permissions.rule-wildcard-end | ${rule}: a wildcard at the end needs :* or a space before it | lib/permissions.js:46 | SCN-008 | proposed | error |
-| permissions.declared-unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:68 | SCN-008 | proposed | error |
-| permissions.declared-shape | ${file} does not say who declares it ("by") and its rules ("rules") | lib/permissions.js:70 | SCN-008 | proposed | error |
-| permissions.declared-why | ${file}: ${r.rule}: "why" says what it allows, in 1 to 200 characters | lib/permissions.js:76 | SCN-008 | proposed | error |
+| permissions.rule-not-text | a rule is not text | lib/permissions.js:47 | SCN-008 | proposed | error |
+| permissions.rule-kind | ${rule}: a rule names an MCP server (mcp__<server>) or a command (Bash(<command>)) | lib/permissions.js:50 | SCN-008 | proposed | error |
+| permissions.rule-compound | ${rule}: a command with a quote, an escape, a substitution, a separator, a redirection or a character that is not plain text is not offered | lib/permissions.js:51 | SCN-008 | proposed | error |
+| permissions.rule-any | ${rule}: it would allow any command | lib/permissions.js:54 | SCN-008 | proposed | error |
+| permissions.rule-wildcard | ${rule}: a wildcard is allowed only at the end | lib/permissions.js:56 | SCN-008 | proposed | error |
+| permissions.rule-runner | ${rule}: a wildcard over ${program} could run any code; declare the exact command, or a command of your own | lib/permissions.js:62 | SCN-008 | proposed | error |
+| permissions.rule-one-word | ${rule}: it would allow any command of ${program} | lib/permissions.js:63 | SCN-008 | proposed | error |
+| permissions.rule-plain-name | ${rule}: name the program by its plain name, in lower case, without a path | lib/permissions.js:58 | SCN-008 | proposed | error |
+| permissions.rule-wrapper | ${rule}: ${program} runs another program, so the rule could run any code | lib/permissions.js:61 | SCN-008 | proposed | error |
+| permissions.declared-dir-unreadable | ${dir} cannot be read: ${error.message} | lib/permissions.js:71 | SCN-008 | proposed | error |
+| permissions.rule-not-object | a rule is not an object | lib/permissions.js:83 | SCN-008 | proposed | error |
+| permissions.rule-wildcard-end | ${rule}: a wildcard at the end needs :* or a space before it | lib/permissions.js:55 | SCN-008 | proposed | error |
+| permissions.declared-unreadable | ${file} cannot be read: ${error.message} | lib/permissions.js:77 | SCN-008 | proposed | error |
+| permissions.declared-shape | ${file} does not say who declares it ("by") and its rules ("rules") | lib/permissions.js:79 | SCN-008 | proposed | error |
+| permissions.declared-why | ${file}: ${r.rule}: "why" says what it allows, in 1 to 200 characters | lib/permissions.js:85 | SCN-008 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |

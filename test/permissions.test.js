@@ -264,12 +264,12 @@ test('PC-119: the launcher carries only rules any person may want, each passing 
 });
 
 test('PC-119: a declared rule is offered only when it allows no more than it says', () => {
-  for (const ok of ['mcp__some-agent', 'Bash(gh pr merge:*)',  'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(python3 tool.py sync)', 'Bash(bash -c ls)', 'Bash(git log --oneline)']) {
+  for (const ok of ['mcp__some-agent', 'Bash(gh pr merge:*)',  'Bash(make deploy)', 'Bash(own-cli status *)', 'Bash(own-agent-exempt:*)', 'Bash(python3 tool.py sync)', 'Bash(bash -c ls)', 'Bash(git log --oneline)']) {
     assert.equal(P.refusal(ok), null, ok);
   }
   for (const [no, why] of [
     ['Bash(*)', /any command$/], ['Bash(:*)', /any command$/], ['Bash(python3 *)', /wildcard over python could run any code/], ['Bash(uv run *)', /wildcard over uv could run/],
-    ['Bash(npx:*)', /wildcard over npx could run/], ['Bash(python3 tool.py:*)', /wildcard over python/], ['Bash(gh:*)', /any command of gh/],
+    ['Bash(npx:*)', /wildcard over npx could run/], ['Bash(python3 tool.py:*)', /wildcard over python/], ['Bash(gh:*)', /any command of gh/], ['Bash(rm:*)', /any command of rm/], ['Bash(curl *)', /any command of curl/],
     ['Bash(gh *pr)', /only at the end/], ['Bash(own-cli status*)', /needs :\* or a space before it/],
     // A runner or a wrapper written another way, or given an option, could run any code.
     ['Bash(/bin/bash -c:*)', /plain name/], ['Bash(Bash -c:*)', /plain name/], ['Bash(/usr/bin/env bash:*)', /plain name/],

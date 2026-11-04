@@ -161,8 +161,9 @@ ending in `*` allows any arguments after its words, options included (the plan a
 plain form is offered, and every other rule is refused because it could allow more than it says: printable ASCII only;
 the program by its bare name in lower case (no path, so not `/bin/bash`; a version in the name is read as the program,
 so `perl5.34` is `perl` and `python3.12` is `python`); no quote, escape, substitution (`$(...)`), separator (`&&`, `;`,
-`|`, a line break) or redirection; a wildcard only at the end, after `:` or a space, and after at least two words (not
-`Bash(gh:*)`); never a program that runs another one (`env`, `sudo`, `command`, `nohup`, `xargs`, `xcrun` and the
+`|`, a line break) or redirection; a wildcard only at the end, after `:` or a space, and over a general-purpose program
+(`gh`, `aws`, `brew`, `rm`, `curl` and the like) only after a subcommand or argument (`Bash(gh pr merge:*)`, never
+`Bash(gh:*)`), while a command of an agent's own made for one act may take it after its name alone; never a program that runs another one (`env`, `sudo`, `command`, `nohup`, `xargs`, `xcrun` and the
 like); and no wildcard at all over a program that runs whatever it is given, or takes options after its words that run
 other code (a shell, `python3`, `node`, `perl`, `osascript`, `uv`, `npx`, `find`, `ssh`, `make`, `sed`, `git` and the
 like): declare the exact command, or a command of your own. An exact rule, with no wildcard, allows only its own text
