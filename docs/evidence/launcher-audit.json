@@ -186,7 +186,7 @@
     {
       "id": "AUD-31",
       "file": "test/launcher.test.js",
-      "test": "PC-126: a linked 0600 Codex config.toml stays a link with its mode through update, restore and uninstall",
+      "test": "PC-126: a linked 0640 Codex config.toml stays a link with its mode through update, restore and uninstall",
       "scenario": "SCN-003"
     },
     {
@@ -205,6 +205,12 @@
       "id": "AUD-34",
       "file": "test/launcher.test.js",
       "test": "PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it recorded, and a retry removes it",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-35",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Gemini settings file that cannot be read is kept recorded, not dropped",
       "scenario": "SCN-005"
     }
   ]

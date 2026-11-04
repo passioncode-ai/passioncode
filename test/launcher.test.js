@@ -791,7 +791,7 @@ test('PC-120: a Gemini settings link to a missing file is kept, and the file is 
   assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers, {});
 });
 
-test('PC-126: a linked 0600 Codex config.toml stays a link with its mode through update, restore and uninstall', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
+test('PC-126: a linked 0640 Codex config.toml stays a link with its mode through update, restore and uninstall', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
   const env = setup();
   withFakeMcp(env);
   withAgents(env, { codexConf: null });
@@ -799,22 +799,22 @@ test('PC-126: a linked 0600 Codex config.toml stays a link with its mode through
   const real = path.join(env.home, 'dotfiles', 'codex.toml');
   fs.mkdirSync(path.dirname(real), { recursive: true });
   fs.writeFileSync(real, CODEX_CONF);
-  fs.chmodSync(real, 0o600);
+  fs.chmodSync(real, 0o640); // not the 0600 a new file gets, so the kept mode is the file's own
   fs.symlinkSync(real, file);
   const holds = () => fs.readFileSync(real, 'utf8').includes('["mcp_servers"."fabric-dashboards"]');
   assert.equal(run(env, 'update').status, 0);
   assert.ok(fs.lstatSync(file).isSymbolicLink(), 'registration keeps the link');
-  assert.equal(fs.statSync(real).mode & 0o777, 0o600, 'and the mode');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o640, 'and the mode');
   assert.ok(holds(), 'the entry lands where the link points');
   assert.equal(run(env, 'restore').status, 0);
   assert.ok(fs.lstatSync(file).isSymbolicLink(), 'removal keeps the link');
-  assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.equal(fs.statSync(real).mode & 0o777, 0o640);
   assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF, 'the entry is gone and the rest is byte-identical');
   assert.equal(run(env, 'update').status, 0);
   assert.ok(holds());
   assert.equal(run(env, 'uninstall').status, 0);
   assert.ok(fs.lstatSync(file).isSymbolicLink(), 'uninstall keeps the link');
-  assert.equal(fs.statSync(real).mode & 0o777, 0o600);
+  assert.equal(fs.statSync(real).mode & 0o777, 0o640);
   assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
 });
 
@@ -913,6 +913,28 @@ test('PC-127: a Codex config.toml that cannot be read is kept recorded, not take
   } finally { unlock(); }
   assert.equal(run(env, 'uninstall').status, 0);
   assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+});
+
+test('PC-127: a Gemini settings file that cannot be read is kept recorded, not dropped', { skip: lockSkip }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const file = path.join(env.home, '.gemini', 'settings.json');
+  const real = path.join(env.home, 'dotfiles', 'gemini.json');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, '{}\n');
+  fs.symlinkSync(real, file);
+  assert.equal(run(env, 'update').status, 0);
+  fs.chmodSync(path.dirname(real), 0o000);
+  const stateFile = path.join(env.home, '.passioncode', 'state.json');
+  try {
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 1, r.stdout);
+    assert.ok(r.stderr.includes(`${file}: fabric-dashboards for Gemini CLI could not be removed`), r.stderr);
+    assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, 'utf8')).mcpRegistrations.map((m) => m.agent), ['Gemini CLI']);
+  } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(mcpEntry(real), undefined, 'the retry removes it');
 });
 
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {

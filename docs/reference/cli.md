@@ -31,7 +31,10 @@ fails; **2** means an unknown command or unsupported arguments. `--quiet` suppre
 successful update output, including JSON, but never hides failed update steps.
 `--dry-run` exists for setup/onboard and update/install: `doctor --dry-run`,
 `uninstall --dry-run` and misspelled flags fail before any mutation. Runtime errors go to stderr, including with
-`--json`; consumers must check the exit code before parsing stdout.
+`--json`; consumers must check the exit code before parsing stdout. On exit 1 from an
+MCP entry kept for a retry, `restore --json` and `uninstall --json` still print the
+array of what they did (no output when they did nothing), and stderr names the kept
+entries (PC-127).
 
 Evidence: [CLI dispatch](../../bin/passioncode.js), `unsupported flags are rejected
 before uninstall or restore can mutate anything` and `dry run changes nothing`
@@ -316,8 +319,10 @@ into a folder that is locked) is kept and left unrestored, the rest of the batch
 is still put back and listed, and restore exits 1 naming the file. Make the file
 and its folder readable and writable (for a link, the folder it points into) and
 run `restore` again: it removes the entry while that batch is still the latest. An
-update that moves something aside starts a new batch, and restore reads only the
-latest, so then `uninstall` removes the entry, or delete it by hand (PC-127).
+update that prints `recovery entry(s) saved` starts a new batch, and restore reads
+only the latest, so then `uninstall` removes the entry, or delete it by hand. A
+conflict in the same batch stops restore before it lists the rest; the kept entry
+stays unrestored and the retry names it (PC-127).
 
 Keep quarantine directories and settings backups until recovery is complete.
 Do not delete a corrupted `state.json` to silence the error: it indexes the
