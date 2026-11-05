@@ -331,9 +331,11 @@ that does not parse, or a folder in the file's place, is reported as kept and no
 longer tracked: fix it and remove the entry by hand. `~/.codex/config.toml` is read
 as text: the launcher removes its own table when it finds it intact, and otherwise
 takes the entry as gone without a note. A path that now runs through a
-file is taken as already gone. A conflict, a missing source or a marketplace that cannot be re-added in the same batch stops restore with nothing listed,
+file is taken as already gone. A conflict, a missing source, or a marketplace that cannot be re-added or whose settings cannot be restored, in the same batch stops restore with nothing listed,
 although MCP entries it reached first are already removed; after you move the
-replacement aside, the retry puts back the rest and names the kept entry (PC-127).
+replacement aside, the retry puts back the rest and names the kept entry. A missing
+source stops every retry (recover it by hand, as below); a kept MCP entry is then
+removed by `uninstall` or by hand (PC-127).
 
 Keep quarantine directories and settings backups until recovery is complete.
 Do not delete a corrupted `state.json` to silence the error: it indexes the
@@ -421,8 +423,8 @@ returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained. An MCP registration
 whose file the system cannot open now (its permissions, or a link into a locked
 folder) does not stop the rest: uninstall finishes and lists what it removed, keeps
-that entry recorded in `state.json`, and exits 1 naming the file; once it can be
-written, another uninstall removes the entry. A file that does not parse, or a folder
+that entry recorded in `state.json`, and exits 1 naming the file; once the file and
+its folder are readable and writable, another uninstall removes the entry. A file that does not parse, or a folder
 in its place, is reported as kept and no longer tracked; remove that entry by hand
 (PC-127). `~/.codex/config.toml` is read as text: its own table is removed when it is
 intact, and otherwise the entry is taken as gone without a note.

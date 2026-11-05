@@ -34,8 +34,8 @@
   which the update then finds already there.
 - **`restore` and `uninstall` go on past an MCP entry they cannot remove** (PC-127): an entry whose file cannot be
   opened now (its permissions, a link into a locked folder) is kept and stays recorded; `restore` still puts back the rest of
-  the batch and `uninstall` finishes the rest, each lists what it did and exits 1 naming the file. Once the folder is
-  readable and writable again, `uninstall` removes the entry, and so does `restore` while that batch is still the latest
+  the batch and `uninstall` finishes the rest, each lists what it did and exits 1 naming the file. Once the file and its
+  folder are readable and writable again (for a link, the folder it points into), `uninstall` removes the entry, and so does `restore` while that batch is still the latest
   (any update that registers or moves something starts a new one, a quiet or background one included). With
   `--json`, stdout still holds what was done. A JSON file that does not parse, or a folder in place of a file, is
   reported as kept and no longer tracked (`config.toml` is read as text: a launcher table no longer intact is taken as gone), and a path that now runs through a file is taken as already gone. A registration whose
@@ -52,11 +52,11 @@
   took is in its `~/.passioncode/quarantine/<run>/` as `config.toml.before-mcp-codex-cli`; a removal by `restore` or
   `uninstall` took none. A link to a missing file was replaced by 0.2.74 and 0.2.75 with a file holding only the
   launcher's entries, and no copy was taken: move that file to where the link pointed and link again.
-  An MCP entry an earlier version left unrecorded (one a 0.2.75 `uninstall` could not read and took as cleaned, or
-  one written by an update that was killed before it finished) is now neither removed by `restore` nor known to
-  `uninstall`: delete it by hand. With these failures shown instead of hidden, `update`, `restore` and `uninstall` exit 1 in cases they
-  used to pass, so the anonymous counts of failed runs (`command_run` with `failed`, `app_error`) can rise from 0.2.76
-  without a change in what they mean.
+  An MCP entry an earlier version left unrecorded (one a 0.2.75 `restore` or `uninstall` could not read and dropped
+  from its record, or one written by an update that was killed before it finished) is now neither removed by
+  `restore` nor known to `uninstall`: delete it by hand. These failures now exit 1 where they used to pass, for
+  `update`, `restore` and `uninstall` and for `setup` and `doctor --fix`, which run an update; the failed-run counts
+  this version starts sending (`command_run` with `failed`, `app_error`) include them from the first day.
 
 ## 0.2.75 - 2026-11-04
 
