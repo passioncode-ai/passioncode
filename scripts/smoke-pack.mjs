@@ -34,7 +34,7 @@ try {
   cli(['uninstall', '--json']);
   const after = cli(['status', '--json']);
   assert.equal(after.installed, null);
-  assert.equal(after.auto, false);
+  assert.equal(after.auto, true); // uninstall never writes the update switch (LC-16, PC-131)
   assert.deepEqual(cli(['uninstall', '--json']), []);
   assert.deepEqual(cli(['restore', '--json']), []);
   console.log(JSON.stringify({ node: process.version, package: pack.filename, integrity: pack.integrity,

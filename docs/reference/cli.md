@@ -443,7 +443,8 @@ it was (on unless `config set update.auto off` turned it off; LC-16, PC-131). Th
 current and previous release directories and the quarantines remain available;
 `restore` still works. Repeated uninstall is safe. An update the session hook had
 already started (its `npx` still downloading, before it takes the update lock) still
-finishes and installs the set: check `status` and run `uninstall` again. `status` still shows the switch
+finishes and installs the set: if a session started in the last ten minutes said
+"updating in the background", check `status` a minute later and run `uninstall` again. `status` still shows the switch
 (on by default); with nothing installed it updates nothing. An uninstall by 0.2.75 or
 earlier wrote the switch off: `status` then shows `auto-update off`, and
 `npx @passioncode-ai/passioncode@latest config set update.auto on` turns it back on.

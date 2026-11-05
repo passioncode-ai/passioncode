@@ -11,7 +11,7 @@
 | SCN-003 | Update with a partial failure | update | Operator | REQ-A1 | implemented | 2026-11-05 |
 | SCN-004 | Restore displaced entries safely | restore | Operator | REQ-A1 | implemented | 2026-11-05 |
 | SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-11-05 |
-| SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-10-01 |
+| SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-11-05 |
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
 | SCN-009 | Check and repair an existing setup with the same command | setup | Operator | REQ-7a | implemented | 2026-10-13 |
@@ -132,7 +132,7 @@
   1. Start a session.
   2. Read any update/check diagnostic; continue the session.
 - **Expected result:** Only a newer pinned version with all maintainers and its publisher known and trusted can start automatically. Probe errors cannot authorize an update.
-- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent.
+- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed (after uninstall) it is silent and starts nothing (PC-131).
 - **UI elements:** One-line hook notifications and logs.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Missing npx does not fail the session or leave a false running marker. Repair PATH and retry next session.
