@@ -469,7 +469,8 @@ registry signatures over the version's integrity must verify with a key pinned i
 the version must carry SLSA build provenance (ADR-0005). The probe and the update ask
 `https://registry.npmjs.org` whatever registry npm is set to, for the scope too
 (`--registry` and `--@passioncode-ai:registry`), with `--workspaces=false` so npm does not walk up to a
-monorepo root, from `~/.passioncode/run/`; the update installs through a cache of its own, emptied first. A record from an older probe, without
+monorepo root, from `~/.passioncode/run/`; the update installs through a new cache folder of its own (`run/cache-*`; without one it does not
+start), with npm's debug logs in `logs/npm`. A record from an older probe, without
 `verify` or with one read for another version, starts a fresh probe at once and installs nothing
 meanwhile. While a refusal stands the hook's lines name the installed version instead of `@latest`,
 and `status` adds "not installed automatically: <reason>" (`refused` in `--json`). The spawned
@@ -487,7 +488,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
-| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache/` holds the last update's npm cache, emptied before the next one; uninstall leaves the folder, removing it is safe): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
+| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache-*` folders hold each update's own npm cache, removed by a session start after ten minutes; uninstall leaves the folder, removing it is safe): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |

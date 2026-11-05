@@ -97,7 +97,7 @@ async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
     await sleep(50);
   }
   if (expect) await sleep(150); // a second, unwanted spawn would land meanwhile
-  return lines(file).map((l) => l.replace(/--cache=\S+ /, '--cache=RUN/cache '));
+  return lines(file).map((l) => l.replace(/--cache=\S+ --logs-dir=\S+ /, '--cache=RUN/cache '));
 }
 
 test('probe records the latest version, its maintainers and its publisher', () => {
@@ -439,7 +439,11 @@ test('PC-131: the update runs in the launcher\'s own folder, never the session p
   const run = path.join(sb.stateDir, 'run');
   assert.deepEqual(lines(path.join(sb.home, 'npx-cwd.log')).map((d) => fs.realpathSync(d)), [fs.realpathSync(run)]);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(run, 'package.json'), 'utf8')), { private: true }, 'npm stops its walk here');
-  assert.ok(lines(path.join(sb.home, 'npx-calls.log'))[0].includes(`--cache=${path.join(run, 'cache')} `), 'a cache of its own: npx downloads and npm checks');
+  const call = lines(path.join(sb.home, 'npx-calls.log'))[0];
+  const cache = (call.match(/--cache=(\S+) /) || [])[1];
+  assert.equal(path.dirname(cache), run, 'a new cache folder of its own: npx downloads and npm checks');
+  assert.match(path.basename(cache), /^cache-/);
+  assert.ok(call.includes(`--logs-dir=${path.join(sb.stateDir, 'logs', 'npm')} `), "npm's debug logs stay beside the update log");
   // The probe's npm view runs there too.
   setState(sb, { ...stateOf(sb), checkedAt: '2026-01-01T00:00:00.000Z' });
   spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(), cwd: project, input: '' });
@@ -458,6 +462,23 @@ test('PC-131: signature data an older plugin\'s probe kept beside its own new an
   const older = { ...state, checkedAt: '2026-11-05T11:00:00.000Z', publisher: 'someone-else' };
   assert.equal(u.needsProbe(older), true);
   assert.equal(u.decide({ ...older, installed: '0.1.0' }, ['passioncode-ai', 'someone-else'], Date.now(), [TEST_KEY]).spawn, null);
+});
+
+test('PC-131: without a cache folder of its own the update does not start', { skip: process.platform === 'win32' && 'POSIX modes' }, async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const run = path.join(sb.stateDir, 'run');
+  fs.mkdirSync(run, { recursive: true });
+  fs.writeFileSync(path.join(run, 'package.json'), '{ "private": true }\n');
+  fs.chmodSync(run, 0o555);
+  try {
+    assert.match(hook(sb), /could not start the background update: its folder ~\/\.passioncode\/run cannot be written/);
+    assert.deepEqual(await npxCalls(sb), [], 'never without its own cache');
+    assert.equal(stateOf(sb).updatingSince, undefined);
+    assert.ok(eventsOf(sb).includes('update_install failed cache'));
+  } finally {
+    fs.chmodSync(run, 0o755);
+  }
 });
 
 test('the hook loads only pinned keys written as plain one-line base64', () => {

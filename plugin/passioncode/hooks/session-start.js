@@ -70,17 +70,27 @@ async function main() {
   }
   // Record the attempt before spawning: a fast update must not finish and then
   // have this hook put the old "running" marker back.
-  // A cache of its own, emptied first, so npx downloads the verified version and npm checks it, instead of reusing
-  // a copy an earlier `npx` cached under other settings (the global npm tree is still npm's own, PC-142).
-  let updateArgs = args;
+  // A new, empty cache folder for each update, so npx downloads the verified version and npm checks it, instead of
+  // reusing a copy an earlier `npx` cached under other settings (the global npm tree is still npm's own, PC-142).
+  // Without one the update does not start. Folders older than an update's ten-minute window are removed.
+  let updateArgs = null;
+  let failure = 'spawn';
   if (args) {
     try {
-      const cache = path.join(runDir(), 'cache');
-      fs.rmSync(cache, { recursive: true, force: true });
-      updateArgs = [args[0], `--cache=${cache}`, ...args.slice(1)];
-    } catch (_) { /* detached() below reports a folder it cannot use */ }
+      const run = runDir();
+      for (const name of fs.readdirSync(run)) {
+        if (!/^cache(-|$)/.test(name)) continue;
+        const folder = path.join(run, name);
+        try { if (now - fs.statSync(folder).mtimeMs > 10 * 60 * 1000) fs.rmSync(folder, { recursive: true, force: true }); } catch (_) { /* in use or gone */ }
+      }
+      const cache = fs.mkdtempSync(path.join(run, 'cache-'));
+      // npm's own debug logs go beside the update log, not into the cache that is removed later.
+      updateArgs = [args[0], `--cache=${cache}`, `--logs-dir=${path.join(DIR, 'logs', 'npm')}`, ...args.slice(1)];
+    } catch (_) {
+      failure = 'cache';
+    }
   }
-  if (args && !await detached('npx', updateArgs, 'update.log')) {
+  if (args && (!updateArgs || !await detached('npx', updateArgs, 'update.log'))) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;
@@ -88,9 +98,11 @@ async function main() {
       fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
       fs.renameSync(tmp, STATE);
     }
-    logEvent(DIR, 'update_install', 'failed', 'spawn');
+    logEvent(DIR, 'update_install', 'failed', failure);
     lines.pop(); // decide appends the update-start notice last when it returns args
-    lines.push('[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
+    lines.push(failure === 'cache'
+      ? '[passioncode] could not start the background update: its folder ~/.passioncode/run cannot be written; it is tried again next session.'
+      : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }
   // Claude Code passes the session's directory on stdin; the process cwd is the fallback.
   let cwd = process.cwd();

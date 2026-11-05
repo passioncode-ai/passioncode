@@ -133,7 +133,7 @@ The hook installs a newer version on its own only when all of these hold:
   release built by `release.yml` does; which builder made it is not checked here;
 - the version is a plain `x.y.z`.
 
-It then runs `npx --yes --cache=~/.passioncode/run/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<that exact version> update --quiet`,
+It then runs `npx --yes --cache=~/.passioncode/run/cache-<new> --logs-dir=~/.passioncode/logs/npm --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<that exact version> update --quiet`,
 detached, so the version that was checked is the version that runs; npm checks the download against
 the integrity it reads at that moment (up to a day after the check), so a different tarball for the
 same version would need the registry itself to serve other metadata than it signed, or the person's own
@@ -143,7 +143,8 @@ The probe and the update run in `~/.passioncode/run/`, which holds a `package.js
 the session's project: started there, npm would run a copy from that project's `node_modules`
 without downloading or checking anything and read that project's `.npmrc`. `--workspaces=false` keeps
 npm from walking up to a monorepo root above that folder, and the update installs through a cache of
-its own (`~/.passioncode/run/cache`, emptied first), so a copy an earlier `npx` cached is not reused.
+its own (a new `~/.passioncode/run/cache-*` folder each time; without one the update does not start),
+so a copy an earlier `npx` cached is not reused; npm's debug logs go to `~/.passioncode/logs/npm`.
 A global install of that exact version (`npm install -g`) would still be used as it is (PC-142). In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose
@@ -169,7 +170,8 @@ the line, because the check reads npm's registry itself; a network that reaches 
 the check fail instead ("the daily update check failed" once per new error), and then updates are
 by hand. Any other refusal, a signature that does not verify with no new key listed above all, may
 mean tampering: report it to
-contact@passioncode.ai with the line and `~/.passioncode/logs/update-events.log`. The line is printed
+contact@passioncode.ai with the line, `~/.passioncode/logs/update-events.log` and, if an update ran,
+`~/.passioncode/logs/update.log` and `~/.passioncode/logs/npm/`. The line is printed
 at the start of a Claude Code session, into the agent's context; the setup skill and the README's prompt
 tell the agent to pass it on when it sets up or checks PassionCode. When the last check failed while a
 refusal stands, the hook says so at every session start and still names the version to keep, and

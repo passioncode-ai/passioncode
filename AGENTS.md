@@ -120,7 +120,7 @@ or resident process. Everything it runs is started by a person or by Claude Code
 | `passioncode status / config / permissions / analytics / help` | a person or their coding agent | on demand | the command's own reads; and, while the anonymous counts are on, one request to analytics.passioncode.ai at the end (2 s cap), `~/.passioncode/analytics.json`, its notice marker and, once, the shared `PassionCode/installation.json` | nothing | exits |
 | SessionStart hook `plugin/passioncode/hooks/session-start.js` | Claude Code, matcher `startup` only (not resume, clear or compact) | once per new session | 0.11–0.19 s, 2 processes (node + `git remote get-url`, 2 s cap), 5 s hook timeout; measured 2026-10-03 (lifecycle audit, passioncode-adapter §4) | nothing | exits |
 | Probe `hooks/probe.js` → `npm view --registry=https://registry.npmjs.org --@passioncode-ai:registry=…` | the hook, detached | at most once a day (`checkedAt` older than 24 h), or at once when the saved check has no signature data for the latest version (`verify` missing or read for another), one at a time (`probe.pending`) | 1 node + 1 npm, one HTTPS call, 30 s cap | runs ≤ 30 s, then exits | its own timeout |
-| Background update `npx --yes --cache=~/.passioncode/run/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<x.y.z> update --quiet` | the hook, only for a newer version from trusted publishers, signed by npm's pinned key and with build provenance, with a release installed and auto-update on | at most once per 10 min (`updatingSince`), usually never | as `update`, without the analytics request (the hook turns the counts off) | runs to completion (tens of seconds) | exits; refuses if another update holds the lock |
+| Background update `npx --yes --cache=~/.passioncode/run/cache-<new> --logs-dir=~/.passioncode/logs/npm --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<x.y.z> update --quiet` | the hook, only for a newer version from trusted publishers, signed by npm's pinned key and with build provenance, with a release installed and auto-update on | at most once per 10 min (`updatingSince`), usually never | as `update`, without the analytics request (the hook turns the counts off) | runs to completion (tens of seconds) | exits; refuses if another update holds the lock |
 | Observatory Log hooks (vendored member) | Claude Code: SessionStart on every start/resume/clear/compact (15 s cap), Stop after every turn (20 s cap) | per session and per turn | owned by `passioncode-ai/project-observatory-dashboard` (`observatory/engine/skill/plugins/observatory-log/hooks/`) | nothing | exits |
 
 Idle budget: zero — no process runs between sessions except a probe or update still inside its cap.
@@ -146,8 +146,9 @@ replaced whole on each run — one copy) and `*.tgz` from `npm pack` (`scripts/s
 into a temp dir and removes it). Keep no tarball: releases live on npm and GitHub. On a machine
 the launcher installs to, `~/.passioncode/releases/` holds the current and the previous release;
 the update prunes the rest itself (`LC-15 after four updates only the current and the previous
-release remain`). Cache cap: none beyond those, and `~/.passioncode/run/cache`, the last background update's npm cache (about one
-package copy, emptied before the next update; uninstall leaves it, removing it is safe); clean command: `rm -rf payload *.tgz`.
+release remain`). Cache cap: none beyond those, and `~/.passioncode/run/cache-*`, each background update's own new npm cache (about one
+package copy, removed by the next session start after ten minutes; uninstall leaves them, removing them is safe), with
+npm's debug logs in `~/.passioncode/logs/npm` (npm keeps ten); clean command: `rm -rf payload *.tgz`.
 
 ## Organisation
 
