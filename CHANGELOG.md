@@ -39,7 +39,10 @@
 - **An update log, and the update logs capped** (PC-131, LC-12, LC-16): `~/.passioncode/logs/update-events.log`
   records `update_check` (`ready` or `current` once per answer, `check_failed`, `signature_failed` with its reason
   once per version), `update_download`, `update_install` and `auto_update`, codes only; it, `probe.log` and
-  `update.log` move aside at 5 MB, five files kept, mode 0600 on macOS and Linux.
+  `update.log` move aside at 5 MB, five files kept, mode 0600 on macOS and Linux. npm's own debug logs of the
+  background update go to `~/.passioncode/logs/npm` (0700, npm keeps five), and each update's
+  `~/.passioncode/run/cache-*` folder is removed at a session start once it is an hour old and no longer the one
+  the last update recorded.
 
 ### Changed
 

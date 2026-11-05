@@ -108,7 +108,8 @@ async function main() {
         updateArgs.splice(2, 0, `--logs-dir=${npmLogs}`, '--logs-max=5');
       } catch (_) { /* default npm logs */ }
       // The folder the update runs from: kept by later sweeps until another update records its own.
-      // Not recorded (state.json not writable): the update still starts, and its folder is kept by its age alone.
+      // A write that fails moments after the one above succeeded (a full disk, a race) does not stop the update; its
+      // folder is then kept by its age alone. An unwritable state.json already stopped the hook above (PC-143).
       try {
         const current = read(STATE, {});
         earlierCache = current.updateCache;
