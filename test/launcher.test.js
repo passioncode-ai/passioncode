@@ -266,6 +266,26 @@ test('PC-129: uninstall with the variable set removes an entry written without i
   assert.equal(mcpEntry(path.join(cfg, '.claude.json')).command, '/their/own', "the person's own entry stays");
 });
 
+const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch (_) { return false; } };
+test('PC-129: a shadow moved aside through a Switchboard home goes back into the person\'s skills folder, even once the home is gone', () => {
+  const env = setup(); // ~/.claude/skills/example-agent shadows the plugin
+  const operator = path.join(env.home, '.claude');
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(sb, { recursive: true });
+  fs.symlinkSync(path.join(operator, 'skills'), path.join(sb, 'skills'), 'junction');
+  fs.symlinkSync(path.join(operator, 'plugins'), path.join(sb, 'plugins'), 'junction');
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  assert.equal(fs.existsSync(path.join(operator, 'skills', 'example-agent')) || isLink(path.join(operator, 'skills', 'example-agent')), false, 'moved aside');
+  fs.rmSync(sb, { recursive: true, force: true }); // the account or Switchboard is removed
+  env.extra = {};
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(operator, 'skills', 'example-agent')), "back in the person's folder");
+  assert.equal(fs.existsSync(sb), false, 'no folder is made where the home was');
+});
+
 test('a second update is idempotent: updates plugins, moves nothing', () => {
   const env = setup();
   assert.equal(run(env, 'update').status, 0);
