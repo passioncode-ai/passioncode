@@ -1072,6 +1072,37 @@ test('PC-127: a Codex config.toml whose path now runs through a file is taken as
   assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8')).mcpRegistrations, undefined);
 });
 
+test('PC-127: a key a person adds inside the launcher Codex table keeps the table, through restore and uninstall', () => {
+  for (const cmd of ['restore', 'uninstall']) {
+    const env = setup();
+    withFakeMcp(env);
+    withAgents(env);
+    assert.equal(run(env, 'update').status, 0);
+    const file = path.join(env.home, '.codex', 'config.toml');
+    const text = fs.readFileSync(file, 'utf8').replace(/(\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n)/, '$1env = { K = "v" }\n');
+    assert.ok(text.includes('env = { K = "v" }'));
+    fs.writeFileSync(file, text);
+    const r = run(env, cmd);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /fabric-dashboards for Codex CLI has settings added since; kept/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text, `${cmd} leaves the table and its key`);
+  }
+});
+
+test('PC-127: a Codex server the person declares inline instead of the launcher table is kept, not taken as gone', () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const inline = fs.readFileSync(file, 'utf8').replace(/\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/, '') + `[mcp_servers]\nfabric-dashboards = { command = ${JSON.stringify(bin)} }\n`;
+  fs.writeFileSync(file, inline);
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /fabric-dashboards for Codex CLI was changed; kept/);
+  assert.equal(fs.readFileSync(file, 'utf8'), inline);
+});
+
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);

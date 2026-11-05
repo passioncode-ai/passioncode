@@ -266,6 +266,18 @@
       "file": "test/launcher.test.js",
       "test": "PC-127: a Codex config.toml that cannot be read is kept recorded, not taken as gone",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-45",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a key a person adds inside the launcher Codex table keeps the table, through restore and uninstall",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-46",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex server the person declares inline instead of the launcher table is kept, not taken as gone",
+      "scenario": "SCN-005"
     }
   ]
 }

@@ -38,12 +38,16 @@
   folder are readable and writable again (for a link, the folder it points into), `uninstall` removes the entry, and so does `restore` while that batch is still the latest
   (any update that registers or moves something starts a new one, a quiet or background one included). With
   `--json`, stdout still holds what was done. A JSON file that does not parse, or a folder in place of a file, is
-  reported as kept and no longer tracked (`config.toml` is read as text: a launcher table edited since is reported as kept, and one no longer in the file is taken as gone), and a path that now runs through a file is taken as already gone. A registration whose
+  reported as kept and no longer tracked (`config.toml` is read as text: a launcher table edited since is reported as kept, and an entry no longer declared in the file is taken as gone), and a path that now runs through a file is taken as already gone. A registration whose
   write failed is marked in the journal and saves no recovery entry, and `restore` takes out only what an update
   recorded as registered, so it never removes an entry the person declares there later, even from a batch an earlier
   version journalled. Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file the
   system could not open was dropped from the record: a `config.toml` was taken as already cleaned, the JSON files of
   Claude Code, Gemini and Kimi were reported as kept and then forgotten.
+- **A key added inside the launcher's Codex table is kept** (PC-127): `restore` and `uninstall` removed the launcher's
+  `[mcp_servers."fabric-dashboards"]` table with any key a person had added inside it, such as an inline
+  `env = { … }` holding a token, and reported it as removed. They now keep a table that holds anything beside the
+  launcher's own `command` and `args`, and a server declared inline under `[mcp_servers]`, and report it as kept.
 - What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
   `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
   on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it
