@@ -22,6 +22,49 @@
   warning count on a Mac or Windows machine with Fabric that lacks a part. The page
   `docs/reference/session-chain.md` says which part of that chain is the launcher's.
 
+### Fixed
+
+- **`~/.codex/config.toml` keeps its link and its mode** (PC-126): registering an MCP server there, and removing it
+  through `restore` or `uninstall`, now writes the file where a link points and keeps its permission bits, as the JSON
+  settings files already did (PC-120); a file the launcher creates is private (mode 600 on macOS and Linux). Before, a
+  link was replaced by a regular file and the file, which can hold server tokens under `env`, could become readable by
+  others. When the file is a link into a folder the launcher cannot write, the update now reports the registration as
+  failed instead of replacing the link, and so do `setup` and `doctor --fix`, which run an update (the Gemini and Kimi
+  files have done so since 0.2.74); make the folder writable, or declare the server in the file the link points to,
+  which the update then finds already there.
+- **`restore` and `uninstall` go on past an MCP entry they cannot remove** (PC-127): an entry whose file cannot be
+  opened now (its permissions, a link into a locked folder) is kept and stays recorded; `restore` still puts back the rest of
+  the batch and `uninstall` finishes the rest, each lists what it did and exits 1 naming the file. Once the file and its
+  folder are readable and writable again (for a link, the folder it points into), `uninstall` removes the entry, and so does `restore` while that batch is still the latest
+  (any update that registers or moves something starts a new one, a quiet or background one included). With
+  `--json`, stdout still holds what was done. A JSON file that does not parse, or a folder in place of a file, is
+  reported as kept and no longer tracked (`config.toml` is read as text: a launcher table edited since is reported as kept, and an entry no longer declared in the file is taken as gone), and a path that now runs through a file is taken as already gone. A registration whose
+  write failed is marked in the journal and saves no recovery entry, and `restore` takes out only what an update
+  recorded as registered, so it never removes an entry the person declares there later, even from a batch an earlier
+  version journalled. Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file the
+  system could not open was dropped from the record: a `config.toml` was taken as already cleaned, the JSON files of
+  Claude Code, Gemini and Kimi were reported as kept and then forgotten.
+- **A key added inside a launcher Codex table is kept** (PC-127): `restore` and `uninstall` removed a table the launcher
+  wrote in `~/.codex/config.toml` (`["mcp_servers"."fabric-dashboards"]`, and likewise for `switchboard` and `fabric`)
+  with any key or comment a person had added inside it, such as an inline `env = { … }` holding a token, and reported
+  it as removed. They now keep a table that holds anything beside the launcher's own `command` and `args`, and report
+  it as kept; a server the person declared another way under `mcp_servers` (inline or with dotted keys under
+  `[mcp_servers]`, a `[mcp_servers.<name>.…]` sub-table, or a root `mcp_servers.<name>` key before the first table) is
+  now reported as kept too (before, it was left alone without a note).
+- What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
+  `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
+  on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it
+  finds). The file the link pointed at was not written then and holds what it held before that update; the regular
+  file in the link's place holds every change since, so merge that into it before linking again. The copy that update
+  took is in its `~/.passioncode/quarantine/<run>/` as `config.toml.before-mcp-codex-cli`; a removal by `restore` or
+  `uninstall` took none. A link to a missing file was replaced by 0.2.74 and 0.2.75 with a file holding only the
+  launcher's entries, and no copy was taken: move that file to where the link pointed and link again.
+  An MCP entry an earlier version left unrecorded (one a 0.2.75 `restore` or `uninstall` could not read and dropped
+  from its record, or one written by an update that was killed before it finished) is now neither removed by
+  `restore` nor known to `uninstall`: delete it by hand. These failures now exit 1 where they used to pass, for
+  `update`, `restore` and `uninstall` and for `setup` and `doctor --fix`, which run an update; the failed-run counts
+  this version starts sending (`command_run` with `failed`, `app_error`) include them from the first day.
+
 ## 0.2.75 - 2026-11-04
 
 ### Added

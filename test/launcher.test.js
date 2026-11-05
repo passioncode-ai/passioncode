@@ -791,6 +791,395 @@ test('PC-120: a Gemini settings link to a missing file is kept, and the file is 
   assert.deepEqual(JSON.parse(fs.readFileSync(real, 'utf8')).mcpServers, {});
 });
 
+test('PC-126: a linked 0640 Codex config.toml stays a link with its mode through update, restore and uninstall', { skip: process.platform === 'win32' && 'POSIX links and modes' }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.chmodSync(real, 0o640); // not the 0600 a new file gets, so the kept mode is the file's own
+  fs.symlinkSync(real, file);
+  const holds = () => fs.readFileSync(real, 'utf8').includes('["mcp_servers"."fabric-dashboards"]');
+  assert.equal(run(env, 'update').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'registration keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o640, 'and the mode');
+  assert.ok(holds(), 'the entry lands where the link points');
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'removal keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o640);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF, 'the entry is gone and the rest is byte-identical');
+  assert.equal(run(env, 'update').status, 0);
+  assert.ok(holds());
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'uninstall keeps the link');
+  assert.equal(fs.statSync(real).mode & 0o777, 0o640);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+});
+
+test('PC-126: a Codex config.toml linked into a folder that cannot be written fails that registration and keeps the link', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, file);
+  fs.chmodSync(path.dirname(real), 0o555);
+  let r;
+  try { r = run(env, 'update', '--json'); } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  assert.equal(r.status, 1);
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp');
+  assert.ok(steps.some((s) => s.outcome === 'failed' && s.detail.includes('Codex CLI')), JSON.stringify(steps));
+  assert.equal(steps.filter((s) => s.outcome === 'done').length, 3, 'the other agents are still registered');
+  assert.ok(fs.lstatSync(file).isSymbolicLink(), 'the link is kept');
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+  assert.deepEqual(fs.readdirSync(path.dirname(real)), ['codex.toml'], 'the folder holds only the original file');
+});
+
+test('PC-126: an entry a person declares after a failed registration is never taken out by restore', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, path.join(env.home, '.codex', 'config.toml'));
+  fs.chmodSync(path.dirname(real), 0o555);
+  try { assert.equal(run(env, 'update').status, 1); } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  const mine = `${CODEX_CONF}\n["mcp_servers"."fabric-dashboards"]\ncommand = ${JSON.stringify(bin)}\nargs = []\n`;
+  fs.writeFileSync(real, mine);
+  const second = run(env, 'update');
+  assert.equal(second.status, 0, second.stderr);
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(!JSON.parse(r.stdout).some((n) => n.includes('Codex CLI')), r.stdout);
+  assert.equal(fs.readFileSync(real, 'utf8'), mine, 'the hand-written table stays');
+});
+
+test('PC-126: an update whose only change is a failed registration saves no recovery entry and keeps the batch before it', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, path.join(env.home, '.codex', 'config.toml'));
+  fs.chmodSync(path.dirname(real), 0o555);
+  let second;
+  try {
+    assert.equal(run(env, 'update').status, 1);
+    second = run(env, 'update');
+  } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  assert.equal(second.status, 1);
+  assert.doesNotMatch(second.stdout, /recovery entry|passioncode restore/);
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  assert.deepEqual(fs.readdirSync(path.join(env.home, '.passioncode', 'quarantine')).map((d) => path.join(env.home, '.passioncode', 'quarantine', d)), state.quarantines, 'the failed-only batch left no folder (nor its copy of config.toml)');
+  assert.equal(run(env, 'restore').status, 0);
+  assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'), 'the first batch is still the one restore reads');
+});
+
+test('PC-126: a failed registration journalled by an earlier version does not take out an entry declared by hand', { skip: process.platform === 'win32' && 'POSIX modes' || (process.getuid && process.getuid() === 0 && 'root writes a locked folder') }, () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, path.join(env.home, '.codex', 'config.toml'));
+  fs.chmodSync(path.dirname(real), 0o555);
+  try { assert.equal(run(env, 'update').status, 1); } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  const journal = path.join(state.quarantines.at(-1), 'moved.json');
+  fs.writeFileSync(journal, JSON.stringify(JSON.parse(fs.readFileSync(journal, 'utf8')).map(({ failedAt, ...e }) => e))); // the 0.2.75 shape
+  const mine = `${CODEX_CONF}\n["mcp_servers"."fabric-dashboards"]\ncommand = ${JSON.stringify(bin)}\nargs = []\n`;
+  fs.writeFileSync(real, mine);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'restore').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), mine, 'restore takes out only what an update recorded as registered');
+});
+
+test('PC-126: a registration is recorded as soon as it is written, so an update killed later leaves it removable', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  // Stop the process right after the first state write that follows the Codex write.
+  const preload = path.join(env.home, 'die-after-codex.js');
+  fs.writeFileSync(preload, `const fs = require('fs'); const rename = fs.renameSync; let codex = false;
+fs.renameSync = function (from, to) { rename.call(fs, from, to);
+  if (String(to).endsWith('config.toml')) codex = true;
+  else if (codex && String(to).endsWith('state.json')) process.exit(9); };\n`);
+  env.extra = { ...env.extra, NODE_OPTIONS: `--require ${preload}` };
+  assert.equal(run(env, 'update').status, 9);
+  delete env.extra.NODE_OPTIONS;
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  assert.ok((state.mcpRegistrations || []).some((r) => r.agent === 'Codex CLI'), JSON.stringify(state.mcpRegistrations));
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8'), CODEX_CONF, 'uninstall still removes it');
+});
+
+test('PC-126: a Codex config.toml the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  assert.equal(fs.existsSync(file), false);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+});
+
+// A Codex config.toml linked into a folder the launcher cannot write: the removal fails for that entry only.
+function lockedCodexLink(env) {
+  withFakeMcp(env);
+  withAgents(env, { codexConf: null });
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const real = path.join(env.home, 'dotfiles', 'codex.toml');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, CODEX_CONF);
+  fs.symlinkSync(real, file);
+  assert.equal(run(env, 'update').status, 0);
+  fs.chmodSync(path.dirname(real), 0o555);
+  return { file, real, unlock: () => fs.chmodSync(path.dirname(real), 0o755) };
+}
+const lockSkip = (process.platform === 'win32' && 'POSIX modes') || (process.getuid && process.getuid() === 0 && 'root writes a locked folder');
+
+test('PC-127: restore keeps an MCP entry it cannot remove, puts back the rest, and removes it on the next run', { skip: lockSkip }, () => {
+  const env = setup();
+  const { file, real, unlock } = lockedCodexLink(env);
+  try {
+    const r = run(env, 'restore', '--json');
+    assert.equal(r.status, 1, 'a partial restore is not a success');
+    assert.ok(r.stderr.includes(`Restore incomplete: ${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
+    assert.match(r.stderr, /folder it points into\) and run restore again; once any update has run since, delete the entry by hand/);
+    const notes = JSON.parse(r.stdout);
+    assert.ok(notes.some((n) => n.includes('for Gemini CLI removed from')), 'what it did is still shown: ' + JSON.stringify(notes));
+    const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+    assert.deepEqual(state.mcpRegistrations.map((m) => m.agent), ['Codex CLI'], 'the kept entry stays recorded');
+    const journal = JSON.parse(fs.readFileSync(path.join(state.quarantines.at(-1), 'moved.json'), 'utf8'));
+    assert.deepEqual(journal.filter((e) => !e.restoredAt).map((e) => e.agent), ['Codex CLI'], 'and unrestored in the journal');
+    assert.equal(mcpEntry(path.join(env.home, '.gemini', 'settings.json')), undefined, 'the other agents are still cleaned');
+    assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'), 'quarantined skills still come back');
+    assert.ok(fs.lstatSync(file).isSymbolicLink());
+    assert.ok(fs.readFileSync(real, 'utf8').includes('"fabric-dashboards"'), 'the entry is kept where it was');
+  } finally { unlock(); }
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.lstatSync(file).isSymbolicLink());
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF, 'the next restore removes it');
+});
+
+test('PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it recorded, and a retry removes it', { skip: lockSkip }, () => {
+  const env = setup();
+  const { file, real, unlock } = lockedCodexLink(env);
+  const stateFile = path.join(env.home, '.passioncode', 'state.json');
+  try {
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /Uninstall incomplete: .*; kept\. The rest of uninstall finished\. Make the file and its folder readable and writable \(for a link, the folder it points into\) and retry uninstall\./);
+    assert.match(r.stdout, /^Removed:\n/, 'what it did is still shown');
+    assert.match(r.stdout, /for Gemini CLI removed from/);
+    assert.ok(r.stderr.includes(`${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
+    const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+    assert.equal(state.installed, null, 'the rest of uninstall is done');
+    assert.equal(state.config.auto, false);
+    assert.deepEqual(state.mcpRegistrations.map((m) => m.agent), ['Codex CLI'], 'only the kept entry stays recorded');
+    assert.equal(mcpEntry(path.join(env.home, '.kimi-code', 'mcp.json')), undefined);
+  } finally { unlock(); }
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+  assert.ok(fs.lstatSync(file).isSymbolicLink());
+  assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).mcpRegistrations, undefined);
+});
+
+test('PC-127: after an update starts a new batch, restore no longer reaches a kept MCP entry and uninstall removes it', { skip: lockSkip }, () => {
+  const env = setup();
+  const { real, unlock } = lockedCodexLink(env);
+  try { assert.equal(run(env, 'restore').status, 1); } finally { unlock(); }
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'restore').status, 0);
+  assert.ok(fs.readFileSync(real, 'utf8').includes('"fabric-dashboards"'), 'the new batch does not hold it, as cli.md says');
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF, 'uninstall removes it');
+});
+
+test('PC-127: a Codex config.toml that cannot be read is kept recorded, not taken as gone', { skip: lockSkip }, () => {
+  const env = setup();
+  const { real, unlock } = lockedCodexLink(env);
+  fs.chmodSync(path.dirname(real), 0o000);
+  const stateFile = path.join(env.home, '.passioncode', 'state.json');
+  try {
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 1, r.stderr);
+    assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, 'utf8')).mcpRegistrations.map((m) => m.agent), ['Codex CLI']);
+  } finally { unlock(); }
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(real, 'utf8'), CODEX_CONF);
+});
+
+test('PC-127: a Gemini settings file that cannot be read is kept recorded, not dropped', { skip: lockSkip }, () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const file = path.join(env.home, '.gemini', 'settings.json');
+  const real = path.join(env.home, 'dotfiles', 'gemini.json');
+  fs.mkdirSync(path.dirname(real), { recursive: true });
+  fs.writeFileSync(real, '{}\n');
+  fs.symlinkSync(real, file);
+  assert.equal(run(env, 'update').status, 0);
+  fs.chmodSync(path.dirname(real), 0o000);
+  const stateFile = path.join(env.home, '.passioncode', 'state.json');
+  try {
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 1, r.stdout);
+    assert.ok(r.stderr.includes(`${file}: fabric-dashboards for Gemini CLI could not be removed`), r.stderr);
+    assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, 'utf8')).mcpRegistrations.map((m) => m.agent), ['Gemini CLI']);
+  } finally { fs.chmodSync(path.dirname(real), 0o755); }
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(mcpEntry(real), undefined, 'the retry removes it');
+});
+
+test('PC-127: an MCP file whose path now runs through a file, or is a folder, does not hold uninstall back', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  fs.rmSync(path.join(env.home, '.gemini'), { recursive: true });
+  fs.writeFileSync(path.join(env.home, '.gemini'), 'not a folder\n');
+  const kimi = path.join(env.home, '.kimi-code', 'mcp.json');
+  fs.rmSync(kimi);
+  fs.mkdirSync(kimi);
+  const codex = path.join(env.home, '.codex', 'config.toml'); // the TOML branch maps them the same way
+  fs.rmSync(codex);
+  fs.mkdirSync(codex);
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /mcp\.json: fabric-dashboards for Kimi Code is a folder; kept/);
+  assert.match(r.stdout, /config\.toml: fabric-dashboards for Codex CLI is a folder; kept/);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8')).mcpRegistrations, undefined);
+});
+
+test('PC-127: a Codex config.toml whose path now runs through a file is taken as gone', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  fs.rmSync(path.join(env.home, '.codex'), { recursive: true });
+  fs.writeFileSync(path.join(env.home, '.codex'), 'not a folder\n');
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.doesNotMatch(r.stdout, /Codex CLI/);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8')).mcpRegistrations, undefined);
+});
+
+test('PC-127: a key a person adds inside the launcher Codex table keeps the table, through restore and uninstall', () => {
+  for (const cmd of ['restore', 'uninstall']) {
+    const env = setup();
+    withFakeMcp(env);
+    withAgents(env);
+    assert.equal(run(env, 'update').status, 0);
+    const file = path.join(env.home, '.codex', 'config.toml');
+    const text = fs.readFileSync(file, 'utf8').replace(/(\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n)/, '$1env = { K = "v" }\n');
+    assert.ok(text.includes('env = { K = "v" }'));
+    fs.writeFileSync(file, text);
+    const r = run(env, cmd);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /fabric-dashboards for Codex CLI has settings added since; kept/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text, `${cmd} leaves the table and its key`);
+  }
+});
+
+test('PC-127: a Codex server the person declares inline instead of the launcher table is kept, not taken as gone', () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const inline = fs.readFileSync(file, 'utf8').replace(/\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/, '') + `[mcp_servers]\nfabric-dashboards = { command = ${JSON.stringify(bin)} }\n`;
+  fs.writeFileSync(file, inline);
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /fabric-dashboards for Codex CLI was changed; kept/);
+  assert.equal(fs.readFileSync(file, 'utf8'), inline);
+});
+
+test('PC-127: a Codex table with a comment of the person keeps it; a same-named key elsewhere is not a declaration', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const text = fs.readFileSync(file, 'utf8') + '# my own servers below\n[mcp_servers.mine]\ncommand = "m"\n';
+  fs.writeFileSync(file, text);
+  const r = run(env, 'restore');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /fabric-dashboards for Codex CLI has settings added since; kept/);
+  assert.equal(fs.readFileSync(file, 'utf8'), text, 'the comment stays');
+
+  const other = setup();
+  withFakeMcp(other);
+  withAgents(other);
+  assert.equal(run(other, 'update').status, 0);
+  const otherFile = path.join(other.home, '.codex', 'config.toml');
+  const gone = fs.readFileSync(otherFile, 'utf8').replace(/\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/, '') + '[projects."/x"]\nfabric-dashboards = "trusted"\n';
+  fs.writeFileSync(otherFile, gone);
+  const u = run(other, 'uninstall');
+  assert.equal(u.status, 0, u.stderr);
+  assert.doesNotMatch(u.stdout, /for Codex CLI/, 'a key in another table is not the server');
+  assert.equal(fs.readFileSync(otherFile, 'utf8'), gone);
+});
+
+test('PC-127: a Codex server the person declares with dotted keys under [mcp_servers] is kept, not taken as gone', () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const dotted = fs.readFileSync(file, 'utf8').replace(/\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/, '') + `[mcp_servers]\nfabric-dashboards.command = ${JSON.stringify(bin)}\n`;
+  fs.writeFileSync(file, dotted);
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /fabric-dashboards for Codex CLI was changed; kept/);
+  assert.equal(fs.readFileSync(file, 'utf8'), dotted);
+});
+
+test('PC-127: a trailing comment keeps a Codex table; a root inline declaration counts, a root key in another table does not', () => {
+  const fresh = () => {
+    const env = setup();
+    const bin = withFakeMcp(env);
+    withAgents(env);
+    assert.equal(run(env, 'update').status, 0);
+    return { env, bin, file: path.join(env.home, '.codex', 'config.toml') };
+  };
+  const table = /\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/;
+  for (const edit of [(t) => t.replace(/(args = \[[^\n]*)\n$/, '$1 # mine\n'), (t) => t.replace('["mcp_servers"."fabric-dashboards"]', '["mcp_servers"."fabric-dashboards"] # mine')]) {
+    const { env, file } = fresh();
+    const text = edit(fs.readFileSync(file, 'utf8'));
+    assert.ok(text.includes('# mine'));
+    fs.writeFileSync(file, text);
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /fabric-dashboards for Codex CLI has settings added since; kept/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text);
+  }
+  {
+    const { env, bin, file } = fresh();
+    const text = `mcp_servers.fabric-dashboards = { command = ${JSON.stringify(bin)} }\n` + fs.readFileSync(file, 'utf8').replace(table, '');
+    fs.writeFileSync(file, text);
+    const r = run(env, 'uninstall');
+    assert.match(r.stdout, /fabric-dashboards for Codex CLI was changed; kept/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text);
+  }
+  {
+    const { env, file } = fresh();
+    const text = fs.readFileSync(file, 'utf8').replace(table, '') + '[profiles.work]\nmcp_servers.fabric-dashboards.enabled = false\n';
+    fs.writeFileSync(file, text);
+    const r = run(env, 'uninstall');
+    assert.doesNotMatch(r.stdout, /for Codex CLI/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text);
+  }
+});
+
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);

@@ -182,6 +182,120 @@
       "file": "test/self-update.test.js",
       "test": "session start names the failures of the last saved setup check, and is silent when it passed",
       "scenario": "SCN-013"
+    },
+    {
+      "id": "AUD-31",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a linked 0640 Codex config.toml stays a link with its mode through update, restore and uninstall",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-32",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: restore keeps an MCP entry it cannot remove, puts back the rest, and removes it on the next run",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-33",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: after an update starts a new batch, restore no longer reaches a kept MCP entry and uninstall removes it",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-34",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it recorded, and a retry removes it",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-35",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Gemini settings file that cannot be read is kept recorded, not dropped",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-36",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a Codex config.toml linked into a folder that cannot be written fails that registration and keeps the link",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-37",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: an MCP file whose path now runs through a file, or is a folder, does not hold uninstall back",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-38",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: an entry a person declares after a failed registration is never taken out by restore",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-39",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex config.toml whose path now runs through a file is taken as gone",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-40",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: an update whose only change is a failed registration saves no recovery entry and keeps the batch before it",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-41",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a failed registration journalled by an earlier version does not take out an entry declared by hand",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-42",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a registration is recorded as soon as it is written, so an update killed later leaves it removable",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-43",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a Codex config.toml the launcher creates is private",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-44",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex config.toml that cannot be read is kept recorded, not taken as gone",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-45",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a key a person adds inside the launcher Codex table keeps the table, through restore and uninstall",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-46",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex server the person declares inline instead of the launcher table is kept, not taken as gone",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-47",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex table with a comment of the person keeps it; a same-named key elsewhere is not a declaration",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-48",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex server the person declares with dotted keys under [mcp_servers] is kept, not taken as gone",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-49",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a trailing comment keeps a Codex table; a root inline declaration counts, a root key in another table does not",
+      "scenario": "SCN-005"
     }
   ]
 }

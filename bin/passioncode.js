@@ -237,11 +237,13 @@ async function main(argv) {
       const r = L.update({ dryRun: rest.includes('--dry-run') });
       const failed = r.steps.filter((s) => s.outcome === 'failed');
       if (!quiet || failed.length) {
+        const saved = r.moved.filter((e) => !e.failedAt).length;
         out(r, [
           ...r.steps.map((s) => `${s.outcome.padEnd(8)} ${s.kind.padEnd(11)} ${s.detail}${s.error ? `\n         ${s.error}` : ''}`),
           '',
-          failed.length ? `${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry; use passioncode restore for displaced files.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start.`,
-          r.moved.length ? `${r.moved.length} recovery entry(s) saved; use \`passioncode restore\`.` : '',
+          failed.length ? `${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}.` : rest.includes('--dry-run') ? `Plan for PassionCode.ai ${r.version}: nothing was changed.` : `PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start.`,
+          // A registration that failed was never written, and restore skips it (PC-126): it is no recovery entry.
+          saved ? `${saved} recovery entry(s) saved; use \`passioncode restore\`.` : '',
         ].filter(Boolean).join('\n'));
       }
       return failed.length ? 1 : 0;
@@ -254,8 +256,15 @@ async function main(argv) {
       ].join('\n'));
       return 0;
     }
+    // A partial restore or uninstall still shows what it did before its error (PC-127).
+    const partly = (fn, label) => {
+      try { return fn(); } catch (error) {
+        if (Array.isArray(error.done) && error.done.length) out(error.done, `${label}:\n  ${error.done.join('\n  ')}`);
+        throw error;
+      }
+    };
     if (cmd === 'restore') {
-      const r = L.restore();
+      const r = partly(() => L.restore(), 'Restored');
       out(r, r.length ? `Restored:\n  ${r.join('\n  ')}` : 'Nothing to restore.');
       return 0;
     }
@@ -264,7 +273,7 @@ async function main(argv) {
       return 0;
     }
     if (cmd === 'uninstall') {
-      const r = L.uninstall();
+      const r = partly(() => L.uninstall(), 'Removed');
       out(r, r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.');
       return 0;
     }

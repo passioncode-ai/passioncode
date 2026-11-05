@@ -44,7 +44,10 @@ default `~/.kimi-code/mcp.json`). The rules are the launcher's own:
   `passioncode uninstall`). Removal happens only while the entry is still exactly what
   the launcher wrote, compared at every depth — a hand edit since then (a changed
   command, an added `env` variable) is kept. An entry the launcher did not add
-  is never adopted, so uninstall never removes a hand-set registration.
+  is never adopted, so uninstall never removes a hand-set registration. Restore removes
+  only what `state.json` records as registered, so a registration whose write failed
+  (marked `failedAt` in the journal) never takes out an entry declared there later
+  (PC-126).
 
 ## Consequences
 

@@ -18,9 +18,8 @@ bundle (Fabric Dashboards, Fabric, Fabric Switchboard) it also registers that en
 agent that is present: through
 `claude mcp add --scope user` for Claude Code (it never writes `~/.claude.json` itself),
 and in `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`,
-copying each existing file into the quarantine first (the two JSON files, like `~/.claude/settings.json`, are written
-where a link points and keep their permission bits; a new one is private; `~/.codex/config.toml` is still rewritten as
-a regular file at the default mode, PC-126); an entry that already exists is
+copying each existing file into the quarantine first (each of the three files, like `~/.claude/settings.json`, is
+written where a link points and keeps its permission bits; a new one is private, mode 600 on macOS and Linux, PC-120 and PC-126); an entry that already exists is
 left alone and reported. Displaced files are moved rather than
 deleted: a recovery record is written before the move in
 `~/.passioncode/quarantine/<run>/moved.json`. `restore` processes the latest batch,

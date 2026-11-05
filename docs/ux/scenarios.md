@@ -8,9 +8,9 @@
 |---|---|---|---|---|---|---|
 | SCN-001 | Inspect cached npm version | status | Operator | REQ-1, REQ-2 | implemented | 2026-10-01 |
 | SCN-002 | Read status without changing the installation | status | Automation | REQ-3 | implemented | 2026-10-01 |
-| SCN-003 | Update with a partial failure | update | Operator | REQ-A1 | implemented | 2026-10-01 |
-| SCN-004 | Restore displaced entries safely | restore | Operator | REQ-A1 | implemented | 2026-10-01 |
-| SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-11-04 |
+| SCN-003 | Update with a partial failure | update | Operator | REQ-A1 | implemented | 2026-11-05 |
+| SCN-004 | Restore displaced entries safely | restore | Operator | REQ-A1 | implemented | 2026-11-05 |
+| SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-11-05 |
 | SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-10-01 |
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
@@ -76,7 +76,7 @@
   1. Run a pinned update and inspect the step outcomes.
   2. Fix a reported failure and repeat the same update.
 - **Expected result:** Invalid payloads are refused before changes. Release/current failures stop dependent work. Marketplace or plugin verification failures preserve affected legacy entries. Available agent channels still receive a valid release when only Claude fails.
-- **Alt paths:** `--dry-run` plans without applying; symlinked channel directories are supported; immutable version mismatch is refused; an update while another update, restore or uninstall runs refuses with exit 1 and names the holder; releases older than the one replaced are pruned.
+- **Alt paths:** `--dry-run` plans without applying; symlinked channel directories are supported; immutable version mismatch is refused; an update while another update, restore or uninstall runs refuses with exit 1 and names the holder; releases older than the one replaced are pruned; an agent config that is a link is written where it points with its mode kept, and a link into a folder that cannot be written fails that agent's `mcp` step and keeps the link (PC-126).
 - **UI elements:** Step list and exit code.
 - **States covered:** loading, error, success
 - **Errors & recovery:** Exit 1 names failed steps; follow the retry instructions in the CLI contract. Already completed work can remain applied.
@@ -98,9 +98,9 @@
 - **Alt paths:** Old journals without checkpoints are handled without deleting a destination whose quarantine source is absent.
 - **UI elements:** Restored paths, conflict/error text, empty result.
 - **States covered:** empty, error, success
-- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded.
+- **Errors & recovery:** A user replacement stays untouched. Move it aside before retrying. Missing backup paths are reported; partial work remains recorded. An MCP entry whose file the system cannot open now is kept; the rest of the batch is still put back and listed, and restore exits 1 naming the file. Once the file and its folder are readable and writable, a restore removes it while that batch is still the latest; after any update (a quiet or background one included) starts a new batch, delete it by hand (uninstall, which removes PassionCode too, also does). A JSON file that does not parse, or a folder in place of a file, is reported as kept and no longer tracked; `config.toml` is read as text: a launcher table edited since (a key or comment added inside it included) or a server declared another way is reported as kept, and an entry no longer declared in the file is taken as gone; an entry kept because it was changed is no longer tracked (PC-127). Restore takes out only MCP entries an update recorded as registered, so an entry declared by hand after a failed registration stays (PC-126).
 - **Status:** implemented
-- **Coverage:** `test/launcher.test.js`; SCN-004 evidence includes repeat, conflict and interruption regressions.
+- **Coverage:** `test/launcher.test.js`; SCN-004 evidence includes repeat, conflict and interruption regressions and the PC-127 restore test.
 - **Product:** unobserved
 
 ### SCN-005: Uninstall and retry a failed removal
@@ -112,14 +112,14 @@
 - **Steps:**
   1. Run uninstall.
   2. Fix any reported plugin failure and retry.
-  3. Inspect status; optionally restore displaced files.
+  3. Inspect status (it does not list an MCP entry an incomplete uninstall kept; the uninstall's error names it); optionally restore displaced files.
 - **Expected result:** Success clears the active installation and disables automatic updates; recovery copies remain. Repeating uninstall is safe.
 - **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
-- **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. Reinstallation retains the off preference until explicitly enabled.
+- **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. An MCP entry whose file the system cannot open now (a link into a locked folder) does not stop the rest: uninstall finishes and lists what it removed, exits 1 naming the file and keeps the entry recorded, and a retry once the file and its folder are readable and writable removes it (PC-127). `config.toml` is read as text: a launcher table edited since (a key or comment added inside it included) or a server declared another way is reported as kept; an entry no longer declared is taken as gone; an entry kept because it was changed is no longer tracked, so a retry leaves it (PC-127). Reinstallation retains the off preference until explicitly enabled.
 - **Status:** implemented
-- **Coverage:** `test/launcher.test.js`; SCN-005 evidence names successful/repeated and failed uninstall tests.
+- **Coverage:** `test/launcher.test.js`; SCN-005 evidence names successful/repeated and failed uninstall tests and the PC-127 uninstall test.
 - **Product:** unobserved
 
 ### SCN-006: Start a session with a registry observation

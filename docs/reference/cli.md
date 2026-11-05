@@ -14,7 +14,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 |---|---|---|---|
 | `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Check of everything that changes nothing but the [anonymous counts](#anonymous-usage-counts); `--fix` runs setup's repairs without new apps |
-| `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
+| `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` (a `moved` entry with `failedAt` is a registration that was never written, not a recovery entry) | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
@@ -31,7 +31,10 @@ fails; **2** means an unknown command or unsupported arguments. `--quiet` suppre
 successful update output, including JSON, but never hides failed update steps.
 `--dry-run` exists for setup/onboard and update/install: `doctor --dry-run`,
 `uninstall --dry-run` and misspelled flags fail before any mutation. Runtime errors go to stderr, including with
-`--json`; consumers must check the exit code before parsing stdout.
+`--json`; consumers must check the exit code before parsing stdout. On exit 1 from an
+MCP entry kept for a retry, `restore --json` and `uninstall --json` still print the
+array of what they did (no output when they did nothing), and stderr names the kept
+entries (PC-127).
 
 Evidence: [CLI dispatch](../../bin/passioncode.js), `unsupported flags are rejected
 before uninstall or restore can mutate anything` and `dry run changes nothing`
@@ -266,7 +269,22 @@ and `test/openpgp.test.js`.
 4. Link supported existing agent channels, including directory symlinks. Record
    each quarantine move before applying it. Re-read state before the final write
    to retain config/probe results written while plugin subprocesses ran.
-5. Prune the launcher's own releases (`prune` step): keep the release just
+5. Register the MCP server inside each installed app's bundle (`mcp` steps; Project
+   Observatory and Fabric Inbox add theirs through their own onboarding): Fabric Dashboards and
+   Fabric Switchboard (not for Claude Code when its `switchboard` plugin already brings
+   it), for every agent that is present: Claude Code through its CLI,
+   `~/.codex/config.toml`, `~/.gemini/settings.json` and `~/.kimi-code/mcp.json`
+   directly. An entry already there is kept and reported, each existing file is
+   copied into the quarantine first, and a file that is a link is written where it
+   points with its permission bits kept; a new one is private (mode 600 on macOS and
+   Linux). A link into a folder the launcher cannot write fails that agent's step
+   and leaves the link (setup and `doctor --fix`, which run an update, report it
+   too): make the folder writable, or declare the server in the file the link points
+   to, which the next update finds already there; a registration that failed is never
+   taken out by `restore`, and an update whose only change is such a failure saves no
+   recovery entry. The other agents are still registered. Fabric's early-preview
+   server is registered by `setup`, not by an update.
+6. Prune the launcher's own releases (`prune` step): keep the release just
    installed and the one it replaced (the newest other release when it replaced
    none), and remove older ones and `*.partial` copies a killed update left
    behind. Files and links in `releases/` are never touched. A dry run plans it.
@@ -282,7 +300,7 @@ alive). A second mutating command refuses with exit 1 and names the holder;
 Evidence: `update()` in [launcher](../../lib/launcher.js); regressions named
 `a failed release copy...`, `a failed current switch...`, `marketplace failure...`,
 `a successful plugin command...`, `update preserves config...` and
-`a failure immediately after a quarantine move...` in the launcher tests; the lock
+`a failure immediately after a quarantine move...`, `update registers the Fabric Dashboards MCP server...` and the PC-120 and PC-126 tests in the launcher tests; the lock
 and pruning in [the lifecycle tests](../../test/lifecycle.test.js)
 (`LC-03 a second update refuses while one holds the lock, and names the holder`,
 `LC-15 after four updates only the current and the previous release remain`).
@@ -300,6 +318,28 @@ is treated as consumed, without deleting the destination. If a recorded source
 is present but a user replacement occupies the destination, restore reports a
 conflict; move that replacement aside yourself and retry. If a marketplace cannot
 be re-added or its settings cannot be restored, exit 1 leaves it retryable.
+An MCP registration whose file the system cannot open now (its permissions, or a
+link into a folder that is locked) is kept and left unrestored, the rest of the
+batch is still put back and listed, and restore exits 1 naming the file. Make the
+file and its folder readable and writable (for a link, the folder it points into)
+and run `restore` again: it removes the entry while that batch is still the latest.
+Any update that registers or moves something starts a new batch, including
+`update --quiet` and the background update a session start runs, and restore reads
+only the latest: if a later restore succeeds while the entry is still in the file,
+delete it by hand (`uninstall`, which removes PassionCode too, also does). A file
+that does not parse, or a folder in the file's place, is reported as kept and no
+longer tracked: fix it and remove the entry by hand. `~/.codex/config.toml` is read
+as text: the launcher removes its own table while it is unchanged, reports one edited
+since (another command or arguments, any key or comment added inside it such as an inline `env`,
+or settings added under it) as kept, and takes the entry as gone without a note only
+when the server is no longer declared in the file. An entry kept because it was
+changed is the person's: it is no longer tracked, and neither a retry nor `uninstall`
+touches it. A path that now runs through a
+file is taken as already gone. A conflict, a missing source, or a marketplace that cannot be re-added or whose settings cannot be restored, in the same batch stops restore with nothing listed,
+although MCP entries it reached first are already removed; after you move the
+replacement aside, the retry puts back the rest and names the kept entry. A missing
+source stops every retry (recover it by hand, as below); an MCP entry kept because its file could not be opened is then
+removed by `uninstall` or by hand (PC-127).
 
 Keep quarantine directories and settings backups until recovery is complete.
 Do not delete a corrupted `state.json` to silence the error: it indexes the
@@ -307,7 +347,7 @@ quarantine batches. Preserve a copy, repair its JSON object, then retry. Recover
 from physically missing backups is manual; the launcher reports the missing path.
 
 Evidence: `restore()` and `restoreMarketplace()` in the launcher; repeated restore,
-conflict and interrupted-move regression tests in `test/launcher.test.js`.
+conflict and interrupted-move regression tests and the PC-127 restore test in `test/launcher.test.js`.
 
 ## Permissions ledger
 
@@ -384,7 +424,17 @@ and the rules `permissions allow` added and the default mode `permissions mode` 
 (under `PASSIONCODE_HOME` when it is set);
 the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
-marketplace still serving another installed plugin is retained.
+marketplace still serving another installed plugin is retained. An MCP registration
+whose file the system cannot open now (its permissions, or a link into a locked
+folder) does not stop the rest: uninstall finishes and lists what it removed, keeps
+that entry recorded in `state.json`, and exits 1 naming the file; once the file and
+its folder are readable and writable, another uninstall removes the entry. A file that does not parse, or a folder
+in its place, is reported as kept and no longer tracked; remove that entry by hand
+(PC-127). `~/.codex/config.toml` is read as text: its own table is removed while it is
+unchanged, one edited since (a key or comment added inside it included) is reported as kept, and
+the entry is taken as gone without a note only when the server is no longer declared
+in the file. An entry kept because it was changed is no longer tracked:
+a retry leaves it; delete its declaration by hand if you no longer want it.
 
 After success, `current` is removed, `installed` becomes null, member bookkeeping
 is cleared, and automatic updates are off. The current and previous release
@@ -392,7 +442,7 @@ directories and the quarantines remain available; `restore` still works. Repeate
 manual install preserves the off preference; enable it explicitly with
 `config set update.auto on` if wanted.
 
-Evidence: `uninstall()` in the launcher and both `uninstall...` regressions.
+Evidence: `uninstall()` in the launcher, both `uninstall...` regressions and the PC-127 uninstall test.
 
 ## Background checks and trust
 
