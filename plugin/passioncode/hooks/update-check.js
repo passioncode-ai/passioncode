@@ -203,7 +203,15 @@ function oneLine(text) { return String(text).replace(/\s+/g, ' ').trim().slice(0
 function decide(state, trust, now = Date.now(), keys = []) {
   const lines = [];
   const stateChanges = {};
+  const events = [];
   let spawn = null;
+  // A refusal goes into the update log once per version and reason, not at every session start (LC-16).
+  const refuse = (reason) => {
+    const key = `${state.latest} ${reason}`;
+    if (state.refusalLogged === key) return;
+    stateChanges.refusalLogged = key;
+    events.push({ event: 'update_check', outcome: 'signature_failed', reason });
+  };
 
   if (state.checkError && state.checkError !== state.checkErrorShown) {
     lines.push(`[passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log).`);
@@ -218,14 +226,18 @@ function decide(state, trust, now = Date.now(), keys = []) {
     if (!maintainers.length || !maintainers.every((m) => typeof m === 'string' && accountName(m) === m)
       || typeof state.publisher !== 'string' || !state.publisher || accountName(state.publisher) !== state.publisher) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md.`);
+      refuse('unreadable_publisher');
     } else if (untrusted.length) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md.`);
+      refuse('untrusted_publisher');
     } else if (!state.verify || typeof state.verify !== 'object') {
       // Recorded by a probe older than this check: the hook starts a fresh probe (needsProbe); until it answers, nothing installs.
     } else if (!registrySigned(latest, state.verify, keys)) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; see SECURITY.md.`);
+      refuse('registry_signature');
     } else if (state.verify.provenance !== PROVENANCE) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; see SECURITY.md.`);
+      refuse('provenance');
     } else {
       const auto = (state.config && state.config.auto) !== false;
       const runningAge = now - Date.parse(state.updatingSince);
@@ -233,13 +245,27 @@ function decide(state, trust, now = Date.now(), keys = []) {
       if (auto && !running) {
         spawn = ['--yes', `${PACKAGE}@${latest}`, 'update', '--quiet'];
         stateChanges.updatingSince = new Date(now).toISOString();
+        events.push({ event: 'update_download', outcome: 'started' });
         lines.push(`[passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session.`);
       } else if (!auto) {
         lines.push(`[passioncode] ${latest} is out (you have ${state.installed}): npx ${PACKAGE}@${latest} update`);
       }
     }
   }
-  return { lines, spawn, stateChanges };
+  return { lines, spawn, stateChanges, events };
+}
+
+/**
+ * The `update_check` event a probe's record is worth (LC-16): `check_failed` every time, `ready` or
+ * `current` only when it differs from the last one logged (`lastCheckEvent`), so a quiet day adds one
+ * line, not one per check. Returns `{ outcome, key }` or null.
+ */
+function checkEvent(state) {
+  if (state.checkError) return { outcome: 'check_failed', key: 'check_failed' };
+  if (state.published !== true) return null;
+  const outcome = state.installed && newer(state.latest, state.installed) ? 'ready' : 'current';
+  const key = `${outcome} ${state.latest}`;
+  return state.lastCheckEvent === key ? null : { outcome, key };
 }
 
 /** A state recorded by a probe older than the signature check (no `verify`) asks for a fresh probe. */
@@ -247,4 +273,4 @@ function needsProbe(state) {
   return state.published === true && typeof state.latest === 'string' && (!state.verify || typeof state.verify !== 'object');
 }
 
-module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, needsProbe, claimProbe, releaseProbe };
+module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };

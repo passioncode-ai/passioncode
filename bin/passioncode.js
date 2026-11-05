@@ -234,8 +234,16 @@ async function main(argv) {
   }
   try {
     if (cmd === 'update' || cmd === 'install') {
-      const r = L.update({ dryRun: rest.includes('--dry-run') });
+      const dryRun = rest.includes('--dry-run');
+      const stateDir = L.paths().state;
+      // LC-16: install outcomes go into the update log, which never creates the state folder: a refused
+      // first install leaves nothing behind. A background update the hook started has its download done once this runs.
+      const note = (event, outcome) => { if (!dryRun && require('fs').existsSync(stateDir)) require('../lib/update-log').logEvent(stateDir, event, outcome); };
+      if (process.env.PASSIONCODE_UPDATE_FROM === 'session-start') note('update_download', 'done');
+      let r;
+      try { r = L.update({ dryRun }); } catch (error) { note('update_install', 'failed'); throw error; }
       const failed = r.steps.filter((s) => s.outcome === 'failed');
+      note('update_install', failed.length ? 'failed' : 'installed');
       if (!quiet || failed.length) {
         const saved = r.moved.filter((e) => !e.failedAt).length;
         out(r, [
