@@ -185,7 +185,8 @@ test('vendor refuses a self plugin without a valid trust list', async () => {
   for (const npmRegistryKeys of [undefined, [], [{ keyid: 'SHA256:x', key: 'not a key' }], [{ keyid: '', key: 'MFkw' }],
     [{ ...shipped, key: `${shipped.key.slice(0, 40)}\n${shipped.key.slice(40)}` }], // wrapped: the hook would load no key
     [{ ...shipped, key: shipped.key.replace(/\+/g, '-').replace(/\//g, '_') }], // URL-safe base64: the same
-    [{ keyid: 'SHA256:p384', key: spki('ec', { namedCurve: 'secp384r1' }) }], [{ keyid: 'SHA256:rsa', key: spki('rsa', { modulusLength: 2048 }) }]]) {
+    [{ keyid: 'SHA256:p384', key: spki('ec', { namedCurve: 'secp384r1' }) }], [{ keyid: 'SHA256:rsa', key: spki('rsa', { modulusLength: 2048 }) }],
+    [shipped, { keyid: 'SHA256:p384', key: spki('ec', { namedCurve: 'secp384r1' }) }]]) { // every key must be usable, not one
     fs.writeFileSync(path.join(f.root, 'plugin/passioncode/trust.json'), JSON.stringify({ npmPublishers: ['ssheleg'], npmRegistryKeys }));
     assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /npmRegistryKeys/);
   }

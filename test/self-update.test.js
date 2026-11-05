@@ -355,6 +355,37 @@ test('PC-131: a refusal is logged once per version and reason, an update start o
   assert.deepEqual(eventsOf(sb).slice(2), ['update_download started']);
 });
 
+test('PC-131: a refusal is forgotten once the version passes, and the hook rotates its own logs', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  const who = { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], verify: verified('0.2.0') };
+  setState(sb, { ...who, publisher: null });
+  hook(sb);
+  assert.equal(stateOf(sb).refusalLogged, '0.2.0 unreadable_publisher');
+  setState(sb, { ...stateOf(sb), publisher: 'passioncode-ai' });
+  hook(sb);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.equal(stateOf(sb).refusalLogged, null, 'accepted now: no refusal left for status to show');
+  // The hook opens probe.log through the capped writer: a full one moves aside, and it is 0600.
+  const log = require(path.join(PLUGIN, 'hooks/update-log'));
+  const probeLog = path.join(sb.stateDir, 'logs', 'probe.log');
+  fs.writeFileSync(probeLog, Buffer.alloc(log.MAX_BYTES), { mode: 0o644 });
+  setState(sb, { ...stateOf(sb), checkedAt: '2026-01-01T00:00:00.000Z' });
+  hook(sb);
+  assert.equal(fs.statSync(`${probeLog}.1`).size, log.MAX_BYTES, 'the full probe.log moved aside');
+  if (process.platform !== 'win32') assert.equal(fs.statSync(probeLog).mode & 0o777, 0o600);
+});
+
+test('the hook loads only pinned keys written as plain one-line base64', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-keys-'));
+  const file = path.join(dir, 'trust.json');
+  for (const key of [`${TEST_KEY.key.slice(0, 40)}\n${TEST_KEY.key.slice(40)}`, TEST_KEY.key.replace(/\+/g, '-').replace(/\//g, '_')]) {
+    fs.writeFileSync(file, JSON.stringify({ npmRegistryKeys: [{ keyid: 'k', key }] }));
+    assert.deepEqual(u.loadRegistryKeys(file), []);
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('PC-131: an update npx cannot start is logged as a failed install', () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });

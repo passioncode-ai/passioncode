@@ -266,6 +266,10 @@ function decide(state, trust, now = Date.now(), keys = []) {
       }
     }
   }
+  // A version that now passes every check (or is no longer newer) is not refused any more: forget the old refusal.
+  if (!refused && state.refusalLogged && (spawn || lines.some((l) => l.includes(' is out (you have ')) || !(latest && state.installed && newer(latest, state.installed)))) {
+    stateChanges.refusalLogged = null;
+  }
   return { lines, spawn, stateChanges, events, refused };
 }
 
