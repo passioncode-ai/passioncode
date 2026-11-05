@@ -146,7 +146,8 @@ replaced whole on each run — one copy) and `*.tgz` from `npm pack` (`scripts/s
 into a temp dir and removes it). Keep no tarball: releases live on npm and GitHub. On a machine
 the launcher installs to, `~/.passioncode/releases/` holds the current and the previous release;
 the update prunes the rest itself (`LC-15 after four updates only the current and the previous
-release remain`). Cache cap: none beyond those; clean command: `rm -rf payload *.tgz`.
+release remain`). Cache cap: none beyond those, and `~/.passioncode/run/cache`, the last background update's npm cache (about one
+package copy, emptied before the next update; uninstall leaves it, removing it is safe); clean command: `rm -rf payload *.tgz`.
 
 ## Organisation
 

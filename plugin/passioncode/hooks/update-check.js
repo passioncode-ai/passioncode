@@ -40,6 +40,8 @@ const REGISTRY = 'https://registry.npmjs.org';
 // npm prefers a registry set for the scope (`@passioncode-ai:registry` in .npmrc) over `--registry`: pin both.
 // `--workspaces=false` keeps npm from walking up from the run folder to a monorepo root that lists it.
 const REGISTRY_ARGS = [`--registry=${REGISTRY}`, `--${PACKAGE.split('/')[0]}:registry=${REGISTRY}`, '--workspaces=false'];
+// The refusal reasons as a person reads them; bin/passioncode.js says them the same way in `status`.
+const REFUSED = { registry_signature: 'its signature does not verify', provenance: 'no build provenance', untrusted_publisher: 'its publisher is not trusted', unreadable_publisher: 'its publisher could not be read' };
 const SECURITY_URL = 'https://github.com/passioncode-ai/passioncode/blob/main/SECURITY.md#the-self-update-and-who-it-trusts';
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
@@ -237,9 +239,9 @@ function decide(state, trust, now = Date.now(), keys = []) {
   const latest = typeof state.latest === 'string' && VERSION.test(state.latest) ? state.latest : null;
   // The last check failed (no latest known) while an earlier refusal stands: say so at every session, as the refusal itself was.
   const standing = typeof state.refusalLogged === 'string' ? state.refusalLogged.split(' ') : [];
-  if (!latest && standing.length === 2 && VERSION.test(standing[0]) && state.installed && newer(standing[0], state.installed)) {
+  if (!latest && state.checkError && standing.length === 2 && VERSION.test(standing[0]) && state.installed && newer(standing[0], state.installed)) {
     refused = true;
-    lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${standing[1].replace(/_/g, ' ')}) and the last check could not tell whether that changed; ${keep()}`);
+    lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()}`);
   }
   if (state.published !== false && latest && state.installed && newer(latest, state.installed)) {
     const maintainers = Array.isArray(state.maintainers) ? state.maintainers : [];

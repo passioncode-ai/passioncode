@@ -153,7 +153,8 @@ When that stable version is below the installed stable version, the line also sa
 `stale: older than installed`, and when the session hook refused it, `not installed automatically`
 with the reason (PC-131). A newer or equal cached version is still a saved
 observation, not a live registry check. With no saved version it says
-`npm latest: not checked`; `--json` retains the raw `latest` and `checkedAt` fields.
+`npm latest: not checked`, and after a failed check while a refusal stands it adds the refused version and the
+reason; `--json` retains the raw `latest` and `checkedAt` fields.
 
 ```bash
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows

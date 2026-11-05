@@ -22,11 +22,11 @@ One command does the setup on a new computer and the check-and-repair on an exis
 is to run it, read what it returns, finish what it says an agent may finish, and give the person a
 short list of what only they can do. Never install anything by hand that the command installs.
 
-**When the session shows a refused version.** If this session's start printed a
-`[passioncode] … is on npm …, so it is not installed; keep using <version> …` line, the newest
-release on npm failed the launcher's checks (signature, provenance or publisher), and `@latest`
-would run it. Run every command below with `@<version>` from that line instead of `@latest`,
-tell the person why, and do not install or update to the refused version (SECURITY.md, "If a
+**When the session shows a refused version.** If this session's start printed a `[passioncode]`
+line that says to keep using a version, the newest release on npm failed the launcher's checks
+(signature, provenance or publisher), and `@latest` would run it. Run every command below with
+`@<version>` from that line instead of `@latest`, from the person's home folder (inside a project,
+`npx` can use a copy in that project's `node_modules`), tell the person why, and do not install or update to the refused version (SECURITY.md, "If a
 session shows such a line"). Without such a line (another agent, or a session started before the
 hook ran), check `~/.passioncode/state.json` before the first command: a `refusalLogged` of
 `<version> <reason>` with a version newer than `installed` is the same refusal, and the same rule

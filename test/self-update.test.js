@@ -408,7 +408,7 @@ test('PC-131: a failed check keeps a standing refusal: logged once, and the remi
   const out = hook(sb);
   assert.match(out, /`npx @passioncode-ai\/passioncode@0\.1\.0 setup` repairs them/);
   assert.equal(stateOf(sb).refusalLogged, '0.2.0 provenance', 'a failed check forgets nothing');
-  assert.match(out, /@passioncode-ai\/passioncode@0\.2\.0 was not installed \(provenance\) and the last check could not tell whether that changed; keep using 0\.1\.0/);
+  assert.match(out, /@passioncode-ai\/passioncode@0\.2\.0 was not installed \(no build provenance\) and the last check could not tell whether that changed; keep using 0\.1\.0/);
   assert.match(hook(sb), /0\.2\.0 was not installed .* keep using 0\.1\.0/, 'at every session, not once');
   probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai', distOf('0.2.0', { provenance: null })));
   assert.equal(require(path.join(PLUGIN, 'hooks/update-check')).verifiedFor(stateOf(sb)), true, 'the refusal branch runs');

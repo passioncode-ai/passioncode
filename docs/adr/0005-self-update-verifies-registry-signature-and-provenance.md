@@ -38,7 +38,8 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
   older plugin's probe keeps it beside its own answer: `verify` carries the time of the check that
   wrote it), installs nothing and starts a fresh probe at once.
 - The update runs `npx --yes --cache=~/.passioncode/run/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<version> update --quiet`;
-  the manual command offered with `update.auto` off carries the same two flags.
+  the manual command offered with `update.auto` off carries the same registry flags and `--workspaces=false`, not the
+  cache (it runs wherever the person runs it).
 - `release.yml` publishes only with provenance (it stops when the repository is not public), and its
   registry receipt (`scripts/check-registry.mjs`) runs the hook's own signature and provenance checks
   on the published version, so a release installed plugins would refuse fails in CI (after publishing:

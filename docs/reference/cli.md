@@ -424,7 +424,7 @@ equivalent relative links. It leaves the Claude Code rules setup added (the tool
 and the rules `permissions allow` added and the default mode `permissions mode` set (PC-125) in
 `~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
 (under `PASSIONCODE_HOME` when it is set);
-the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
+the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and `~/.passioncode/run/` (the self-update's run folder and its cache, safe to remove), and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained. An MCP registration
 whose file the system cannot open now (its permissions, or a link into a locked
@@ -487,7 +487,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
-| `~/.passioncode/run/` | Where the session hook runs its probe and the background update: a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
+| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache/` holds the last update's npm cache, emptied before the next one; uninstall leaves the folder, removing it is safe): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |

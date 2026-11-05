@@ -472,11 +472,12 @@ test('status labels cached npm observations without changing state or probing np
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt}; not installed automatically: no build provenance)` },
     { latest: '0.1.14', checkedAt, refusalLogged: '0.1.14 provenance', expected: `npm latest (cached) 0.1.14 (checked ${checkedAt})`, note: 'installed by hand since: no longer refused' },
     // The last check failed (no latest): the standing refusal is still shown.
-    { latest: undefined, refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: 'npm latest: not checked (last check failed; 0.1.15 not installed automatically: no build provenance)' },
+    { latest: undefined, refusalLogged: '0.1.15 provenance', expected: 'npm latest: not checked', note: 'an unpublished name answered: not a failed check' },
+    { latest: undefined, checkError: 'ETIMEDOUT', refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: 'npm latest: not checked (last check failed; 0.1.15 not installed automatically: no build provenance)' },
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.10 provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt})` },
   ];
   for (const c of cases) {
-    const state = { installed: '0.1.14', latest: c.latest, checkedAt: c.checkedAt, config: { auto: false }, ...(c.refusalLogged ? { refusalLogged: c.refusalLogged } : {}) };
+    const state = { installed: '0.1.14', latest: c.latest, checkedAt: c.checkedAt, config: { auto: false }, ...(c.refusalLogged ? { refusalLogged: c.refusalLogged } : {}), ...(c.checkError ? { checkError: c.checkError } : {}) };
     const bytes = JSON.stringify(state, null, 2) + '\n';
     fs.writeFileSync(stateFile, bytes);
     const text = run(env, 'status');
