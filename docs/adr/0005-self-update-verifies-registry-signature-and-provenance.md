@@ -35,7 +35,8 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
   a version either, and while a refusal stands the hook's other lines name the installed version, not
   `@latest` (which would run the refused version). `status` shows the refusal.
 - A state recorded by an older probe (no `verify`), or whose `verify` was read for another version (an
-  older plugin's probe keeps it), installs nothing and starts a fresh probe at once.
+  older plugin's probe keeps it beside its own answer: `verify` carries the time of the check that
+  wrote it), installs nothing and starts a fresh probe at once.
 - The update runs `npx --yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@<version> update --quiet`;
   the manual command offered with `update.auto` off carries the same two flags.
 - `release.yml` publishes only with provenance (it stops when the repository is not public), and its
@@ -65,6 +66,9 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
   version would need the registry itself to serve other metadata than it signed, or the person's own
   npm settings (a proxy with `strict-ssl=false`, a custom `cafile`) to let something intercept that
   download. The hook does not check the tarball's bytes against the integrity it verified (PC-142).
+  The probe and the update run in `~/.passioncode/run/` (an empty `package.json`), not in the session's
+  project, whose `node_modules` npm would otherwise run from without downloading, and whose `.npmrc` it
+  would read.
 - **LC-16 is not fully met.** LC-16 asks for the organization's signature over the package (for a
   CLI, `SHA256SUMS` signed by the organization's release key, or an updater key that also signs the
   version). npm's key attests npm's copy, not PassionCode's; the launcher is distributed by npm and

@@ -129,7 +129,9 @@ Update log (LC-12, LC-16): `~/.passioncode/logs/update-events.log` holds one lin
 (`ready`/`current` once per answer, `check_failed`, `signature_failed <reason>` once per version and reason),
 `update_download` (`started`, `done`), `update_install` (`installed`, `failed`) and `auto_update` (`on`, `off`);
 `probe.log`, `update.log` and it move aside at 5 MB with five files kept, mode 0600 on macOS and Linux
-(`hooks/update-log.js`, its copy `lib/update-log.js`). `ready` means a newer version was seen, before the hook
+(`hooks/update-log.js`, its copy `lib/update-log.js`). The probe and the background update run in
+`~/.passioncode/run/` (an empty `package.json` the hook writes), so npm never takes the package from the session
+project's `node_modules` or reads its `.npmrc`. `ready` means a newer version was seen, before the hook
 checks it; `signature_failed` covers every refusal (publishers, signature, provenance) with its reason.
 
 Where this change departs from LC-16 and LC-12 (said here as LC-16 asks; the launcher's other LC-16 differences, the

@@ -25,6 +25,7 @@ process.exit(Number(process.env.FAKE_NPM_CODE || 0));
 `;
 const FAKE_NPX = `#!/usr/bin/env node
 require('fs').appendFileSync(require('path').join(process.env.HOME, 'npx-calls.log'), process.argv.slice(2).join(' ') + '\\n');
+require('fs').appendFileSync(require('path').join(process.env.HOME, 'npx-cwd.log'), process.cwd() + '\\n');
 `;
 
 // A registry key made for these tests: the sandbox pins it in trust.json, as the shipped plugin pins npm's.
@@ -89,7 +90,7 @@ function probe(sb, stdout, code = 0) {
 /** The hook starts npx detached: wait for it to write, or for long enough that it would have. */
 async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
   const file = path.join(sb.home, 'npx-calls.log');
-  const until = Date.now() + (expect ? ms : 700);
+  const until = Date.now() + (expect ? Math.max(ms, 20000) : 700); // ends as soon as the call lands; a loaded machine can take seconds
   while (Date.now() < until) {
     if (expect && lines(file).length >= expect) break;
     await sleep(50);
@@ -393,6 +394,60 @@ test('PC-131: an offered or caught-up version forgets its refusal, and an unchec
   const out = hook(unchecked);
   assert.match(out, /`npx @passioncode-ai\/passioncode@0\.1\.0 setup` repairs them/);
   assert.doesNotMatch(out, /@latest setup/);
+});
+
+test('PC-131: a failed check keeps a standing refusal: logged once, and the reminder still names the installed version', () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0', { provenance: null }) });
+  hook(sb);
+  assert.deepEqual(eventsOf(sb), ['update_check signature_failed provenance']);
+  probe(sb, 'garbage'); // npm failed: no latest known
+  fs.writeFileSync(path.join(sb.stateDir, 'doctor.json'), JSON.stringify({ at: new Date().toISOString(), summary: { ok: 1, warn: 0, fail: 1, info: 0 }, failed: ['skills.passioncode'] }));
+  setState(sb, { ...stateOf(sb), checkedAt: fresh() });
+  const out = hook(sb);
+  assert.match(out, /`npx @passioncode-ai\/passioncode@0\.1\.0 setup` repairs them/);
+  assert.equal(stateOf(sb).refusalLogged, '0.2.0 provenance', 'a failed check forgets nothing');
+  probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai', distOf('0.2.0', { provenance: null })));
+  setState(sb, { ...stateOf(sb), checkedAt: fresh() });
+  hook(sb);
+  assert.deepEqual(eventsOf(sb).filter((e) => e.startsWith('update_check signature_failed')), ['update_check signature_failed provenance'], 'the same refusal is not logged again');
+});
+
+test('PC-131: with nothing installed the setup reminder never names an undefined version', () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });
+  fs.writeFileSync(path.join(sb.stateDir, 'probe.pending'), new Date().toISOString());
+  fs.writeFileSync(path.join(sb.stateDir, 'doctor.json'), JSON.stringify({ at: new Date().toISOString(), summary: { ok: 1, warn: 0, fail: 1, info: 0 }, failed: ['skills.passioncode'] }));
+  const out = hook(sb);
+  assert.doesNotMatch(out, /@undefined/);
+  assert.match(out, /`npx @passioncode-ai\/passioncode@latest setup` repairs them/);
+});
+
+test('PC-131: the update runs in the launcher\'s own folder, never the session project\'s (its node_modules or .npmrc)', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const project = path.join(sb.base, 'project');
+  fs.mkdirSync(path.join(project, 'node_modules', '@passioncode-ai', 'passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(project, 'package.json'), '{}');
+  fs.writeFileSync(path.join(project, '.npmrc'), 'script-shell=/tmp/not-this\n');
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(), cwd: project, input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
+  const run = path.join(sb.stateDir, 'run');
+  assert.deepEqual(lines(path.join(sb.home, 'npx-cwd.log')).map((d) => fs.realpathSync(d)), [fs.realpathSync(run)]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(run, 'package.json'), 'utf8')), { private: true }, 'npm stops its walk here');
+});
+
+test('PC-131: signature data an older plugin\'s probe kept beside its own new answer is not used', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const now = new Date('2026-11-05T10:00:00Z');
+  const state = u.recordProbe({}, u.parseView(published('0.2.0', ['passioncode-ai'], 'passioncode-ai')), now);
+  assert.equal(state.verify.checkedAt, state.checkedAt);
+  assert.equal(u.needsProbe(state), false);
+  // An older probe (it knows no `verify`) records the same version later, with other accounts, and keeps the old verify.
+  const older = { ...state, checkedAt: '2026-11-05T11:00:00.000Z', publisher: 'someone-else' };
+  assert.equal(u.needsProbe(older), true);
+  assert.equal(u.decide({ ...older, installed: '0.1.0' }, ['passioncode-ai', 'someone-else'], Date.now(), [TEST_KEY]).spawn, null);
 });
 
 test('the hook loads only pinned keys written as plain one-line base64', () => {

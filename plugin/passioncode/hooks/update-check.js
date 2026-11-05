@@ -115,7 +115,8 @@ function recordProbe(state, result, now = new Date()) {
   }
   delete next.checkErrorShown; // a later failure is news again
   next.published = result.published;
-  if (result.published) Object.assign(next, { latest: result.latest, maintainers: result.maintainers, publisher: result.publisher, verify: result.verify });
+  // verify carries the check's time: an older plugin's probe that rewrites the accounts keeps it, and then it no longer matches.
+  if (result.published) Object.assign(next, { latest: result.latest, maintainers: result.maintainers, publisher: result.publisher, verify: { ...result.verify, checkedAt: next.checkedAt } });
   return next;
 }
 
@@ -267,7 +268,8 @@ function decide(state, trust, now = Date.now(), keys = []) {
     }
   }
   // A version that now passes every check (or is no longer newer) is not refused any more: forget the old refusal.
-  if (!refused && state.refusalLogged && (spawn || lines.some((l) => l.includes(' is out (you have ')) || !(latest && state.installed && newer(latest, state.installed)))) {
+  // A failed check (no latest known) forgets nothing: the next answer is most likely the same refused version.
+  if (!refused && state.refusalLogged && (spawn || lines.some((l) => l.includes(' is out (you have ')) || (latest && !(state.installed && newer(latest, state.installed))))) {
     stateChanges.refusalLogged = null;
   }
   return { lines, spawn, stateChanges, events, refused };
@@ -288,7 +290,8 @@ function checkEvent(state) {
 
 /** The recorded signature data belongs to the recorded latest version (an older plugin's probe may have kept another's). */
 function verifiedFor(state) {
-  return Boolean(state.verify) && typeof state.verify === 'object' && !Array.isArray(state.verify) && state.verify.version === state.latest;
+  return Boolean(state.verify) && typeof state.verify === 'object' && !Array.isArray(state.verify) && state.verify.version === state.latest
+    && (state.verify.checkedAt === undefined || state.verify.checkedAt === state.checkedAt);
 }
 
 /** A state recorded by a probe older than the signature check, or by an older plugin since, asks for a fresh probe. */

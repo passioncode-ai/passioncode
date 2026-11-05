@@ -22,13 +22,27 @@ function read(file, fallback) {
   try { const doc = JSON.parse(fs.readFileSync(file, 'utf8')); return doc && typeof doc === 'object' && !Array.isArray(doc) ? doc : fallback; }
   catch (_) { return fallback; }
 }
+/**
+ * The folder the probe and the update run in. Started from the session's folder, npm would take a copy of the
+ * package from that project's node_modules (no download, nothing verified) and read that project's .npmrc;
+ * here npm finds this empty package.json first and stops (PC-131, ADR-0005).
+ */
+function runDir() {
+  const dir = path.join(DIR, 'run');
+  fs.mkdirSync(dir, { recursive: true });
+  const manifest = path.join(dir, 'package.json');
+  if (!fs.existsSync(manifest)) fs.writeFileSync(manifest, '{ "private": true }\n');
+  return dir;
+}
+
 function detached(cmd, args, logName) {
   return new Promise((resolve) => {
     let out;
     try {
       out = openLog(path.join(DIR, 'logs', logName)); // rotated at 5 MB, five files, 0600 (LC-12)
+      const cwd = runDir();
       // PC-123: the background update sends no counts; PASSIONCODE_UPDATE_FROM lets it log its download as done (LC-16).
-      const child = spawn(cmd, args, { detached: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_UPDATE_FROM: 'session-start' } });
+      const child = spawn(cmd, args, { cwd, detached: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_UPDATE_FROM: 'session-start' } });
       child.once('error', () => resolve(false));
       child.once('spawn', () => { child.unref(); resolve(true); });
     } catch (_) { resolve(false); }
@@ -85,7 +99,7 @@ async function main() {
     // A release train this launcher cannot use is not repaired by plain setup (PC-89).
     const how = Array.isArray(last.failed) && last.failed.includes('train') ? 'setup --yes --no-apps --train none` (or a train this launcher ships) clears the unusable release train, `doctor' : 'setup` repairs them, `doctor';
     // While the latest version is refused, or not yet checked, `@latest` would run it: name the installed one instead.
-    const pin = (refused || needsProbe(state)) && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
+    const pin = (refused || needsProbe(state) || (typeof state.refusalLogged === 'string' && !state.latest)) && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
     lines.push(`[passioncode] the setup check of ${when} found ${fails} problem(s)${ids.length ? ` (${ids.join(', ')}${last.failed.length > 3 ? ', …' : ''})` : ''}; \`npx @passioncode-ai/passioncode@${pin} ${how}\` shows them.`);
   }
   if (lines.length) process.stdout.write(lines.join('\n') + '\n');

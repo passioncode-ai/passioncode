@@ -138,7 +138,10 @@ detached, so the version that was checked is the version that runs; npm checks t
 the integrity it reads at that moment (up to a day after the check), so a different tarball for the
 same version would need the registry itself to serve other metadata than it signed, or the person's own
 npm settings (a proxy with `strict-ssl=false`, a custom `cafile`) to let something intercept that
-download; the hook does not check the tarball's bytes against the integrity it verified (PC-142). In every other case it spawns
+download; the hook does not check the tarball's bytes against the integrity it verified (PC-142).
+The probe and the update run in `~/.passioncode/run/`, which holds an empty `package.json`, never in
+the session's project: started there, npm would run a copy from that project's `node_modules`
+without downloading or checking anything and read that project's `.npmrc`. In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose
 signature does not verify or that has no provenance is reported the same way and not offered as a

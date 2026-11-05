@@ -23,7 +23,7 @@ Contract: brand-contract v1
 | help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:38 | SCN-007 | proposed | layout |
 | args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:235 | SCN-007 | proposed | copy |
 | args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:84 | SCN-007 | proposed | copy |
-| hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:69 | SCN-006 | proposed | copy |
+| hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:83 | SCN-006 | proposed | copy |
 | update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:255 | SCN-003 | proposed | copy |
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:255 | SCN-003 | proposed | copy |
 | setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:184 | SCN-008 | proposed | copy |
@@ -170,14 +170,14 @@ Contract: brand-contract v1
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:422 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
-| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:242 | SCN-006 | proposed | copy |
-| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:245 | SCN-006 | proposed | copy |
-| hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:250 | SCN-006 | proposed | copy |
-| hook.no-provenance | [passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:253 | SCN-006 | proposed | copy |
-| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:263 | SCN-006 | proposed | copy |
-| hook.keep | keep using ${state.installed} (npx ${PACKAGE}@${state.installed}, not @latest) and see ${SECURITY_URL}. | plugin/passioncode/hooks/update-check.js:219 | SCN-006 | proposed | copy |
-| hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:265 | SCN-006 | proposed | copy |
-| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:89 | SCN-013 | proposed | copy |
+| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:243 | SCN-006 | proposed | copy |
+| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:246 | SCN-006 | proposed | copy |
+| hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:251 | SCN-006 | proposed | copy |
+| hook.no-provenance | [passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:254 | SCN-006 | proposed | copy |
+| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:264 | SCN-006 | proposed | copy |
+| hook.keep | keep using ${state.installed} (npx ${PACKAGE}@${state.installed}, not @latest) and see ${SECURITY_URL}. | plugin/passioncode/hooks/update-check.js:220 | SCN-006 | proposed | copy |
+| hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:266 | SCN-006 | proposed | copy |
+| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:103 | SCN-013 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further
 wording changes. Version values and timestamps remain verbatim observations.

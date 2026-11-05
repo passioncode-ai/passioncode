@@ -28,7 +28,8 @@
 - **The self-update checks npm's signature and the build provenance** (PC-131, ADR-0005): besides the trusted
   publishers, the session hook now requires one of npm's registry signatures over the integrity its check recorded to
   verify with npm's key, pinned in the plugin's `trust.json`, and an SLSA provenance attestation (its builder is not
-  checked). The probe and the update ask `registry.npmjs.org` whatever registry npm is set to. A tampered, unsigned,
+  checked). The probe and the update ask `registry.npmjs.org` whatever registry npm is set to, and run in
+  `~/.passioncode/run/`, never in the session's project, whose `node_modules` npm would otherwise run unchecked. A tampered, unsigned,
   foreign-signed or provenance-less version is named in one line that says which version to keep using, and it is
   neither installed nor offered as a manual command; while a refusal stands the hook's lines name the installed
   version, not `@latest`, and `status` shows the refusal. The release build refuses a `trust.json` whose keys the hook

@@ -486,6 +486,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
+| `~/.passioncode/run/` | Where the session hook runs its probe and the background update: an empty `package.json`, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
