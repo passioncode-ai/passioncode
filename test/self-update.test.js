@@ -375,6 +375,26 @@ test('PC-131: a refusal is forgotten once the version passes, and the hook rotat
   if (process.platform !== 'win32') assert.equal(fs.statSync(probeLog).mode & 0o777, 0o600);
 });
 
+test('PC-131: an offered or caught-up version forgets its refusal, and an unchecked newer one is never named @latest', () => {
+  const who = { checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', refusalLogged: '0.2.0 provenance' };
+  const off = sandbox({ trust: ['passioncode-ai'] });
+  setState(off, { ...who, installed: '0.1.0', verify: verified('0.2.0'), config: { auto: false } });
+  assert.match(hook(off), /0\.2\.0 is out \(you have 0\.1\.0\): npx /);
+  assert.equal(stateOf(off).refusalLogged, null, 'offered by hand now: not refused any more');
+  const caught = sandbox({ trust: ['passioncode-ai'] });
+  setState(caught, { ...who, installed: '0.2.0', verify: verified('0.2.0') });
+  assert.equal(hook(caught), '');
+  assert.equal(stateOf(caught).refusalLogged, null, 'installed by hand: nothing left to refuse');
+  // A newer version not yet checked (no signature data): the setup reminder names the installed version.
+  const unchecked = sandbox({ trust: ['passioncode-ai'] });
+  setState(unchecked, { ...who, installed: '0.1.0', refusalLogged: undefined });
+  fs.writeFileSync(path.join(unchecked.stateDir, 'probe.pending'), new Date().toISOString()); // a probe is already running
+  fs.writeFileSync(path.join(unchecked.stateDir, 'doctor.json'), JSON.stringify({ at: new Date().toISOString(), summary: { ok: 1, warn: 0, fail: 1, info: 0 }, failed: ['skills.passioncode'] }));
+  const out = hook(unchecked);
+  assert.match(out, /`npx @passioncode-ai\/passioncode@0\.1\.0 setup` repairs them/);
+  assert.doesNotMatch(out, /@latest setup/);
+});
+
 test('the hook loads only pinned keys written as plain one-line base64', () => {
   const u = require(path.join(PLUGIN, 'hooks/update-check'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-keys-'));
