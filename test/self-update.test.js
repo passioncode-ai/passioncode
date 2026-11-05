@@ -18,6 +18,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const FAKE_NPM = `#!/usr/bin/env node
 const fs = require('fs'); const path = require('path');
 fs.appendFileSync(path.join(process.env.HOME, 'npm-calls.log'), process.argv.slice(2).join(' ') + '\\n');
+fs.appendFileSync(path.join(process.env.HOME, 'npm-cwd.log'), process.cwd() + '\\n');
 if (process.env.FAKE_NPM_SLEEP) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Number(process.env.FAKE_NPM_SLEEP));
 if (process.env.FAKE_NPM_OUT) process.stdout.write(fs.readFileSync(process.env.FAKE_NPM_OUT, 'utf8'));
 if (process.env.FAKE_NPM_ERR) process.stderr.write(process.env.FAKE_NPM_ERR);
@@ -96,13 +97,13 @@ async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
     await sleep(50);
   }
   if (expect) await sleep(150); // a second, unwanted spawn would land meanwhile
-  return lines(file);
+  return lines(file).map((l) => l.replace(/--cache=\S+ /, '--cache=RUN/cache '));
 }
 
 test('probe records the latest version, its maintainers and its publisher', () => {
   const sb = sandbox();
   const state = probe(sb, published('0.2.0', ['PassionCode-AI', 'sshlg'], 'sshlg'));
-  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
+  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
   assert.equal(state.published, true);
   assert.equal(state.latest, '0.2.0');
   assert.deepEqual(state.maintainers, ['passioncode-ai', 'sshlg']);
@@ -211,10 +212,10 @@ test('hook: a trusted publisher starts one update, pinned to the verified versio
   const sb = sandbox({ trust: ['passioncode-ai', 'sshlg'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai', 'sshlg'], publisher: 'sshlg' });
   assert.match(hook(sb), /0\.2\.0 is out \(you have 0\.1\.0\); updating in the background/);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --cache=RUN/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.ok(Date.parse(stateOf(sb).updatingSince) > 0, 'the running update is recorded');
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
+  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes --cache=RUN/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
 });
 
 test('hook: a tampered, unsigned, foreign-signed or provenance-less version is refused and nothing is spawned (PC-131)', async () => {
@@ -270,7 +271,7 @@ test('hook: a check recorded before signatures were read installs nothing and as
   assert.equal(lines(file).length, 1, 'a fresh check, although the last one is less than a day old');
   assert.deepEqual(await npxCalls(sb), []);
   assert.match(hook(sb), /updating in the background/, 'the next session installs the verified version');
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --cache=RUN/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@0.2.0 update --quiet']);
 });
 
 test('hook: signature data recorded for another version (an older plugin probed since) is not used; it asks npm again (PC-131)', async () => {
@@ -352,7 +353,7 @@ test('PC-131: a refusal is logged once per version and reason, an update start o
   assert.deepEqual(eventsOf(sb).slice(1), ['update_check signature_failed untrusted_publisher'], 'another reason is news');
   setState(sb, { ...stateOf(sb), publisher: 'passioncode-ai', verify: verified('0.2.0') });
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --cache=RUN/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.deepEqual(eventsOf(sb).slice(2), ['update_download started']);
 });
 
@@ -364,7 +365,7 @@ test('PC-131: a refusal is forgotten once the version passes, and the hook rotat
   assert.equal(stateOf(sb).refusalLogged, '0.2.0 unreadable_publisher');
   setState(sb, { ...stateOf(sb), publisher: 'passioncode-ai' });
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --cache=RUN/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.equal(stateOf(sb).refusalLogged, null, 'accepted now: no refusal left for status to show');
   // The hook opens probe.log through the capped writer: a full one moves aside, and it is 0600.
   const log = require(path.join(PLUGIN, 'hooks/update-log'));
@@ -407,8 +408,10 @@ test('PC-131: a failed check keeps a standing refusal: logged once, and the remi
   const out = hook(sb);
   assert.match(out, /`npx @passioncode-ai\/passioncode@0\.1\.0 setup` repairs them/);
   assert.equal(stateOf(sb).refusalLogged, '0.2.0 provenance', 'a failed check forgets nothing');
+  assert.match(out, /@passioncode-ai\/passioncode@0\.2\.0 was not installed \(provenance\) and the last check could not tell whether that changed; keep using 0\.1\.0/);
+  assert.match(hook(sb), /0\.2\.0 was not installed .* keep using 0\.1\.0/, 'at every session, not once');
   probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai', distOf('0.2.0', { provenance: null })));
-  setState(sb, { ...stateOf(sb), checkedAt: fresh() });
+  assert.equal(require(path.join(PLUGIN, 'hooks/update-check')).verifiedFor(stateOf(sb)), true, 'the refusal branch runs');
   hook(sb);
   assert.deepEqual(eventsOf(sb).filter((e) => e.startsWith('update_check signature_failed')), ['update_check signature_failed provenance'], 'the same refusal is not logged again');
 });
@@ -436,6 +439,13 @@ test('PC-131: the update runs in the launcher\'s own folder, never the session p
   const run = path.join(sb.stateDir, 'run');
   assert.deepEqual(lines(path.join(sb.home, 'npx-cwd.log')).map((d) => fs.realpathSync(d)), [fs.realpathSync(run)]);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(run, 'package.json'), 'utf8')), { private: true }, 'npm stops its walk here');
+  assert.ok(lines(path.join(sb.home, 'npx-calls.log'))[0].includes(`--cache=${path.join(run, 'cache')} `), 'a cache of its own: npx downloads and npm checks');
+  // The probe's npm view runs there too.
+  setState(sb, { ...stateOf(sb), checkedAt: '2026-01-01T00:00:00.000Z' });
+  spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(), cwd: project, input: '' });
+  const until = Date.now() + 20000;
+  while (!lines(path.join(sb.home, 'npm-cwd.log')).length && Date.now() < until) await sleep(50);
+  assert.deepEqual(lines(path.join(sb.home, 'npm-cwd.log')).map((d) => fs.realpathSync(d)), [fs.realpathSync(run)]);
 });
 
 test('PC-131: signature data an older plugin\'s probe kept beside its own new answer is not used', () => {
@@ -522,7 +532,7 @@ test('PC-131: update logs are capped at five files of 5 MB, 0600, and only codes
 test('hook: with auto-update off it names the pinned command and spawns nothing', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', config: { auto: false } });
-  assert.equal(hook(sb), '[passioncode] 0.2.0 is out (you have 0.1.0): npx --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update\n');
+  assert.equal(hook(sb), '[passioncode] 0.2.0 is out (you have 0.1.0): npx --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@0.2.0 update\n');
   assert.deepEqual(await npxCalls(sb), []);
 });
 
@@ -569,7 +579,7 @@ test('hook: a stale check starts the probe, which asks npm who publishes', async
   const file = path.join(sb.home, 'npm-calls.log');
   const until = Date.now() + 5000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
-  assert.deepEqual(lines(file), ['view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
+  assert.deepEqual(lines(file), ['view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
 });
 
 test('hook: session starts inside one probe window start one npm view, not one each (F13)', async () => {

@@ -6,8 +6,9 @@ const VERSION = require('../package.json').version;
 // The session hook's refusal codes (PC-131) as a person reads them.
 const REFUSED = { registry_signature: 'its signature does not verify', provenance: 'no build provenance', untrusted_publisher: 'its publisher is not trusted', unreadable_publisher: 'its publisher could not be read' };
 
-function cachedNpmStatus({ latest, checkedAt, installed, refused }) {
-  if (!latest) return 'npm latest: not checked';
+function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion }) {
+  if (!latest && !refused) return 'npm latest: not checked';
+  if (!latest) return `npm latest: not checked (last check failed; ${refusedVersion} not installed automatically: ${REFUSED[refused] || 'refused'})`;
   const checked = typeof checkedAt === 'string' && Number.isFinite(Date.parse(checkedAt))
     ? `checked ${checkedAt}` : 'check time unknown';
   let stale = false;

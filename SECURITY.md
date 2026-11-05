@@ -103,7 +103,7 @@ command may write `~/.passioncode/analytics.json` and its notice marker and crea
 
 The SessionStart hook reads `~/.passioncode/state.json` and reuses a check for up to
 24 hours. An absent, invalid, future or expired timestamp starts
-`npm view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json`
+`npm view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode version maintainers _npmUser dist --json`
 (npm's own registry whatever registry, or scope registry, the person's npm uses, because the pinned key speaks only for it), detached, logging to
 `~/.passioncode/logs/`. It records the latest version, the package's npm maintainers,
 the account that published that version, and from `dist` the version's integrity, the npm
@@ -133,15 +133,18 @@ The hook installs a newer version on its own only when all of these hold:
   release built by `release.yml` does; which builder made it is not checked here;
 - the version is a plain `x.y.z`.
 
-It then runs `npx --yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@<that exact version> update --quiet`,
+It then runs `npx --yes --cache=~/.passioncode/run/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<that exact version> update --quiet`,
 detached, so the version that was checked is the version that runs; npm checks the download against
 the integrity it reads at that moment (up to a day after the check), so a different tarball for the
 same version would need the registry itself to serve other metadata than it signed, or the person's own
 npm settings (a proxy with `strict-ssl=false`, a custom `cafile`) to let something intercept that
 download; the hook does not check the tarball's bytes against the integrity it verified (PC-142).
-The probe and the update run in `~/.passioncode/run/`, which holds an empty `package.json`, never in
+The probe and the update run in `~/.passioncode/run/`, which holds a `package.json` with no dependencies, never in
 the session's project: started there, npm would run a copy from that project's `node_modules`
-without downloading or checking anything and read that project's `.npmrc`. In every other case it spawns
+without downloading or checking anything and read that project's `.npmrc`. `--workspaces=false` keeps
+npm from walking up to a monorepo root above that folder, and the update installs through a cache of
+its own (`~/.passioncode/run/cache`, emptied first), so a copy an earlier `npx` cached is not reused.
+A global install of that exact version (`npm install -g`) would still be used as it is (PC-142). In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose
 signature does not verify or that has no provenance is reported the same way and not offered as a
@@ -153,7 +156,8 @@ version instead, and `status` adds "not installed automatically" with the reason
 
 **If a session shows such a line.** Keep working on the version you have and run commands as
 `npx @passioncode-ai/passioncode@<installed version> …` (the line names it), not `@latest`; such a
-command uses your own npm settings, as any `npx` does. Then:
+command uses your own npm settings, as any `npx` does, and run inside a project it can use a copy
+in that project's `node_modules`: run it from your home folder. Then:
 an npm registry key rotation and tampering print the same signature line; it is a rotation when
 `https://registry.npmjs.org/-/npm/v1/keys` lists a keyid whose `expires` is empty or still in the future
 (keys that already expired do not count) and that the `trust.json` of the version the line says to
@@ -166,8 +170,10 @@ the check fail instead ("the daily update check failed" once per new error), and
 by hand. Any other refusal, a signature that does not verify with no new key listed above all, may
 mean tampering: report it to
 contact@passioncode.ai with the line and `~/.passioncode/logs/update-events.log`. The line is printed
-at the start of a Claude Code session, into the agent's context; the agent passes it on when it sets
-up or checks PassionCode. Other agents and a plain terminal never run the hook: there
+at the start of a Claude Code session, into the agent's context; the setup skill and the README's prompt
+tell the agent to pass it on when it sets up or checks PassionCode. When the last check failed while a
+refusal stands, the hook says so at every session start and still names the version to keep, and
+`status` shows the refusal. Other agents and a plain terminal never run the hook: there
 `npx @passioncode-ai/passioncode@<installed version> status` shows a refusal without running `@latest`. A plugin of 0.2.75
 or earlier, installed by hand again, checks only the publishers until it updates.
 

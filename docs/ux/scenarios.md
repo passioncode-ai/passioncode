@@ -41,7 +41,7 @@
   1. Run `passioncode status`.
   2. Compare installed, package and cached npm versions; read when npm was checked.
 - **Expected result:** The npm version is labelled cached, with its recorded timestamp. A cache below the installed stable version is explicitly labelled stale.
-- **Alt paths:** No cached version: say not checked. Missing or invalid timestamp: say check time unknown. A cache equal to or above installed remains labelled cached, without claiming a live lookup. A newer cached version the session hook refused adds `not installed automatically` with the reason (`refused` in `--json`, PC-131).
+- **Alt paths:** No cached version: say not checked. Missing or invalid timestamp: say check time unknown. A cache equal to or above installed remains labelled cached, without claiming a live lookup. A newer cached version the session hook refused adds `not installed automatically` with the reason (`refused` in `--json`, PC-131); when the last check failed, `not checked` still names the refused version and the reason.
 - **UI elements:** First line of terminal output.
 - **States covered:** empty, success, error
 - **Errors & recovery:** Unknown check time does not crash status. A later session-start probe can refresh the observation; status itself does not perform a probe.
@@ -132,7 +132,7 @@
   1. Start a session.
   2. Read any update/check diagnostic; continue the session.
 - **Expected result:** Only a newer pinned version with all maintainers and its publisher known and trusted, an npm registry signature that verifies with the pinned key and SLSA build provenance can start automatically (PC-131, ADR-0005). Probe errors cannot authorize an update.
-- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed it starts no update (PC-131); a tampered, unsigned, foreign-signed or provenance-less version is named in one line and neither installed nor offered (PC-131); a record from an older probe, or one read for another version, starts a fresh probe; while a refusal stands the hook's lines name the installed version, not `@latest`; after a successful uninstall the self plugin is gone, so no hook runs.
+- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed it starts no update (PC-131); a tampered, unsigned, foreign-signed or provenance-less version is named in one line and neither installed nor offered (PC-131); a record from an older probe, or one read for another version, starts a fresh probe; a failed check keeps a standing refusal, and every session start says so and names the version to keep; while a refusal stands the hook's lines name the installed version, not `@latest`; after a successful uninstall the self plugin is gone, so no hook runs.
 - **UI elements:** One-line hook notifications and logs.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Missing npx does not fail the session or leave a false running marker. Repair PATH and retry next session. A refused version: keep using the installed one through the pinned command the line names (never `@latest`, which runs the refused version); `status` shows the refusal; SECURITY.md "If a session shows such a line" says what each cause means and where to report it.

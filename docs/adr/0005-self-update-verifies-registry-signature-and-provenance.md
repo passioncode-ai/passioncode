@@ -17,7 +17,7 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
 ## Decision
 
 - The probe asks `npm view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org
-  @passioncode-ai/passioncode version maintainers _npmUser dist --json` and records, besides the version and the accounts,
+  --workspaces=false @passioncode-ai/passioncode version maintainers _npmUser dist --json` and records, besides the version and the accounts,
   `dist.integrity`, the registry's `dist.signatures`, the provenance attestation's `predicateType` and
   the version they were read for (`verify` in `~/.passioncode/state.json`). It asks npm's registry
   whatever registry the person's npm uses, for the scope too (`--@passioncode-ai:registry`, which npm
@@ -37,7 +37,7 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
 - A state recorded by an older probe (no `verify`), or whose `verify` was read for another version (an
   older plugin's probe keeps it beside its own answer: `verify` carries the time of the check that
   wrote it), installs nothing and starts a fresh probe at once.
-- The update runs `npx --yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@<version> update --quiet`;
+- The update runs `npx --yes --cache=~/.passioncode/run/cache --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<version> update --quiet`;
   the manual command offered with `update.auto` off carries the same two flags.
 - `release.yml` publishes only with provenance (it stops when the repository is not public), and its
   registry receipt (`scripts/check-registry.mjs`) runs the hook's own signature and provenance checks
@@ -53,7 +53,7 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
 - Metadata whose integrity npm did not sign, a version signed by another key, a forged or missing
   signature, and a version published without provenance (for example from a laptop with a stolen
   token) are refused by the hook; bytes that differ from that integrity are refused by npm's own
-  check when `npx` downloads them. Tests: `test/self-update.test.js` (the refusal cases, a real 0.2.75
+  check when `npx` downloads them, when the metadata npm reads then is the signed one (see below). Tests: `test/self-update.test.js` (the refusal cases, a real 0.2.75
   signature checked against the shipped key in `test/fixtures/npm-dist-0.2.75.json`),
   `test/registry.test.js` (the release receipt), `test/vendor.test.js` (the build's key rule).
 - The hook checks that the provenance attestation is present and of the SLSA v1 type; it does not
@@ -66,7 +66,7 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
   version would need the registry itself to serve other metadata than it signed, or the person's own
   npm settings (a proxy with `strict-ssl=false`, a custom `cafile`) to let something intercept that
   download. The hook does not check the tarball's bytes against the integrity it verified (PC-142).
-  The probe and the update run in `~/.passioncode/run/` (an empty `package.json`), not in the session's
+  The probe and the update run in `~/.passioncode/run/` (a `package.json` with no dependencies), not in the session's
   project, whose `node_modules` npm would otherwise run from without downloading, and whose `.npmrc` it
   would read.
 - **LC-16 is not fully met.** LC-16 asks for the organization's signature over the package (for a

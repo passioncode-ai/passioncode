@@ -27,7 +27,10 @@ short list of what only they can do. Never install anything by hand that the com
 release on npm failed the launcher's checks (signature, provenance or publisher), and `@latest`
 would run it. Run every command below with `@<version>` from that line instead of `@latest`,
 tell the person why, and do not install or update to the refused version (SECURITY.md, "If a
-session shows such a line").
+session shows such a line"). Without such a line (another agent, or a session started before the
+hook ran), check `~/.passioncode/state.json` before the first command: a `refusalLogged` of
+`<version> <reason>` with a version newer than `installed` is the same refusal, and the same rule
+applies with `@<installed>`.
 
 ## 1. Set up, or check and repair
 

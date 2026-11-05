@@ -216,7 +216,8 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
    published by `release.yml` with provenance (a public repository; the workflow stops otherwise, and
    its registry receipt runs the hook's signature and provenance checks on the published version).
    Otherwise every installed hook refuses the update and says so. When npm announces a new registry key, add it to
-   `npmRegistryKeys` in a release before npm signs with it.
+   `npmRegistryKeys` in a release before npm signs with it, and name the new keyid in that release's CHANGELOG
+   section (SECURITY.md tells people to look for it there).
 4. Merge, then tag the merge commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml`
    validates, checks the tag against both manifests, creates the GitHub release from the
    CHANGELOG section, vendors every member **from its own repository** at its pinned tag,

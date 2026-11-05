@@ -5,27 +5,27 @@ Contract: brand-contract v1
 | Key | Text (en) | Location | Scenario | Status | Kind |
 |---|---|---|---|---|---|
 | status.npm.empty | npm latest: not checked | bin/passioncode.js:10 | SCN-001 | proposed | copy |
-| status.npm.cached | npm latest (cached) | bin/passioncode.js:21 | SCN-001 | proposed | copy |
-| status.npm.time | checked ${checkedAt} | bin/passioncode.js:12 | SCN-001 | proposed | copy |
-| status.npm.unknown-time | check time unknown | bin/passioncode.js:12 | SCN-001 | proposed | copy |
-| status.npm.stale | stale: older than installed | bin/passioncode.js:21 | SCN-001 | proposed | copy |
-| status.npm.refused | not installed automatically: ${REFUSED[refused] || 'refused'} | bin/passioncode.js:21 | SCN-001 | proposed | copy |
+| status.npm.cached | npm latest (cached) | bin/passioncode.js:22 | SCN-001 | proposed | copy |
+| status.npm.time | checked ${checkedAt} | bin/passioncode.js:13 | SCN-001 | proposed | copy |
+| status.npm.unknown-time | check time unknown | bin/passioncode.js:13 | SCN-001 | proposed | copy |
+| status.npm.stale | stale: older than installed | bin/passioncode.js:22 | SCN-001 | proposed | copy |
+| status.npm.refused | not installed automatically: ${REFUSED[refused] || 'refused'} | bin/passioncode.js:22 | SCN-001 | proposed | copy |
 | status.npm.refused.signature | its signature does not verify | bin/passioncode.js:7 | SCN-001 | proposed | copy |
 | status.npm.refused.provenance | no build provenance | bin/passioncode.js:7 | SCN-001 | proposed | copy |
 | status.npm.refused.untrusted | its publisher is not trusted | bin/passioncode.js:7 | SCN-001 | proposed | copy |
 | status.npm.refused.unreadable | its publisher could not be read | bin/passioncode.js:7 | SCN-001 | proposed | copy |
-| restore.empty | Nothing to restore. | bin/passioncode.js:279 | SCN-004 | proposed | copy |
-| uninstall.empty | Nothing was installed. | bin/passioncode.js:288 | SCN-005 | proposed | copy |
+| restore.empty | Nothing to restore. | bin/passioncode.js:280 | SCN-004 | proposed | copy |
+| uninstall.empty | Nothing was installed. | bin/passioncode.js:289 | SCN-005 | proposed | copy |
 | restore.mcp-incomplete | Restore incomplete: ${incomplete.join('; ')}; kept. The rest of the batch was put back. Make the file and its folder readable and writable (for a link, the folder it points into) and run restore again; once any update has run since, delete the entry by hand (uninstall, which removes PassionCode too, also does). | lib/launcher.js:837 | SCN-004 | proposed | copy |
-| uninstall.mcp-incomplete | Uninstall incomplete: ${kept.join('; ')}; kept. The rest of uninstall finished. Make the file and its folder readable and writable (for a link, the folder it points into) and retry uninstall. | lib/launcher.js:980 | SCN-005 | proposed | copy |
-| help.1 | passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills | bin/passioncode.js:24 | SCN-007 | proposed | layout |
-| help.2 | npx @passioncode-ai/passioncode@latest setup [--yes\|-y] [--with ids] [--without ids] [--train name\|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json] a new machine: install and configure everything; an existing one: check, repair, check again npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json] check everything (changes nothing but the anonymous counts); --fix repairs as setup does npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json] install or update the skill set and the apps' MCP registrations npx @passioncode-ai/passioncode@latest status [--json] what is installed where npx @passioncode-ai/passioncode@latest restore [--json] put back what the last update moved aside npx @passioncode-ai/passioncode@latest config set update.auto on\|off [--json] background updates at session start npx @passioncode-ai/passioncode@latest uninstall [--json] remove the set (quarantined items stay restorable) npx @passioncode-ai/passioncode@latest permissions [allow\|remove <rule>...\|mode <mode>] [--by who] [--json] Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules npx @passioncode-ai/passioncode@latest analytics [on\|off\|status] [--json] anonymous usage and error counts (on by default) | bin/passioncode.js:26 | SCN-007 | proposed | layout |
-| help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:38 | SCN-007 | proposed | layout |
-| args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:235 | SCN-007 | proposed | copy |
-| args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:84 | SCN-007 | proposed | copy |
-| hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:83 | SCN-006 | proposed | copy |
-| update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:255 | SCN-003 | proposed | copy |
-| update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:255 | SCN-003 | proposed | copy |
+| uninstall.mcp-incomplete | Uninstall incomplete: ${kept.join('; ')}; kept. The rest of uninstall finished. Make the file and its folder readable and writable (for a link, the folder it points into) and retry uninstall. | lib/launcher.js:987 | SCN-005 | proposed | copy |
+| help.1 | passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills | bin/passioncode.js:25 | SCN-007 | proposed | layout |
+| help.2 | npx @passioncode-ai/passioncode@latest setup [--yes\|-y] [--with ids] [--without ids] [--train name\|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json] a new machine: install and configure everything; an existing one: check, repair, check again npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json] check everything (changes nothing but the anonymous counts); --fix repairs as setup does npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json] install or update the skill set and the apps' MCP registrations npx @passioncode-ai/passioncode@latest status [--json] what is installed where npx @passioncode-ai/passioncode@latest restore [--json] put back what the last update moved aside npx @passioncode-ai/passioncode@latest config set update.auto on\|off [--json] background updates at session start npx @passioncode-ai/passioncode@latest uninstall [--json] remove the set (quarantined items stay restorable) npx @passioncode-ai/passioncode@latest permissions [allow\|remove <rule>...\|mode <mode>] [--by who] [--json] Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules npx @passioncode-ai/passioncode@latest analytics [on\|off\|status] [--json] anonymous usage and error counts (on by default) | bin/passioncode.js:27 | SCN-007 | proposed | layout |
+| help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:39 | SCN-007 | proposed | layout |
+| args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:236 | SCN-007 | proposed | copy |
+| args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:85 | SCN-007 | proposed | copy |
+| hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:93 | SCN-006 | proposed | copy |
+| update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
+| update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
 | setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:184 | SCN-008 | proposed | copy |
 | setup.install-question.preview | (early preview) | lib/setup.js:184 | SCN-008 | proposed | copy |
 | setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:192 | SCN-008, SCN-009 | proposed | copy |
@@ -122,62 +122,65 @@ Contract: brand-contract v1
 | permissions.declared-twice | ${file}: ${r.rule} is the same rule ${rules.find((x) => x.rule === r.rule).by} declares; it is counted once | lib/permissions.js:162 | SCN-008 | proposed | error |
 | permissions.declared-by-control | ${file}: "by" holds a control or format character | lib/permissions.js:149 | SCN-008 | proposed | error |
 | permissions.declared-why-control | ${file}: ${r.rule}: "why" holds a control or format character | lib/permissions.js:159 | SCN-008 | proposed | error |
-| perm.title | Claude Code permissions in ${view.settingsFile} | bin/passioncode.js:174 | SCN-015 | proposed | copy |
-| perm.mode | Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, except what the allow rules let it do, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`} | bin/passioncode.js:177 | SCN-015 | proposed | copy |
-| perm.rules | PassionCode's rules: | bin/passioncode.js:179 | SCN-015 | proposed | copy |
-| perm.when.removed | removed ${r.removedAt} by ${r.removedBy}${['allowed', 'asked', 'denied'].includes(r.state) ? ', and set again by hand since' : ''} | bin/passioncode.js:181 | SCN-015 | proposed | copy |
-| perm.offered | Offered and not allowed yet: | bin/passioncode.js:187 | SCN-015 | proposed | copy |
-| perm.allow-hint | To allow them: ${require('../lib/doctor').NPX} permissions allow <rule> | bin/passioncode.js:188 | SCN-015 | proposed | copy |
-| perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:190 | SCN-015 | proposed | copy |
-| perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:191 | SCN-015 | proposed | copy |
+| perm.title | Claude Code permissions in ${view.settingsFile} | bin/passioncode.js:175 | SCN-015 | proposed | copy |
+| perm.mode | Default mode: ${!view.readable ? 'unknown (the settings file cannot be read)' : view.mode.value === null ? 'not set in this file (Claude Code asks before it edits files or runs commands, except what the allow rules let it do, unless a project or managed setting sets a mode)' : `${shown(String(view.mode.value))} (in this file; a project or managed setting can set another)`} | bin/passioncode.js:178 | SCN-015 | proposed | copy |
+| perm.rules | PassionCode's rules: | bin/passioncode.js:180 | SCN-015 | proposed | copy |
+| perm.when.removed | removed ${r.removedAt} by ${r.removedBy}${['allowed', 'asked', 'denied'].includes(r.state) ? ', and set again by hand since' : ''} | bin/passioncode.js:182 | SCN-015 | proposed | copy |
+| perm.offered | Offered and not allowed yet: | bin/passioncode.js:188 | SCN-015 | proposed | copy |
+| perm.allow-hint | To allow them: ${require('../lib/doctor').NPX} permissions allow <rule> | bin/passioncode.js:189 | SCN-015 | proposed | copy |
+| perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:191 | SCN-015 | proposed | copy |
+| perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:192 | SCN-015 | proposed | copy |
 | doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:178 | SCN-010 | proposed | copy |
 | doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:378 | SCN-010 | proposed | copy |
 | doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:380 | SCN-010 | proposed | copy |
 | doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:409 | SCN-010 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch). | lib/analytics.js:31 | SCN-016 | proposed | copy |
-| analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:208 | SCN-016 | proposed | copy |
-| analytics.why.off | turned off (analytics off) | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.why.shared-unreadable | off for now: the shared PassionCode installation file cannot be read or holds no usable id, so nothing is sent until it can be | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.why.unreadable | off for now: the switch file ${require('path').join(state, 'analytics.json')} cannot be read; analytics on or analytics off writes it again | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.why.off-elsewhere | off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.why.env | off for this process (PASSIONCODE_ANALYTICS=off) | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.why.dnt | off for this process (DO_NOT_TRACK) | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.why.no-key | this build carries no App Key, so nothing is sent | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.why.notice | on, and this run shows their notice on stderr (unless another command is showing it right now); counts go to ${A.HOST} from then on | bin/passioncode.js:206 | SCN-016 | proposed | copy |
-| analytics.save-failed | passioncode: the analytics switch could not be saved: ${error.message} | bin/passioncode.js:204 | SCN-016 | proposed | copy |
-| analytics.usage | analytics takes on, off or status | bin/passioncode.js:200 | SCN-016 | proposed | error |
-| perm.done | ${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')} | bin/passioncode.js:145 | SCN-015 | proposed | copy |
-| perm.mode-changed | Default mode: ${values[0]} (was ${r.from === null ? 'not set' : r.from}). | bin/passioncode.js:152 | SCN-015 | proposed | copy |
-| perm.usage | passioncode: ${message}; run passioncode help. | bin/passioncode.js:164 | SCN-015 | proposed | error |
-| perm.usage.by | --by needs who asked, for example "Fabric (operator)" | bin/passioncode.js:120 | SCN-015 | proposed | error |
-| perm.usage.option | unknown option ${rest[n]} | bin/passioncode.js:121 | SCN-015 | proposed | error |
-| perm.usage.by-text | --by is 1 to 80 characters of plain text | bin/passioncode.js:124 | SCN-015 | proposed | error |
-| perm.usage.by-verb | --by goes with allow, remove or mode | bin/passioncode.js:126 | SCN-015 | proposed | error |
-| perm.usage.rule | ${verb} needs at least one rule | bin/passioncode.js:141 | SCN-015 | proposed | error |
-| perm.usage.mode | mode needs one of ${ledger.MODES.join(', ')} | bin/passioncode.js:150 | SCN-015 | proposed | error |
-| perm.usage.verb | unknown permissions command ${verb} | bin/passioncode.js:155 | SCN-015 | proposed | error |
+| analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:209 | SCN-016 | proposed | copy |
+| analytics.why.off | turned off (analytics off) | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.why.shared-unreadable | off for now: the shared PassionCode installation file cannot be read or holds no usable id, so nothing is sent until it can be | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.why.unreadable | off for now: the switch file ${require('path').join(state, 'analytics.json')} cannot be read; analytics on or analytics off writes it again | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.why.off-elsewhere | off, because they were turned off in another PassionCode app before the launcher counted anything; analytics on turns them on for the launcher alone | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.why.env | off for this process (PASSIONCODE_ANALYTICS=off) | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.why.dnt | off for this process (DO_NOT_TRACK) | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.why.no-key | this build carries no App Key, so nothing is sent | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.why.notice | on, and this run shows their notice on stderr (unless another command is showing it right now); counts go to ${A.HOST} from then on | bin/passioncode.js:207 | SCN-016 | proposed | copy |
+| analytics.save-failed | passioncode: the analytics switch could not be saved: ${error.message} | bin/passioncode.js:205 | SCN-016 | proposed | copy |
+| analytics.usage | analytics takes on, off or status | bin/passioncode.js:201 | SCN-016 | proposed | error |
+| perm.done | ${verb === 'allow' ? 'Allowed' : 'Removed'}: ${done.join(', ')} | bin/passioncode.js:146 | SCN-015 | proposed | copy |
+| perm.mode-changed | Default mode: ${values[0]} (was ${r.from === null ? 'not set' : r.from}). | bin/passioncode.js:153 | SCN-015 | proposed | copy |
+| perm.usage | passioncode: ${message}; run passioncode help. | bin/passioncode.js:165 | SCN-015 | proposed | error |
+| perm.usage.by | --by needs who asked, for example "Fabric (operator)" | bin/passioncode.js:121 | SCN-015 | proposed | error |
+| perm.usage.option | unknown option ${rest[n]} | bin/passioncode.js:122 | SCN-015 | proposed | error |
+| perm.usage.by-text | --by is 1 to 80 characters of plain text | bin/passioncode.js:125 | SCN-015 | proposed | error |
+| perm.usage.by-verb | --by goes with allow, remove or mode | bin/passioncode.js:127 | SCN-015 | proposed | error |
+| perm.usage.rule | ${verb} needs at least one rule | bin/passioncode.js:142 | SCN-015 | proposed | error |
+| perm.usage.mode | mode needs one of ${ledger.MODES.join(', ')} | bin/passioncode.js:151 | SCN-015 | proposed | error |
+| perm.usage.verb | unknown permissions command ${verb} | bin/passioncode.js:156 | SCN-015 | proposed | error |
 | ledger.not-offered | not a rule PassionCode offers: ${unknown.join(', ')} | lib/ledger.js:128 | SCN-015 | proposed | error |
 | ledger.not-installed | not a rule PassionCode offers now or has in its ledger: ${foreign.join(', ')}; remove it in ${settingsFile} yourself | lib/ledger.js:144 | SCN-015 | proposed | error |
 | ledger.mode | mode must be one of ${MODES.join(', ')} | lib/ledger.js:167 | SCN-015 | proposed | error |
 | ledger.invalid-json | ${file} is not valid JSON: ${error.message} | lib/ledger.js:29 | SCN-015 | proposed | error |
-| perm.when.installed | installed ${r.installedAt} by ${r.installedBy \|\| r.by} | bin/passioncode.js:182 | SCN-015 | proposed | copy |
-| perm.when.none | not in the ledger (set before it, or by hand) | bin/passioncode.js:182 | SCN-015 | proposed | copy |
-| perm.line | ${r.state.padEnd(8)} ${r.rule} (${r.why}; declared by ${r.by}; ${when}) | bin/passioncode.js:183 | SCN-015 | proposed | layout |
-| perm.nothing | Nothing to ${verb}: ${verb === 'allow' ? 'each rule is already allowed, asked about or denied' : 'none of them is allowed there'}. | bin/passioncode.js:146 | SCN-015 | proposed | copy |
-| perm.mode-same | Default mode is already ${values[0]}. | bin/passioncode.js:152 | SCN-015 | proposed | copy |
+| perm.when.installed | installed ${r.installedAt} by ${r.installedBy \|\| r.by} | bin/passioncode.js:183 | SCN-015 | proposed | copy |
+| perm.when.none | not in the ledger (set before it, or by hand) | bin/passioncode.js:183 | SCN-015 | proposed | copy |
+| perm.line | ${r.state.padEnd(8)} ${r.rule} (${r.why}; declared by ${r.by}; ${when}) | bin/passioncode.js:184 | SCN-015 | proposed | layout |
+| perm.nothing | Nothing to ${verb}: ${verb === 'allow' ? 'each rule is already allowed, asked about or denied' : 'none of them is allowed there'}. | bin/passioncode.js:147 | SCN-015 | proposed | copy |
+| perm.mode-same | Default mode is already ${values[0]}. | bin/passioncode.js:153 | SCN-015 | proposed | copy |
 | ledger.unreadable | ${file} cannot be read: ${error.message} | lib/ledger.js:27 | SCN-015 | proposed | error |
 | ledger.schema | ${file} is not a ${SCHEMA} ledger | lib/ledger.js:31 | SCN-015 | proposed | error |
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:422 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
-| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:243 | SCN-006 | proposed | copy |
-| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:246 | SCN-006 | proposed | copy |
-| hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:251 | SCN-006 | proposed | copy |
-| hook.no-provenance | [passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:254 | SCN-006 | proposed | copy |
-| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:264 | SCN-006 | proposed | copy |
-| hook.keep | keep using ${state.installed} (npx ${PACKAGE}@${state.installed}, not @latest) and see ${SECURITY_URL}. | plugin/passioncode/hooks/update-check.js:220 | SCN-006 | proposed | copy |
-| hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:266 | SCN-006 | proposed | copy |
-| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:103 | SCN-013 | proposed | copy |
+| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:250 | SCN-006 | proposed | copy |
+| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:253 | SCN-006 | proposed | copy |
+| hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:258 | SCN-006 | proposed | copy |
+| hook.no-provenance | [passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:261 | SCN-006 | proposed | copy |
+| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:271 | SCN-006 | proposed | copy |
+| hook.keep | keep using ${state.installed} (npx ${PACKAGE}@${state.installed}, not @latest) and see ${SECURITY_URL}. | plugin/passioncode/hooks/update-check.js:221 | SCN-006 | proposed | copy |
+| hook.check-failed | [passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log). | plugin/passioncode/hooks/update-check.js:233 | SCN-006 | proposed | copy |
+| hook.refusal-standing | [passioncode] ${PACKAGE}@${standing[0]} was not installed (${standing[1].replace(/_/g, ' ')}) and the last check could not tell whether that changed; ${keep()} | plugin/passioncode/hooks/update-check.js:242 | SCN-006 | proposed | copy |
+| status.npm.not-checked-refused | npm latest: not checked (last check failed; ${refusedVersion} not installed automatically: ${REFUSED[refused] || 'refused'}) | bin/passioncode.js:11 | SCN-001 | proposed | copy |
+| hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:273 | SCN-006 | proposed | copy |
+| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:113 | SCN-013 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further
 wording changes. Version values and timestamps remain verbatim observations.

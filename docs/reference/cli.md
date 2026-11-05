@@ -48,7 +48,7 @@ in [launcher tests](../../test/launcher.test.js).
 | `package` | Version of the payload beside the invoked CLI, which an update would install |
 | `source` | Where member descriptions came from: `installed`, `package`, or null |
 | `latest`, `checkedAt` | Raw saved npm observation and check timestamp, or null; no live npm probe |
-| `refused` | The session hook's last refusal of the cached latest version while it is newer than installed (`registry_signature`, `provenance`, `untrusted_publisher`, `unreadable_publisher`), or null (PC-131) |
+| `refused`, `refusedVersion` | The session hook's standing refusal while the refused version is newer than installed: its reason (`registry_signature`, `provenance`, `untrusted_publisher`, `unreadable_publisher`) and version, or null; it stands also when the last check failed (PC-131) |
 | `auto` | Saved automatic-update preference; defaults to true |
 | `members` | Declared member versions, plugin presence, legacy entries, hub link targets and shadowing files |
 
@@ -468,7 +468,8 @@ release installed, can authorize an automatic update; every identity must be tru
 registry signatures over the version's integrity must verify with a key pinned in `trust.json`, and
 the version must carry SLSA build provenance (ADR-0005). The probe and the update ask
 `https://registry.npmjs.org` whatever registry npm is set to, for the scope too
-(`--registry` and `--@passioncode-ai:registry`). A record from an older probe, without
+(`--registry` and `--@passioncode-ai:registry`), with `--workspaces=false` so npm does not walk up to a
+monorepo root, from `~/.passioncode/run/`; the update installs through a cache of its own, emptied first. A record from an older probe, without
 `verify` or with one read for another version, starts a fresh probe at once and installs nothing
 meanwhile. While a refusal stands the hook's lines name the installed version instead of `@latest`,
 and `status` adds "not installed automatically: <reason>" (`refused` in `--json`). The spawned
@@ -486,7 +487,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
-| `~/.passioncode/run/` | Where the session hook runs its probe and the background update: an empty `package.json`, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
+| `~/.passioncode/run/` | Where the session hook runs its probe and the background update: a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
@@ -496,7 +497,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.agents/skills` | Shared skill hub |
 | Existing paths in `CHANNELS` in `lib/launcher.js` | Supported agent channels; an absent channel is not created |
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |
-| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root, and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
+| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root (and the `run/` folder the session hook uses), and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |

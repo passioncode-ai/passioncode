@@ -70,7 +70,17 @@ async function main() {
   }
   // Record the attempt before spawning: a fast update must not finish and then
   // have this hook put the old "running" marker back.
-  if (args && !await detached('npx', args, 'update.log')) {
+  // A cache of its own, emptied first, so npx downloads the verified version and npm checks it, instead of reusing
+  // a copy an earlier `npx` cached under other settings (the global npm tree is still npm's own, PC-142).
+  let updateArgs = args;
+  if (args) {
+    try {
+      const cache = path.join(runDir(), 'cache');
+      fs.rmSync(cache, { recursive: true, force: true });
+      updateArgs = [args[0], `--cache=${cache}`, ...args.slice(1)];
+    } catch (_) { /* detached() below reports a folder it cannot use */ }
+  }
+  if (args && !await detached('npx', updateArgs, 'update.log')) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;

@@ -471,6 +471,8 @@ test('status labels cached npm observations without changing state or probing np
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.15 registry_signature', refused: 'registry_signature', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt}; not installed automatically: its signature does not verify)` },
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt}; not installed automatically: no build provenance)` },
     { latest: '0.1.14', checkedAt, refusalLogged: '0.1.14 provenance', expected: `npm latest (cached) 0.1.14 (checked ${checkedAt})`, note: 'installed by hand since: no longer refused' },
+    // The last check failed (no latest): the standing refusal is still shown.
+    { latest: undefined, refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: 'npm latest: not checked (last check failed; 0.1.15 not installed automatically: no build provenance)' },
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.10 provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt})` },
   ];
   for (const c of cases) {
@@ -483,7 +485,7 @@ test('status labels cached npm observations without changing state or probing np
     const json = run(env, 'status', '--json');
     assert.equal(json.status, 0, json.stderr);
     const parsed = JSON.parse(json.stdout);
-    assert.equal(parsed.latest, c.latest);
+    assert.equal(parsed.latest, c.latest === undefined ? null : c.latest);
     assert.equal(parsed.checkedAt, c.checkedAt || null);
     assert.equal(parsed.refused, c.refused || null);
     assert.equal(fs.readFileSync(stateFile, 'utf8'), bytes, 'both status formats leave saved state untouched');
