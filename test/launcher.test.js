@@ -50,7 +50,7 @@ function setup() {
 }
 
 function run(env, ...args) {
-  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
+  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
 }
 const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
@@ -1328,7 +1328,7 @@ function updateInProcess(env, opts) {
   const keys = { PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_APPLICATIONS: env.extra.PASSIONCODE_APPLICATIONS, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp') };
   const saved = Object.fromEntries(Object.keys(keys).map((k) => [k, process.env[k]]));
   Object.assign(process.env, keys);
-  const claude = { available: () => true, run: (args, o = {}) => { const r = spawnSync(process.execPath, [FAKE, ...args], { encoding: 'utf8', cwd: o.cwd, env: { ...process.env, HOME: env.home } }); return { code: r.status, out: `${r.stdout}${r.stderr}`.trim() }; } };
+  const claude = { available: () => true, run: (args, o = {}) => { const r = spawnSync(process.execPath, [FAKE, ...args], { encoding: 'utf8', cwd: o.cwd, env: { ...process.env, HOME: env.home, USERPROFILE: env.home } }); return { code: r.status, out: `${r.stdout}${r.stderr}`.trim() }; } };
   try { return require('../lib/launcher').update({ home: env.home, claude, ...opts }); } finally {
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   }

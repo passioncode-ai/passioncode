@@ -43,7 +43,7 @@ function setup(t) {
 }
 
 function run(env, ...args) {
-  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '' } });
+  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '' } });
 }
 
 function install(env, version) {
@@ -115,7 +115,7 @@ function holdLock(env) {
     const lock = L.acquireUpdateLock(L.paths(${JSON.stringify(env.home)}));
     process.stdout.write('held\\n');
     process.stdin.once('data', () => { lock.release(); process.exit(0); });
-  `], { stdio: ['pipe', 'pipe', 'inherit'], env: { ...process.env, HOME: env.home, PASSIONCODE_HOME: state } });
+  `], { stdio: ['pipe', 'pipe', 'inherit'], env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_HOME: state } });
   return new Promise((resolve, reject) => {
     const failed = (code) => reject(new Error(`the lock holder exited (${code}) before taking the lock`));
     child.once('exit', failed);

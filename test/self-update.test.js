@@ -62,7 +62,7 @@ function sandbox({ trust = [], keys = [TEST_KEY] } = {}) {
   fs.mkdirSync(bin);
   fs.writeFileSync(path.join(bin, 'npm'), FAKE_NPM, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'npx'), FAKE_NPX, { mode: 0o755 });
-  const env = (extra = {}) => ({ ...process.env, HOME: home, PASSIONCODE_HOME: stateDir, PATH: `${bin}${path.delimiter}${process.env.PATH}`, ...extra });
+  const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_HOME: stateDir, PATH: `${bin}${path.delimiter}${process.env.PATH}`, ...extra });
   return { base, home, stateDir, plugin, env };
 }
 
