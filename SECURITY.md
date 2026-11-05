@@ -24,8 +24,8 @@ left alone and reported. Displaced files are moved rather than
 deleted: a recovery record is written before the move in
 `~/.passioncode/quarantine/<run>/moved.json`. `restore` processes the latest batch,
 checkpoints completed entries and refuses to overwrite a conflicting user replacement.
-`uninstall` removes owned links/plugins, clears the active release and disables
-automatic updates; it retains the current and previous release copies and recovery
+`uninstall` removes owned links/plugins and clears the active release (with nothing
+installed the session hook installs nothing), and leaves the update switch as the person set it; it retains the current and previous release copies and recovery
 records. Each update removes the launcher's own older releases (its output, reinstallable
 from npm) and keeps the one it replaced for rollback. A failed removal
 returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.md).
@@ -109,6 +109,7 @@ and the account that published that version.
 
 The hook installs a newer version on its own only when all of these hold:
 
+- a release is installed (after `uninstall` none is, so nothing is installed back);
 - `update.auto` is on (the default);
 - the npm probe exited successfully, the recorded maintainers are non-empty, the
   publisher is known, and every maintainer **and** the publishing

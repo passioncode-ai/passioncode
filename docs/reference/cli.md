@@ -17,7 +17,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` (a `moved` entry with `failedAt` is a registration that was never written, not a recovery entry) | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
-| `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
+| `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release (the update switch is kept) |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
 | `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
 | `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `off-elsewhere` (turned off in another PassionCode app before the launcher counted, see [Anonymous usage counts](#anonymous-usage-counts)), `unreadable` (the switch file is there but cannot be read: off for that run, never rewritten by a count), `shared-unreadable` (the shared `installation.json` is there but cannot be read, or holds no usable id: nothing is sent until it can be), `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123); exit 1 when the switch cannot be saved |
@@ -441,7 +441,10 @@ is cleared; with nothing installed the session hook installs nothing. The update
 switch is the person's: uninstall never writes it, and a later install keeps it as
 it was (on unless `config set update.auto off` turned it off; LC-16, PC-131). The
 current and previous release directories and the quarantines remain available;
-`restore` still works. Repeated uninstall is safe.
+`restore` still works. Repeated uninstall is safe. `status` still shows the switch
+(on by default); with nothing installed it updates nothing. An uninstall by 0.2.75 or
+earlier wrote the switch off: `status` then shows `auto-update off`, and
+`npx @passioncode-ai/passioncode@latest config set update.auto on` turns it back on.
 
 Evidence: `uninstall()` in the launcher, both `uninstall...` regressions, the PC-127 uninstall test and `PC-131: an update switch turned off stays off through uninstall and a reinstall`.
 

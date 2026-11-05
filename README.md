@@ -160,7 +160,7 @@ npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed 
 For supported flags, JSON fields, exit codes and partial-failure recovery, read the
 [CLI contract](docs/reference/cli.md). `restore` repairs the latest quarantine batch;
 it is not a release rollback. A successful `uninstall` preserves recovery files and
-turns automatic updates off. Unsupported flags are rejected before mutation (the anonymous counts still count the run).
+leaves the update switch as it was; with nothing installed, nothing updates itself (PC-131). Unsupported flags are rejected before mutation (the anonymous counts still count the run).
 
 Repository docs describe the current source. See the [documentation index](docs/README.md)
 and dated handoffs for which changes have actually been published or installed.
