@@ -54,6 +54,9 @@ function detached(cmd, args, logName) {
 }
 
 async function main() {
+  // PC-129: the probe and the update run from the run folder, so a relative CLAUDE_CONFIG_DIR goes to them as the folder
+  // Claude Code resolved it to, against the session's folder this hook runs in.
+  if (process.env.CLAUDE_CONFIG_DIR) process.env.CLAUDE_CONFIG_DIR = path.resolve(process.env.CLAUDE_CONFIG_DIR);
   const state = read(STATE, {});
   const now = Date.now();
   const age = now - Date.parse(state.checkedAt);

@@ -29,6 +29,7 @@ process.exit(Number(process.env.FAKE_NPM_CODE || 0));
 const FAKE_NPX = `#!/usr/bin/env node
 require('fs').appendFileSync(require('path').join(process.env.HOME, 'npx-calls.log'), process.argv.slice(2).join(' ') + '\\n');
 require('fs').appendFileSync(require('path').join(process.env.HOME, 'npx-cwd.log'), process.cwd() + '\\n');
+require('fs').appendFileSync(require('path').join(process.env.HOME, 'npx-config-dir.log'), (process.env.CLAUDE_CONFIG_DIR || '-') + '\\n');
 `;
 
 // A registry key made for these tests: the sandbox pins it in trust.json, as the shipped plugin pins npm's.
@@ -819,6 +820,17 @@ test('PC-135: on Windows the npm and npx scripts beside Node start with --versio
 });
 
 // On real Windows the npm beside Node is there, and the update would really start: the stand-in platform runs elsewhere.
+test('PC-129: a relative CLAUDE_CONFIG_DIR reaches the background update as the folder of the session, not of the run folder', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const project = path.join(sb.base, 'project');
+  fs.mkdirSync(project);
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ CLAUDE_CONFIG_DIR: 'cc' }), cwd: project, input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
+  assert.deepEqual(lines(path.join(sb.home, 'npx-config-dir.log')).map((l) => fs.realpathSync(path.dirname(l)) + path.sep + path.basename(l)), [fs.realpathSync(project) + path.sep + 'cc']);
+});
+
 test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PATH', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0'), updateCache: '/x/earlier' });
