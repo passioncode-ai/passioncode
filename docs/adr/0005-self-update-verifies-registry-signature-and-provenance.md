@@ -49,9 +49,10 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
 
 ## Consequences
 
-- A package whose bytes differ from the ones npm signed, a version signed by another key, a forged
-  or missing signature, and a version published without provenance (for example from a laptop with
-  a stolen token) are refused. Tests: `test/self-update.test.js` (the refusal cases, a real 0.2.75
+- Metadata whose integrity npm did not sign, a version signed by another key, a forged or missing
+  signature, and a version published without provenance (for example from a laptop with a stolen
+  token) are refused by the hook; bytes that differ from that integrity are refused by npm's own
+  check when `npx` downloads them. Tests: `test/self-update.test.js` (the refusal cases, a real 0.2.75
   signature checked against the shipped key in `test/fixtures/npm-dist-0.2.75.json`),
   `test/registry.test.js` (the release receipt), `test/vendor.test.js` (the build's key rule).
 - The hook checks that the provenance attestation is present and of the SLSA v1 type; it does not
@@ -61,7 +62,9 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
   identity (`github-actions-oidc`) is checked as before.
 - `npx` downloads the tarball up to a day after the check, and npm checks it against the integrity
   it reads at that moment; the hook pins the verified version, so a different tarball for the same
-  version would need the registry itself to serve other metadata than it signed.
+  version would need the registry itself to serve other metadata than it signed, or the person's own
+  npm settings (a proxy with `strict-ssl=false`, a custom `cafile`) to let something intercept that
+  download. The hook does not check the tarball's bytes against the integrity it verified (PC-142).
 - **LC-16 is not fully met.** LC-16 asks for the organization's signature over the package (for a
   CLI, `SHA256SUMS` signed by the organization's release key, or an updater key that also signs the
   version). npm's key attests npm's copy, not PassionCode's; the launcher is distributed by npm and

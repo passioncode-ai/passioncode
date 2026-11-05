@@ -152,16 +152,20 @@ version instead, and `status` adds "not installed automatically" with the reason
 `npx @passioncode-ai/passioncode@<installed version> …` (the line names it), not `@latest`; such a
 command uses your own npm settings, as any `npx` does. Then:
 an npm registry key rotation and tampering print the same signature line; it is a rotation when
-`https://registry.npmjs.org/-/npm/v1/keys` lists a keyid that the `trust.json` of the plugin you
-have lacks (the one shipped with the version the line names:
-`https://github.com/passioncode-ai/passioncode/blob/v<that version>/plugin/passioncode/trust.json`),
+`https://registry.npmjs.org/-/npm/v1/keys` lists a keyid whose `expires` is empty or still in the future
+(keys that already expired do not count) and that the `trust.json` of the version the line says to
+keep using lacks
+(`https://github.com/passioncode-ai/passioncode/blob/v<kept version>/plugin/passioncode/trust.json`),
 and then the CHANGELOG names the launcher release that pins it, which you install by hand once
 (`npx @passioncode-ai/passioncode@<that version> update`). A registry mirror or proxy cannot cause
 the line, because the check reads npm's registry itself; a network that reaches only a mirror makes
 the check fail instead ("the daily update check failed" once per new error), and then updates are
 by hand. Any other refusal, a signature that does not verify with no new key listed above all, may
 mean tampering: report it to
-contact@passioncode.ai with the line and `~/.passioncode/logs/update-events.log`. A plugin of 0.2.75
+contact@passioncode.ai with the line and `~/.passioncode/logs/update-events.log`. The line is printed
+at the start of a Claude Code session, into the agent's context; the agent passes it on when it sets
+up or checks PassionCode. Other agents and a plain terminal never run the hook: there
+`npx @passioncode-ai/passioncode@<installed version> status` shows a refusal without running `@latest`. A plugin of 0.2.75
 or earlier, installed by hand again, checks only the publishers until it updates.
 
 The current allowlist lives in [`plugin/passioncode/trust.json`](plugin/passioncode/trust.json).
