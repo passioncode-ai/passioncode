@@ -11,7 +11,9 @@
  * Names alone trust whatever npm says they published. So the probe also records the version's
  * `dist.integrity`, the registry's signatures over it and its provenance attestation, and the
  * hook installs only a version whose signature verifies against an npm registry key pinned in
- * `trust.json` and that was built with SLSA provenance (published by CI, not from a laptop).
+ * `trust.json` and that carries an SLSA provenance attestation (its builder is not checked here;
+ * npm validated the attestation at publish time). The probe and the update ask registry.npmjs.org
+ * itself, whatever registry the person's npm uses, because the pinned key only speaks for it.
  */
 const crypto = require('crypto');
 const fs = require('fs');
@@ -34,6 +36,8 @@ const OIDC_EMAIL = 'npm-oidc-no-reply@github.com';
 /** The provenance npm records for a package built by a CI workflow with `--provenance` (release.yml). */
 const PROVENANCE = 'https://slsa.dev/provenance/v1';
 const INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
+const REGISTRY = 'https://registry.npmjs.org';
+const SECURITY_URL = 'https://github.com/passioncode-ai/passioncode/blob/main/SECURITY.md#the-self-update-and-who-it-trusts';
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
 function publisherName(entry) {
@@ -78,7 +82,7 @@ function parseView(stdout, error) {
     // An entry that is not a readable account name poisons the list: it cannot be trusted.
     maintainers: maintainers.includes(null) ? [] : maintainers,
     publisher: doc._npmUser ? publisherName(doc._npmUser) : null,
-    verify: readDist(doc.dist),
+    verify: { ...readDist(doc.dist), version: latest },
   };
 }
 
@@ -133,7 +137,7 @@ function loadRegistryKeys(file = TRUST_FILE) {
   try {
     const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
     return (Array.isArray(doc.npmRegistryKeys) ? doc.npmRegistryKeys : [])
-      .filter((k) => k && typeof k.keyid === 'string' && typeof k.key === 'string' && BASE64.test(k.key))
+      .filter((k) => k && typeof k.keyid === 'string' && k.keyid && typeof k.key === 'string' && BASE64.test(k.key))
       .map((k) => ({ keyid: k.keyid, key: k.key }));
   } catch (_) {
     return [];
@@ -148,6 +152,8 @@ function registrySigned(version, verify, keys) {
     if (!s || k.keyid !== s.keyid) return false;
     try {
       const key = crypto.createPublicKey({ key: Buffer.from(k.key, 'base64'), format: 'der', type: 'spki' });
+      // npm signs with ECDSA P-256; a pinned key of any other kind verifies nothing.
+      if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails.namedCurve !== 'prime256v1') return false;
       return crypto.verify('sha256', message, key, Buffer.from(String(s.sig), 'base64'));
     } catch (_) {
       return false;
@@ -206,7 +212,13 @@ function decide(state, trust, now = Date.now(), keys = []) {
   const events = [];
   let spawn = null;
   // A refusal goes into the update log once per version and reason, not at every session start (LC-16).
+  // A refused version must not be reached through `@latest` either: point the person at what they have.
+  const keep = () => (typeof state.installed === 'string' && VERSION.test(state.installed)
+    ? `keep using ${state.installed} (npx ${PACKAGE}@${state.installed}, not @latest) and see ${SECURITY_URL}.`
+    : `see ${SECURITY_URL}.`);
+  let refused = false;
   const refuse = (reason) => {
+    refused = true;
     const key = `${state.latest} ${reason}`;
     if (state.refusalLogged === key) return;
     stateChanges.refusalLogged = key;
@@ -225,25 +237,25 @@ function decide(state, trust, now = Date.now(), keys = []) {
     const untrusted = [...maintainers, ...(state.publisher ? [state.publisher] : [])].filter((m) => !trusted.has(m));
     if (!maintainers.length || !maintainers.every((m) => typeof m === 'string' && accountName(m) === m)
       || typeof state.publisher !== 'string' || !state.publisher || accountName(state.publisher) !== state.publisher) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()}`);
       refuse('unreadable_publisher');
     } else if (untrusted.length) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()}`);
       refuse('untrusted_publisher');
-    } else if (!state.verify || typeof state.verify !== 'object') {
-      // Recorded by a probe older than this check: the hook starts a fresh probe (needsProbe); until it answers, nothing installs.
+    } else if (!verifiedFor(state)) {
+      // Recorded by an older probe, or for another version: the hook starts a fresh probe (needsProbe); until it answers, nothing installs.
     } else if (!registrySigned(latest, state.verify, keys)) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()}`);
       refuse('registry_signature');
     } else if (state.verify.provenance !== PROVENANCE) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()}`);
       refuse('provenance');
     } else {
       const auto = (state.config && state.config.auto) !== false;
       const runningAge = now - Date.parse(state.updatingSince);
       const running = Number.isFinite(runningAge) && runningAge >= 0 && runningAge < 10 * 60 * 1000;
       if (auto && !running) {
-        spawn = ['--yes', `${PACKAGE}@${latest}`, 'update', '--quiet'];
+        spawn = ['--yes', `--registry=${REGISTRY}`, `${PACKAGE}@${latest}`, 'update', '--quiet'];
         stateChanges.updatingSince = new Date(now).toISOString();
         events.push({ event: 'update_download', outcome: 'started' });
         lines.push(`[passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session.`);
@@ -252,7 +264,7 @@ function decide(state, trust, now = Date.now(), keys = []) {
       }
     }
   }
-  return { lines, spawn, stateChanges, events };
+  return { lines, spawn, stateChanges, events, refused };
 }
 
 /**
@@ -268,9 +280,14 @@ function checkEvent(state) {
   return state.lastCheckEvent === key ? null : { outcome, key };
 }
 
-/** A state recorded by a probe older than the signature check (no `verify`) asks for a fresh probe. */
-function needsProbe(state) {
-  return state.published === true && typeof state.latest === 'string' && (!state.verify || typeof state.verify !== 'object');
+/** The recorded signature data belongs to the recorded latest version (an older plugin's probe may have kept another's). */
+function verifiedFor(state) {
+  return Boolean(state.verify) && typeof state.verify === 'object' && !Array.isArray(state.verify) && state.verify.version === state.latest;
 }
 
-module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };
+/** A state recorded by a probe older than the signature check, or by an older plugin since, asks for a fresh probe. */
+function needsProbe(state) {
+  return state.published === true && typeof state.latest === 'string' && !verifiedFor(state);
+}
+
+module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };

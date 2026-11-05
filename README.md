@@ -148,7 +148,8 @@ back on.
 `status` reads local state without contacting npm. Its npm version is labelled
 `npm latest (cached)` with the saved check timestamp, or `check time unknown`.
 When that stable version is below the installed stable version, the line also says
-`stale: older than installed`. A newer or equal cached version is still a saved
+`stale: older than installed`, and when the session hook refused it, `not installed automatically`
+with the reason (PC-131). A newer or equal cached version is still a saved
 observation, not a live registry check. With no saved version it says
 `npm latest: not checked`; `--json` retains the raw `latest` and `checkedAt` fields.
 
@@ -210,8 +211,9 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
    (a test holds them and the CHANGELOG in sync), add the CHANGELOG section.
 3. The npm account that publishes must be listed in `plugin/passioncode/trust.json`
    (`npmPublishers`), and be the package's only kind of maintainer, and the release must be
-   published by `release.yml` with provenance (a public repository). Otherwise every installed
-   hook refuses the update and says so. When npm announces a new registry key, add it to
+   published by `release.yml` with provenance (a public repository; the workflow stops otherwise, and
+   its registry receipt runs the hook's signature and provenance checks on the published version).
+   Otherwise every installed hook refuses the update and says so. When npm announces a new registry key, add it to
    `npmRegistryKeys` in a release before npm signs with it.
 4. Merge, then tag the merge commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml`
    validates, checks the tag against both manifests, creates the GitHub release from the

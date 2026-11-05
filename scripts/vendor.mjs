@@ -124,7 +124,8 @@ function checkTrust(pluginDir) {
   // ADR-0005: without a pinned npm registry key no signature verifies, and every machine would refuse the update.
   const keys = Array.isArray(doc.npmRegistryKeys) ? doc.npmRegistryKeys : [];
   const usable = (k) => {
-    if (!k || typeof k.keyid !== 'string' || !k.keyid || typeof k.key !== 'string') return false;
+    // The hook's own rule (update-check.js loadRegistryKeys): plain base64 on one line, else the hook drops the key.
+    if (!k || typeof k.keyid !== 'string' || !k.keyid || typeof k.key !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(k.key)) return false;
     try {
       const key = createPublicKey({ key: Buffer.from(k.key, 'base64'), format: 'der', type: 'spki' });
       return key.asymmetricKeyType === 'ec' && key.asymmetricKeyDetails.namedCurve === 'prime256v1';

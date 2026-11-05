@@ -37,7 +37,7 @@ const INTEGRITY = `sha512-${crypto.createHash('sha512').update('the release tarb
 /** What the probe records for a version: its integrity, a registry signature over it and its provenance. */
 function verified(version, { integrity = INTEGRITY, signer = KEYS, keyid = TEST_KEY.keyid, signedVersion = version, provenance = PROVENANCE, signatures } = {}) {
   const sig = crypto.sign('sha256', Buffer.from(`@passioncode-ai/passioncode@${signedVersion}:${integrity}`), signer.privateKey).toString('base64');
-  return { integrity, signatures: signatures || [{ keyid, sig }], provenance };
+  return { integrity, signatures: signatures || [{ keyid, sig }], provenance, version };
 }
 /** The `dist` npm view prints for that version. */
 const distOf = (version, options) => {
@@ -69,6 +69,8 @@ const setState = (sb, state) => fs.writeFileSync(path.join(sb.stateDir, 'state.j
 const fresh = () => new Date().toISOString();
 const lines = (file) => { try { return fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
+const eventsOf = (sb) => lines(path.join(sb.stateDir, 'logs/update-events.log')).map((l) => l.split(' ').slice(1).join(' '));
+
 function hook(sb, extra = {}) {
   // Run from a directory outside any passioncode-ai repository, so the read-first line (repo-rules.test.js) stays out of these cases.
   const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(extra), cwd: os.tmpdir(), input: '' });
@@ -99,7 +101,7 @@ async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
 test('probe records the latest version, its maintainers and its publisher', () => {
   const sb = sandbox();
   const state = probe(sb, published('0.2.0', ['PassionCode-AI', 'sshlg'], 'sshlg'));
-  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
+  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view --registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
   assert.equal(state.published, true);
   assert.equal(state.latest, '0.2.0');
   assert.deepEqual(state.maintainers, ['passioncode-ai', 'sshlg']);
@@ -139,7 +141,7 @@ test('hook: an untrusted publisher is named and nothing is spawned', async () =>
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai', 'mallory'], publisher: 'mallory' });
   const out = hook(sb);
-  assert.equal(out, '[passioncode] @passioncode-ai/passioncode@0.2.0 is on npm but published by mallory, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md.\n');
+  assert.equal(out, '[passioncode] @passioncode-ai/passioncode@0.2.0 is on npm but published by mallory, not a trusted PassionCode publisher, so it is not installed; keep using 0.1.0 (npx @passioncode-ai/passioncode@0.1.0, not @latest) and see https://github.com/passioncode-ai/passioncode/blob/main/SECURITY.md#the-self-update-and-who-it-trusts.\n');
   assert.deepEqual(await npxCalls(sb), []);
   assert.equal(stateOf(sb).updatingSince, undefined);
 });
@@ -208,17 +210,17 @@ test('hook: a trusted publisher starts one update, pinned to the verified versio
   const sb = sandbox({ trust: ['passioncode-ai', 'sshlg'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai', 'sshlg'], publisher: 'sshlg' });
   assert.match(hook(sb), /0\.2\.0 is out \(you have 0\.1\.0\); updating in the background/);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.ok(Date.parse(stateOf(sb).updatingSince) > 0, 'the running update is recorded');
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes @passioncode-ai/passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
+  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
 });
 
 test('hook: a tampered, unsigned, foreign-signed or provenance-less version is refused and nothing is spawned (PC-131)', async () => {
   const trust = ['passioncode-ai'];
   const who = { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' };
   const tampered = `sha512-${crypto.createHash('sha512').update('a different tarball').digest('base64')}`;
-  const signature = /its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; see SECURITY\.md\./;
+  const signature = /its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; keep using 0\.1\.0 \(npx @passioncode-ai\/passioncode@0\.1\.0, not @latest\) and see https:\/\/github\.com\/passioncode-ai\/passioncode\/blob\/main\/SECURITY\.md#the-self-update-and-who-it-trusts\./;
   const cases = [
     ['other bytes than the signed ones', { ...verified('0.2.0'), integrity: tampered }, signature],
     ['a signature over another version', verified('0.2.0', { signedVersion: '0.1.9' }), signature],
@@ -228,7 +230,7 @@ test('hook: a tampered, unsigned, foreign-signed or provenance-less version is r
     ['an unpinned keyid', verified('0.2.0', { keyid: 'SHA256:not-pinned' }), signature],
     ['a damaged signature', { ...verified('0.2.0'), signatures: [{ keyid: TEST_KEY.keyid, sig: 'AAAA' }] }, signature],
     ['no integrity', { ...verified('0.2.0'), integrity: null }, signature],
-    ['no build provenance', verified('0.2.0', { provenance: null }), /0\.2\.0 is on npm without a build provenance attestation, so it is not installed; see SECURITY\.md\./],
+    ['no build provenance', verified('0.2.0', { provenance: null }), /0\.2\.0 is on npm without a build provenance attestation, so it is not installed; keep using 0\.1\.0/],
     ['another provenance type', verified('0.2.0', { provenance: 'https://slsa.dev/provenance/v0.2' }), /without a build provenance attestation/],
   ];
   for (const [name, verify, line] of cases) {
@@ -267,7 +269,50 @@ test('hook: a check recorded before signatures were read installs nothing and as
   assert.equal(lines(file).length, 1, 'a fresh check, although the last one is less than a day old');
   assert.deepEqual(await npxCalls(sb), []);
   assert.match(hook(sb), /updating in the background/, 'the next session installs the verified version');
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+});
+
+test('hook: signature data recorded for another version (an older plugin probed since) is not used; it asks npm again (PC-131)', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.1', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  assert.equal(hook(sb), '', 'no refusal for a version whose signature was never read');
+  assert.deepEqual(eventsOf(sb), []);
+  const until = Date.now() + 5000;
+  while (!lines(path.join(sb.home, 'npm-calls.log')).length && Date.now() < until) await sleep(50);
+  assert.equal(lines(path.join(sb.home, 'npm-calls.log')).length, 1, 'a fresh probe');
+  assert.deepEqual(await npxCalls(sb), []);
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  assert.equal(u.needsProbe({ published: true, latest: '0.2.0', verify: 'damaged' }), true);
+  assert.equal(u.needsProbe({ published: true, latest: '0.2.0', verify: [verified('0.2.0')] }), true);
+  assert.equal(u.needsProbe({ published: true, latest: '0.2.0', verify: verified('0.2.0') }), false);
+});
+
+test('hook: while the latest version is refused, its own lines name the installed version, never @latest (PC-131)', () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0', { signatures: [] }) });
+  fs.writeFileSync(path.join(sb.stateDir, 'doctor.json'), JSON.stringify({ at: new Date().toISOString(), summary: { ok: 1, warn: 0, fail: 1, info: 0 }, failed: ['skills.passioncode'] }));
+  const out = hook(sb);
+  assert.match(out, /registry signature does not verify/);
+  assert.match(out, /`npx @passioncode-ai\/passioncode@0\.1\.0 setup` repairs them/);
+  assert.doesNotMatch(out, /@latest [a-z]/, 'no command that would run the refused version');
+  setState(sb, { ...stateOf(sb), verify: verified('0.2.0') , installed: '0.2.0' });
+  assert.match(hook(sb), /`npx @passioncode-ai\/passioncode@latest setup` repairs them/, 'nothing refused: the usual command');
+});
+
+test('hook: an unreadable publisher is refused, and logged once (PC-131)', () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: null, verify: verified('0.2.0') });
+  assert.match(hook(sb), /who published it could not be read, so it is not installed; keep using 0\.1\.0/);
+  hook(sb);
+  assert.deepEqual(eventsOf(sb), ['update_check signature_failed unreadable_publisher']);
+});
+
+test('a pinned key that is not ECDSA P-256 verifies nothing', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const p384 = crypto.generateKeyPairSync('ec', { namedCurve: 'secp384r1' });
+  const sig = crypto.sign('sha256', Buffer.from(`${u.PACKAGE}@0.2.0:${INTEGRITY}`), p384.privateKey).toString('base64');
+  const verify = { integrity: INTEGRITY, signatures: [{ keyid: 'k', sig }], provenance: PROVENANCE, version: '0.2.0' };
+  assert.equal(u.registrySigned('0.2.0', verify, [{ keyid: 'k', key: spki(p384) }]), false);
 });
 
 test('the npm registry key shipped in trust.json verifies a real release (0.2.75), and only it', () => {
@@ -275,14 +320,14 @@ test('the npm registry key shipped in trust.json verifies a real release (0.2.75
   const keys = u.loadRegistryKeys(path.join(ROOT, 'plugin/passioncode/trust.json'));
   assert.ok(keys.length >= 1, 'at least one npm registry key is pinned');
   const real = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/npm-dist-0.2.75.json'), 'utf8'));
-  const verify = u.readDist(real.dist);
+  const verify = { ...u.readDist(real.dist), version: real.version };
   assert.equal(verify.provenance, u.PROVENANCE);
   assert.ok(u.registrySigned(real.version, verify, keys), 'npm signature of the published 0.2.75');
   assert.ok(!u.registrySigned('0.2.76', verify, keys), 'the same signature does not cover another version');
   assert.ok(!u.registrySigned(real.version, { ...verify, integrity: INTEGRITY }, keys), 'nor other bytes');
   assert.ok(!u.registrySigned(real.version, verify, [TEST_KEY]), 'nor verifies with another key');
   const state = { installed: '0.2.74', published: true, latest: real.version, maintainers: ['ssheleg'], publisher: u.OIDC_PUBLISHER, verify };
-  assert.deepEqual(u.decide(state, u.loadTrust(), Date.now(), keys).spawn, ['--yes', `${u.PACKAGE}@0.2.75`, 'update', '--quiet']);
+  assert.deepEqual(u.decide(state, u.loadTrust(), Date.now(), keys).spawn, ['--yes', `--registry=${u.REGISTRY}`, `${u.PACKAGE}@0.2.75`, 'update', '--quiet']);
 });
 
 test('probe reads only well-formed signature fields from dist', () => {
@@ -293,7 +338,6 @@ test('probe reads only well-formed signature fields from dist', () => {
   assert.deepEqual(odd.signatures, [{ keyid: 'k', sig: 'AA==' }]);
 });
 
-const eventsOf = (sb) => lines(path.join(sb.stateDir, 'logs/update-events.log')).map((l) => l.split(' ').slice(1).join(' '));
 
 test('PC-131: a refusal is logged once per version and reason, an update start once (LC-16)', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
@@ -307,7 +351,7 @@ test('PC-131: a refusal is logged once per version and reason, an update start o
   assert.deepEqual(eventsOf(sb).slice(1), ['update_check signature_failed untrusted_publisher'], 'another reason is news');
   setState(sb, { ...stateOf(sb), publisher: 'passioncode-ai', verify: verified('0.2.0') });
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.deepEqual(eventsOf(sb).slice(2), ['update_download started']);
 });
 
@@ -419,7 +463,7 @@ test('hook: a stale check starts the probe, which asks npm who publishes', async
   const file = path.join(sb.home, 'npm-calls.log');
   const until = Date.now() + 5000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
-  assert.deepEqual(lines(file), ['view @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
+  assert.deepEqual(lines(file), ['view --registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
 });
 
 test('hook: session starts inside one probe window start one npm view, not one each (F13)', async () => {
@@ -489,7 +533,7 @@ test('a version published by GitHub Actions through npm trusted publishing is re
   // The name alone is not the identity: anyone can call an account "GitHub Actions".
   assert.notEqual(u.parseView(view('GitHub Actions <someone@example.com>')).publisher, u.OIDC_PUBLISHER);
   const state = { installed: '0.1.0', published: true, latest: '0.2.0', maintainers: ['ssheleg'], publisher: u.OIDC_PUBLISHER, verify: verified('0.2.0'), config: { auto: true } };
-  assert.deepEqual(u.decide(state, ['ssheleg', u.OIDC_PUBLISHER], Date.now(), [TEST_KEY]).spawn, ['--yes', `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
+  assert.deepEqual(u.decide(state, ['ssheleg', u.OIDC_PUBLISHER], Date.now(), [TEST_KEY]).spawn, ['--yes', `--registry=${u.REGISTRY}`, `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
   assert.equal(u.decide(state, ['ssheleg'], Date.now(), [TEST_KEY]).spawn, null, 'not listed in trust.json: not installed');
   assert.ok(u.loadTrust().includes(u.OIDC_PUBLISHER), 'the shipped trust list accepts the release workflow');
 });
@@ -501,7 +545,7 @@ test('npm 12 singleton view metadata preserves the publisher trust decision', ()
   const result = u.parseView(JSON.stringify([metadata]));
   assert.deepEqual(result, u.parseView(JSON.stringify(metadata)));
   assert.deepEqual(u.decide({ installed: '0.1.0', ...result }, u.loadTrust(), Date.now(), [TEST_KEY]).spawn,
-    ['--yes', `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
+    ['--yes', `--registry=${u.REGISTRY}`, `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
   for (const malformed of [[], [metadata, metadata], [[metadata]], [null], ['metadata']]) {
     assert.ok(u.parseView(JSON.stringify(malformed)).checkError, 'ambiguous or malformed arrays fail closed');
   }

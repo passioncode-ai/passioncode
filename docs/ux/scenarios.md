@@ -132,10 +132,10 @@
   1. Start a session.
   2. Read any update/check diagnostic; continue the session.
 - **Expected result:** Only a newer pinned version with all maintainers and its publisher known and trusted, an npm registry signature that verifies with the pinned key and SLSA build provenance can start automatically (PC-131, ADR-0005). Probe errors cannot authorize an update.
-- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed it starts no update (PC-131); a tampered, unsigned, foreign-signed or provenance-less version is named in one line and neither installed nor offered (PC-131); a record from an older probe starts a fresh probe; after a successful uninstall the self plugin is gone, so no hook runs.
+- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed it starts no update (PC-131); a tampered, unsigned, foreign-signed or provenance-less version is named in one line and neither installed nor offered (PC-131); a record from an older probe, or one read for another version, starts a fresh probe; while a refusal stands the hook's lines name the installed version, not `@latest`; after a successful uninstall the self plugin is gone, so no hook runs.
 - **UI elements:** One-line hook notifications and logs.
 - **States covered:** empty, error, success
-- **Errors & recovery:** Missing npx does not fail the session or leave a false running marker. Repair PATH and retry next session.
+- **Errors & recovery:** Missing npx does not fail the session or leave a false running marker. Repair PATH and retry next session. A refused version: keep using the installed one through the pinned command the line names (never `@latest`, which runs the refused version); `status` shows the refusal; SECURITY.md "If a session shows such a line" says what each cause means and where to report it.
 - **Status:** implemented
 - **Coverage:** `test/self-update.test.js`; SCN-006 evidence names attribution, subprocess and timestamp regressions, and the PC-131 nothing-installed hook test (AUD-51), the refusal test for tampered, unsigned or provenance-less versions and the shipped key against a real 0.2.75 signature (AUD-53, AUD-54).
 - **Product:** unobserved

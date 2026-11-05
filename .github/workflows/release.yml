@@ -180,14 +180,15 @@ jobs:
           set -eu
           # prepublishOnly would vendor again from local checkouts; the payload above is
           # the one that was tested, so publish it as is.
-          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = "false" ]; then
-            npm publish --ignore-scripts --provenance
-          else
-            echo "repository is private — publishing without provenance"
-            npm publish --ignore-scripts
+          # Installed plugins refuse a version without provenance (ADR-0005), and npm gives provenance
+          # only to a public repository: a private one would publish a release nobody updates to.
+          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" != "false" ]; then
+            echo "the repository is not public: npm cannot attach provenance, and every installed plugin would refuse this release (ADR-0005)" >&2
+            exit 1
           fi
+          npm publish --ignore-scripts --provenance
 
-      - name: The registry must actually serve verified tarball bytes
+      - name: The registry must serve verified bytes, signed by the pinned npm key, with provenance
         run: |
           set -eu
           node scripts/check-registry.mjs "${{ steps.pub.outputs.name }}" "${{ steps.t.outputs.ver }}"

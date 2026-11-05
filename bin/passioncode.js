@@ -3,7 +3,7 @@
 const L = require('../lib/launcher');
 const VERSION = require('../package.json').version;
 
-function cachedNpmStatus({ latest, checkedAt, installed }) {
+function cachedNpmStatus({ latest, checkedAt, installed, refused }) {
   if (!latest) return 'npm latest: not checked';
   const checked = typeof checkedAt === 'string' && Number.isFinite(Date.parse(checkedAt))
     ? `checked ${checkedAt}` : 'check time unknown';
@@ -15,7 +15,7 @@ function cachedNpmStatus({ latest, checkedAt, installed }) {
     const difference = a.findIndex((part, i) => part !== b[i]);
     stale = difference !== -1 && a[difference] < b[difference];
   }
-  return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''})`;
+  return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''}${refused ? `; not installed automatically: ${refused.replace(/_/g, ' ')}` : ''})`;
 }
 
 const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills

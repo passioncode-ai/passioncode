@@ -103,14 +103,18 @@ command may write `~/.passioncode/analytics.json` and its notice marker and crea
 
 The SessionStart hook reads `~/.passioncode/state.json` and reuses a check for up to
 24 hours. An absent, invalid, future or expired timestamp starts
-`npm view @passioncode-ai/passioncode version maintainers _npmUser dist --json`, detached, logging to
+`npm view --registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json`
+(npm's own registry whatever registry the person's npm uses, because the pinned key speaks only for it), detached, logging to
 `~/.passioncode/logs/`. It records the latest version, the package's npm maintainers,
 the account that published that version, and from `dist` the version's integrity, the npm
 registry's signatures over it and the type of its provenance attestation. A record from an
-older probe, without these, starts a fresh probe at once. Each check, refusal, download, install and
+older probe, or one read for another version (an older plugin that probed since), starts a fresh
+probe at once and installs nothing meanwhile. Each check, refusal, download, install and
 change of the switch is a line of codes in `~/.passioncode/logs/update-events.log` (a refusal once per
 version and reason, a check once per answer); the probe and update logs and this one move aside at
-5 MB, five files kept, mode 0600.
+5 MB, five files kept, mode 0600 on macOS and Linux. `update_check ready` means a newer version
+was seen, before the hook checks it; a refusal (of publishers, signature or provenance) is
+`update_check signature_failed` with its reason.
 
 The hook installs a newer version on its own only when all of these hold:
 
@@ -124,18 +128,33 @@ The hook installs a newer version on its own only when all of these hold:
   by email, never by display name), and only a maintainer can register that workflow;
 - one of npm's signatures over `@passioncode-ai/passioncode@<version>:<integrity>` verifies
   with an npm registry key pinned in `trust.json` (`npmRegistryKeys`, copied from
-  `https://registry.npmjs.org/-/npm/v1/keys`), so the bytes are the ones npm signed;
-- the version carries an SLSA build provenance attestation
-  (`https://slsa.dev/provenance/v1`), as every release built by `release.yml` does;
+  `https://registry.npmjs.org/-/npm/v1/keys`): npm signed the integrity the check recorded;
+- the version carries an SLSA provenance attestation (`https://slsa.dev/provenance/v1`), as every
+  release built by `release.yml` does; which builder made it is not checked here;
 - the version is a plain `x.y.z`.
 
-It then runs `npx --yes @passioncode-ai/passioncode@<that exact version> update --quiet`, detached, so
-the version that was checked is the version that runs. In every other case it spawns
+It then runs `npx --yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@<that exact version> update --quiet`,
+detached, so the version that was checked is the version that runs; npm checks the download against
+the integrity it reads at that moment (up to a day after the check), so a different tarball for the
+same version would need the registry itself to serve other metadata than it signed. In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose
 signature does not verify or that has no provenance is reported the same way and not offered as a
 manual command either ([ADR-0005](docs/adr/0005-self-update-verifies-registry-signature-and-provenance.md)); a name nobody has
-published (npm E404) is silent; a failed check is shown once.
+published (npm E404) is silent; a failed check is shown once. A refused version is still
+`@latest` on npm: the refusal stops only the automatic update, and any `npx …@latest` command
+runs the refused version. So while a refusal stands, the hook's own lines name the installed
+version instead, and `status` adds "not installed automatically" with the reason.
+
+**If a session shows such a line.** Keep working on the version you have and run commands as
+`npx @passioncode-ai/passioncode@<installed version> …` (the line names it), not `@latest`. Then:
+a release published after an npm registry key rotation is installed by hand once the next launcher
+release pins the new key (`npx @passioncode-ai/passioncode@<that version> update`); a registry
+mirror or proxy cannot cause the line, because the check reads npm's registry itself, but one that
+blocks `registry.npmjs.org` makes the check fail instead ("the daily update check failed"); any
+other refusal, a signature that does not verify above all, may mean tampering: report it to
+contact@passioncode.ai with the line and `~/.passioncode/logs/update-events.log`. A plugin of 0.2.75
+or earlier, installed by hand again, checks only the publishers until it updates.
 
 The current allowlist lives in [`plugin/passioncode/trust.json`](plugin/passioncode/trust.json).
 A missing or empty allowlist cannot authorize an update. Adding an account there is a release decision:
@@ -147,10 +166,14 @@ skill text. The vendor scans supported text-file sizes for credential-shaped str
 and rejects an invalid self-plugin trust list; that scan is not a proof that all
 possible secrets or malicious code are absent. Review member code at its pinned tag.
 Automatic updates verify npm's registry signature against the pinned key and require a
-provenance attestation of the SLSA type; they do not verify the attestation's Sigstore bundle
-(npm checks it at publish time), they trust the local cached state, and they do not sandbox the
+provenance attestation of the SLSA type; they do not verify the attestation's Sigstore bundle or
+its builder (npm checks the bundle at publish time), the signature is npm's and not a PassionCode
+release key's (LC-16 asks for the organization's; [ADR-0005](docs/adr/0005-self-update-verifies-registry-signature-and-provenance.md)
+says why and what is open), they trust the local cached state, and they do not sandbox the
 installed code. When npm rotates its registry key, a release adds the new key first; an older
-plugin then refuses automatic updates and says so.
+plugin then refuses automatic updates and says so. A pinned key npm retires or revokes stays
+trusted until a release removes it. The release workflow publishes only with provenance and its
+registry receipt runs these same checks on the published version (`scripts/check-registry.mjs`).
 
 Evidence: `update()`, `restore()` and `uninstall()` in `lib/launcher.js`;
 `parseView()`, `readDist()`, `registrySigned()` and `decide()` in `plugin/passioncode/hooks/update-check.js`;

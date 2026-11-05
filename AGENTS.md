@@ -119,7 +119,7 @@ or resident process. Everything it runs is started by a person or by Claude Code
 | `passioncode update / restore / uninstall` | a person, or the background update below | on demand | one `claude plugin` call per member (180 s cap each); and, while the anonymous counts are on, one request to analytics.passioncode.ai at the end (2 s cap), `~/.passioncode/analytics.json`, its notice marker and, once, the shared `PassionCode/installation.json` | nothing | exits; `~/.passioncode/update.lock` keeps one at a time (`test/lifecycle.test.js`) |
 | `passioncode status / config / permissions / analytics / help` | a person or their coding agent | on demand | the command's own reads; and, while the anonymous counts are on, one request to analytics.passioncode.ai at the end (2 s cap), `~/.passioncode/analytics.json`, its notice marker and, once, the shared `PassionCode/installation.json` | nothing | exits |
 | SessionStart hook `plugin/passioncode/hooks/session-start.js` | Claude Code, matcher `startup` only (not resume, clear or compact) | once per new session | 0.11–0.19 s, 2 processes (node + `git remote get-url`, 2 s cap), 5 s hook timeout; measured 2026-10-03 (lifecycle audit, passioncode-adapter §4) | nothing | exits |
-| Probe `hooks/probe.js` → `npm view` | the hook, detached | at most once a day (`checkedAt` older than 24 h), or at once when the saved check predates the signature check (`verify` missing), one at a time (`probe.pending`) | 1 node + 1 npm, one HTTPS call, 30 s cap | runs ≤ 30 s, then exits | its own timeout |
+| Probe `hooks/probe.js` → `npm view --registry=https://registry.npmjs.org` | the hook, detached | at most once a day (`checkedAt` older than 24 h), or at once when the saved check has no signature data for the latest version (`verify` missing or read for another), one at a time (`probe.pending`) | 1 node + 1 npm, one HTTPS call, 30 s cap | runs ≤ 30 s, then exits | its own timeout |
 | Background update `npx @passioncode-ai/passioncode@<x.y.z> update --quiet` | the hook, only for a newer version from trusted publishers, signed by npm's pinned key and with build provenance, with a release installed and auto-update on | at most once per 10 min (`updatingSince`), usually never | as `update`, without the analytics request (the hook turns the counts off) | runs to completion (tens of seconds) | exits; refuses if another update holds the lock |
 | Observatory Log hooks (vendored member) | Claude Code: SessionStart on every start/resume/clear/compact (15 s cap), Stop after every turn (20 s cap) | per session and per turn | owned by `passioncode-ai/project-observatory-dashboard` (`observatory/engine/skill/plugins/observatory-log/hooks/`) | nothing | exits |
 
@@ -128,8 +128,14 @@ Idle budget: zero — no process runs between sessions except a probe or update 
 Update log (LC-12, LC-16): `~/.passioncode/logs/update-events.log` holds one line of codes per `update_check`
 (`ready`/`current` once per answer, `check_failed`, `signature_failed <reason>` once per version and reason),
 `update_download` (`started`, `done`), `update_install` (`installed`, `failed`) and `auto_update` (`on`, `off`);
-`probe.log`, `update.log` and it move aside at 5 MB with five files kept, mode 0600 (`hooks/update-log.js`, its
-copy `lib/update-log.js`).
+`probe.log`, `update.log` and it move aside at 5 MB with five files kept, mode 0600 on macOS and Linux
+(`hooks/update-log.js`, its copy `lib/update-log.js`). `ready` means a newer version was seen, before the hook
+checks it; `signature_failed` covers every refusal (publishers, signature, provenance) with its reason.
+
+Where the update departs from LC-16 and LC-12 (said here as LC-16 asks): the signature checked is npm's registry
+key over npm's copy, not the organization's (PC-142 adds one), and the logs live in `~/.passioncode/logs/`, not
+`~/Library/Logs/<Product>/`, with the rest of the launcher's state on all three platforms
+([ADR-0005](docs/adr/0005-self-update-verifies-registry-signature-and-provenance.md)).
 
 **Build retention (LC-15).** Output directories: `payload/` (written by `scripts/vendor.mjs`,
 replaced whole on each run — one copy) and `*.tgz` from `npm pack` (`scripts/smoke-pack.mjs` packs

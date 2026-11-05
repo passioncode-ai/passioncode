@@ -6,12 +6,12 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { PACKAGE, parseView, recordProbe, releaseProbe, checkEvent } = require('./update-check');
+const { PACKAGE, REGISTRY, parseView, recordProbe, releaseProbe, checkEvent } = require('./update-check');
 const { logEvent } = require('./update-log');
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
 const STATE = path.join(DIR, 'state.json');
-execFile('npm', ['view', PACKAGE, 'version', 'maintainers', '_npmUser', 'dist', '--json'], { timeout: 30000 }, (error, stdout) => {
+execFile('npm', ['view', `--registry=${REGISTRY}`, PACKAGE, 'version', 'maintainers', '_npmUser', 'dist', '--json'], { timeout: 30000 }, (error, stdout) => {
   try { record(error, stdout); } finally { releaseProbe(DIR); } // the hook claimed probe.pending before it started us
 });
 

@@ -25,15 +25,20 @@
   `update.auto` is off, names `config set update.auto on` as the person's choice; it is never a failure, a repair or one
   of setup's steps, and doctor never turns the switch on.
 
-- **The self-update installs only bytes npm signed, built by CI** (PC-131, ADR-0005): besides the trusted publishers,
-  the session hook now requires one of npm's registry signatures over the version's integrity to verify with npm's key,
-  pinned in the plugin's `trust.json`, and an SLSA build provenance attestation. A tampered, unsigned, foreign-signed or
-  provenance-less version is named in one line and neither installed nor offered as a manual command. The release
-  build refuses a `trust.json` without a usable registry key.
+- **The self-update checks npm's signature and the build provenance** (PC-131, ADR-0005): besides the trusted
+  publishers, the session hook now requires one of npm's registry signatures over the integrity its check recorded to
+  verify with npm's key, pinned in the plugin's `trust.json`, and an SLSA provenance attestation (its builder is not
+  checked). The probe and the update ask `registry.npmjs.org` whatever registry npm is set to. A tampered, unsigned,
+  foreign-signed or provenance-less version is named in one line that says which version to keep using, and it is
+  neither installed nor offered as a manual command; while a refusal stands the hook's lines name the installed
+  version, not `@latest`, and `status` shows the refusal. The release build refuses a `trust.json` whose keys the hook
+  would not load, the release workflow publishes only with provenance, and its registry receipt runs the same checks
+  on the published version. The signature is npm's, not the organization's that LC-16 asks for (PC-142).
 - **An update log, and every update log capped** (PC-131, LC-12, LC-16): `~/.passioncode/logs/update-events.log`
   records `update_check` (`ready` or `current` once per answer, `check_failed`, `signature_failed` with its reason
   once per version), `update_download`, `update_install` and `auto_update`, codes only; it, `probe.log` and
-  `update.log` move aside at 5 MB, five files kept, mode 0600.
+  `update.log` move aside at 5 MB, five files kept, mode 0600 on macOS and Linux.
+
 ### Changed
 
 - **Fabric Agent Adapter is pinned at `v0.63.0`** (it was `v0.62.0`): the `working-with-fabric` session hooks take a

@@ -180,7 +180,12 @@ test('vendor refuses a self plugin without a valid trust list', async () => {
   fs.writeFileSync(path.join(f.root, 'plugin/passioncode/trust.json'), JSON.stringify({ npmPublishers: ['Not An Account'] }));
   assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /lowercase npm account names/);
   // ADR-0005: a list without a usable npm registry key would make every machine refuse the update.
-  for (const npmRegistryKeys of [undefined, [], [{ keyid: 'SHA256:x', key: 'not a key' }], [{ keyid: '', key: 'MFkw' }]]) {
+  const shipped = JSON.parse(fs.readFileSync(path.join(ROOT, 'plugin/passioncode/trust.json'), 'utf8')).npmRegistryKeys[0];
+  const spki = (type, options) => require('node:crypto').generateKeyPairSync(type, options).publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+  for (const npmRegistryKeys of [undefined, [], [{ keyid: 'SHA256:x', key: 'not a key' }], [{ keyid: '', key: 'MFkw' }],
+    [{ ...shipped, key: `${shipped.key.slice(0, 40)}\n${shipped.key.slice(40)}` }], // wrapped: the hook would load no key
+    [{ ...shipped, key: shipped.key.replace(/\+/g, '-').replace(/\//g, '_') }], // URL-safe base64: the same
+    [{ keyid: 'SHA256:p384', key: spki('ec', { namedCurve: 'secp384r1' }) }], [{ keyid: 'SHA256:rsa', key: spki('rsa', { modulusLength: 2048 }) }]]) {
     fs.writeFileSync(path.join(f.root, 'plugin/passioncode/trust.json'), JSON.stringify({ npmPublishers: ['ssheleg'], npmRegistryKeys }));
     assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /npmRegistryKeys/);
   }
