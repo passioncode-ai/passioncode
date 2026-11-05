@@ -109,7 +109,7 @@ and the account that published that version.
 
 The hook installs a newer version on its own only when all of these hold:
 
-- a release is installed (after `uninstall` none is, so nothing is installed back);
+- a release is installed (after `uninstall` none is, so the hook starts nothing; an update it had already started still finishes);
 - `update.auto` is on (the default);
 - the npm probe exited successfully, the recorded maintainers are non-empty, the
   publisher is known, and every maintainer **and** the publishing

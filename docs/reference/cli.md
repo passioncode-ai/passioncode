@@ -441,7 +441,9 @@ is cleared; with nothing installed the session hook installs nothing. The update
 switch is the person's: uninstall never writes it, and a later install keeps it as
 it was (on unless `config set update.auto off` turned it off; LC-16, PC-131). The
 current and previous release directories and the quarantines remain available;
-`restore` still works. Repeated uninstall is safe. `status` still shows the switch
+`restore` still works. Repeated uninstall is safe. An update the session hook had
+already started (its `npx` still downloading, before it takes the update lock) still
+finishes and installs the set: check `status` and run `uninstall` again. `status` still shows the switch
 (on by default); with nothing installed it updates nothing. An uninstall by 0.2.75 or
 earlier wrote the switch off: `status` then shows `auto-update off`, and
 `npx @passioncode-ai/passioncode@latest config set update.auto on` turns it back on.
@@ -457,8 +459,8 @@ sessions started together run one `npm view`; the probe removes the marker once 
 has recorded, and a marker older than five minutes is taken over. A probe is
 consumed by a later hook invocation.
 
-Only a successful npm response with readable maintainers and publisher can
-authorize an automatic update; every identity must be trusted. The spawned
+Only a successful npm response with readable maintainers and publisher, with a
+release installed, can authorize an automatic update; every identity must be trusted. The spawned
 command pins the verified version. Missing `npx` is reported without crashing the
 session or retaining a false running marker. The running marker suppresses another
 automatic attempt for ten minutes; it is not a process lock or proof of completion.

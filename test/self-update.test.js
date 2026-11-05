@@ -144,6 +144,7 @@ test('hook: with nothing installed (after uninstall, or an older state without t
     const r = decide(state, ['passioncode-ai']);
     assert.equal(r.spawn, null);
     assert.deepEqual(r.lines, []);
+    assert.deepEqual(r.stateChanges, {});
   }
 });
 
