@@ -254,6 +254,18 @@
       "file": "test/launcher.test.js",
       "test": "PC-126: a registration is recorded as soon as it is written, so an update killed later leaves it removable",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-43",
+      "file": "test/launcher.test.js",
+      "test": "PC-126: a Codex config.toml the launcher creates is private",
+      "scenario": "SCN-003"
+    },
+    {
+      "id": "AUD-44",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex config.toml that cannot be read is kept recorded, not taken as gone",
+      "scenario": "SCN-005"
     }
   ]
 }

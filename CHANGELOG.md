@@ -52,6 +52,11 @@
   took is in its `~/.passioncode/quarantine/<run>/` as `config.toml.before-mcp-codex-cli`; a removal by `restore` or
   `uninstall` took none. A link to a missing file was replaced by 0.2.74 and 0.2.75 with a file holding only the
   launcher's entries, and no copy was taken: move that file to where the link pointed and link again.
+  An MCP entry an earlier version left unrecorded (one a 0.2.75 `uninstall` could not read and took as cleaned, or
+  one written by an update that was killed before it finished) is now neither removed by `restore` nor known to
+  `uninstall`: delete it by hand. With these failures shown instead of hidden, `update`, `restore` and `uninstall` exit 1 in cases they
+  used to pass, so the anonymous counts of failed runs (`command_run` with `failed`, `app_error`) can rise from 0.2.76
+  without a change in what they mean.
 
 ## 0.2.75 - 2026-11-04
 

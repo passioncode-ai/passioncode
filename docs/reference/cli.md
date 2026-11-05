@@ -331,7 +331,7 @@ that does not parse, or a folder in the file's place, is reported as kept and no
 longer tracked: fix it and remove the entry by hand. `~/.codex/config.toml` is read
 as text: the launcher removes its own table when it finds it intact, and otherwise
 takes the entry as gone without a note. A path that now runs through a
-file is taken as already gone. A conflict in the same batch stops restore with nothing listed,
+file is taken as already gone. A conflict, a missing source or a marketplace that cannot be re-added in the same batch stops restore with nothing listed,
 although MCP entries it reached first are already removed; after you move the
 replacement aside, the retry puts back the rest and names the kept entry (PC-127).
 
