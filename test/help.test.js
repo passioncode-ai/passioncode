@@ -1,4 +1,6 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // PC-98: the help lists, on each command's own line, every flag in the argument parser's lists for
 // that command (plus --with, --without and --train, which it reads by pattern, and the flags
 // config's argument filter sets aside), and names the command aliases, so no option is only

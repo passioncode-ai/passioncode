@@ -1,4 +1,6 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // The read-first reminder (Fabric agent-registry plan AR-0.7, the protocol of Fabric ADR-0093):
 // at session start in a passioncode-ai repository, one line says the protocol — read the
 // knowledge base and the repository's AGENTS.md before the first edit, update the knowledge base

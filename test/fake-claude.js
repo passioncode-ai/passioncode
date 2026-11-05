@@ -7,14 +7,16 @@
 //   marketplace list --json           [{ name, source, ... }]
 //   mcp add --scope user <name> -- <command>   writes { type: 'stdio', command, args, env } to
 //                                              ~/.claude.json mcpServers, keeping the rest
-//   mcp remove --scope user <name>             drops it; exit 1 when there is none
+//   mcp remove --scope user <name>             drops it; exit 1 when there is none; FAKE_CLAUDE_KEEP_MCP: exit 0, entry kept
 const fs = require('fs');
 const path = require('path');
 const home = process.env.HOME;
-const dir = path.join(home, '.claude', 'plugins');
-const settingsFile = path.join(home, '.claude', 'settings.json');
-fs.mkdirSync(dir, { recursive: true });
+// Like the real CLI, everything moves under CLAUDE_CONFIG_DIR when it is set, .claude.json included (PC-129).
+const configDir = process.env.CLAUDE_CONFIG_DIR ? path.resolve(process.env.CLAUDE_CONFIG_DIR) : null;
+const dir = path.join(configDir || path.join(home, '.claude'), 'plugins');
+const settingsFile = path.join(configDir || path.join(home, '.claude'), 'settings.json');
 const args = process.argv.slice(2);
+if (args[0] !== '--version') fs.mkdirSync(dir, { recursive: true }); // the real CLI makes no folder to answer --version
 fs.appendFileSync(path.join(home, 'claude-calls.log'), args.join(' ') + '\n');
 const read = (f, d) => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (_) { return d; } };
 const write = (f, v) => fs.writeFileSync(path.join(dir, f), JSON.stringify(v, null, 2));
@@ -24,7 +26,7 @@ const writeSettings = (v) => { if (v) fs.writeFileSync(settingsFile, JSON.string
 if (args[0] === '--version') { console.log('2.1.0 (Claude Code)'); process.exit(0); }
 if (process.env.FAKE_CLAUDE_FAIL && args.join(' ').includes(process.env.FAKE_CLAUDE_FAIL)) { console.error('simulated failure'); process.exit(1); }
 if (args[0] === 'mcp') {
-  const claudeJson = path.join(home, '.claude.json');
+  const claudeJson = path.join(configDir || home, '.claude.json');
   const doc = (() => { try { return JSON.parse(fs.readFileSync(claudeJson, 'utf8')); } catch (_) { return {}; } })();
   const rest = args.slice(2).filter((x, i, all) => x !== '--scope' && all[i - 1] !== '--scope');
   if (args[1] === 'add') {
@@ -33,6 +35,7 @@ if (args[0] === 'mcp') {
     doc.mcpServers = { ...(doc.mcpServers || {}), [name]: { type: 'stdio', command, args: cmdArgs, env: {} } };
   } else if (args[1] === 'remove') {
     if (!doc.mcpServers || !doc.mcpServers[rest[0]]) { console.error(`No MCP server found with name: ${rest[0]}`); process.exit(1); }
+    if (process.env.FAKE_CLAUDE_KEEP_MCP) process.exit(0); // answers removed and leaves the entry
     delete doc.mcpServers[rest[0]];
   }
   fs.writeFileSync(claudeJson, JSON.stringify(doc, null, 2));

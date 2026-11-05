@@ -1,4 +1,6 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // Windows acceptance of 2026-10-28 (fabric-workspace docs/reports/2026-10-28-windows-acceptance): the
 // launcher's two defects there, PC-85 and PC-86, and PC-87 found beside them. Every test runs on any OS; on Windows itself the
 // rename below is the real one, so the hosted Windows job proves PC-85 on the file system it is about.

@@ -1,4 +1,6 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -94,6 +96,275 @@ test('update installs the release, the plugins, the hub and channels, and moves 
   assert.equal(state.installed, '0.1.0');
   const moved = JSON.parse(fs.readFileSync(path.join(state.quarantines[0], 'moved.json'), 'utf8'));
   assert.equal(moved.length, 3);
+});
+
+test('PC-129: with CLAUDE_CONFIG_DIR set, update installs, checks shadows and keeps state in that folder, not ~/.claude', () => {
+  const env = setup();
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg); // where Claude Code keeps everything when the variable is set
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: cfg };
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.equal(fs.existsSync(path.join(env.home, '.claude')), false, 'nothing is written under ~/.claude');
+  const installed = Object.keys(JSON.parse(fs.readFileSync(path.join(cfg, 'plugins/installed_plugins.json'), 'utf8')).plugins);
+  assert.ok(installed.includes('example-agent@passioncode'), installed.join(', '));
+  assert.equal(fs.existsSync(path.join(cfg, 'skills/example-agent')), false, 'the shadowing entry in that folder is moved aside');
+  const status = JSON.parse(run(env, 'status', '--json').stdout);
+  assert.equal(status.members.find((m) => m.name === 'example-agent').claude, 'plugin', 'status reads the plugins from that folder');
+});
+
+test('PC-129: a relative CLAUDE_CONFIG_DIR means one folder to the launcher and the CLI: MCP, doctor and uninstall agree', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg);
+  fs.renameSync(path.join(env.home, '.claude.json'), path.join(cfg, '.claude.json'));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: 'claude-config' }; // relative: the CLI runs from ~/.passioncode, the launcher from home
+  const at = (...args) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', cwd: env.home, env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', ...env.extra } });
+  const up = at('update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  const servers = () => JSON.parse(fs.readFileSync(path.join(cfg, '.claude.json'), 'utf8')).mcpServers;
+  assert.ok(servers()['fabric-dashboards'], 'registered in the folder the variable names');
+  assert.equal(fs.existsSync(path.join(env.home, '.passioncode', 'claude-config')), false, 'no stray folder where the CLI runs');
+  assert.equal(fs.existsSync(path.join(env.home, '.claude.json')), false);
+  fs.mkdirSync(path.join(cfg, 'skills', 'example-agent'), { recursive: true }); // a plain copy that shadows the plugin
+  const doc = JSON.parse(at('doctor', '--json', '--offline').stdout);
+  const row = doc.checks.find((c) => c.id === 'skills.example-agent');
+  assert.match(row.detail, /shadowed by \S*claude-config[\\/]skills[\\/]example-agent/, row.detail); // the folder it checked
+  const mcpRow = doc.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  assert.ok(mcpRow && !/is not registered/.test(mcpRow.detail), `doctor reads the folder's .claude.json: ${JSON.stringify(mcpRow)}`);
+  const un = at('uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(servers()['fabric-dashboards'], undefined, 'uninstall removes it from the same file');
+  assert.ok(servers().someone, "the person's own entry stays");
+});
+
+test('PC-129: uninstall without the variable removes the entry from the folder it was written to, never a same-named one in ~/.claude.json', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg);
+  fs.renameSync(path.join(env.home, '.claude.json'), path.join(cfg, '.claude.json'));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: cfg };
+  assert.equal(run(env, 'update', '--json').status, 0);
+  const servers = (file) => JSON.parse(fs.readFileSync(file, 'utf8')).mcpServers;
+  assert.ok(servers(path.join(cfg, '.claude.json'))['fabric-dashboards']);
+  // The person's own entry of the same name in the default file.
+  fs.writeFileSync(path.join(env.home, '.claude.json'), JSON.stringify({ mcpServers: { 'fabric-dashboards': { command: '/their/own' } } }));
+  delete env.extra.CLAUDE_CONFIG_DIR;
+  const un = run(env, 'uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(servers(path.join(cfg, '.claude.json'))['fabric-dashboards'], undefined, 'removed from the folder it was written to');
+  assert.deepEqual(servers(path.join(env.home, '.claude.json'))['fabric-dashboards'], { command: '/their/own' }, "the person's entry stays");
+});
+
+test('PC-129: an entry claude mcp remove answers for but leaves is named in the uninstall output', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.ok(JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers['fabric-dashboards']);
+  env.extra = { ...env.extra, FAKE_CLAUDE_KEEP_MCP: '1' };
+  const un = run(env, 'uninstall');
+  assert.match(un.stdout + un.stderr, /is still there after claude mcp remove/, un.stdout + un.stderr);
+});
+
+test('PC-129: paths() puts every Claude Code file under CLAUDE_CONFIG_DIR when it is set, and an empty one counts as unset', () => {
+  const L = require('../lib/launcher');
+  const saved = process.env.CLAUDE_CONFIG_DIR;
+  try {
+    process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'cc');
+    const p = L.paths(path.join(os.tmpdir(), 'h'));
+    const cc = path.resolve(path.join(os.tmpdir(), 'cc'));
+    assert.deepEqual([p.claudeSkills, p.claudePlugins, p.claudeSettings, p.claudeJson],
+      [path.join(cc, 'skills'), path.join(cc, 'plugins'), path.join(cc, 'settings.json'), path.join(cc, '.claude.json')]);
+    process.env.CLAUDE_CONFIG_DIR = '';
+    const d = L.paths(path.join(os.tmpdir(), 'h'));
+    assert.equal(d.claudeSettings, path.join(os.tmpdir(), 'h', '.claude', 'settings.json'));
+    assert.equal(d.claudeJson, path.join(os.tmpdir(), 'h', '.claude.json'));
+    // SB-259: with SWITCHBOARD_CLAUDE_SOURCE_DIR, settings and .claude.json are the operator folder's, plugins and skills the home's.
+    process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'cc');
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'own');
+    const s = L.paths(path.join(os.tmpdir(), 'h'));
+    const own = path.resolve(path.join(os.tmpdir(), 'own'));
+    assert.deepEqual([s.claudeSkills, s.claudePlugins, s.claudeSettings, s.claudeJson],
+      [path.join(cc, 'skills'), path.join(own, 'plugins'), path.join(own, 'settings.json'), path.join(own, '.claude.json')]);
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'h', '.claude'); // the default folder: ~/.claude.json
+    const o = L.paths(path.join(os.tmpdir(), 'h'));
+    assert.deepEqual([o.claudeSettings, o.claudeJson], [path.join(os.tmpdir(), 'h', '.claude', 'settings.json'), path.join(os.tmpdir(), 'h', '.claude.json')]);
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = 'own'; // not absolute: not Switchboard's, ignored
+    assert.equal(L.paths(path.join(os.tmpdir(), 'h')).claudeSettings, path.join(cc, 'settings.json'));
+    // A home of a Switchboard before 0.7.14 (no source named) lies in its data folder: ~/.claude, as 0.2.75 wrote.
+    delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR;
+    process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'ai.passioncode.fabric-switchboard', 'shell', 'claude-p1');
+    const old = L.paths(path.join(os.tmpdir(), 'h'));
+    assert.deepEqual([old.claudeSettings, old.claudeJson, old.claudePlugins],
+      [path.join(os.tmpdir(), 'h', '.claude', 'settings.json'), path.join(os.tmpdir(), 'h', '.claude.json'), path.join(os.tmpdir(), 'h', '.claude', 'plugins')]);
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'own');
+    process.env.CLAUDE_CONFIG_DIR = ''; // without a home the session is not Switchboard's: ~/.claude
+    assert.equal(L.paths(path.join(os.tmpdir(), 'h')).claudeSettings, path.join(os.tmpdir(), 'h', '.claude', 'settings.json'));
+  } finally {
+    if (saved === undefined) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = saved;
+    delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR;
+  }
+});
+
+test('PC-129: inside a Switchboard home the launcher writes settings and MCP to the operator folder and reads plugins from the home (SB-259)', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const operator = path.join(env.home, '.claude');
+  fs.writeFileSync(path.join(operator, 'settings.json'), JSON.stringify({ theme: 'dark' }));
+  // The home Switchboard builds: plugins and skills lead to the operator folder, settings.json is a copy rebuilt per launch.
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(sb, { recursive: true });
+  fs.symlinkSync(path.join(operator, 'plugins'), path.join(sb, 'plugins'), 'junction');
+  fs.symlinkSync(path.join(operator, 'skills'), path.join(sb, 'skills'), 'junction');
+  fs.copyFileSync(path.join(operator, 'settings.json'), path.join(sb, 'settings.json'));
+  fs.writeFileSync(path.join(sb, '.claude.json'), JSON.stringify({ hasCompletedOnboarding: true }));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  assert.ok(mcpEntry(path.join(env.home, '.claude.json')), "registered in the operator's ~/.claude.json");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(sb, '.claude.json'), 'utf8')).mcpServers, undefined, "the home's own file is left alone");
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(sb, 'settings.json'), 'utf8')), { theme: 'dark' }, 'the rebuilt copy is not written');
+  const installed = Object.keys(JSON.parse(fs.readFileSync(path.join(operator, 'plugins/installed_plugins.json'), 'utf8')).plugins);
+  assert.ok(installed.includes('example-agent@passioncode'), installed.join(', '));
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).members.find((m) => m.name === 'example-agent').claude, 'plugin', 'status reads them through the home');
+  const doc = JSON.parse(run(env, 'doctor', '--json', '--offline').stdout);
+  const mcpRow = doc.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  // The stand-in server does not answer its proving call; what matters is that doctor found the entry where it was written.
+  assert.ok(mcpRow && !/is not registered/.test(mcpRow.detail), `doctor reads the person's ~/.claude.json: ${JSON.stringify(mcpRow)}`);
+  const mode = run(env, 'permissions', 'mode', 'acceptEdits', '--json');
+  assert.equal(mode.status, 0, mode.stderr + mode.stdout);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(operator, 'settings.json'), 'utf8')).permissions.defaultMode, 'acceptEdits', "the mode lands in the operator's settings");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(sb, 'settings.json'), 'utf8')).permissions, undefined);
+  const un = run(env, 'uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(mcpEntry(path.join(env.home, '.claude.json')), undefined, 'uninstall removes it from the same file');
+});
+
+test('PC-129: a Switchboard home with a plugins folder of its own still updates: the registry is checked where the CLI installs', () => {
+  const env = setup();
+  const operator = path.join(env.home, '.claude');
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(path.join(sb, 'plugins'), { recursive: true }); // a real folder, which Switchboard never replaces with a link
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  assert.ok(Object.keys(JSON.parse(fs.readFileSync(path.join(operator, 'plugins/installed_plugins.json'), 'utf8')).plugins).includes('example-agent@passioncode'));
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).members.find((m) => m.name === 'example-agent').claude, 'plugin');
+  fs.rmSync(path.join(env.home, 'claude-calls.log'));
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.ok(!calls(env.home).some((c) => c.startsWith('plugin marketplace add')), 'the marketplace is not added again: ' + calls(env.home).join('; '));
+});
+
+test('PC-129: uninstall with the variable set removes an entry written without it from ~/.claude.json, never a same-named one in that folder', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  const cfg = path.join(env.home, 'claude-config');
+  fs.mkdirSync(cfg, { recursive: true });
+  fs.writeFileSync(path.join(cfg, '.claude.json'), JSON.stringify({ mcpServers: { 'fabric-dashboards': { command: '/their/own' } } }));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: cfg };
+  const un = run(env, 'uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(mcpEntry(path.join(env.home, '.claude.json')), undefined, 'removed from the file it was written to');
+  assert.equal(mcpEntry(path.join(cfg, '.claude.json')).command, '/their/own', "the person's own entry stays");
+});
+
+const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch (_) { return false; } };
+test('PC-129: a shadow moved aside through a Switchboard home goes back into the person\'s skills folder, even once the home is gone', () => {
+  const env = setup(); // ~/.claude/skills/example-agent shadows the plugin
+  const operator = path.join(env.home, '.claude');
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(sb, { recursive: true });
+  fs.symlinkSync(path.join(operator, 'skills'), path.join(sb, 'skills'), 'junction');
+  fs.symlinkSync(path.join(operator, 'plugins'), path.join(sb, 'plugins'), 'junction');
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  assert.equal(fs.existsSync(path.join(operator, 'skills', 'example-agent')) || isLink(path.join(operator, 'skills', 'example-agent')), false, 'moved aside');
+  fs.rmSync(sb, { recursive: true, force: true }); // the account or Switchboard is removed
+  env.extra = {};
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(operator, 'skills', 'example-agent')), "back in the person's folder");
+  assert.equal(fs.existsSync(sb), false, 'no folder is made where the home was');
+});
+
+test('PC-129: a person\'s own linked skills folder keeps its path: restore follows wherever the link points then', () => {
+  const env = setup(); // ~/.claude/skills/example-agent shadows the plugin
+  const skills = path.join(env.home, '.claude', 'skills');
+  const dots = path.join(env.home, 'dots', 'skills');
+  fs.mkdirSync(path.dirname(dots), { recursive: true });
+  fs.renameSync(skills, dots);
+  fs.symlinkSync(dots, skills, 'junction');
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.equal(isLink(path.join(skills, 'example-agent')), false, 'moved aside');
+  const dots2 = path.join(env.home, 'dots2', 'skills');
+  fs.mkdirSync(path.dirname(dots2), { recursive: true });
+  fs.renameSync(dots, dots2);
+  fs.unlinkSync(skills);
+  fs.symlinkSync(dots2, skills, 'junction');
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(skills, 'example-agent')), 'back in ~/.claude/skills');
+  assert.equal(fs.existsSync(dots), false, 'the old target is not made again');
+});
+
+test('PC-129: through a Switchboard home, a person\'s own linked skills folder still keeps its path', () => {
+  const env = setup();
+  const operator = path.join(env.home, '.claude');
+  const skills = path.join(operator, 'skills');
+  const dots = path.join(env.home, 'dots', 'skills');
+  fs.mkdirSync(path.dirname(dots), { recursive: true });
+  fs.renameSync(skills, dots);
+  fs.symlinkSync(dots, skills, 'junction');
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(sb, { recursive: true });
+  fs.symlinkSync(skills, path.join(sb, 'skills'), 'junction');
+  fs.symlinkSync(path.join(operator, 'plugins'), path.join(sb, 'plugins'), 'junction');
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.equal(isLink(path.join(skills, 'example-agent')), false, 'moved aside');
+  fs.rmSync(sb, { recursive: true, force: true });
+  const dots2 = path.join(env.home, 'dots2', 'skills');
+  fs.mkdirSync(path.dirname(dots2), { recursive: true });
+  fs.renameSync(dots, dots2);
+  fs.unlinkSync(skills);
+  fs.symlinkSync(dots2, skills, 'junction');
+  env.extra = {};
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(skills, 'example-agent')), 'back in ~/.claude/skills');
+  assert.equal(fs.existsSync(dots), false, 'the old target is not made again');
+});
+
+test('PC-129: a person\'s own CLAUDE_CONFIG_DIR with a linked skills folder keeps its path too', () => {
+  const env = setup();
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg);
+  const skills = path.join(cfg, 'skills');
+  const dots = path.join(env.home, 'dots', 'skills');
+  fs.mkdirSync(path.dirname(dots), { recursive: true });
+  fs.renameSync(skills, dots);
+  fs.symlinkSync(dots, skills, 'junction');
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: cfg };
+  assert.equal(run(env, 'update', '--json').status, 0);
+  const dots2 = path.join(env.home, 'dots2', 'skills');
+  fs.mkdirSync(path.dirname(dots2), { recursive: true });
+  fs.renameSync(dots, dots2);
+  fs.unlinkSync(skills);
+  fs.symlinkSync(dots2, skills, 'junction');
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(skills, 'example-agent')), 'back in its skills folder');
+  assert.equal(fs.existsSync(dots), false, 'the old target is not made again');
 });
 
 test('a second update is idempotent: updates plugins, moves nothing', () => {

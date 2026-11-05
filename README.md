@@ -85,7 +85,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   the same skills through `~/.agents/skills`, linked from each channel that exists on
   the machine. On Windows these links (and `~/.passioncode/current`) are junctions, which
   need neither an administrator session nor Developer Mode.
-- Updates create no skill copies in `~/.claude/skills`: a plain copy there shadows the plugin. Such
+- Updates create no skill copies in `~/.claude/skills` (or the folder `CLAUDE_CONFIG_DIR` names): a plain copy there shadows the plugin. Such
   copies, and hub entries that pointed at a repository's working tree, are moved into
   `~/.passioncode/quarantine/`; `npx @passioncode-ai/passioncode@latest restore` puts them back.
 - Each version is an immutable release under `~/.passioncode/releases/<version>`; an update
@@ -98,7 +98,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
   is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
-  tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json`, and agents' declarations in
+  tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later, your own Claude folder, and with an earlier one `~/.claude`, [docs/reference/cli.md](docs/reference/cli.md)), and agents' declarations in
   `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay)
   ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
   [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
@@ -166,7 +166,7 @@ npx @passioncode-ai/passioncode@latest status   # the installed release: its mem
 npx @passioncode-ai/passioncode@latest update --dry-run
 npx @passioncode-ai/passioncode@latest uninstall
 npx @passioncode-ai/passioncode@latest analytics off # stop the launcher's anonymous usage and error counts (on by default)
-npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed Claude Code to do without asking (in ~/.claude/settings.json), and who asked for it
+npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed Claude Code to do without asking (in Claude Code's user settings), and who asked for it
 ```
 
 For supported flags, JSON fields, exit codes and partial-failure recovery, read the

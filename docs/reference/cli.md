@@ -4,6 +4,12 @@ This page describes the source tree on `main`. A source merge is not an npm
 publication: use the [handoff index](../README.md) to distinguish source fixes
 from released and installed versions.
 
+Claude Code's files on this page: every `~/.claude` path and `~/.claude.json` means the folder `CLAUDE_CONFIG_DIR`
+names when it is set (its `.claude.json` inside it), as Claude Code itself reads them; in a session of Fabric
+Switchboard 0.7.14 or later, settings, plugins and MCP servers mean the person's own folder that
+`SWITCHBOARD_CLAUDE_SOURCE_DIR` names, and with an earlier Switchboard `~/.claude` (PC-129;
+[the two rows in Locations](#locations-and-development-overrides)).
+
 ## Commands and results
 
 Run the published launcher as `npx @passioncode-ai/passioncode@<version> <command>`.
@@ -131,7 +137,7 @@ asking. It is the person's security decision, taken only on its own yes: one que
 are merged: every other key and rule, and their order, is kept; a rule the person lists under `permissions.deny` or
 `permissions.ask` is not added; a second run adds nothing. Only `~/.claude/settings.json` is read (a rule granted in a
 project's or a managed settings file, or in another spelling such as `mcp__fabric__*`, is offered again), and the rules
-are offered only where Claude Code is (its `~/.claude` folder exists). Without a terminal and without `--yes`,
+are offered only where Claude Code is (the folder of its settings file exists). Without a terminal and without `--yes`,
 `--allow-tools` adds them when nothing else would change, and is part of the plan otherwise. A settings file that cannot
 be read, is not valid JSON, or whose `permissions`, `allow`, `deny` or `ask` has the wrong shape, is left as it is and
 named; a run with `--allow-tools` fails that step (exit 1), and a `--dry-run` with it says so ("A run with
@@ -353,8 +359,10 @@ conflict and interrupted-move regression tests and the PC-127 restore test in `t
 
 ## Permissions ledger
 
-`permissions` shows what PassionCode allowed Claude Code to do without asking, for a person and for Fabric's
-permissions screen (PC-125). Setup keeps a ledger, `~/.passioncode/permissions.json` (under `PASSIONCODE_HOME` when it
+`permissions` shows what PassionCode allowed Claude Code to do without asking, for a person and for a program (meant for
+Fabric's permissions screen, which does not read it yet; PC-125, PC-134). The ledger is one per machine (per
+`PASSIONCODE_HOME`), not one per Claude Code folder: with `CLAUDE_CONFIG_DIR` changing between runs, rules setup added to
+another folder's settings are listed against the folder read now (PC-129). Setup keeps a ledger, `~/.passioncode/permissions.json` (under `PASSIONCODE_HOME` when it
 is set; private, mode 600 on macOS and Linux, a link kept): each rule it added with `--allow-tools`, `--allow-commands` or a yes in a
 terminal, its set (`tools` or `commands`), what it allows (`why`), who declared it (`by`), where it came from
 (`source`: `launcher`, or `rules.d/<file>.json` for an agent's declaration), when (`installedAt`), who asked for it
@@ -443,7 +451,7 @@ is cleared; with nothing installed the session hook installs nothing. The update
 switch is the person's: uninstall never writes it, and a later install keeps it as
 it was (on unless `config set update.auto off` turned it off; LC-16, PC-131). The
 current and previous release directories and the quarantines remain available;
-`restore` still works. Repeated uninstall is safe. An update the session hook had
+`restore` still works. Repeated uninstall is safe; with more than one Claude Code folder, see the manual commands in [the `CLAUDE_CONFIG_DIR` row](#locations-and-development-overrides). An update the session hook had
 already started (its `npx` still downloading, before it takes the update lock) still
 finishes and installs the set, which can take several minutes (uninstall refuses while
 it runs): once `~/.passioncode/logs/update.log` shows it ended, run `status`; if it shows
@@ -500,6 +508,8 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |
 | `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root (and the `run/` folder the session hook uses), and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
+| `CLAUDE_CONFIG_DIR` | Claude Code's own variable: when set, the launcher reads and writes Claude Code's settings, plugins, skills and `.claude.json` in that folder instead of `~/.claude` and `~/.claude.json`, as Claude Code does (PC-129). `update`, `setup` and `restore` act on the folder of the run, while the release state in `~/.passioncode` is one per machine: another Claude Code folder gets new plugins when `update` runs with that folder's variable (the session hook's background update acts on the folder of the session that starts it). `uninstall` clears the installation once: the first run removes the set's plugins and marketplace from the folder it runs with, and every MCP entry the launcher registered wherever it was written; in every other folder a later `uninstall` prints "Nothing was installed.", so remove the plugins there by hand with `claude plugin uninstall <member>@passioncode` and `claude plugin marketplace remove passioncode`, run with that folder's variable, before or after. Not seen when it is set only in the `env` of Claude Code's own settings files. `restore` puts a retired marketplace back into the settings file of the folder it runs with, not necessarily the one it was taken from |
+| `SWITCHBOARD_CLAUDE_SOURCE_DIR` | Set by Fabric Switchboard 0.7.14 and later beside a `CLAUDE_CONFIG_DIR` that points at its own Claude Code home, in the sessions it launches and in the terminals its hook keeps in a group's folder: the absolute path of the person's folder that home is built from. With both set, the launcher writes settings (permission rules, the mode, marketplace declarations), installs plugins and registers MCP servers there (`.claude.json` inside it, or `~/.claude.json` when it is `~/.claude`), checks the plugin registry there, where the CLI wrote it, and moves shadowing skills in the home, whose links lead to the same files; Switchboard rebuilds the home's `settings.json` at every launch, so a write there would be lost, and Switchboard's sessions see a change from their next launch (PC-129, SB-259). A home of an earlier Switchboard, which names no source, lies in Switchboard's data folder (`ai.passioncode.fabric-switchboard`): the launcher then writes to `~/.claude` (where 0.2.75 wrote settings too; its plugin and MCP calls went into the home). If your own Claude Code folder is not `~/.claude`, use Switchboard 0.7.14 or later: an earlier one does not tell the launcher where it is. Before Switchboard 0.7.15 on macOS and Linux, and on Windows in every release so far (Switchboard makes no links in the homes it launches there), a home whose own `plugins` folder is a real folder (not a link) does not see plugins installed in the person's folder (SB-260); the organization-r1 train pins Switchboard 0.7.0. Ignored when it is not absolute or `CLAUDE_CONFIG_DIR` is not set. MCP servers registered this way reach sessions outside Switchboard; Switchboard's own sessions get the servers Switchboard carries into its homes |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing; a `.js`, `.cjs` or `.mjs` file runs through this Node |
 | `PASSIONCODE_NPM`, `PASSIONCODE_NPX` | Replace the `npm` the session hook's probe runs and the `npx` its background update runs, for tests; a `.js`, `.cjs` or `.mjs` file runs through this Node. Whatever they name runs in place of npm, so they are trusted local configuration like every override here |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |

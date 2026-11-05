@@ -1,4 +1,6 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // The release signature check: SHA256SUMS.asc is verified against the organisation's release key,
 // bundled with the launcher and pinned by fingerprint, with no gpg on the machine.
 const assert = require('node:assert/strict');
