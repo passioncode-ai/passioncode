@@ -59,10 +59,11 @@
   folder Claude Code was not using. They now use the folder the variable names, as Claude Code does. In a session
   Fabric Switchboard launched, they write settings, plugins and MCP servers to the person's own folder Switchboard names in
   `SWITCHBOARD_CLAUDE_SOURCE_DIR` (0.7.14 and later), and with an earlier Switchboard to `~/.claude` (where 0.2.75 wrote settings too; its plugin and MCP calls went into the
-  home), not to the
-  copy Switchboard rebuilds at every launch (SB-259). Not yet: a variable set only in Claude Code's own settings `env`,
-  and `restore` putting a retired marketplace back into the folder it was taken from (docs/reference/cli.md). An MCP
-  entry an earlier release put in that folder (and then reported as failed) is left as the person's: `uninstall` does
+  home), not to Switchboard's home (the folder `CLAUDE_CONFIG_DIR` names, whose settings Switchboard rebuilds at
+  every launch; SB-259). Not yet: a variable set only in Claude Code's own settings `env`,
+  `restore` putting a retired marketplace back into the folder it was taken from (docs/reference/cli.md), and, on
+  Windows, a session a Switchboard before 0.7.17 launches seeing plugins installed in your own folder (SB-260, SB-266).
+  An MCP entry an earlier release put in the folder `CLAUDE_CONFIG_DIR` named (and then reported as failed) is left as the person's: `uninstall` does
   not remove it, so remove it by hand with `claude mcp remove --scope user <name>` run with that variable; rules and a mode an earlier release
   wrote to `~/.claude/settings.json` while the variable named a folder of your own stay there and do nothing (`setup` or
   `permissions allow` adds them to that folder); in a Switchboard session built from `~/.claude` they were already in

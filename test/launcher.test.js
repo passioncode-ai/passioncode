@@ -250,7 +250,7 @@ test('PC-129: a Switchboard home with a plugins folder of its own still updates:
   const env = setup();
   const operator = path.join(env.home, '.claude');
   const sb = path.join(env.home, 'switchboard', 'claude-home');
-  fs.mkdirSync(path.join(sb, 'plugins'), { recursive: true }); // a real folder, which Switchboard never replaces with a link
+  fs.mkdirSync(path.join(sb, 'plugins'), { recursive: true }); // a real folder, which Switchboard before 0.7.15 (on Windows before 0.7.17) never replaces with a link
   env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
   const up = run(env, 'update', '--json');
   assert.equal(up.status, 0, up.stderr + up.stdout);
@@ -278,12 +278,12 @@ test('PC-129: uninstall with the variable set removes an entry written without i
 });
 
 const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch (_) { return false; } };
-test('PC-129: a shadow moved aside through a Switchboard home goes back into the person\'s skills folder, even once the home is gone', () => {
+for (const relative of [false, true]) test(`PC-129: a shadow moved aside through a Switchboard home goes back into the person's skills folder, even once the home is gone${relative ? ' (relative link)' : ''}`, { skip: relative && process.platform === 'win32' && 'a junction is absolute' }, () => {
   const env = setup(); // ~/.claude/skills/example-agent shadows the plugin
   const operator = path.join(env.home, '.claude');
   const sb = path.join(env.home, 'switchboard', 'claude-home');
   fs.mkdirSync(sb, { recursive: true });
-  fs.symlinkSync(path.join(operator, 'skills'), path.join(sb, 'skills'), 'junction');
+  fs.symlinkSync(relative ? path.relative(sb, path.join(operator, 'skills')) : path.join(operator, 'skills'), path.join(sb, 'skills'), relative ? 'dir' : 'junction');
   fs.symlinkSync(path.join(operator, 'plugins'), path.join(sb, 'plugins'), 'junction');
   env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
   const up = run(env, 'update', '--json');

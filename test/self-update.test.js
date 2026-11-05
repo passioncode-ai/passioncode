@@ -847,7 +847,7 @@ test('PC-129: a session folder removed under a relative CLAUDE_CONFIG_DIR still 
   assert.equal(r.status, 0, r.stderr);
   assert.ok(!fs.existsSync(gone), 'the session folder is gone');
   assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
-  assert.deepEqual(lines(path.join(sb.home, 'npx-config-dir.log')).map((l) => path.basename(l)), ['cc']);
+  assert.deepEqual(lines(path.join(sb.home, 'npx-config-dir.log')), ['cc']);
 });
 
 test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PATH', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, async () => {
