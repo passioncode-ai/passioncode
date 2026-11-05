@@ -113,7 +113,7 @@
   1. Run uninstall.
   2. Fix any reported plugin failure and retry.
   3. Inspect status (it does not list an MCP entry an incomplete uninstall kept; the uninstall's error names it); optionally restore displaced files.
-- **Expected result:** Success clears the active installation, so nothing updates itself while nothing is installed; the update switch stays as the person set it (LC-16, PC-131), and `status` still shows it (on by default) although nothing installed updates (an update the session hook had already started still finishes; run uninstall again); recovery copies remain. Repeating uninstall is safe.
+- **Expected result:** Success clears the active installation, so nothing updates itself while nothing is installed; the update switch stays as the person set it (LC-16, PC-131), and `status` still shows it (on by default) although nothing installed updates (an update the session hook had already started still finishes: a minute later, run status, and if it shows a version run uninstall again); recovery copies remain. Repeating uninstall is safe.
 - **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
@@ -132,7 +132,7 @@
   1. Start a session.
   2. Read any update/check diagnostic; continue the session.
 - **Expected result:** Only a newer pinned version with all maintainers and its publisher known and trusted can start automatically. Probe errors cannot authorize an update.
-- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed (after uninstall) it is silent and starts nothing (PC-131).
+- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed it starts no update (PC-131); after a successful uninstall the self plugin is gone, so no hook runs.
 - **UI elements:** One-line hook notifications and logs.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Missing npx does not fail the session or leave a false running marker. Repair PATH and retry next session.
