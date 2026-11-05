@@ -505,7 +505,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |
 | `PASSIONCODE_GITHUB_API` | GitHub API base for release lookups (default `https://api.github.com`) |
 | `PASSIONCODE_RELEASE_KEY` | An armoured key file that replaces the bundled release key, for tests; setup names it in its output whenever it is set |
-| `PASSIONCODE_PLATFORM` | Treat the system as this platform (tests) |
+| `PASSIONCODE_PLATFORM` | Treat the system as this platform (tests); the session hook and its update check read it too, to choose how they start npm and npx |
 | `PASSIONCODE_SERVICES_DIR` | Fabric service descriptors directory (else `FABRIC_SERVICES_DIR`, else the platform default) |
 | `~/.passioncode/{doctor.json,releases-cache.json,downloads/}` | Last check summary, 30-minute release cache, transient downloads |
 

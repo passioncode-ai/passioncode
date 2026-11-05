@@ -145,7 +145,9 @@ automatically; while that stands, `@latest` runs it, so use the version the line
 (`npx @passioncode-ai/passioncode@<installed> status`) until a release is accepted ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 On Windows, where npm is installed as `.cmd` files (the Node installer, nvm-windows, fnm), an installation from 0.2.75 or
 earlier never updates itself (its hook could not start npm): run
-`npx --yes @passioncode-ai/passioncode@latest update` once, and it updates itself from 0.2.76 on (PC-135).
+`npx --yes @passioncode-ai/passioncode@latest update` once, and it updates itself from 0.2.76 on (PC-135), when the Node
+that runs Claude Code's hooks (the first `node` on PATH) has npm beside it; otherwise a session line says how to fix
+that (PC-143).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so. `status` and `doctor` show
 when the switch is off (by `config set`, or by an uninstall by 0.2.75 or earlier), and `config set update.auto on` turns it
 back on.

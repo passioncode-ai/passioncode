@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand } = require('./update-check');
+const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand, npmMissing, npmMissingLine, NPM_MISSING, PACKAGE } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
 const { openLog, logEvent } = require('./update-log');
 
@@ -57,12 +57,19 @@ async function main() {
   const state = read(STATE, {});
   const now = Date.now();
   const age = now - Date.parse(state.checkedAt);
+  // npm's own npx through this Node on Windows (PC-135); PASSIONCODE_PLATFORM stands in for the system in tests.
+  const platform = process.env.PASSIONCODE_PLATFORM || process.platform;
+  // A check that found no npm beside this Node is repeated as soon as npm is there, not a day later (PC-143).
+  const npmBack = state.checkError === NPM_MISSING && !npmMissing('npm', { platform });
   // The marker is claimed before the spawn: sessions restored together start one probe.
-  if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state)) && claimProbe(DIR, now)) {
+  if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state) || npmBack) && claimProbe(DIR, now)) {
     if (!await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
-  const { lines, spawn: args, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys());
-  for (const e of events) logEvent(DIR, e.event, e.outcome, e.reason);
+  const { lines, spawn: args, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)));
+  // On Windows with no npm beside this Node nothing can start the update: no cache folder, no spawn, and no download
+  // logged as started (PC-143).
+  const noNpm = npmMissing('npx', { platform });
+  for (const e of events) if (!(noNpm && e.event === 'update_download')) logEvent(DIR, e.event, e.outcome, e.reason);
   if (Object.keys(stateChanges).length) {
     // Re-read: the probe may have written meanwhile; only our own keys change.
     const fresh = { ...read(STATE, {}), ...stateChanges };
@@ -91,7 +98,8 @@ async function main() {
   let cacheDir = null;
   let failure = 'spawn';
   let earlierCache; // the folder an earlier update recorded, put back if this one does not start
-  if (args) {
+  if (args && noNpm) failure = 'npm';
+  if (args && !noNpm) {
     try {
       cacheDir = fs.mkdtempSync(path.join(runDir(), 'cache-'));
       updateArgs = [args[0], `--cache=${cacheDir}`, ...args.slice(1)];
@@ -120,7 +128,7 @@ async function main() {
       } catch (_) { /* the sweep's one-hour age protects it */ }
     }
   }
-  const [npx, npxPre] = npmCommand('npx'); // npm's own npx through this Node on Windows (PC-135)
+  const [npx, npxPre] = npmCommand('npx', { platform });
   if (args && (!updateArgs || !await detached(npx, [...npxPre, ...updateArgs], 'update.log'))) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
@@ -138,7 +146,9 @@ async function main() {
     lines.pop(); // decide appends the update-start notice last when it returns args
     lines.push(failure === 'cache'
       ? `[passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session.`
-      : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
+      : failure === 'npm'
+        ? npmMissingLine(shown(path.dirname(process.execPath)), args.find((a) => a.startsWith(`${PACKAGE}@`)).slice(PACKAGE.length + 1))
+        : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }
   // Claude Code passes the session's directory on stdin; the process cwd is the fallback.
   let cwd = process.cwd();
