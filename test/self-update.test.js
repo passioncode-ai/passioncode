@@ -62,7 +62,11 @@ function sandbox({ trust = [], keys = [TEST_KEY] } = {}) {
   fs.mkdirSync(bin);
   fs.writeFileSync(path.join(bin, 'npm'), FAKE_NPM, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'npx'), FAKE_NPX, { mode: 0o755 });
-  const env = (extra = {}) => ({ ...process.env, HOME: home, PASSIONCODE_HOME: stateDir, PATH: `${bin}${path.delimiter}${process.env.PATH}`, ...extra });
+  // Windows starts no file by its #! line: there the hooks are pointed at the same stand-ins, run through Node.
+  fs.writeFileSync(path.join(bin, 'npm.js'), FAKE_NPM);
+  fs.writeFileSync(path.join(bin, 'npx.js'), FAKE_NPX);
+  const stand = process.platform === 'win32' ? { PASSIONCODE_NPM: path.join(bin, 'npm.js'), PASSIONCODE_NPX: path.join(bin, 'npx.js') } : {};
+  const env = (extra = {}) => ({ ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_HOME: stateDir, PATH: `${bin}${path.delimiter}${process.env.PATH}`, ...stand, ...extra });
   return { base, home, stateDir, plugin, env };
 }
 
@@ -189,7 +193,7 @@ test('hook: missing npx does not fail the session or leave an update running', (
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', updateCache: earlier });
   const emptyPath = path.join(sb.base, 'empty-bin');
   fs.mkdirSync(emptyPath);
-  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath }), cwd: os.tmpdir(), input: '' });
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath, ...(process.platform === 'win32' ? { PASSIONCODE_NPX: path.join(emptyPath, 'npx') } : {}) }), cwd: os.tmpdir(), input: '' });
   assert.equal(r.status, 0, r.stderr);
   assert.equal(stateOf(sb).updatingSince, undefined);
   assert.doesNotMatch(r.stdout, /updating in the background/);
@@ -563,7 +567,7 @@ test('PC-131: an update npx cannot start is logged as a failed install', () => {
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
   const emptyPath = path.join(sb.base, 'empty-bin');
   fs.mkdirSync(emptyPath);
-  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath }), cwd: os.tmpdir(), input: '' });
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath, ...(process.platform === 'win32' ? { PASSIONCODE_NPX: path.join(emptyPath, 'npx') } : {}) }), cwd: os.tmpdir(), input: '' });
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(eventsOf(sb), ['update_download started', 'update_install failed spawn']);
 });
@@ -773,4 +777,30 @@ test('session start names the failures of the last saved setup check, and is sil
   fs.writeFileSync(doctorFile, 'not json');
   assert.doesNotMatch(hook(sb), /setup check/, 'a damaged file is ignored');
   assert.equal(lines(path.join(sb.home, 'npx-calls.log')).filter((l) => /doctor|setup/.test(l)).length, 0, 'the hook runs neither');
+});
+
+test('PC-135: on Windows the hooks start npm\'s own script through this Node; elsewhere the command by name', () => {
+  const { npmCommand } = require(path.join(PLUGIN, 'hooks/update-check'));
+  const node = 'C:\\Program Files\\nodejs\\node.exe';
+  const cli = 'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js';
+  assert.deepEqual(npmCommand('npx', { env: {}, platform: 'win32', execPath: node, exists: (f) => f === cli }), [node, [cli]]);
+  assert.deepEqual(npmCommand('npm', { env: {}, platform: 'win32', execPath: node, exists: () => false }), ['npm', []], 'no script beside Node: the name, as before');
+  assert.deepEqual(npmCommand('npx', { env: {}, platform: 'darwin', execPath: '/usr/local/bin/node', exists: () => true }), ['npx', []]);
+  assert.deepEqual(npmCommand('npx', { env: { PASSIONCODE_NPX: '/t/npx.js' }, platform: 'linux', execPath: '/n' }), ['/n', ['/t/npx.js']], 'a JavaScript stand-in runs through Node');
+  assert.deepEqual(npmCommand('npm', { env: { PASSIONCODE_NPM: '/t/npm' }, platform: 'win32', execPath: '/n' }), ['/t/npm', []]);
+});
+
+// On Windows itself, with no stand-in: the npm script beside this Node exists and starts (no download).
+test('PC-135: on Windows the npm and npx scripts beside Node start with --version', { skip: process.platform !== 'win32' && 'needs Windows' }, () => {
+  const { npmCommand } = require(path.join(PLUGIN, 'hooks/update-check'));
+  const env = { ...process.env }; delete env.PASSIONCODE_NPM; delete env.PASSIONCODE_NPX;
+  for (const name of ['npm', 'npx']) {
+    const [cmd, pre] = npmCommand(name, { env });
+    assert.equal(cmd, process.execPath, `${name} runs through this Node`);
+    assert.ok(fs.existsSync(pre[0]), `${pre[0]} exists`);
+    assert.equal(path.basename(pre[0]), `${name}-cli.js`, `${name} starts its own script`);
+    const r = spawnSync(cmd, [...pre, '--version'], { encoding: 'utf8', timeout: 60000, windowsHide: true });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+/);
+  }
 });

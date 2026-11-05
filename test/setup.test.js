@@ -79,6 +79,10 @@ function releaseServer(t, { version = '1.2.0', also = [], tamper = null, foreign
   }));
 }
 
+// PC-135: these cases simulate macOS (PASSIONCODE_PLATFORM darwin) with shell-script stand-ins for ditto, codesign,
+// hdiutil and the rest, which Windows cannot start; Windows installs are proved in test/windows.test.js.
+const MAC_SIM = process.platform === 'win32' && 'simulates macOS with shell-script stand-ins Windows cannot start';
+
 // toolRules: PassionCode's Claude Code tool rules already in place (PC-117), so other tests see no such offer.
 function machine({ tools = TOOLS, toolRules = true, commandRules = true } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-setup-'));
@@ -102,7 +106,7 @@ function machine({ tools = TOOLS, toolRules = true, commandRules = true } = {}) 
 
 function cliEnv(m, api) {
   const env = {
-    ...process.env, HOME: m.home, PATH: `${m.bin}:${path.dirname(process.execPath)}:/usr/bin:/bin:/usr/sbin:/sbin`, PASSIONCODE_PAYLOAD: m.payload, PASSIONCODE_HOME: '',
+    ...process.env, HOME: m.home, USERPROFILE: m.home, PATH: `${m.bin}:${path.dirname(process.execPath)}:/usr/bin:/bin:/usr/sbin:/sbin`, PASSIONCODE_PAYLOAD: m.payload, PASSIONCODE_HOME: '',
     PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_APPLICATIONS: m.apps, PASSIONCODE_GITHUB_API: api,
     PASSIONCODE_RELEASE_KEY: path.join(m.home, 'key.asc'), PASSIONCODE_PLATFORM: 'darwin', PASSIONCODE_SERVICES_DIR: path.join(m.home, 'services'),
     KIMI_CODE_HOME: path.join(m.home, '.kimi-code'), PASSIONCODE_FABRIC_DASHBOARDS_MCP: '', FABRIC_SERVICES_DIR: '',
@@ -137,7 +141,7 @@ const installApp = (m, pr, { version = '1.2.0', running = false, broken = false 
   return app;
 };
 
-test('a new machine: setup --yes installs the verified apps, the skills and every MCP server, then lists the person\'s steps', async (t) => {
+test('a new machine: setup --yes installs the verified apps, the skills and every MCP server, then lists the person\'s steps', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') }); // no Docker: Fabric waits for the person
   const r = await cli(m, api, 'setup', '--yes', '--json');
@@ -176,7 +180,7 @@ test('a new machine: setup --yes installs the verified apps, the skills and ever
   assert.ok(!calls.some((l) => /^(ditto|open|launchctl|hdiutil)/.test(l)), calls.join('\n'));
 });
 
-test('an existing broken setup: setup repairs, checks again and prints before → after', async (t) => {
+test('an existing broken setup: setup repairs, checks again and prints before → after', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   const dash = installApp(m, catalog.byId('dashboards'), { version: '1.0.0' }); // outdated, idle → reinstalled
@@ -234,7 +238,7 @@ test('PC-131: doctor says, as information, when automatic updates are off, and h
   assert.equal(JSON.parse(fs.readFileSync(path.join(off.home, '.passioncode', 'state.json'), 'utf8')).config.auto, false, 'doctor never turns it on');
 });
 
-test('doctor is read-only and exits 1 on a problem; doctor --fix repairs but installs and opens nothing', async (t) => {
+test('doctor is read-only and exits 1 on a problem; doctor --fix repairs but installs and opens nothing', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   const dash = installApp(m, catalog.byId('dashboards'), { version: '1.0.0' });
@@ -262,7 +266,7 @@ for (const [name, opts, why] of [
   ['an app signed by another team', { team: 'dashboards' }, /failed team/],
   ['an app Gatekeeper rejects', { broken: 'dashboards' }, /failed signature, team|failed signature/],
 ]) {
-  test(`setup refuses ${name}: nothing is installed and the download is removed`, async (t) => {
+  test(`setup refuses ${name}: nothing is installed and the download is removed`, { skip: (opts.team || opts.broken) && MAC_SIM }, async (t) => {
     // `team: <id>` stamps that product's app with a foreign team identifier (its id).
     const api = await releaseServer(t, opts);
     const m = machine();
@@ -287,7 +291,7 @@ test('without a terminal and without --yes, setup prints the plan and changes no
   assert.equal(fs.existsSync(path.join(m.home, '.passioncode/current')), false);
 });
 
-test('a proving call that fails is a failed check that names the fix', async (t) => {
+test('a proving call that fails is a failed check that names the fix', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
@@ -305,7 +309,7 @@ test('a proving call that fails is a failed check that names the fix', async (t)
 
 // PC-104: with a check failing that setup cannot repair, a run that has nothing to change neither
 // says "nothing to do" nor calls the machine set up without pointing at the checks; it exits by them.
-test('PC-104: nothing to change above a failing check points at the checks and exits by them', async (t) => {
+test('PC-104: nothing to change above a failing check points at the checks and exits by them', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
@@ -347,7 +351,7 @@ test('PC-104: nothing to change above a failing check points at the checks and e
 
 // PC-105: one rule for "The checks below still stand.": every headline that says nothing changed adds
 // it when a check is still open (FAIL or WARN) and only then; a plan's train is one of its lines.
-test('PC-105: the checks are pointed at when one fails or warns, and a train is a plan line', async (t) => {
+test('PC-105: the checks are pointed at when one fails or warns, and a train is a plan line', { skip: MAC_SIM }, async (t) => {
   const { render } = require('../lib/setup');
   const sum = (warn, fail) => ({ ok: 1, warn, fail, info: 0 });
   const run = (over, warn = 0, fail = 0) => {
@@ -453,7 +457,7 @@ test('PC-107: warnings in the closing line, the declined label, and none reserve
   }
 });
 
-test('a bundle that comes into use while its release downloads is not moved', async (t) => {
+test('a bundle that comes into use while its release downloads is not moved', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   const dash = installApp(m, catalog.byId('dashboards'), { version: '1.0.0' });
@@ -480,7 +484,7 @@ test('a copy cut off halfway leaves the old app in place and no partial bundle',
   } finally { delete process.env.FAKE_DITTO_COPY_FAIL; }
 });
 
-test('doctor never starts Fabric\'s MCP server: starting it enrols a session', async (t) => {
+test('doctor never starts Fabric\'s MCP server: starting it enrols a session', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   installApp(m, catalog.byId('fabric'));
@@ -534,7 +538,7 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', a
     { state: 'info', detail: 'sessions Fabric starts on a board request: Fabric is not installed here' });
 });
 
-test('setup saves its after-check later than the release it installed, so the session hook shows what still fails', async (t) => {
+test('setup saves its after-check later than the release it installed, so the session hook shows what still fails', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
@@ -546,11 +550,11 @@ test('setup saves its after-check later than the release it installed, so the se
   const state = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/state.json'), 'utf8'));
   assert.ok(Date.parse(saved.at) >= Date.parse(state.installedAt), `${saved.at} vs installedAt ${state.installedAt}`);
   assert.ok(saved.failed.includes('mcp.claude.fabric-dashboards'));
-  const hook = require('node:child_process').spawnSync(process.execPath, [path.join(__dirname, '../plugin/passioncode/hooks/session-start.js')], { encoding: 'utf8', cwd: os.tmpdir(), input: '', env: { ...process.env, HOME: m.home, PASSIONCODE_HOME: path.join(m.home, '.passioncode'), PATH: m.bin } });
+  const hook = require('node:child_process').spawnSync(process.execPath, [path.join(__dirname, '../plugin/passioncode/hooks/session-start.js')], { encoding: 'utf8', cwd: os.tmpdir(), input: '', env: { ...process.env, HOME: m.home, USERPROFILE: m.home, PASSIONCODE_HOME: path.join(m.home, '.passioncode'), PATH: m.bin } });
   assert.match(hook.stdout, /the setup check of .* found 2 problem\(s\) \(mcp\.claude\.fabric-dashboards, mcp\.codex\.fabric-dashboards\)/);
 });
 
-test('a staged copy left by a killed run is removed before the next install', async (t) => {
+test('a staged copy left by a killed run is removed before the next install', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine();
   const leftover = path.join(m.apps, 'Fabric Dashboards.app.passioncode-999999.partial');
@@ -570,7 +574,7 @@ function onTrain(m, apps = { switchboard: '1.1.0', dashboards: '1.1.0', observat
   return m;
 }
 
-test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', async (t) => {
+test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
   const r = await cli(m, api, 'setup', '--yes', '--json', '--train', 'org-test');
@@ -587,7 +591,7 @@ test('PC-89: setup --train installs the pinned release, not the latest, and doct
   assert.match(row('app.switchboard').detail, /^Fabric Switchboard 1\.1\.0 \(pinned by release train org-test\)$/);
 });
 
-test('PC-89: on a train an older app is reinstalled at the pin; a newer one is left alone, never downgraded', async (t) => {
+test('PC-89: on a train an older app is reinstalled at the pin; a newer one is left alone, never downgraded', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const m = onTrain(machine());
   for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
@@ -644,7 +648,7 @@ test('PC-89: every train this launcher ships is valid and pins only known apps',
 
 // The unit reading of PC-89: an app ahead of its pin whose signature fails is reinstalled, but from the
 // latest release; the train's pin would take it back to an older one.
-test('PC-89: a damaged app ahead of its pin is reinstalled from the latest release, never the older pin', async (t) => {
+test('PC-89: a damaged app ahead of its pin is reinstalled from the latest release, never the older pin', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const m = onTrain(machine());
   for (const id of ['switchboard', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
@@ -683,7 +687,7 @@ test('PC-89: an unusable saved train touches no app until a train or none is nam
 
 // The second seam reading of PC-89: a bundle whose version cannot be read (its Info.plist is sealed by
 // the signature, so a damaged one often breaks both) may be ahead of the pin; it is never taken back.
-test('PC-89: a damaged app whose version cannot be read is reinstalled from the latest, never the pin', async (t) => {
+test('PC-89: a damaged app whose version cannot be read is reinstalled from the latest, never the pin', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.3.0', also: ['1.1.0', '1.2.0'] });
   const m = onTrain(machine());
   for (const id of ['switchboard', 'observatory', 'inbox', 'fabric']) installApp(m, catalog.byId(id), { version: '1.1.0' });
@@ -733,7 +737,7 @@ test('PC-89: declining every offer in an interactive run saves no train', async 
 });
 
 // PC-91: "no" to every offer is reported as declined, never as a machine with nothing left to set up.
-test('PC-91: declining every offer says so, with and without a train', async (t) => {
+test('PC-91: declining every offer says so, with and without a train', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = onTrain(machine());
   installApp(m, catalog.byId('switchboard'), { version: '1.0.0' });
@@ -777,7 +781,7 @@ test('PC-91: declining every offer says so, with and without a train', async (t)
 
 // PC-94: the edges PC-91 left. A run that forgets a train but answers no to its repairs was not
 // `setup`; after a declined train, asking for an app is setup with that train; a declined run lists no plan.
-test('PC-94: steps after declined repairs and a declined train, and no plan under a declined headline', async (t) => {
+test('PC-94: steps after declined repairs and a declined train, and no plan under a declined headline', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const run = (m, opts) => {
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
@@ -897,7 +901,7 @@ test('PC-94: steps after declined repairs and a declined train, and no plan unde
 
 // PC-92: after everything else is set up, a terminal run whose only offer defaults to no (Fabric
 // without Docker) and is not taken names it, rather than calling the machine set up.
-test('PC-92: an untaken default-no offer is named, not reported as everything in place', async (t) => {
+test('PC-92: an untaken default-no offer is named, not reported as everything in place', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
   const first = await cli(m, api, 'setup', '--yes', '--json');
@@ -934,7 +938,7 @@ test('PC-92: a run that takes some offers does not mark the others as not taken'
 
 // PC-101: a run that asked nothing (--yes, or no terminal) and changed nothing names the app it
 // skipped by default, whose note is among the person's steps, rather than calling the machine set up.
-test('PC-101: a re-run that asks nothing names the app it skipped, with and without --yes', async (t) => {
+test('PC-101: a re-run that asks nothing names the app it skipped, with and without --yes', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
   const first = await cli(m, api, 'setup', '--yes', '--json');
@@ -1012,7 +1016,7 @@ test('PC-108: an install answered no without a note adds no step of its own', as
 
 // PC-108: only an app that bundles an MCP server forces the update after declined repairs; one whose
 // server is external (Project Observatory) is installed without refreshing the skill set.
-test('PC-108: an app with an external MCP server forces no update after declined repairs; a bundled one does', async (t) => {
+test('PC-108: an app with an external MCP server forces no update after declined repairs; a bundled one does', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const m = machine();
   assert.ok(catalog.byId('observatory').mcp.external);
@@ -1074,7 +1078,7 @@ test('PC-108: an app with an external MCP server forces no update after declined
 // PC-114: the two widenings PC-112 left unpinned. An install whose MCP server is external forces nothing, so the
 // repairs question still names the skill set and a yes runs it; a failed forced install deselects only the update,
 // and a repair the person keeps still runs.
-test('PC-114: an external-MCP install asks about the update; a failed forced install keeps the other repairs', async (t) => {
+test('PC-114: an external-MCP install asks about the update; a failed forced install keeps the other repairs', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const run = (m, opts) => new Promise((resolve) => {
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
@@ -1330,7 +1334,7 @@ test('PC-117: in a terminal the tool rules are one question of their own, defaul
 
 // PC-119: rules for shell commands, the launcher's own and those an agent declares on the machine, are a set of
 // their own: shown in the plan with what each allows, added only on their own yes.
-test('PC-119: setup offers the command rules apart, adds them only on their own yes, and names what it does not offer', async (t) => {
+test('PC-119: setup offers the command rules apart, adds them only on their own yes, and names what it does not offer', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const P = require('../lib/permissions');
   const settingsOf = (m) => path.join(m.home, '.claude', 'settings.json');
@@ -1457,7 +1461,7 @@ test('PC-119: in a terminal the command rules are one question of their own, def
 });
 
 // PC-110 end to end: the plan's footer matches what a terminal run of the same command asks.
-test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaults to no is still asked', async (t) => {
+test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaults to no is still asked', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const terminal = (m, opts) => {
     const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
@@ -1674,7 +1678,7 @@ test('PC-89: setup --train without --yes or a terminal is a plan; doctor.json ke
 
 // The sixth seam reading of PC-89: the way out of an unusable train installs nothing, and a text run
 // that withheld a train change says so.
-test('PC-89: the unusable-train fix plans no install; a withheld train is named in text output', async (t) => {
+test('PC-89: the unusable-train fix plans no install; a withheld train is named in text output', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = onTrain(machine());
   fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
@@ -1731,7 +1735,7 @@ test('PC-89: naming the saved train (or none with none saved) writes no state', 
 
 // Fabric Switchboard's zip holds its app one folder down
 // (`Fabric-Switchboard-<v>-macos-universal/Fabric Switchboard.app`, 0.6.83 to 0.7.1, checked with unzip -l).
-test('an app one folder down in its zip is found and installed', async (t) => {
+test('an app one folder down in its zip is found and installed', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { nested: 'switchboard' });
   const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'switchboard');

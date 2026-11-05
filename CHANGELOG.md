@@ -54,6 +54,16 @@
 
 ### Fixed
 
+- **Automatic updates work on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
+  cannot start their `.cmd` files, so the daily check failed and no update ever started there. The hook now runs npm's
+  own `npx-cli.js` and `npm-cli.js` (the npm in the folder of the Node that runs it, through that Node), and the processes
+  the hook starts open no console window (whether npm's own shell for the package shows one is not yet checked on a
+  Windows desktop, PC-143). An installation on Windows from 0.2.75 or earlier still runs
+  its old hook, which cannot learn of this version: update it once by hand
+  (`npx --yes @passioncode-ai/passioncode@latest update`); it updates itself from then on.
+- **`update` moves entries aside on Windows** (PC-135): a shadowing `~/.claude/skills` entry, or a foreign link or copy in
+  `~/.agents/skills` or an agent's skills folder. `update` named a moved path by its forward slashes alone, so on Windows
+  the name kept the drive's colon and the move failed; the quarantine now flattens Windows paths too.
 - **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped
   updating itself although the person never turned it off. It now leaves the switch as the person set it; with
   nothing installed the session hook starts no update (one it had already started still finishes, which can take several minutes: once

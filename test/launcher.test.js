@@ -50,7 +50,7 @@ function setup() {
 }
 
 function run(env, ...args) {
-  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
+  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
 }
 const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
@@ -136,10 +136,11 @@ test('restore reports a conflicting user replacement and can be retried', () => 
   assert.equal(run(env, 'update').status, 0);
   const hub = path.join(env.home, '.agents/skills/example-agent');
   fs.unlinkSync(hub);
-  fs.symlinkSync('/user-replacement', hub);
+  const replacement = path.resolve('/user-replacement'); // Windows reads the link back with its drive
+  fs.symlinkSync(replacement, hub);
   const conflict = run(env, 'restore');
   assert.equal(conflict.status, 1);
-  assert.equal(fs.readlinkSync(hub), '/user-replacement');
+  assert.equal(fs.readlinkSync(hub), replacement);
   assert.match(conflict.stderr, /conflict/i);
   fs.unlinkSync(hub);
   assert.equal(run(env, 'restore').status, 0);
@@ -182,7 +183,8 @@ test('a failed release copy leaves the old release and state active', () => {
   const stateFile = path.join(env.home, '.passioncode/state.json');
   const before = fs.readFileSync(stateFile, 'utf8');
   makePayload(env.payload, '0.2.0', env.members);
-  fs.writeFileSync(path.join(env.home, '.passioncode/releases/0.2.0'), 'not a directory');
+  // A folder in the way that holds no manifest: the rename onto it fails on every OS (Windows replaces a plain file).
+  fs.mkdirSync(path.join(env.home, '.passioncode/releases/0.2.0/stray'), { recursive: true });
   fs.writeFileSync(path.join(env.home, 'claude-calls.log'), '');
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 1);
@@ -508,7 +510,7 @@ test('status reports an absent npm observation without inventing a check time', 
 });
 
 test('vendor refuses credential-shaped strings', async () => {
-  const { scanForSecrets } = await import(path.join(ROOT, 'scripts/vendor.mjs'));
+  const { scanForSecrets } = await import(require('url').pathToFileURL(path.join(ROOT, 'scripts/vendor.mjs')).href);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-scan-'));
   fs.writeFileSync(path.join(dir, 'SKILL.md'), 'Use sk-or-v1-' + 'a'.repeat(40) + ' to call the model.');
   fs.writeFileSync(path.join(dir, 'ok.md'), 'Read the key from the vault by name.');
@@ -1328,7 +1330,7 @@ function updateInProcess(env, opts) {
   const keys = { PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_APPLICATIONS: env.extra.PASSIONCODE_APPLICATIONS, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp') };
   const saved = Object.fromEntries(Object.keys(keys).map((k) => [k, process.env[k]]));
   Object.assign(process.env, keys);
-  const claude = { available: () => true, run: (args, o = {}) => { const r = spawnSync(process.execPath, [FAKE, ...args], { encoding: 'utf8', cwd: o.cwd, env: { ...process.env, HOME: env.home } }); return { code: r.status, out: `${r.stdout}${r.stderr}`.trim() }; } };
+  const claude = { available: () => true, run: (args, o = {}) => { const r = spawnSync(process.execPath, [FAKE, ...args], { encoding: 'utf8', cwd: o.cwd, env: { ...process.env, HOME: env.home, USERPROFILE: env.home } }); return { code: r.status, out: `${r.stdout}${r.stderr}`.trim() }; } };
   try { return require('../lib/launcher').update({ home: env.home, claude, ...opts }); } finally {
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   }

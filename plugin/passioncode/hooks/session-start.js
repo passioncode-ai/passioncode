@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe } = require('./update-check');
+const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
 const { openLog, logEvent } = require('./update-log');
 
@@ -45,7 +45,7 @@ function detached(cmd, args, logName) {
       out = openLog(path.join(DIR, 'logs', logName)); // rotated at 5 MB, five files, 0600 (LC-12)
       const cwd = runDir();
       // PC-123: the background update sends no counts; PASSIONCODE_UPDATE_FROM lets it log its download as done (LC-16).
-      const child = spawn(cmd, args, { cwd, detached: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_UPDATE_FROM: 'session-start' } });
+      const child = spawn(cmd, args, { cwd, detached: true, windowsHide: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_UPDATE_FROM: 'session-start' } });
       child.once('error', () => resolve(false));
       child.once('spawn', () => { child.unref(); resolve(true); });
     } catch (_) { resolve(false); }
@@ -120,7 +120,8 @@ async function main() {
       } catch (_) { /* the sweep's one-hour age protects it */ }
     }
   }
-  if (args && (!updateArgs || !await detached('npx', updateArgs, 'update.log'))) {
+  const [npx, npxPre] = npmCommand('npx'); // npm's own npx through this Node on Windows (PC-135)
+  if (args && (!updateArgs || !await detached(npx, [...npxPre, ...updateArgs], 'update.log'))) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;

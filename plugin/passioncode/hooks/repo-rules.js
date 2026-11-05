@@ -27,7 +27,7 @@ function orgOf(url) {
 function originOf(dir) {
   try {
     return execFileSync('git', ['-C', dir, 'remote', 'get-url', 'origin'], {
-      encoding: 'utf8', timeout: 2000, stdio: ['ignore', 'pipe', 'ignore'],
+      encoding: 'utf8', timeout: 2000, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
   } catch (_) {
     return '';

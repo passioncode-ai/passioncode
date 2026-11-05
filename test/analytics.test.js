@@ -91,7 +91,7 @@ test('PC-123: no payload carries a path, a user name, a rule or a token', async 
   const h = home(); const r = recorder();
   const secret = 'sk-test-0000000000000000';
   await A.after(base(h, { command: `setup ${h} Bash(rm:*) ${secret}`, fetchImpl: r.fetchImpl, stderr: quiet().stream,
-    env: { HOME: h, USER: 'example-person', PASSIONCODE_TOKEN: secret } }));
+    env: { HOME: h, USERPROFILE: h, USER: 'example-person', PASSIONCODE_TOKEN: secret } }));
   const text = JSON.stringify(r.calls[0].body);
   for (const planted of [h, 'example-person', 'Bash(rm', secret, os.userInfo().username]) assert.ok(!text.includes(planted), planted);
   assert.equal(r.calls[0].body.at(-1).props.command, 'other', 'a command not in the list is sent as other');
