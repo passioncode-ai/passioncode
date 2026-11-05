@@ -306,6 +306,56 @@ test('PC-129: a person\'s own linked skills folder keeps its path: restore follo
   assert.equal(fs.existsSync(dots), false, 'the old target is not made again');
 });
 
+test('PC-129: through a Switchboard home, a person\'s own linked skills folder still keeps its path', () => {
+  const env = setup();
+  const operator = path.join(env.home, '.claude');
+  const skills = path.join(operator, 'skills');
+  const dots = path.join(env.home, 'dots', 'skills');
+  fs.mkdirSync(path.dirname(dots), { recursive: true });
+  fs.renameSync(skills, dots);
+  fs.symlinkSync(dots, skills, 'junction');
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(sb, { recursive: true });
+  fs.symlinkSync(skills, path.join(sb, 'skills'), 'junction');
+  fs.symlinkSync(path.join(operator, 'plugins'), path.join(sb, 'plugins'), 'junction');
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.equal(isLink(path.join(skills, 'example-agent')), false, 'moved aside');
+  fs.rmSync(sb, { recursive: true, force: true });
+  const dots2 = path.join(env.home, 'dots2', 'skills');
+  fs.mkdirSync(path.dirname(dots2), { recursive: true });
+  fs.renameSync(dots, dots2);
+  fs.unlinkSync(skills);
+  fs.symlinkSync(dots2, skills, 'junction');
+  env.extra = {};
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(skills, 'example-agent')), 'back in ~/.claude/skills');
+  assert.equal(fs.existsSync(dots), false, 'the old target is not made again');
+});
+
+test('PC-129: a person\'s own CLAUDE_CONFIG_DIR with a linked skills folder keeps its path too', () => {
+  const env = setup();
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg);
+  const skills = path.join(cfg, 'skills');
+  const dots = path.join(env.home, 'dots', 'skills');
+  fs.mkdirSync(path.dirname(dots), { recursive: true });
+  fs.renameSync(skills, dots);
+  fs.symlinkSync(dots, skills, 'junction');
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: cfg };
+  assert.equal(run(env, 'update', '--json').status, 0);
+  const dots2 = path.join(env.home, 'dots2', 'skills');
+  fs.mkdirSync(path.dirname(dots2), { recursive: true });
+  fs.renameSync(dots, dots2);
+  fs.unlinkSync(skills);
+  fs.symlinkSync(dots2, skills, 'junction');
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(skills, 'example-agent')), 'back in its skills folder');
+  assert.equal(fs.existsSync(dots), false, 'the old target is not made again');
+});
+
 test('a second update is idempotent: updates plugins, moves nothing', () => {
   const env = setup();
   assert.equal(run(env, 'update').status, 0);
