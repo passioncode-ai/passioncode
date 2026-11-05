@@ -26,8 +26,8 @@
 
 - **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped
   updating itself although the person never turned it off. It now leaves the switch as the person set it; with
-  nothing installed the session hook starts no update (one it had already started still finishes: a minute later run `status`,
-  and if it shows a version run `uninstall` again), and a reinstall keeps the choice. An uninstall by 0.2.75 or
+  nothing installed the session hook starts no update (one it had already started still finishes, which can take several minutes: once
+  `~/.passioncode/logs/update.log` shows it ended, run `status`, and if it shows a version run `uninstall` again), and a reinstall keeps the choice. An uninstall by 0.2.75 or
   earlier wrote the switch off: `status` then shows `auto-update off`, and
   `npx @passioncode-ai/passioncode@latest config set update.auto on` turns it back on.
 
