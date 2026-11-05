@@ -342,7 +342,7 @@ function npmMissingLine(nodeDir, latest) {
   const now = latest && VERSION.test(latest)
     ? ` To update now, run in a terminal where npx works: npx --yes ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update`
     : '';
-  return `[passioncode] there is no npm beside the Node in ${nodeDir}, so updates cannot be checked or installed; reinstall Node.js with npm, or put a Node.js that has npm first on PATH.${now}`;
+  return `[passioncode] there is no npm beside the Node in ${nodeDir}, so automatic updates cannot be checked or installed; reinstall that Node.js with npm (with the tool that installed it), or put a Node.js that has npm first on PATH, then start Claude Code again: the next session checks again.${now}`;
 }
 
 module.exports = { npmCommand, npmMissing, NPM_MISSING, npmMissingLine, PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, REGISTRY_ARGS, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };

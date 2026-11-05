@@ -59,7 +59,8 @@
   check failed and no update ever started. The hook now runs npm's
   own `npx-cli.js` and `npm-cli.js` (the npm in the folder of the Node that runs it, through that Node). Where no npm
   sits beside that Node, the check and the update start nothing and the session line says so instead of
-  `spawn npm ENOENT` or asking to fix PATH: reinstall Node.js with npm, or put a Node.js that has npm first on PATH, with
+  `spawn npm ENOENT` or asking to fix PATH: reinstall that Node.js with npm, or put a Node.js that has npm first on PATH
+  (the next session checks again once npm is there), with
   the manual command pinned to the verified version when one is known (PC-143). The processes
   the hook starts open no console window (whether npm's own shell for the package shows one is not yet checked on a
   Windows desktop, PC-143; CI proves that npm's scripts start there, and a full background update on a Windows desktop is

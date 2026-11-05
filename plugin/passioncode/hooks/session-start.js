@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand, npmMissing, npmMissingLine, PACKAGE } = require('./update-check');
+const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand, npmMissing, npmMissingLine, NPM_MISSING, PACKAGE } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
 const { openLog, logEvent } = require('./update-log');
 
@@ -57,12 +57,19 @@ async function main() {
   const state = read(STATE, {});
   const now = Date.now();
   const age = now - Date.parse(state.checkedAt);
+  // npm's own npx through this Node on Windows (PC-135); PASSIONCODE_PLATFORM stands in for the system in tests.
+  const platform = process.env.PASSIONCODE_PLATFORM || process.platform;
+  // A check that found no npm beside this Node is repeated as soon as npm is there, not a day later (PC-143).
+  const npmBack = state.checkError === NPM_MISSING && !npmMissing('npm', { platform });
   // The marker is claimed before the spawn: sessions restored together start one probe.
-  if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state)) && claimProbe(DIR, now)) {
+  if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state) || npmBack) && claimProbe(DIR, now)) {
     if (!await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
   const { lines, spawn: args, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)));
-  for (const e of events) logEvent(DIR, e.event, e.outcome, e.reason);
+  // On Windows with no npm beside this Node nothing can start the update: no cache folder, no spawn, and no download
+  // logged as started (PC-143).
+  const noNpm = npmMissing('npx', { platform });
+  for (const e of events) if (!(noNpm && e.event === 'update_download')) logEvent(DIR, e.event, e.outcome, e.reason);
   if (Object.keys(stateChanges).length) {
     // Re-read: the probe may have written meanwhile; only our own keys change.
     const fresh = { ...read(STATE, {}), ...stateChanges };
@@ -91,10 +98,6 @@ async function main() {
   let cacheDir = null;
   let failure = 'spawn';
   let earlierCache; // the folder an earlier update recorded, put back if this one does not start
-  // npm's own npx through this Node on Windows (PC-135); PASSIONCODE_PLATFORM stands in for the system in tests.
-  const platform = process.env.PASSIONCODE_PLATFORM || process.platform;
-  // On Windows with no npm beside this Node nothing can start the update: no cache folder, no spawn (PC-143).
-  const noNpm = npmMissing('npx', { platform });
   if (args && noNpm) failure = 'npm';
   if (args && !noNpm) {
     try {

@@ -43,7 +43,8 @@ on a clean tree, with `git rm --cached -r .` and then `git reset --hard`. Hosted
 (`validate.yml` runs `npm test` on Linux, macOS (PC-132) and Windows (PC-135); on Windows the cases that cannot run
 there skip by name with their reason: POSIX links, paths and modes, signals (PC-116), a folder made unwritable (PC-115),
 `test/setup.test.js`'s macOS simulation, and the PC-86, PC-88 and PC-89 doctor and
-setup cases, which simulate Windows on Linux and macOS because their `reg` stand-in is a shell script (on Windows itself
+setup cases, which simulate Windows on Linux and macOS because their `reg` stand-in is a shell script, and the PC-143
+cases of a Windows Node with no npm beside it, simulated with `PASSIONCODE_PLATFORM` because a real Node there has npm (on Windows itself
 `test/windows.test.js` proves the real `reg` output parses and the junction links);
 `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and `PUBLISH_NPMJS` are
 `true`). The repository is public, so they run outside the organisation's
