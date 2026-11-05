@@ -145,7 +145,7 @@ without downloading or checking anything and read that project's `.npmrc`. `--wo
 npm from walking up to a monorepo root above that folder, and the update installs through a cache of
 its own (a new `~/.passioncode/run/cache-*` folder each time; without one the update does not start),
 so a copy an earlier `npx` cached is not reused; npm's debug logs go to `~/.passioncode/logs/npm` (when that folder cannot be made, npm keeps its default
-log place and the update still runs, without `--logs-dir`).
+log place, inside the update's cache folder and removed with it, and the update still runs, without `--logs-dir`).
 A global install of that exact version (`npm install -g`) would still be used as it is (PC-142). In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose

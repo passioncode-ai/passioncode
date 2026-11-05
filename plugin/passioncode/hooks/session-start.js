@@ -90,6 +90,7 @@ async function main() {
   let updateArgs = null;
   let cacheDir = null;
   let failure = 'spawn';
+  let earlierCache; // the folder an earlier update recorded, put back if this one does not start
   if (args) {
     try {
       cacheDir = fs.mkdtempSync(path.join(runDir(), 'cache-'));
@@ -98,8 +99,8 @@ async function main() {
       failure = 'cache';
     }
     if (updateArgs) {
-      // npm's own debug logs go beside the update log (0700, five kept), not into the cache; without that folder npm
-      // keeps its default place, and the update still runs.
+      // npm's own debug logs go beside the update log (0700, five kept); without that folder npm keeps its default
+      // place, inside this cache folder (swept with it), and the update still runs.
       try {
         const npmLogs = path.join(DIR, 'logs', 'npm');
         fs.mkdirSync(npmLogs, { recursive: true, mode: 0o700 });
@@ -107,17 +108,25 @@ async function main() {
         updateArgs.splice(2, 0, `--logs-dir=${npmLogs}`, '--logs-max=5');
       } catch (_) { /* default npm logs */ }
       // The folder the update runs from: kept by later sweeps until another update records its own.
-      const fresh = { ...read(STATE, {}), updateCache: cacheDir };
-      const tmp = `${STATE}.${process.pid}.hook`;
-      fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
-      fs.renameSync(tmp, STATE);
+      // Not recorded (state.json not writable): the update still starts, and its folder is kept by its age alone.
+      try {
+        const current = read(STATE, {});
+        earlierCache = current.updateCache;
+        const fresh = { ...current, updateCache: cacheDir };
+        const tmp = `${STATE}.${process.pid}.hook`;
+        fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
+        fs.renameSync(tmp, STATE);
+      } catch (_) { /* the sweep's one-hour age protects it */ }
     }
   }
   if (args && (!updateArgs || !await detached('npx', updateArgs, 'update.log'))) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;
-      if (fresh.updateCache === cacheDir) delete fresh.updateCache;
+      if (fresh.updateCache === cacheDir) {
+        if (typeof earlierCache === 'string') fresh.updateCache = earlierCache;
+        else delete fresh.updateCache;
+      }
       const tmp = `${STATE}.${process.pid}.hook`;
       fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
       fs.renameSync(tmp, STATE);

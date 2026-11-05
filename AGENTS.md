@@ -150,7 +150,7 @@ release remain`). Cache cap: none beyond those, and `~/.passioncode/run/cache-*`
 package copy, removed at every session start once older than an hour, except the one the last update runs from, recorded as
 `updateCache` in `state.json`; uninstall leaves them, removing them by hand is safe while no update runs), with npm's own
 debug logs in `~/.passioncode/logs/npm` (a 0700 folder, npm keeps five; npm writes them with its own mode, outside LC-12's
-rotation; if that folder cannot be made, npm keeps its default place and the update still runs); clean command: `rm -rf payload *.tgz`.
+rotation; if that folder cannot be made, npm keeps its default place inside the update's cache folder and the update still runs); clean command: `rm -rf payload *.tgz`.
 
 ## Organisation
 

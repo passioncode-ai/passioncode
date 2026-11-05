@@ -184,7 +184,9 @@ test('probe rejects valid-looking stdout when npm exits with an error', () => {
 
 test('hook: missing npx does not fail the session or leave an update running', () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
-  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });
+  const earlier = path.join(sb.stateDir, 'run', 'cache-earlier');
+  fs.mkdirSync(earlier, { recursive: true });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', updateCache: earlier });
   const emptyPath = path.join(sb.base, 'empty-bin');
   fs.mkdirSync(emptyPath);
   const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath }), cwd: os.tmpdir(), input: '' });
@@ -193,7 +195,8 @@ test('hook: missing npx does not fail the session or leave an update running', (
   assert.doesNotMatch(r.stdout, /updating in the background/);
   assert.match(r.stdout, /could not start the background update/);
   const run = path.join(sb.stateDir, 'run');
-  assert.deepEqual(fs.readdirSync(run).filter((n) => n.startsWith('cache')), [], 'the unused cache folder is removed');
+  assert.deepEqual(fs.readdirSync(run).filter((n) => n.startsWith('cache')), ['cache-earlier'], 'the unused cache folder is removed');
+  assert.equal(stateOf(sb).updateCache, earlier, "the earlier update's folder stays recorded");
   if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(sb.stateDir, 'logs', 'npm')).mode & 0o777, 0o700);
 });
 
@@ -448,6 +451,7 @@ test('PC-131: the update runs in the launcher\'s own folder, never the session p
   assert.match(path.basename(cache), /^cache-/);
   assert.ok(call.includes(`--logs-dir=${path.join(sb.stateDir, 'logs', 'npm')} `), "npm's debug logs stay beside the update log");
   assert.ok(fs.existsSync(cache), 'the folder of an update that started stays for it');
+  assert.equal(stateOf(sb).updateCache, cache, 'the started update records the folder it runs from');
   // The probe's npm view runs there too.
   setState(sb, { ...stateOf(sb), checkedAt: '2026-01-01T00:00:00.000Z' });
   spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(), cwd: project, input: '' });
@@ -509,6 +513,7 @@ test('PC-131: every session start removes update cache folders older than an hou
   assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
   assert.ok(!fs.existsSync(old), 'swept by the session that started an update');
   const cache = stateOf(sb).updateCache;
+  assert.notEqual(cache, kept, 'the new update replaces the recorded folder');
   assert.ok(cache && fs.existsSync(cache) && path.dirname(cache) === run, 'the new update\'s folder is recorded');
   assert.ok(fs.existsSync(kept), 'an older recorded folder is swept only once it is no longer the recorded one');
 });
