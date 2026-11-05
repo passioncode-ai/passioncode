@@ -75,39 +75,49 @@ async function main() {
   // have this hook put the old "running" marker back.
   // A new, empty cache folder for each update, so npx downloads the verified version and npm checks it, instead of
   // reusing a copy an earlier `npx` cached under other settings (the global npm tree is still npm's own, PC-142).
-  // Without one the update does not start. Every session start removes folders older than an hour, unless an update
-  // is recorded as running (it runs from its folder: npx keeps the package inside the cache).
-  const running = now - Date.parse(read(STATE, {}).updatingSince);
-  if (!(Number.isFinite(running) && running >= 0 && running < HOUR)) {
-    try {
-      const run = path.join(DIR, 'run');
-      for (const name of fs.existsSync(run) ? fs.readdirSync(run) : []) {
-        if (!/^cache(-|$)/.test(name)) continue;
-        const folder = path.join(run, name);
-        try { if (now - fs.statSync(folder).mtimeMs > HOUR) fs.rmSync(folder, { recursive: true, force: true }); } catch (_) { /* in use or gone */ }
-      }
-    } catch (_) { /* the next session tries again */ }
-  }
+  // Without one the update does not start. Every session start removes cache folders older than an hour except the
+  // one the last update recorded (`updateCache`): an update runs from its folder, npx keeps the package inside it.
+  try {
+    const run = path.join(DIR, 'run');
+    const keep = read(STATE, {}).updateCache;
+    for (const name of fs.existsSync(run) ? fs.readdirSync(run) : []) {
+      if (!/^cache(-|$)/.test(name)) continue;
+      const folder = path.join(run, name);
+      if (folder === keep) continue;
+      try { if (now - fs.statSync(folder).mtimeMs > HOUR) fs.rmSync(folder, { recursive: true, force: true }); } catch (_) { /* in use or gone */ }
+    }
+  } catch (_) { /* the next session tries again */ }
   let updateArgs = null;
   let cacheDir = null;
   let failure = 'spawn';
   if (args) {
     try {
-      const cache = fs.mkdtempSync(path.join(runDir(), 'cache-'));
-      cacheDir = cache;
-      // npm's own debug logs go beside the update log (0700, five kept), not into the cache that is removed later.
-      const npmLogs = path.join(DIR, 'logs', 'npm');
-      fs.mkdirSync(npmLogs, { recursive: true, mode: 0o700 });
-      try { fs.chmodSync(npmLogs, 0o700); } catch (_) { /* Windows keeps its own ACLs */ }
-      updateArgs = [args[0], `--cache=${cache}`, `--logs-dir=${npmLogs}`, '--logs-max=5', ...args.slice(1)];
+      cacheDir = fs.mkdtempSync(path.join(runDir(), 'cache-'));
+      updateArgs = [args[0], `--cache=${cacheDir}`, ...args.slice(1)];
     } catch (_) {
       failure = 'cache';
+    }
+    if (updateArgs) {
+      // npm's own debug logs go beside the update log (0700, five kept), not into the cache; without that folder npm
+      // keeps its default place, and the update still runs.
+      try {
+        const npmLogs = path.join(DIR, 'logs', 'npm');
+        fs.mkdirSync(npmLogs, { recursive: true, mode: 0o700 });
+        try { fs.chmodSync(npmLogs, 0o700); } catch (_) { /* Windows keeps its own ACLs */ }
+        updateArgs.splice(2, 0, `--logs-dir=${npmLogs}`, '--logs-max=5');
+      } catch (_) { /* default npm logs */ }
+      // The folder the update runs from: kept by later sweeps until another update records its own.
+      const fresh = { ...read(STATE, {}), updateCache: cacheDir };
+      const tmp = `${STATE}.${process.pid}.hook`;
+      fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
+      fs.renameSync(tmp, STATE);
     }
   }
   if (args && (!updateArgs || !await detached('npx', updateArgs, 'update.log'))) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;
+      if (fresh.updateCache === cacheDir) delete fresh.updateCache;
       const tmp = `${STATE}.${process.pid}.hook`;
       fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
       fs.renameSync(tmp, STATE);

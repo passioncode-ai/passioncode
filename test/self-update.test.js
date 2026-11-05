@@ -97,7 +97,7 @@ async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
     await sleep(50);
   }
   if (expect) await sleep(150); // a second, unwanted spawn would land meanwhile
-  return lines(file).map((l) => l.replace(/--cache=\S+ --logs-dir=\S+ --logs-max=5 /, '--cache=RUN/cache '));
+  return lines(file).map((l) => l.replace(/--cache=\S+ (--logs-dir=\S+ --logs-max=5 )?/, '--cache=RUN/cache '));
 }
 
 test('probe records the latest version, its maintainers and its publisher', () => {
@@ -484,22 +484,41 @@ test('PC-131: without a cache folder of its own the update does not start', { sk
   }
 });
 
-test('PC-131: every session start removes update cache folders older than an hour, unless an update runs', () => {
-  const sb = sandbox();
+test('PC-131: every session start removes update cache folders older than an hour, except the running update\'s', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
   const run = path.join(sb.stateDir, 'run');
   const old = path.join(run, 'cache-old');
+  const kept = path.join(run, 'cache-kept');
   const recent = path.join(run, 'cache-recent');
-  fs.mkdirSync(old, { recursive: true });
-  fs.mkdirSync(recent, { recursive: true });
+  for (const d of [old, kept, recent]) fs.mkdirSync(d, { recursive: true });
   const twoHours = (Date.now() - 2 * 60 * 60 * 1000) / 1000;
-  fs.utimesSync(old, twoHours, twoHours);
-  setState(sb, { installed: '0.2.0', checkedAt: fresh(), published: true, latest: '0.2.0', updatingSince: new Date().toISOString() });
+  for (const d of [old, kept]) fs.utimesSync(d, twoHours, twoHours);
+  setState(sb, { installed: '0.2.0', checkedAt: fresh(), published: true, latest: '0.2.0', updateCache: kept });
   hook(sb);
-  assert.ok(fs.existsSync(old), 'an update recorded as running keeps every folder');
-  setState(sb, { ...stateOf(sb), updatingSince: undefined });
-  hook(sb);
-  assert.ok(!fs.existsSync(old), 'no update, nothing to install: the old folder is still removed');
+  assert.ok(!fs.existsSync(old), 'an old folder is removed with nothing to install');
+  assert.ok(fs.existsSync(kept), 'the folder the last update runs from stays');
   assert.ok(fs.existsSync(recent), 'a recent one stays');
+  // A session that starts an update sweeps too (its own new marker does not stop it), and records its folder.
+  fs.mkdirSync(old);
+  fs.utimesSync(old, twoHours, twoHours);
+  setState(sb, { ...stateOf(sb), installed: '0.1.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  hook(sb);
+  assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
+  assert.ok(!fs.existsSync(old), 'swept by the session that started an update');
+  const cache = stateOf(sb).updateCache;
+  assert.ok(cache && fs.existsSync(cache) && path.dirname(cache) === run, 'the new update\'s folder is recorded');
+  assert.ok(fs.existsSync(kept), 'an older recorded folder is swept only once it is no longer the recorded one');
+});
+
+test('PC-131: an npm log folder that cannot be made does not stop the update or blame the run folder', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  fs.mkdirSync(path.join(sb.stateDir, 'logs'), { recursive: true });
+  fs.writeFileSync(path.join(sb.stateDir, 'logs', 'npm'), 'a file where the folder would be');
+  assert.match(hook(sb), /updating in the background/);
+  const calls = await npxCalls(sb, { expect: 1 });
+  assert.equal(calls.length, 1);
+  assert.doesNotMatch(lines(path.join(sb.home, 'npx-calls.log'))[0], /--logs-dir/);
 });
 
 test('the hook loads only pinned keys written as plain one-line base64', () => {
