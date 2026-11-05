@@ -500,7 +500,8 @@ test('PC-131: every session start removes update cache folders older than an hou
   for (const d of [old, kept]) fs.utimesSync(d, twoHours, twoHours);
   const halfHour = (Date.now() - 30 * 60 * 1000) / 1000;
   fs.utimesSync(recent, halfHour, halfHour);
-  setState(sb, { installed: '0.2.0', checkedAt: fresh(), published: true, latest: '0.2.0', updateCache: kept });
+  // A verified record, so the first session starts no probe whose late write would undo the next setState.
+  setState(sb, { installed: '0.2.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0'), updateCache: kept });
   hook(sb);
   assert.ok(!fs.existsSync(old), 'an old folder is removed with nothing to install');
   assert.ok(fs.existsSync(kept), 'the folder the last update runs from stays');
@@ -508,7 +509,8 @@ test('PC-131: every session start removes update cache folders older than an hou
   // A session that starts an update sweeps too (its own new marker does not stop it), and records its folder.
   fs.mkdirSync(old);
   fs.utimesSync(old, twoHours, twoHours);
-  setState(sb, { ...stateOf(sb), installed: '0.1.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  assert.equal(require(path.join(PLUGIN, 'hooks/update-check')).needsProbe(stateOf(sb)), false, 'no probe runs beside this case');
+  setState(sb, { ...stateOf(sb), installed: '0.1.0' });
   hook(sb);
   assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
   assert.ok(!fs.existsSync(old), 'swept by the session that started an update');
