@@ -221,6 +221,11 @@ test('PC-131: doctor says, as information, when automatic updates are off, and h
   assert.equal(row.state, 'info', 'information, never a failure or a repair');
   assert.equal(row.fix, 'npx @passioncode-ai/passioncode@latest config set update.auto on');
   assert.ok(!row.repair, 'no repair: doctor --fix leaves the switch alone');
+  const saved = JSON.parse(fs.readFileSync(path.join(off.home, '.passioncode', 'doctor.json'), 'utf8'));
+  assert.ok(!saved.failed.includes('skills.auto-update'), 'the saved check never counts it as a failure');
+  const fixed = await cli(off, api, 'doctor', '--fix', '--json');
+  assert.ok(!fixed.json.humanSteps.some((step) => /update\.auto on/.test(step)), 'never one of the steps setup or --fix asks for');
+  assert.ok(!fixed.json.actions.some((a) => /auto/.test(JSON.stringify(a))), 'no action touches the switch');
   assert.equal(JSON.parse(fs.readFileSync(path.join(off.home, '.passioncode', 'state.json'), 'utf8')).config.auto, false, 'doctor never turns it on');
 });
 

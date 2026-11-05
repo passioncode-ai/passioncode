@@ -104,7 +104,7 @@ for Fabric without its prerequisites unless `--with fabric`), `update`,
 launchd service that does not answer), each with the check ids that caused it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
-fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124), each product's onboarding for apps installed in this run, and the restart. A plan lists
+`fail` or `warn` fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124; information rows such as `skills.auto-update` stay in `after.checks` too), each product's onboarding for apps installed in this run, and the restart. A plan lists
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 

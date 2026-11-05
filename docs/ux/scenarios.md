@@ -207,10 +207,11 @@
   1. Run doctor.
   2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
 - **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result, its release cache (`~/.passioncode/releases-cache.json`, release lookups kept 30 minutes) and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
-- **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows When `update.auto` is off, a `skills.auto-update` information row names `config set update.auto on`; doctor never turns it on (PC-131).
+- **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
-  own (PC-86).
+  own (PC-86). When `update.auto` is off, a `skills.auto-update` information row says so and names
+  `config set update.auto on` as the person's choice; doctor never turns it on (PC-131).
 - **UI elements:** Grouped text lines or JSON; exit code.
 - **States covered:** success, error
 - **Errors & recovery:** Every failing line names the command or the step that fixes it.
