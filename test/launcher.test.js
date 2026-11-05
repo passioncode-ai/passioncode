@@ -471,6 +471,8 @@ test('status labels cached npm observations without changing state or probing np
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.15 registry_signature', refused: 'registry_signature', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt}; not installed automatically: its signature does not verify)` },
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt}; not installed automatically: no build provenance)` },
     { latest: '0.1.14', checkedAt, refusalLogged: '0.1.14 provenance', expected: `npm latest (cached) 0.1.14 (checked ${checkedAt})`, note: 'installed by hand since: no longer refused' },
+    // A newer latest than the refused version: that refusal is not this version's.
+    { latest: '0.1.16', checkedAt, refusalLogged: '0.1.15 provenance', expected: `npm latest (cached) 0.1.16 (checked ${checkedAt})` },
     // The last check failed (no latest): the standing refusal is still shown.
     { latest: undefined, refusalLogged: '0.1.15 provenance', expected: 'npm latest: not checked', note: 'an unpublished name answered: not a failed check' },
     { latest: undefined, checkError: 'ETIMEDOUT', refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: 'npm latest: not checked (last check failed; 0.1.15 not installed automatically: no build provenance)' },

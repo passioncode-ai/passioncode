@@ -127,7 +127,7 @@ Idle budget: zero — no process runs between sessions except a probe or update 
 
 Update log (LC-12, LC-16): `~/.passioncode/logs/update-events.log` holds one line of codes per `update_check`
 (`ready`/`current` once per answer, `check_failed`, `signature_failed <reason>` once per version and reason),
-`update_download` (`started`, `done`), `update_install` (`installed`, `failed`) and `auto_update` (`on`, `off`);
+`update_download` (`started`, `done`), `update_install` (`installed`, `failed`, with `spawn` or `cache` when the hook could not start it) and `auto_update` (`on`, `off`);
 `probe.log`, `update.log` and it move aside at 5 MB with five files kept, mode 0600 on macOS and Linux
 (`hooks/update-log.js`, its copy `lib/update-log.js`). The probe and the background update run in
 `~/.passioncode/run/` (a `package.json` with no dependencies the hook writes), so npm never takes the package from the session

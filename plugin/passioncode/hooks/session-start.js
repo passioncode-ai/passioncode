@@ -18,6 +18,8 @@ const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncod
 const STATE = path.join(DIR, 'state.json');
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
+/** A path as a person types it: the home folder as ~. */
+const shown = (p) => (p.startsWith(os.homedir() + path.sep) ? `~${p.slice(os.homedir().length)}` : p);
 
 function read(file, fallback) {
   try { const doc = JSON.parse(fs.readFileSync(file, 'utf8')); return doc && typeof doc === 'object' && !Array.isArray(doc) ? doc : fallback; }
@@ -87,13 +89,16 @@ async function main() {
     } catch (_) { /* the next session tries again */ }
   }
   let updateArgs = null;
+  let cacheDir = null;
   let failure = 'spawn';
   if (args) {
     try {
       const cache = fs.mkdtempSync(path.join(runDir(), 'cache-'));
+      cacheDir = cache;
       // npm's own debug logs go beside the update log (0700, five kept), not into the cache that is removed later.
       const npmLogs = path.join(DIR, 'logs', 'npm');
       fs.mkdirSync(npmLogs, { recursive: true, mode: 0o700 });
+      try { fs.chmodSync(npmLogs, 0o700); } catch (_) { /* Windows keeps its own ACLs */ }
       updateArgs = [args[0], `--cache=${cache}`, `--logs-dir=${npmLogs}`, '--logs-max=5', ...args.slice(1)];
     } catch (_) {
       failure = 'cache';
@@ -108,9 +113,10 @@ async function main() {
       fs.renameSync(tmp, STATE);
     }
     logEvent(DIR, 'update_install', 'failed', failure);
+    if (cacheDir) fs.rmSync(cacheDir, { recursive: true, force: true }); // nothing ran from it
     lines.pop(); // decide appends the update-start notice last when it returns args
     lines.push(failure === 'cache'
-      ? '[passioncode] could not start the background update: its folder ~/.passioncode/run cannot be written; make it writable (or remove it) and it is tried again next session.'
+      ? `[passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session.`
       : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }
   // Claude Code passes the session's directory on stdin; the process cwd is the fallback.
@@ -130,7 +136,7 @@ async function main() {
     // A release train this launcher cannot use is not repaired by plain setup (PC-89).
     const how = Array.isArray(last.failed) && last.failed.includes('train') ? 'setup --yes --no-apps --train none` (or a train this launcher ships) clears the unusable release train, `doctor' : 'setup` repairs them, `doctor';
     // While the latest version is refused, or not yet checked, `@latest` would run it: name the installed one instead.
-    const pin = (refused || needsProbe(state) || (typeof state.refusalLogged === 'string' && !state.latest)) && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
+    const pin = (refused || needsProbe(state) || (typeof state.refusalLogged === 'string' && !state.latest && state.checkError)) && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
     lines.push(`[passioncode] the setup check of ${when} found ${fails} problem(s)${ids.length ? ` (${ids.join(', ')}${last.failed.length > 3 ? ', …' : ''})` : ''}; \`npx @passioncode-ai/passioncode@${pin} ${how}\` shows them.`);
   }
   if (lines.length) process.stdout.write(lines.join('\n') + '\n');

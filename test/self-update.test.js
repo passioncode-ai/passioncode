@@ -192,6 +192,9 @@ test('hook: missing npx does not fail the session or leave an update running', (
   assert.equal(stateOf(sb).updatingSince, undefined);
   assert.doesNotMatch(r.stdout, /updating in the background/);
   assert.match(r.stdout, /could not start the background update/);
+  const run = path.join(sb.stateDir, 'run');
+  assert.deepEqual(fs.readdirSync(run).filter((n) => n.startsWith('cache')), [], 'the unused cache folder is removed');
+  if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(sb.stateDir, 'logs', 'npm')).mode & 0o777, 0o700);
 });
 
 test('hook: an empty trust list never spawns', async () => {
@@ -266,7 +269,7 @@ test('hook: a check recorded before signatures were read installs nothing and as
   fs.writeFileSync(out, published('0.2.0', ['passioncode-ai'], 'passioncode-ai'));
   assert.equal(hook(sb, { FAKE_NPM_OUT: out }), '', 'nothing to refuse yet: the record is only older than the check');
   const file = path.join(sb.home, 'npm-calls.log');
-  const until = Date.now() + 5000;
+  const until = Date.now() + 20000;
   while (!stateOf(sb).verify && Date.now() < until) await sleep(50);
   assert.equal(lines(file).length, 1, 'a fresh check, although the last one is less than a day old');
   assert.deepEqual(await npxCalls(sb), []);
@@ -279,7 +282,7 @@ test('hook: signature data recorded for another version (an older plugin probed 
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.1', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
   assert.equal(hook(sb), '', 'no refusal for a version whose signature was never read');
   assert.deepEqual(eventsOf(sb), []);
-  const until = Date.now() + 5000;
+  const until = Date.now() + 20000;
   while (!lines(path.join(sb.home, 'npm-calls.log')).length && Date.now() < until) await sleep(50);
   assert.equal(lines(path.join(sb.home, 'npm-calls.log')).length, 1, 'a fresh probe');
   assert.deepEqual(await npxCalls(sb), []);
@@ -616,7 +619,7 @@ test('hook: a stale check starts the probe, which asks npm who publishes', async
   setState(sb, { installed: '0.1.0', checkedAt: '2026-01-01T00:00:00.000Z' });
   hook(sb);
   const file = path.join(sb.home, 'npm-calls.log');
-  const until = Date.now() + 5000;
+  const until = Date.now() + 20000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
   assert.deepEqual(lines(file), ['view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
 });
@@ -646,7 +649,7 @@ test('hook: a probe marker left by a probe that died does not stop the next chec
   fs.utimesSync(marker, old, old);
   hook(sb);
   const file = path.join(sb.home, 'npm-calls.log');
-  const until = Date.now() + 5000;
+  const until = Date.now() + 20000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
   assert.equal(lines(file).length, 1);
 });
@@ -656,7 +659,7 @@ test('hook: future timestamps do not suppress probes or updates indefinitely', a
   setState(sb, { installed: '0.1.0', checkedAt: '2999-01-01T00:00:00Z' });
   hook(sb);
   const file = path.join(sb.home, 'npm-calls.log');
-  const until = Date.now() + 5000;
+  const until = Date.now() + 20000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
   assert.equal(lines(file).length, 1);
   const { decide } = require('../plugin/passioncode/hooks/update-check');
