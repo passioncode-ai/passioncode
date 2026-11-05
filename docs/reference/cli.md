@@ -488,8 +488,8 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
-| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache-*` folders hold each update's own npm cache, removed by a session start after ten minutes; uninstall leaves the folder, removing it is safe): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
-| `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600) |
+| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache-*` folders hold each update's own npm cache, removed at a session start once older than an hour unless an update is recorded as running; uninstall leaves the folder, removing it is safe while no update runs): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
+| `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600; `logs/npm/` holds npm's own debug logs of the background update, five kept by npm in a 0700 folder) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
 | `~/.passioncode/analytics-notice` | An empty marker: the notice was claimed by one command, so two commands started together never both print it; one older than a minute with no record of the notice in `analytics.json` is claimed again (PC-123) |

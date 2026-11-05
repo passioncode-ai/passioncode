@@ -97,7 +97,7 @@ async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
     await sleep(50);
   }
   if (expect) await sleep(150); // a second, unwanted spawn would land meanwhile
-  return lines(file).map((l) => l.replace(/--cache=\S+ --logs-dir=\S+ /, '--cache=RUN/cache '));
+  return lines(file).map((l) => l.replace(/--cache=\S+ --logs-dir=\S+ --logs-max=5 /, '--cache=RUN/cache '));
 }
 
 test('probe records the latest version, its maintainers and its publisher', () => {
@@ -472,13 +472,31 @@ test('PC-131: without a cache folder of its own the update does not start', { sk
   fs.writeFileSync(path.join(run, 'package.json'), '{ "private": true }\n');
   fs.chmodSync(run, 0o555);
   try {
-    assert.match(hook(sb), /could not start the background update: its folder ~\/\.passioncode\/run cannot be written/);
+    assert.match(hook(sb), /could not start the background update: its folder ~\/\.passioncode\/run cannot be written; make it writable \(or remove it\)/);
     assert.deepEqual(await npxCalls(sb), [], 'never without its own cache');
     assert.equal(stateOf(sb).updatingSince, undefined);
     assert.ok(eventsOf(sb).includes('update_install failed cache'));
   } finally {
     fs.chmodSync(run, 0o755);
   }
+});
+
+test('PC-131: every session start removes update cache folders older than an hour, unless an update runs', () => {
+  const sb = sandbox();
+  const run = path.join(sb.stateDir, 'run');
+  const old = path.join(run, 'cache-old');
+  const recent = path.join(run, 'cache-recent');
+  fs.mkdirSync(old, { recursive: true });
+  fs.mkdirSync(recent, { recursive: true });
+  const twoHours = (Date.now() - 2 * 60 * 60 * 1000) / 1000;
+  fs.utimesSync(old, twoHours, twoHours);
+  setState(sb, { installed: '0.2.0', checkedAt: fresh(), published: true, latest: '0.2.0', updatingSince: new Date().toISOString() });
+  hook(sb);
+  assert.ok(fs.existsSync(old), 'an update recorded as running keeps every folder');
+  setState(sb, { ...stateOf(sb), updatingSince: undefined });
+  hook(sb);
+  assert.ok(!fs.existsSync(old), 'no update, nothing to install: the old folder is still removed');
+  assert.ok(fs.existsSync(recent), 'a recent one stays');
 });
 
 test('the hook loads only pinned keys written as plain one-line base64', () => {

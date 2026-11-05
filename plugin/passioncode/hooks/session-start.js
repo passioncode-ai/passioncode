@@ -17,6 +17,7 @@ const { openLog, logEvent } = require('./update-log');
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
 const STATE = path.join(DIR, 'state.json');
 const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
 
 function read(file, fallback) {
   try { const doc = JSON.parse(fs.readFileSync(file, 'utf8')); return doc && typeof doc === 'object' && !Array.isArray(doc) ? doc : fallback; }
@@ -72,20 +73,28 @@ async function main() {
   // have this hook put the old "running" marker back.
   // A new, empty cache folder for each update, so npx downloads the verified version and npm checks it, instead of
   // reusing a copy an earlier `npx` cached under other settings (the global npm tree is still npm's own, PC-142).
-  // Without one the update does not start. Folders older than an update's ten-minute window are removed.
+  // Without one the update does not start. Every session start removes folders older than an hour, unless an update
+  // is recorded as running (it runs from its folder: npx keeps the package inside the cache).
+  const running = now - Date.parse(read(STATE, {}).updatingSince);
+  if (!(Number.isFinite(running) && running >= 0 && running < HOUR)) {
+    try {
+      const run = path.join(DIR, 'run');
+      for (const name of fs.existsSync(run) ? fs.readdirSync(run) : []) {
+        if (!/^cache(-|$)/.test(name)) continue;
+        const folder = path.join(run, name);
+        try { if (now - fs.statSync(folder).mtimeMs > HOUR) fs.rmSync(folder, { recursive: true, force: true }); } catch (_) { /* in use or gone */ }
+      }
+    } catch (_) { /* the next session tries again */ }
+  }
   let updateArgs = null;
   let failure = 'spawn';
   if (args) {
     try {
-      const run = runDir();
-      for (const name of fs.readdirSync(run)) {
-        if (!/^cache(-|$)/.test(name)) continue;
-        const folder = path.join(run, name);
-        try { if (now - fs.statSync(folder).mtimeMs > 10 * 60 * 1000) fs.rmSync(folder, { recursive: true, force: true }); } catch (_) { /* in use or gone */ }
-      }
-      const cache = fs.mkdtempSync(path.join(run, 'cache-'));
-      // npm's own debug logs go beside the update log, not into the cache that is removed later.
-      updateArgs = [args[0], `--cache=${cache}`, `--logs-dir=${path.join(DIR, 'logs', 'npm')}`, ...args.slice(1)];
+      const cache = fs.mkdtempSync(path.join(runDir(), 'cache-'));
+      // npm's own debug logs go beside the update log (0700, five kept), not into the cache that is removed later.
+      const npmLogs = path.join(DIR, 'logs', 'npm');
+      fs.mkdirSync(npmLogs, { recursive: true, mode: 0o700 });
+      updateArgs = [args[0], `--cache=${cache}`, `--logs-dir=${npmLogs}`, '--logs-max=5', ...args.slice(1)];
     } catch (_) {
       failure = 'cache';
     }
@@ -101,7 +110,7 @@ async function main() {
     logEvent(DIR, 'update_install', 'failed', failure);
     lines.pop(); // decide appends the update-start notice last when it returns args
     lines.push(failure === 'cache'
-      ? '[passioncode] could not start the background update: its folder ~/.passioncode/run cannot be written; it is tried again next session.'
+      ? '[passioncode] could not start the background update: its folder ~/.passioncode/run cannot be written; make it writable (or remove it) and it is tried again next session.'
       : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }
   // Claude Code passes the session's directory on stdin; the process cwd is the fallback.

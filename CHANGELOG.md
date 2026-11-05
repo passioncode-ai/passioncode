@@ -36,7 +36,7 @@
   version, not `@latest`, and `status` shows the refusal. The release build refuses a `trust.json` whose keys the hook
   would not load, the release workflow publishes only with provenance, and its registry receipt runs the same checks
   on the published version. The signature is npm's, not the organization's that LC-16 asks for (PC-142).
-- **An update log, and every update log capped** (PC-131, LC-12, LC-16): `~/.passioncode/logs/update-events.log`
+- **An update log, and the update logs capped** (PC-131, LC-12, LC-16): `~/.passioncode/logs/update-events.log`
   records `update_check` (`ready` or `current` once per answer, `check_failed`, `signature_failed` with its reason
   once per version), `update_download`, `update_install` and `auto_update`, codes only; it, `probe.log` and
   `update.log` move aside at 5 MB, five files kept, mode 0600 on macOS and Linux.

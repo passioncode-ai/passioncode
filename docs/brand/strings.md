@@ -23,8 +23,8 @@ Contract: brand-contract v1
 | help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). App ids: switchboard, dashboards, observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:39 | SCN-007 | proposed | layout |
 | args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:236 | SCN-007 | proposed | copy |
 | args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:85 | SCN-007 | proposed | copy |
-| hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:105 | SCN-006 | proposed | copy |
-| hook.cache-failed | [passioncode] could not start the background update: its folder ~/.passioncode/run cannot be written; it is tried again next session. | plugin/passioncode/hooks/session-start.js:104 | SCN-006 | proposed | copy |
+| hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:114 | SCN-006 | proposed | copy |
+| hook.cache-failed | [passioncode] could not start the background update: its folder ~/.passioncode/run cannot be written; make it writable (or remove it) and it is tried again next session. | plugin/passioncode/hooks/session-start.js:113 | SCN-006 | proposed | copy |
 | update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
 | setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:184 | SCN-008 | proposed | copy |
@@ -181,7 +181,7 @@ Contract: brand-contract v1
 | hook.refusal-standing | [passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()} | plugin/passioncode/hooks/update-check.js:244 | SCN-006 | proposed | copy |
 | status.npm.not-checked-refused | npm latest: not checked (last check failed; ${refusedVersion} not installed automatically: ${REFUSED[refused] || 'refused'}) | bin/passioncode.js:11 | SCN-001 | proposed | copy |
 | hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:275 | SCN-006 | proposed | copy |
-| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:125 | SCN-013 | proposed | copy |
+| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:134 | SCN-013 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further
 wording changes. Version values and timestamps remain verbatim observations.
