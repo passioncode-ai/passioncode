@@ -24,7 +24,8 @@ Contract: brand-contract v1
 | args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:236 | SCN-007 | proposed | copy |
 | args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:85 | SCN-007 | proposed | copy |
 | hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:148 | SCN-006 | proposed | copy |
-| hook.npm-missing | [passioncode] could not start the background update: there is no npm beside the Node in ${shown(path.dirname(process.execPath))}; reinstall Node.js with npm, or update by hand with npx --yes @passioncode-ai/passioncode@latest update. | plugin/passioncode/hooks/session-start.js:147 | SCN-006 | proposed | copy |
+| hook.npm-missing | [passioncode] there is no npm beside the Node in ${nodeDir}, so updates cannot be checked or installed; reinstall Node.js with npm, or put a Node.js that has npm first on PATH.${now} | plugin/passioncode/hooks/update-check.js:345 | SCN-006 | proposed | copy |
+| hook.npm-missing.manual |  To update now, run in a terminal where npx works: npx --yes ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:343 | SCN-006 | proposed | copy |
 | hook.cache-failed | [passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session. | plugin/passioncode/hooks/session-start.js:145 | SCN-006 | proposed | copy |
 | update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
@@ -172,16 +173,16 @@ Contract: brand-contract v1
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:422 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
-| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:252 | SCN-006 | proposed | copy |
-| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:255 | SCN-006 | proposed | copy |
-| hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:260 | SCN-006 | proposed | copy |
-| hook.no-provenance | [passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:263 | SCN-006 | proposed | copy |
-| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:273 | SCN-006 | proposed | copy |
+| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:253 | SCN-006 | proposed | copy |
+| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:256 | SCN-006 | proposed | copy |
+| hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:261 | SCN-006 | proposed | copy |
+| hook.no-provenance | [passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:264 | SCN-006 | proposed | copy |
+| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:274 | SCN-006 | proposed | copy |
 | hook.keep | keep using ${state.installed} (npx ${PACKAGE}@${state.installed}, not @latest) and see ${SECURITY_URL}. | plugin/passioncode/hooks/update-check.js:223 | SCN-006 | proposed | copy |
-| hook.check-failed | [passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log). | plugin/passioncode/hooks/update-check.js:235 | SCN-006 | proposed | copy |
-| hook.refusal-standing | [passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()} | plugin/passioncode/hooks/update-check.js:244 | SCN-006 | proposed | copy |
+| hook.check-failed | [passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log). | plugin/passioncode/hooks/update-check.js:236 | SCN-006 | proposed | copy |
+| hook.refusal-standing | [passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()} | plugin/passioncode/hooks/update-check.js:245 | SCN-006 | proposed | copy |
 | status.npm.not-checked-refused | npm latest: not checked (last check failed; ${refusedVersion} not installed automatically: ${REFUSED[refused] || 'refused'}) | bin/passioncode.js:11 | SCN-001 | proposed | copy |
-| hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:275 | SCN-006 | proposed | copy |
+| hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:276 | SCN-006 | proposed | copy |
 | hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:168 | SCN-013 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further

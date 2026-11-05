@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand } = require('./update-check');
+const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand, npmMissing, npmMissingLine, PACKAGE } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
 const { openLog, logEvent } = require('./update-log');
 
@@ -61,7 +61,7 @@ async function main() {
   if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state)) && claimProbe(DIR, now)) {
     if (!await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
-  const { lines, spawn: args, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys());
+  const { lines, spawn: args, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)));
   for (const e of events) logEvent(DIR, e.event, e.outcome, e.reason);
   if (Object.keys(stateChanges).length) {
     // Re-read: the probe may have written meanwhile; only our own keys change.
@@ -91,7 +91,12 @@ async function main() {
   let cacheDir = null;
   let failure = 'spawn';
   let earlierCache; // the folder an earlier update recorded, put back if this one does not start
-  if (args) {
+  // npm's own npx through this Node on Windows (PC-135); PASSIONCODE_PLATFORM stands in for the system in tests.
+  const platform = process.env.PASSIONCODE_PLATFORM || process.platform;
+  // On Windows with no npm beside this Node nothing can start the update: no cache folder, no spawn (PC-143).
+  const noNpm = npmMissing('npx', { platform });
+  if (args && noNpm) failure = 'npm';
+  if (args && !noNpm) {
     try {
       cacheDir = fs.mkdtempSync(path.join(runDir(), 'cache-'));
       updateArgs = [args[0], `--cache=${cacheDir}`, ...args.slice(1)];
@@ -120,11 +125,7 @@ async function main() {
       } catch (_) { /* the sweep's one-hour age protects it */ }
     }
   }
-  // npm's own npx through this Node on Windows (PC-135); PASSIONCODE_PLATFORM stands in for the system in tests.
-  const platform = process.env.PASSIONCODE_PLATFORM || process.platform;
   const [npx, npxPre] = npmCommand('npx', { platform });
-  // On Windows the name alone cannot start npx's .cmd file, so no PATH change helps: npm is not beside this Node (PC-143).
-  const noNpm = platform === 'win32' && !process.env.PASSIONCODE_NPX && npxPre.length === 0;
   if (args && (!updateArgs || !await detached(npx, [...npxPre, ...updateArgs], 'update.log'))) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
@@ -137,14 +138,13 @@ async function main() {
       fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
       fs.renameSync(tmp, STATE);
     }
-    if (failure === 'spawn' && noNpm) failure = 'npm';
     logEvent(DIR, 'update_install', 'failed', failure);
     if (cacheDir) try { fs.rmSync(cacheDir, { recursive: true, force: true }); } catch (_) { /* nothing ran from it; the hourly sweep removes it */ }
     lines.pop(); // decide appends the update-start notice last when it returns args
     lines.push(failure === 'cache'
       ? `[passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session.`
       : failure === 'npm'
-        ? `[passioncode] could not start the background update: there is no npm beside the Node in ${shown(path.dirname(process.execPath))}; reinstall Node.js with npm, or update by hand with npx --yes @passioncode-ai/passioncode@latest update.`
+        ? npmMissingLine(shown(path.dirname(process.execPath)), args.find((a) => a.startsWith(`${PACKAGE}@`)).slice(PACKAGE.length + 1))
         : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }
   // Claude Code passes the session's directory on stdin; the process cwd is the fallback.

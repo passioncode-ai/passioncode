@@ -790,6 +790,17 @@ test('PC-135: on Windows the hooks start npm\'s own script through this Node; el
   assert.deepEqual(npmCommand('npm', { env: { PASSIONCODE_NPM: '/t/npm' }, platform: 'win32', execPath: '/n' }), ['/t/npm', []]);
 });
 
+test('PC-143: npm is missing only on Windows, with no stand-in and no npm script beside Node', () => {
+  const { npmMissing } = require(path.join(PLUGIN, 'hooks/update-check'));
+  const node = 'C:\\Program Files\\nodejs\\node.exe';
+  const cli = 'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js';
+  assert.equal(npmMissing('npx', { env: {}, platform: 'win32', execPath: node, exists: () => false }), 'C:\\Program Files\\nodejs', 'the folder of the Node that runs the hook');
+  assert.equal(npmMissing('npx', { env: {}, platform: 'win32', execPath: node, exists: (f) => f === cli }), null, 'npm beside Node');
+  assert.equal(npmMissing('npx', { env: { PASSIONCODE_NPX: 'C:\\t\\npx.cmd' }, platform: 'win32', execPath: node, exists: () => false }), null, 'a stand-in');
+  assert.equal(npmMissing('npx', { env: { PASSIONCODE_NPX: '' }, platform: 'win32', execPath: node, exists: () => false }), 'C:\\Program Files\\nodejs', 'an empty stand-in is none');
+  assert.equal(npmMissing('npm', { env: {}, platform: 'darwin', execPath: '/usr/local/bin/node', exists: () => false }), null, 'elsewhere the name starts npm');
+});
+
 // On Windows itself, with no stand-in: the npm script beside this Node exists and starts (no download).
 test('PC-135: on Windows the npm and npx scripts beside Node start with --version', { skip: process.platform !== 'win32' && 'needs Windows' }, () => {
   const { npmCommand } = require(path.join(PLUGIN, 'hooks/update-check'));
@@ -813,8 +824,27 @@ test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PA
   fs.mkdirSync(emptyPath);
   const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath, PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPX: '' }), cwd: os.tmpdir(), input: '' });
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /there is no npm beside the Node in /);
-  assert.doesNotMatch(r.stdout, /check that npx is on PATH/);
+  assert.match(r.stdout, /there is no npm beside the Node in .*; reinstall Node\.js with npm, or put a Node\.js that has npm first on PATH\./);
+  // The manual command names the verified version and npm's own registry, as the hook's other manual line does.
+  assert.match(r.stdout, /To update now, run in a terminal where npx works: npx --yes --registry=https:\/\/registry\.npmjs\.org \S+ \S+ @passioncode-ai\/passioncode@0\.2\.0 update\n/);
+  assert.doesNotMatch(r.stdout, /check that npx is on PATH|@latest/);
   assert.ok(eventsOf(sb).includes('update_install failed npm'), eventsOf(sb).join('; '));
   assert.equal(stateOf(sb).updatingSince, undefined);
+  const run = path.join(sb.stateDir, 'run');
+  assert.deepEqual(fs.existsSync(run) ? fs.readdirSync(run).filter((n) => n.startsWith('cache')) : [], [], 'no cache folder for an update that cannot start');
+});
+
+test('PC-143: on Windows with no npm beside Node the probe records it, and the session line names the fix, not spawn npm ENOENT', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, () => {
+  const sb = sandbox();
+  setState(sb, { installed: '0.1.0' });
+  const win = { PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPM: '', PASSIONCODE_NPX: '' };
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/probe.js')], { encoding: 'utf8', env: sb.env(win) });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(stateOf(sb).checkError, 'npm-missing');
+  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), [], 'nothing is started');
+  assert.deepEqual(eventsOf(sb), ['update_check check_failed npm']);
+  const out = hook(sb, win);
+  assert.match(out, /^\[passioncode\] there is no npm beside the Node in .*; reinstall Node\.js with npm, or put a Node\.js that has npm first on PATH\.\n$/);
+  assert.doesNotMatch(out, /ENOENT|daily update check failed|To update now/);
+  assert.equal(hook(sb, win), '', 'shown once, as every check error');
 });
