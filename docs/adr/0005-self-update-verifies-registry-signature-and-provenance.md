@@ -16,8 +16,8 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
 
 ## Decision
 
-- The probe asks `npm view --registry=https://registry.npmjs.org @passioncode-ai/passioncode version
-  maintainers _npmUser dist --json` and records, besides the version and the accounts,
+- The probe asks `npm view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org
+  @passioncode-ai/passioncode version maintainers _npmUser dist --json` and records, besides the version and the accounts,
   `dist.integrity`, the registry's `dist.signatures`, the provenance attestation's `predicateType` and
   the version they were read for (`verify` in `~/.passioncode/state.json`). It asks npm's registry
   whatever registry the person's npm uses, for the scope too (`--@passioncode-ai:registry`, which npm

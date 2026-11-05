@@ -133,8 +133,8 @@ Update log (LC-12, LC-16): `~/.passioncode/logs/update-events.log` holds one lin
 checks it; `signature_failed` covers every refusal (publishers, signature, provenance) with its reason.
 
 Where this change departs from LC-16 and LC-12 (said here as LC-16 asks; the launcher's other LC-16 differences, the
-switch kept in `state.json`, the npm metadata as the check's source and the cadence, are older and listed in the
-table above): the signature checked is npm's registry
+switch kept in `~/.passioncode/state.json` (`config.auto`), the npm metadata as the check's source and the cadence
+in the table above, are older): the signature checked is npm's registry
 key over npm's copy, not the organization's (PC-142 adds one), and the logs live in `~/.passioncode/logs/`, not
 `~/Library/Logs/<Product>/`, with the rest of the launcher's state on all three platforms
 ([ADR-0005](docs/adr/0005-self-update-verifies-registry-signature-and-provenance.md)).

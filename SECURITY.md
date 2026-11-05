@@ -136,7 +136,9 @@ The hook installs a newer version on its own only when all of these hold:
 It then runs `npx --yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@<that exact version> update --quiet`,
 detached, so the version that was checked is the version that runs; npm checks the download against
 the integrity it reads at that moment (up to a day after the check), so a different tarball for the
-same version would need the registry itself to serve other metadata than it signed. In every other case it spawns
+same version would need the registry itself to serve other metadata than it signed, or the person's own
+npm settings (a proxy with `strict-ssl=false`, a custom `cafile`) to let something intercept that
+download; the hook does not check the tarball's bytes against the integrity it verified (PC-142). In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose
 signature does not verify or that has no provenance is reported the same way and not offered as a
@@ -147,10 +149,13 @@ runs the refused version. So while a refusal stands, the hook's own lines name t
 version instead, and `status` adds "not installed automatically" with the reason.
 
 **If a session shows such a line.** Keep working on the version you have and run commands as
-`npx @passioncode-ai/passioncode@<installed version> …` (the line names it), not `@latest`. Then:
+`npx @passioncode-ai/passioncode@<installed version> …` (the line names it), not `@latest`; such a
+command uses your own npm settings, as any `npx` does. Then:
 an npm registry key rotation and tampering print the same signature line; it is a rotation when
-`https://registry.npmjs.org/-/npm/v1/keys` lists a key `trust.json` lacks, and then the CHANGELOG
-names the launcher release that pins it, which you install by hand once
+`https://registry.npmjs.org/-/npm/v1/keys` lists a keyid that the `trust.json` of the plugin you
+have lacks (the one shipped with the version the line names:
+`https://github.com/passioncode-ai/passioncode/blob/v<that version>/plugin/passioncode/trust.json`),
+and then the CHANGELOG names the launcher release that pins it, which you install by hand once
 (`npx @passioncode-ai/passioncode@<that version> update`). A registry mirror or proxy cannot cause
 the line, because the check reads npm's registry itself; a network that reaches only a mirror makes
 the check fail instead ("the daily update check failed" once per new error), and then updates are
