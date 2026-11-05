@@ -54,6 +54,12 @@
 
 ### Fixed
 
+- **Automatic updates work on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
+  cannot start their `.cmd` files, so the daily check failed and no update ever started there. The hook now runs npm's
+  own `npx-cli.js` and `npm-cli.js` from beside the Node that runs it, and its background processes open no console
+  window.
+- **Shadowed skills are moved aside on Windows** (PC-135): `update` named a moved path by its forward slashes alone, so
+  on Windows the name kept the drive's colon and the move failed; the quarantine now flattens Windows paths too.
 - **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped
   updating itself although the person never turned it off. It now leaves the switch as the person set it; with
   nothing installed the session hook starts no update (one it had already started still finishes, which can take several minutes: once

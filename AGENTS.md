@@ -40,8 +40,8 @@ There is nothing to install: the launcher has no dependencies and no lockfile, s
 refuses to run here; `npm test` works on a fresh clone. `.gitattributes` checks every text file
 out with LF on every platform (PC-99); a Windows clone made before it refreshes its files once,
 on a clean tree, with `git rm --cached -r .` and then `git reset --hard`. Hosted workflows exist
-(`validate.yml` runs `npm test` on Linux and on macOS (PC-132), and on Windows `test/windows.test.js` plus seven tests
-that spawn nothing: `no-em-dash`, `license`, `skill`, `docs`, `openpgp`, `pack-result` and `tmp`;
+(`validate.yml` runs `npm test` on Linux, macOS (PC-132) and Windows (PC-135); on Windows the cases that cannot run
+there skip by name with their reason: POSIX links and modes, and `test/setup.test.js`'s macOS simulation;
 `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and `PUBLISH_NPMJS` are
 `true`). The repository is public, so they run outside the organisation's
 spending cap; the local gate above is still the evidence, and a skipped run is reported as skipped.
