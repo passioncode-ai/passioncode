@@ -107,7 +107,10 @@ The SessionStart hook reads `~/.passioncode/state.json` and reuses a check for u
 `~/.passioncode/logs/`. It records the latest version, the package's npm maintainers,
 the account that published that version, and from `dist` the version's integrity, the npm
 registry's signatures over it and the type of its provenance attestation. A record from an
-older probe, without these, starts a fresh probe at once.
+older probe, without these, starts a fresh probe at once. Each check, refusal, download, install and
+change of the switch is a line of codes in `~/.passioncode/logs/update-events.log` (a refusal once per
+version and reason, a check once per answer); the probe and update logs and this one move aside at
+5 MB, five files kept, mode 0600.
 
 The hook installs a newer version on its own only when all of these hold:
 

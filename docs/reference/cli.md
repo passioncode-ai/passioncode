@@ -480,7 +480,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
-| `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs |
+| `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
 | `~/.passioncode/analytics-notice` | An empty marker: the notice was claimed by one command, so two commands started together never both print it; one older than a minute with no record of the notice in `analytics.json` is claimed again (PC-123) |
