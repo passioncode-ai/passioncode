@@ -501,7 +501,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root (and the `run/` folder the session hook uses), and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing; a `.js`, `.cjs` or `.mjs` file runs through this Node |
-| `PASSIONCODE_NPM`, `PASSIONCODE_NPX` | Replace the `npm` the session hook's probe runs and the `npx` its background update runs, for tests; a `.js` file runs through this Node. Whatever they name runs in place of npm, so they are trusted local configuration like every override here |
+| `PASSIONCODE_NPM`, `PASSIONCODE_NPX` | Replace the `npm` the session hook's probe runs and the `npx` its background update runs, for tests; a `.js`, `.cjs` or `.mjs` file runs through this Node. Whatever they name runs in place of npm, so they are trusted local configuration like every override here |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |
 | `PASSIONCODE_GITHUB_API` | GitHub API base for release lookups (default `https://api.github.com`) |
 | `PASSIONCODE_RELEASE_KEY` | An armoured key file that replaces the bundled release key, for tests; setup names it in its output whenever it is set |
