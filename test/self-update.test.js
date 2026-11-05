@@ -798,6 +798,7 @@ test('PC-135: on Windows the npm and npx scripts beside Node start with --versio
     const [cmd, pre] = npmCommand(name, { env });
     assert.equal(cmd, process.execPath, `${name} runs through this Node`);
     assert.ok(fs.existsSync(pre[0]), `${pre[0]} exists`);
+    assert.equal(path.basename(pre[0]), `${name}-cli.js`, `${name} starts its own script`);
     const r = spawnSync(cmd, [...pre, '--version'], { encoding: 'utf8', timeout: 60000, windowsHide: true });
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+/);

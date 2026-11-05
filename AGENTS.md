@@ -41,8 +41,8 @@ refuses to run here; `npm test` works on a fresh clone. `.gitattributes` checks 
 out with LF on every platform (PC-99); a Windows clone made before it refreshes its files once,
 on a clean tree, with `git rm --cached -r .` and then `git reset --hard`. Hosted workflows exist
 (`validate.yml` runs `npm test` on Linux, macOS (PC-132) and Windows (PC-135); on Windows the cases that cannot run
-there skip by name with their reason: POSIX links and modes, signals (PC-116), a folder made unwritable (PC-115), the
-run-through-`npm test` case (PC-115), `test/setup.test.js`'s macOS simulation, and the PC-86, PC-88 and PC-89 doctor and
+there skip by name with their reason: POSIX links, paths and modes, signals (PC-116), a folder made unwritable (PC-115),
+`test/setup.test.js`'s macOS simulation, and the PC-86, PC-88 and PC-89 doctor and
 setup cases, which simulate Windows on Linux and macOS because their `reg` stand-in is a shell script (on Windows itself
 `test/windows.test.js` proves the real `reg` output parses and the junction links);
 `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and `PUBLISH_NPMJS` are

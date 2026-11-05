@@ -60,8 +60,9 @@
   it and the update start directly open no console window. An installation on Windows from 0.2.75 or earlier still runs
   its old hook, which cannot learn of this version: update it once by hand
   (`npx --yes @passioncode-ai/passioncode@latest update`); it updates itself from then on.
-- **Shadowed skills are moved aside on Windows** (PC-135): `update` named a moved path by its forward slashes alone, so
-  on Windows the name kept the drive's colon and the move failed; the quarantine now flattens Windows paths too.
+- **`update` moves entries aside on Windows** (PC-135): a shadowing `~/.claude/skills` entry, or a foreign link or copy in
+  `~/.agents/skills` or an agent's skills folder. `update` named a moved path by its forward slashes alone, so on Windows
+  the name kept the drive's colon and the move failed; the quarantine now flattens Windows paths too.
 - **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped
   updating itself although the person never turned it off. It now leaves the switch as the person set it; with
   nothing installed the session hook starts no update (one it had already started still finishes, which can take several minutes: once
