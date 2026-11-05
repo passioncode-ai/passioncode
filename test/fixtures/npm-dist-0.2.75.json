@@ -1,0 +1,22 @@
+{
+  "$comment": "The dist npm published for @passioncode-ai/passioncode@0.2.75 (npm view ... dist --json, 2026-11-05): its integrity, the registry's signatures and the provenance type. Public registry data; test/self-update.test.js checks the shipped trust.json verifies it.",
+  "version": "0.2.75",
+  "dist": {
+    "integrity": "sha512-Tu4na5SpYQxVftlzDiPppJDw2MmUToAgdR5xqIIgE9LBDAMeOflK8mTcGURWAJ0++jTltnEXP/3vO3Vj3ViwPg==",
+    "signatures": [
+      {
+        "sig": "MEUCIQCdHfaaMvdH4Nuj/a9rWTdQP7Jwlq6zHX0XzYTJqqBCMgIgC1iBVR7Idz+Pr+agQDQQswRGOavQlKjsqlBL30k+tkE=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+        "sig": "MEQCIE+fBBCCLV8LEtdT/TztcsINEA8IiZUSGbXjPANE3nECAiAW9BPlzeJNMNE0R5STbkNS07Twjhu9Y9FUHUenyl+iMQ=="
+      }
+    ],
+    "attestations": {
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    }
+  }
+}

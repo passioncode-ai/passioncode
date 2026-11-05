@@ -22,7 +22,7 @@
 // is the same as --clone and ignores both; PASSIONCODE_GIT_BASE replaces
 // `git@github.com:`.
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, createPublicKey } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -120,6 +120,19 @@ function checkTrust(pluginDir) {
   try { doc = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (error) { throw new Error(`passioncode: ${file} is missing or not JSON (${error.message}); the self-update refuses to run without it.`); }
   if (!Array.isArray(doc.npmPublishers) || !doc.npmPublishers.every((n) => typeof n === 'string' && /^[a-z0-9][a-z0-9._-]*$/.test(n))) {
     throw new Error(`passioncode: ${file} must hold "npmPublishers": a list of lowercase npm account names.`);
+  }
+  // ADR-0005: without a pinned npm registry key no signature verifies, and every machine would refuse the update.
+  const keys = Array.isArray(doc.npmRegistryKeys) ? doc.npmRegistryKeys : [];
+  const usable = (k) => {
+    // The hook's own rule (update-check.js loadRegistryKeys): plain base64 on one line, else the hook drops the key.
+    if (!k || typeof k.keyid !== 'string' || !k.keyid || typeof k.key !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(k.key)) return false;
+    try {
+      const key = createPublicKey({ key: Buffer.from(k.key, 'base64'), format: 'der', type: 'spki' });
+      return key.asymmetricKeyType === 'ec' && key.asymmetricKeyDetails.namedCurve === 'prime256v1';
+    } catch (_) { return false; }
+  };
+  if (!keys.length || !keys.every(usable)) {
+    throw new Error(`passioncode: ${file} must hold "npmRegistryKeys": npm's registry keys ({ keyid, key } as https://registry.npmjs.org/-/npm/v1/keys publishes them), or no automatic update can verify.`);
   }
   return doc.npmPublishers;
 }

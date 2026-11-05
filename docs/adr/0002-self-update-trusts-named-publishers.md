@@ -1,6 +1,6 @@
 # ADR-0002 — The self-update runs only a pinned version from named npm publishers
 
-Status: accepted · 2026-09-29
+Status: accepted · 2026-09-29 · extended by [ADR-0005](0005-self-update-verifies-registry-signature-and-provenance.md) (2026-11-05): npm's registry signature and the build provenance are now checked too
 
 ## Context
 

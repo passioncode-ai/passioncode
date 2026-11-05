@@ -35,7 +35,8 @@ Paste this into Claude Code, Codex or another coding agent:
 > `npx --yes @passioncode-ai/passioncode@latest doctor`. Tell me briefly what you set up or
 > fixed, what still fails, and the numbered steps only I can do, such as signing in, and
 > remind me to restart you so the new skills and MCP servers load. If the launcher prints a line
-> about anonymous usage counts, give it to me word for word.
+> about anonymous usage counts, give it to me word for word. If a `[passioncode]` line at the start
+> of this session says to keep using a version, use that version instead of `@latest` and tell me why.
 
 Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
@@ -137,9 +138,11 @@ change to the file is a launcher release.
 
 At Claude Code session start the `passioncode` plugin uses a cached npm check for up
 to 24 hours and, when a newer set is out **and every npm account that publishes it is in the
-plugin's `trust.json`**, updates to that exact version in the background; it takes
-effect in the next session. A version published by anyone else is named and not
-installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
+plugin's `trust.json`, npm's signature over it verifies with the registry key pinned there and it
+carries build provenance**, updates to that exact version in the background; it takes
+effect in the next session. Any other version is named and not installed
+automatically; while that stands, `@latest` runs it, so use the version the line names
+(`npx @passioncode-ai/passioncode@<installed> status`) until a release is accepted ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so. `status` and `doctor` show
 when the switch is off (by `config set`, or by an uninstall by 0.2.75 or earlier), and `config set update.auto on` turns it
 back on.
@@ -147,9 +150,11 @@ back on.
 `status` reads local state without contacting npm. Its npm version is labelled
 `npm latest (cached)` with the saved check timestamp, or `check time unknown`.
 When that stable version is below the installed stable version, the line also says
-`stale: older than installed`. A newer or equal cached version is still a saved
+`stale: older than installed`, and when the session hook refused it, `not installed automatically`
+with the reason (PC-131). A newer or equal cached version is still a saved
 observation, not a live registry check. With no saved version it says
-`npm latest: not checked`; `--json` retains the raw `latest` and `checkedAt` fields.
+`npm latest: not checked`, and after a failed check while a refusal stands it adds the refused version and the
+reason; `--json` retains the raw `latest` and `checkedAt` fields.
 
 ```bash
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows
@@ -208,8 +213,12 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
 2. Bump `version` in `package.json` and `plugin/passioncode/.claude-plugin/plugin.json`
    (a test holds them and the CHANGELOG in sync), add the CHANGELOG section.
 3. The npm account that publishes must be listed in `plugin/passioncode/trust.json`
-   (`npmPublishers`), and be the package's only kind of maintainer. Otherwise every
-   installed hook refuses the update and says so.
+   (`npmPublishers`), and be the package's only kind of maintainer, and the release must be
+   published by `release.yml` with provenance (a public repository; the workflow stops otherwise, and
+   its registry receipt runs the hook's signature and provenance checks on the published version).
+   Otherwise every installed hook refuses the update and says so. When npm announces a new registry key, add it to
+   `npmRegistryKeys` in a release before npm signs with it, and name the new keyid in that release's CHANGELOG
+   section (SECURITY.md tells people to look for it there).
 4. Merge, then tag the merge commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml`
    validates, checks the tag against both manifests, creates the GitHub release from the
    CHANGELOG section, vendors every member **from its own repository** at its pinned tag,
@@ -220,9 +229,11 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
    (OIDC) or the `NPM_TOKEN` secret; a private member needs `MEMBERS_READ_TOKEN`.
    The job writes `lib/analytics-key.json` from the `PASSIONCODE_ANALYTICS_APP_KEY` secret (the App Key for the
    anonymous counts, PC-123) and refuses to publish without it.
-   By hand, `npm publish` still works: `prepublishOnly` vendors from tags only (`--release`),
-   refuses credential-shaped strings and runs the tests; but a hand-published package carries no App Key and sends no
-   counts, so release through the tag.
+   Release only through the tag. A hand `npm publish` (`prepublishOnly` vendors from tags only, refuses
+   credential-shaped strings and runs the tests) carries no build provenance, so every installed plugin refuses it
+   and its users see a line that may mean tampering; it also carries no App Key and sends no counts.
+   If the registry receipt fails after publishing (the version is already `latest`), publish a corrected next
+   version through the tag at once and say in its CHANGELOG section that the refused one was not tampering.
 5. `npx @passioncode-ai/passioncode@<version> update` on each machine; restart the agents.
 
 Vendoring clones every member from its own repository at its tag. A maintainer with

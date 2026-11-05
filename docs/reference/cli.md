@@ -48,6 +48,7 @@ in [launcher tests](../../test/launcher.test.js).
 | `package` | Version of the payload beside the invoked CLI, which an update would install |
 | `source` | Where member descriptions came from: `installed`, `package`, or null |
 | `latest`, `checkedAt` | Raw saved npm observation and check timestamp, or null; no live npm probe |
+| `refused`, `refusedVersion` | The session hook's standing refusal while the refused version is newer than installed: its reason (`registry_signature`, `provenance`, `untrusted_publisher`, `unreadable_publisher`) and version, or null; it stands also when the last check failed (PC-131) |
 | `auto` | Saved automatic-update preference; defaults to true |
 | `members` | Declared member versions, plugin presence, legacy entries, hub link targets and shadowing files |
 
@@ -58,7 +59,8 @@ reading the active release; mutating commands refuse to overwrite that state.
 Claude availability is checked once per command, with a five-second timeout.
 
 The text output labels npm data cached, displays its timestamp or unknown time,
-and marks a stable cached version below installed as stale. Equal or higher cache
+and marks a stable cached version below installed as stale; a newer one the hook refused
+adds `not installed automatically` and the reason in words. Equal or higher cache
 values still do not prove registry freshness. Sources: `status()` in
 [launcher](../../lib/launcher.js), `cachedNpmStatus()` in
 [CLI](../../bin/passioncode.js), and status regressions in the launcher tests.
@@ -422,7 +424,7 @@ equivalent relative links. It leaves the Claude Code rules setup added (the tool
 and the rules `permissions allow` added and the default mode `permissions mode` set (PC-125) in
 `~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
 (under `PASSIONCODE_HOME` when it is set);
-the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
+the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and `~/.passioncode/run/` (the self-update's run folder and its cache, safe to remove), and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained. An MCP registration
 whose file the system cannot open now (its permissions, or a link into a locked
@@ -462,7 +464,16 @@ has recorded, and a marker older than five minutes is taken over. A probe is
 consumed by a later hook invocation.
 
 Only a successful npm response with readable maintainers and publisher, with a
-release installed, can authorize an automatic update; every identity must be trusted. The spawned
+release installed, can authorize an automatic update; every identity must be trusted, one of npm's
+registry signatures over the version's integrity must verify with a key pinned in `trust.json`, and
+the version must carry SLSA build provenance (ADR-0005). The probe and the update ask
+`https://registry.npmjs.org` whatever registry npm is set to, for the scope too
+(`--registry` and `--@passioncode-ai:registry`), with `--workspaces=false` so npm does not walk up to a
+monorepo root, from `~/.passioncode/run/`; the update installs through a new cache folder of its own (`run/cache-*`; without one it does not
+start), with npm's debug logs in `logs/npm` (npm's default place, inside the update's cache folder, when that folder cannot be made; the update still runs). A record from an older probe, without
+`verify` or with one read for another version, starts a fresh probe at once and installs nothing
+meanwhile. While a refusal stands the hook's lines name the installed version instead of `@latest`,
+and `status` adds "not installed automatically: <reason>" (`refused` in `--json`). The spawned
 command pins the verified version. Missing `npx` is reported without crashing the
 session or retaining a false running marker. The running marker suppresses another
 automatic attempt for ten minutes; it is not a process lock or proof of completion.
@@ -477,7 +488,8 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
-| `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs |
+| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache-*` folders hold each update's own npm cache, removed at every session start once older than an hour, except the one the last update runs from (`updateCache` in `state.json`); uninstall leaves the folder, removing it is safe while no update runs): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
+| `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600; `logs/npm/` holds npm's own debug logs of the background update, five kept by npm in a 0700 folder) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |
 | `~/.passioncode/analytics-notice` | An empty marker: the notice was claimed by one command, so two commands started together never both print it; one older than a minute with no record of the notice in `analytics.json` is claimed again (PC-123) |
@@ -486,7 +498,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.agents/skills` | Shared skill hub |
 | Existing paths in `CHANNELS` in `lib/launcher.js` | Supported agent channels; an absent channel is not created |
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |
-| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root, and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
+| `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root (and the `run/` folder the session hook uses), and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |

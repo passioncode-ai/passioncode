@@ -7,7 +7,15 @@
  * the latest version, and the session-start hook installs it only when every npm
  * maintainer — and the account that published that version — is named in the trust
  * list shipped inside the plugin (`trust.json`). Anything else is reported, never run.
+ *
+ * Names alone trust whatever npm says they published. So the probe also records the version's
+ * `dist.integrity`, the registry's signatures over it and its provenance attestation, and the
+ * hook installs only a version whose signature verifies against an npm registry key pinned in
+ * `trust.json` and that carries an SLSA provenance attestation (its builder is not checked here;
+ * npm validated the attestation at publish time). The probe and the update ask registry.npmjs.org
+ * itself, whatever registry the person's npm uses, because the pinned key only speaks for it.
  */
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -25,6 +33,18 @@ const TRUST_FILE = path.join(__dirname, '..', 'trust.json');
 const OIDC_PUBLISHER = 'github-actions-oidc';
 const OIDC_EMAIL = 'npm-oidc-no-reply@github.com';
 
+/** The provenance npm records for a package built by a CI workflow with `--provenance` (release.yml). */
+const PROVENANCE = 'https://slsa.dev/provenance/v1';
+const INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
+const REGISTRY = 'https://registry.npmjs.org';
+// npm prefers a registry set for the scope (`@passioncode-ai:registry` in .npmrc) over `--registry`: pin both.
+// `--workspaces=false` keeps npm from walking up from the run folder to a monorepo root that lists it.
+const REGISTRY_ARGS = [`--registry=${REGISTRY}`, `--${PACKAGE.split('/')[0]}:registry=${REGISTRY}`, '--workspaces=false'];
+// The refusal reasons as a person reads them; bin/passioncode.js says them the same way in `status`.
+const REFUSED = { registry_signature: 'its signature does not verify', provenance: 'no build provenance', untrusted_publisher: 'its publisher is not trusted', unreadable_publisher: 'its publisher could not be read' };
+const SECURITY_URL = 'https://github.com/passioncode-ai/passioncode/blob/main/SECURITY.md#the-self-update-and-who-it-trusts';
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
 function publisherName(entry) {
   const email = entry && typeof entry === 'object' ? entry.email : (String(entry || '').match(/<([^>]*)>/) || [])[1];
   if (typeof email === 'string' && email.trim().toLowerCase() === OIDC_EMAIL) return OIDC_PUBLISHER;
@@ -40,7 +60,7 @@ function accountName(entry) {
 }
 
 /**
- * Reads the answer of `npm view @passioncode-ai/passioncode version maintainers _npmUser --json`.
+ * Reads the answer of `npm view @passioncode-ai/passioncode version maintainers _npmUser dist --json`.
  * Returns what the probe records: `{ published: true, latest, maintainers, publisher }`,
  * `{ published: false }` for a name nobody has published (E404), or `{ checkError }`.
  */
@@ -67,20 +87,39 @@ function parseView(stdout, error) {
     // An entry that is not a readable account name poisons the list: it cannot be trusted.
     maintainers: maintainers.includes(null) ? [] : maintainers,
     publisher: doc._npmUser ? publisherName(doc._npmUser) : null,
+    verify: { ...readDist(doc.dist), version: latest },
   };
+}
+
+/**
+ * What `dist` says about the bytes: their integrity, the registry's signatures over
+ * `<name>@<version>:<integrity>` and the provenance attestation's type. Anything unreadable is
+ * recorded as absent, so the hook refuses it; nothing here is trusted until decide() verifies it.
+ */
+function readDist(dist) {
+  const d = dist && typeof dist === 'object' && !Array.isArray(dist) ? dist : {};
+  const integrity = typeof d.integrity === 'string' && INTEGRITY.test(d.integrity) ? d.integrity : null;
+  const signatures = (Array.isArray(d.signatures) ? d.signatures : [])
+    .filter((x) => x && typeof x.keyid === 'string' && typeof x.sig === 'string' && x.keyid.length <= 200 && BASE64.test(x.sig) && x.sig.length <= 400)
+    .slice(0, 8)
+    .map((x) => ({ keyid: x.keyid, sig: x.sig }));
+  const prov = d.attestations && typeof d.attestations === 'object' && d.attestations.provenance;
+  const provenance = prov && typeof prov.predicateType === 'string' ? prov.predicateType.slice(0, 200) : null;
+  return { integrity, signatures, provenance };
 }
 
 /** Applies a probe result to the state: every run replaces the previous answer whole. */
 function recordProbe(state, result, now = new Date()) {
   const next = { ...state, checkedAt: now.toISOString() };
-  for (const key of ['published', 'latest', 'maintainers', 'publisher', 'checkError']) delete next[key];
+  for (const key of ['published', 'latest', 'maintainers', 'publisher', 'verify', 'checkError']) delete next[key];
   if (result.checkError) {
     next.checkError = result.checkError.slice(0, 200);
     return next;
   }
   delete next.checkErrorShown; // a later failure is news again
   next.published = result.published;
-  if (result.published) Object.assign(next, { latest: result.latest, maintainers: result.maintainers, publisher: result.publisher });
+  // verify carries the check's time: an older plugin's probe that rewrites the accounts keeps it, and then it no longer matches.
+  if (result.published) Object.assign(next, { latest: result.latest, maintainers: result.maintainers, publisher: result.publisher, verify: { ...result.verify, checkedAt: next.checkedAt } });
   return next;
 }
 
@@ -93,6 +132,39 @@ function loadTrust(file = TRUST_FILE) {
   } catch (_) {
     return [];
   }
+}
+
+/**
+ * The npm registry keys pinned in the plugin (`npmRegistryKeys`: `{ keyid, key }`, the key as
+ * base64 DER SPKI, as https://registry.npmjs.org/-/npm/v1/keys publishes it). Missing or damaged
+ * means no signature can verify, so nothing is installed on its own.
+ */
+function loadRegistryKeys(file = TRUST_FILE) {
+  try {
+    const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return (Array.isArray(doc.npmRegistryKeys) ? doc.npmRegistryKeys : [])
+      .filter((k) => k && typeof k.keyid === 'string' && k.keyid && typeof k.key === 'string' && BASE64.test(k.key))
+      .map((k) => ({ keyid: k.keyid, key: k.key }));
+  } catch (_) {
+    return [];
+  }
+}
+
+/** True when one of the recorded signatures over `<PACKAGE>@<version>:<integrity>` verifies with a pinned key. */
+function registrySigned(version, verify, keys) {
+  if (!verify || !verify.integrity || !Array.isArray(verify.signatures)) return false;
+  const message = Buffer.from(`${PACKAGE}@${version}:${verify.integrity}`);
+  return verify.signatures.some((s) => keys.some((k) => {
+    if (!s || k.keyid !== s.keyid) return false;
+    try {
+      const key = crypto.createPublicKey({ key: Buffer.from(k.key, 'base64'), format: 'der', type: 'spki' });
+      // npm signs with ECDSA P-256; a pinned key of any other kind verifies nothing.
+      if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails.namedCurve !== 'prime256v1') return false;
+      return crypto.verify('sha256', message, key, Buffer.from(String(s.sig), 'base64'));
+    } catch (_) {
+      return false;
+    }
+  }));
 }
 
 function newer(a, b) {
@@ -140,10 +212,24 @@ function oneLine(text) { return String(text).replace(/\s+/g, ' ').trim().slice(0
  * What the session-start hook does with the recorded state. Returns
  * `{ lines, spawn, stateChanges }`: `spawn` is the exact argv for `npx` or null.
  */
-function decide(state, trust, now = Date.now()) {
+function decide(state, trust, now = Date.now(), keys = []) {
   const lines = [];
   const stateChanges = {};
+  const events = [];
   let spawn = null;
+  // A refusal goes into the update log once per version and reason, not at every session start (LC-16).
+  // A refused version must not be reached through `@latest` either: point the person at what they have.
+  const keep = () => (typeof state.installed === 'string' && VERSION.test(state.installed)
+    ? `keep using ${state.installed} (npx ${PACKAGE}@${state.installed}, not @latest) and see ${SECURITY_URL}.`
+    : `see ${SECURITY_URL}.`);
+  let refused = false;
+  const refuse = (reason) => {
+    refused = true;
+    const key = `${state.latest} ${reason}`;
+    if (state.refusalLogged === key) return;
+    stateChanges.refusalLogged = key;
+    events.push({ event: 'update_check', outcome: 'signature_failed', reason });
+  };
 
   if (state.checkError && state.checkError !== state.checkErrorShown) {
     lines.push(`[passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log).`);
@@ -151,29 +237,76 @@ function decide(state, trust, now = Date.now()) {
   }
 
   const latest = typeof state.latest === 'string' && VERSION.test(state.latest) ? state.latest : null;
+  // The last check failed (no latest known) while an earlier refusal stands: say so at every session, as the refusal itself was.
+  const standing = typeof state.refusalLogged === 'string' ? state.refusalLogged.split(' ') : [];
+  if (!latest && state.checkError && standing.length === 2 && VERSION.test(standing[0]) && state.installed && newer(standing[0], state.installed)) {
+    refused = true;
+    lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()}`);
+  }
   if (state.published !== false && latest && state.installed && newer(latest, state.installed)) {
     const maintainers = Array.isArray(state.maintainers) ? state.maintainers : [];
     const trusted = new Set(trust);
     const untrusted = [...maintainers, ...(state.publisher ? [state.publisher] : [])].filter((m) => !trusted.has(m));
     if (!maintainers.length || !maintainers.every((m) => typeof m === 'string' && accountName(m) === m)
       || typeof state.publisher !== 'string' || !state.publisher || accountName(state.publisher) !== state.publisher) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()}`);
+      refuse('unreadable_publisher');
     } else if (untrusted.length) {
-      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md.`);
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()}`);
+      refuse('untrusted_publisher');
+    } else if (!verifiedFor(state)) {
+      // Recorded by an older probe, or for another version: the hook starts a fresh probe (needsProbe); until it answers, nothing installs.
+    } else if (!registrySigned(latest, state.verify, keys)) {
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()}`);
+      refuse('registry_signature');
+    } else if (state.verify.provenance !== PROVENANCE) {
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; ${keep()}`);
+      refuse('provenance');
     } else {
       const auto = (state.config && state.config.auto) !== false;
       const runningAge = now - Date.parse(state.updatingSince);
       const running = Number.isFinite(runningAge) && runningAge >= 0 && runningAge < 10 * 60 * 1000;
       if (auto && !running) {
-        spawn = ['--yes', `${PACKAGE}@${latest}`, 'update', '--quiet'];
+        spawn = ['--yes', ...REGISTRY_ARGS, `${PACKAGE}@${latest}`, 'update', '--quiet'];
         stateChanges.updatingSince = new Date(now).toISOString();
+        events.push({ event: 'update_download', outcome: 'started' });
         lines.push(`[passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session.`);
       } else if (!auto) {
-        lines.push(`[passioncode] ${latest} is out (you have ${state.installed}): npx ${PACKAGE}@${latest} update`);
+        lines.push(`[passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update`);
       }
     }
   }
-  return { lines, spawn, stateChanges };
+  // A version that now passes every check (or is no longer newer) is not refused any more: forget the old refusal.
+  // A failed check (no latest known) forgets nothing: the next answer is most likely the same refused version.
+  if (!refused && state.refusalLogged && (spawn || lines.some((l) => l.includes(' is out (you have ')) || (latest && !(state.installed && newer(latest, state.installed))))) {
+    stateChanges.refusalLogged = null;
+  }
+  return { lines, spawn, stateChanges, events, refused };
 }
 
-module.exports = { PACKAGE, OIDC_PUBLISHER, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, recordProbe, loadTrust, newer, decide, claimProbe, releaseProbe };
+/**
+ * The `update_check` event a probe's record is worth (LC-16): `check_failed` every time, `ready` or
+ * `current` only when it differs from the last one logged (`lastCheckEvent`), so a quiet day adds one
+ * line, not one per check. Returns `{ outcome, key }` or null.
+ */
+function checkEvent(state) {
+  if (state.checkError) return { outcome: 'check_failed', key: 'check_failed' };
+  if (state.published !== true) return null;
+  const outcome = state.installed && newer(state.latest, state.installed) ? 'ready' : 'current';
+  const key = `${outcome} ${state.latest}`;
+  return state.lastCheckEvent === key ? null : { outcome, key };
+}
+
+/** The recorded signature data belongs to the recorded latest version (an older plugin's probe may have kept another's). */
+function verifiedFor(state) {
+  return Boolean(state.verify) && typeof state.verify === 'object' && !Array.isArray(state.verify) && state.verify.version === state.latest
+    // No released probe wrote a verify without the stamp; the allowance only keeps hand-written records (tests) readable.
+    && (state.verify.checkedAt === undefined || state.verify.checkedAt === state.checkedAt);
+}
+
+/** A state recorded by a probe older than the signature check, or by an older plugin since, asks for a fresh probe. */
+function needsProbe(state) {
+  return state.published === true && typeof state.latest === 'string' && !verifiedFor(state);
+}
+
+module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, REGISTRY_ARGS, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };

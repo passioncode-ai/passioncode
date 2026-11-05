@@ -120,7 +120,8 @@ test('PC-123: the analytics command turns it off and on and reports why it sends
 
 test('PC-123: the SessionStart background update sends no counts', () => {
   const src = fs.readFileSync(path.join(ROOT, 'plugin', 'passioncode', 'hooks', 'session-start.js'), 'utf8');
-  assert.match(src, /env: \{ \.\.\.process\.env, PASSIONCODE_ANALYTICS: 'off' \}/);
+  // The spawn's env turns the counts off; other keys may follow (PASSIONCODE_UPDATE_FROM, LC-16).
+  assert.match(src, /env: \{ \.\.\.process\.env, PASSIONCODE_ANALYTICS: 'off'(, [A-Z_]+: '[^']*')* \}/);
 });
 
 test('PC-123: every event the code sends is in the catalogue, at its line', () => {

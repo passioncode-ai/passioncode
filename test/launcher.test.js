@@ -54,6 +54,25 @@ function run(env, ...args) {
 }
 const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
+test('PC-131: an install, a background download and the update switch go into the update log, codes only (LC-16)', () => {
+  const env = setup();
+  const events = () => { try { return fs.readFileSync(path.join(env.home, '.passioncode/logs/update-events.log'), 'utf8').trim().split('\n').map((l) => l.split(' ').slice(1).join(' ')); } catch (_) { return []; } };
+  assert.equal(run(env, 'update', '--dry-run').status, 0);
+  assert.deepEqual(events(), [], 'a plan installs nothing and logs nothing');
+  assert.equal(run(env, 'update').status, 0);
+  assert.deepEqual(events(), ['update_install installed']);
+  env.extra = { PASSIONCODE_UPDATE_FROM: 'session-start' };
+  assert.equal(run(env, 'update', '--quiet').status, 0);
+  assert.deepEqual(events().slice(1), ['update_download done', 'update_install installed'], 'the update the hook started');
+  env.extra = {};
+  assert.equal(run(env, 'config', 'set', 'update.auto', 'off').status, 0);
+  assert.equal(run(env, 'config', 'set', 'update.auto', 'on').status, 0);
+  assert.deepEqual(events().slice(3), ['auto_update off', 'auto_update on']);
+  const line = fs.readFileSync(path.join(env.home, '.passioncode/logs/update-events.log'), 'utf8').split('\n')[0];
+  assert.match(line, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z update_install installed$/);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(env.home, '.passioncode/logs/update-events.log')).mode & 0o777, 0o600);
+});
+
 test('update installs the release, the plugins, the hub and channels, and moves shadows aside', () => {
   const env = setup();
   const r = run(env, 'update', '--json');
@@ -448,9 +467,19 @@ test('status labels cached npm observations without changing state or probing np
     { latest: '0.1.15', checkedAt, expected: `npm latest (cached) 0.1.15 (checked ${checkedAt})` },
     { latest: '0.1.14', expected: 'npm latest (cached) 0.1.14 (check time unknown)' },
     { latest: '0.1.14', checkedAt: 'invalid', expected: 'npm latest (cached) 0.1.14 (check time unknown)' },
+    // PC-131: the hook refused the cached latest; a refusal of an earlier version is not news.
+    { latest: '0.1.15', checkedAt, refusalLogged: '0.1.15 registry_signature', refused: 'registry_signature', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt}; not installed automatically: its signature does not verify)` },
+    { latest: '0.1.15', checkedAt, refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt}; not installed automatically: no build provenance)` },
+    { latest: '0.1.14', checkedAt, refusalLogged: '0.1.14 provenance', expected: `npm latest (cached) 0.1.14 (checked ${checkedAt})`, note: 'installed by hand since: no longer refused' },
+    // A newer latest than the refused version: that refusal is not this version's.
+    { latest: '0.1.16', checkedAt, refusalLogged: '0.1.15 provenance', expected: `npm latest (cached) 0.1.16 (checked ${checkedAt})` },
+    // The last check failed (no latest): the standing refusal is still shown.
+    { latest: undefined, refusalLogged: '0.1.15 provenance', expected: 'npm latest: not checked', note: 'an unpublished name answered: not a failed check' },
+    { latest: undefined, checkError: 'ETIMEDOUT', refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: 'npm latest: not checked (last check failed; 0.1.15 not installed automatically: no build provenance)' },
+    { latest: '0.1.15', checkedAt, refusalLogged: '0.1.10 provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt})` },
   ];
   for (const c of cases) {
-    const state = { installed: '0.1.14', latest: c.latest, checkedAt: c.checkedAt, config: { auto: false } };
+    const state = { installed: '0.1.14', latest: c.latest, checkedAt: c.checkedAt, config: { auto: false }, ...(c.refusalLogged ? { refusalLogged: c.refusalLogged } : {}), ...(c.checkError ? { checkError: c.checkError } : {}) };
     const bytes = JSON.stringify(state, null, 2) + '\n';
     fs.writeFileSync(stateFile, bytes);
     const text = run(env, 'status');
@@ -459,8 +488,9 @@ test('status labels cached npm observations without changing state or probing np
     const json = run(env, 'status', '--json');
     assert.equal(json.status, 0, json.stderr);
     const parsed = JSON.parse(json.stdout);
-    assert.equal(parsed.latest, c.latest);
+    assert.equal(parsed.latest, c.latest === undefined ? null : c.latest);
     assert.equal(parsed.checkedAt, c.checkedAt || null);
+    assert.equal(parsed.refused, c.refused || null);
     assert.equal(fs.readFileSync(stateFile, 'utf8'), bytes, 'both status formats leave saved state untouched');
     assert.equal(fs.existsSync(path.join(env.home, 'npm-called')), false, 'status must not run an npm probe');
   }

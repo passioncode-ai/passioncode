@@ -3,8 +3,12 @@
 const L = require('../lib/launcher');
 const VERSION = require('../package.json').version;
 
-function cachedNpmStatus({ latest, checkedAt, installed }) {
-  if (!latest) return 'npm latest: not checked';
+// The session hook's refusal codes (PC-131) as a person reads them.
+const REFUSED = { registry_signature: 'its signature does not verify', provenance: 'no build provenance', untrusted_publisher: 'its publisher is not trusted', unreadable_publisher: 'its publisher could not be read' };
+
+function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion }) {
+  if (!latest && !refused) return 'npm latest: not checked';
+  if (!latest) return `npm latest: not checked (last check failed; ${refusedVersion} not installed automatically: ${REFUSED[refused] || 'refused'})`;
   const checked = typeof checkedAt === 'string' && Number.isFinite(Date.parse(checkedAt))
     ? `checked ${checkedAt}` : 'check time unknown';
   let stale = false;
@@ -15,7 +19,7 @@ function cachedNpmStatus({ latest, checkedAt, installed }) {
     const difference = a.findIndex((part, i) => part !== b[i]);
     stale = difference !== -1 && a[difference] < b[difference];
   }
-  return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''})`;
+  return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''}${refused ? `; not installed automatically: ${REFUSED[refused] || 'refused'}` : ''})`;
 }
 
 const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
@@ -234,8 +238,16 @@ async function main(argv) {
   }
   try {
     if (cmd === 'update' || cmd === 'install') {
-      const r = L.update({ dryRun: rest.includes('--dry-run') });
+      const dryRun = rest.includes('--dry-run');
+      const stateDir = L.paths().state;
+      // LC-16: install outcomes go into the update log, which never creates the state folder: a refused
+      // first install leaves nothing behind. A background update the hook started has its download done once this runs.
+      const note = (event, outcome) => { if (!dryRun && require('fs').existsSync(stateDir)) require('../lib/update-log').logEvent(stateDir, event, outcome); };
+      if (process.env.PASSIONCODE_UPDATE_FROM === 'session-start') note('update_download', 'done');
+      let r;
+      try { r = L.update({ dryRun }); } catch (error) { note('update_install', 'failed'); throw error; }
       const failed = r.steps.filter((s) => s.outcome === 'failed');
+      note('update_install', failed.length ? 'failed' : 'installed');
       if (!quiet || failed.length) {
         const saved = r.moved.filter((e) => !e.failedAt).length;
         out(r, [

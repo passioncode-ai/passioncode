@@ -321,3 +321,24 @@ test('PC-108: on Windows a declined run changes nothing and keeps setup among th
   assert.ok(out.steps.includes('npx @passioncode-ai/passioncode@latest setup'), JSON.stringify(out.steps));
   assert.equal(out.exit, 1, out.text);
 });
+
+// PC-131: the update logs rotate and take events on every platform; on Windows a log can be renamed while
+// another handle (a background update's stdout) still has it open.
+test('update logs rotate and record events on this platform, also while another handle holds the log', () => {
+  const log = require('../lib/update-log');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-winlog-'));
+  try {
+    const file = path.join(dir, 'logs', 'update.log');
+    const held = log.openLog(file); // a detached update writing to it
+    fs.writeSync(held, Buffer.alloc(64));
+    assert.equal(log.rotateLog(file, 32, 5), true, 'moved aside although it is open');
+    fs.writeSync(held, 'still writing\n');
+    fs.closeSync(held);
+    fs.closeSync(log.openLog(file));
+    assert.ok(fs.existsSync(`${file}.1`));
+    assert.equal(log.logEvent(dir, 'update_check', 'current', undefined, new Date('2026-11-05T00:00:00Z')), true);
+    assert.equal(fs.readFileSync(path.join(dir, 'logs', log.EVENTS), 'utf8'), '2026-11-05T00:00:00.000Z update_check current\n');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
