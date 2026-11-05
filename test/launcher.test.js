@@ -1143,6 +1143,43 @@ test('PC-127: a Codex server the person declares with dotted keys under [mcp_ser
   assert.equal(fs.readFileSync(file, 'utf8'), dotted);
 });
 
+test('PC-127: a trailing comment keeps a Codex table; a root inline declaration counts, a root key in another table does not', () => {
+  const fresh = () => {
+    const env = setup();
+    const bin = withFakeMcp(env);
+    withAgents(env);
+    assert.equal(run(env, 'update').status, 0);
+    return { env, bin, file: path.join(env.home, '.codex', 'config.toml') };
+  };
+  const table = /\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/;
+  for (const edit of [(t) => t.replace(/(args = \[[^\n]*)\n$/, '$1 # mine\n'), (t) => t.replace('["mcp_servers"."fabric-dashboards"]', '["mcp_servers"."fabric-dashboards"] # mine')]) {
+    const { env, file } = fresh();
+    const text = edit(fs.readFileSync(file, 'utf8'));
+    assert.ok(text.includes('# mine'));
+    fs.writeFileSync(file, text);
+    const r = run(env, 'uninstall');
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /fabric-dashboards for Codex CLI has settings added since; kept/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text);
+  }
+  {
+    const { env, bin, file } = fresh();
+    const text = `mcp_servers.fabric-dashboards = { command = ${JSON.stringify(bin)} }\n` + fs.readFileSync(file, 'utf8').replace(table, '');
+    fs.writeFileSync(file, text);
+    const r = run(env, 'uninstall');
+    assert.match(r.stdout, /fabric-dashboards for Codex CLI was changed; kept/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text);
+  }
+  {
+    const { env, file } = fresh();
+    const text = fs.readFileSync(file, 'utf8').replace(table, '') + '[profiles.work]\nmcp_servers.fabric-dashboards.enabled = false\n';
+    fs.writeFileSync(file, text);
+    const r = run(env, 'uninstall');
+    assert.doesNotMatch(r.stdout, /for Codex CLI/);
+    assert.equal(fs.readFileSync(file, 'utf8'), text);
+  }
+});
+
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);

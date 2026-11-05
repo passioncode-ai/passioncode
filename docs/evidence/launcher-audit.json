@@ -290,6 +290,12 @@
       "file": "test/launcher.test.js",
       "test": "PC-127: a Codex server the person declares with dotted keys under [mcp_servers] is kept, not taken as gone",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-49",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a trailing comment keeps a Codex table; a root inline declaration counts, a root key in another table does not",
+      "scenario": "SCN-005"
     }
   ]
 }
