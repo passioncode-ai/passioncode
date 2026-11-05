@@ -38,7 +38,7 @@
   folder are readable and writable again (for a link, the folder it points into), `uninstall` removes the entry, and so does `restore` while that batch is still the latest
   (any update that registers or moves something starts a new one, a quiet or background one included). With
   `--json`, stdout still holds what was done. A JSON file that does not parse, or a folder in place of a file, is
-  reported as kept and no longer tracked (`config.toml` is read as text: a launcher table no longer intact is taken as gone), and a path that now runs through a file is taken as already gone. A registration whose
+  reported as kept and no longer tracked (`config.toml` is read as text: a launcher table edited since is reported as kept, and one no longer in the file is taken as gone), and a path that now runs through a file is taken as already gone. A registration whose
   write failed is marked in the journal and saves no recovery entry, and `restore` takes out only what an update
   recorded as registered, so it never removes an entry the person declares there later, even from a batch an earlier
   version journalled. Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file the
