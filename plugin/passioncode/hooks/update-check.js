@@ -7,7 +7,13 @@
  * the latest version, and the session-start hook installs it only when every npm
  * maintainer — and the account that published that version — is named in the trust
  * list shipped inside the plugin (`trust.json`). Anything else is reported, never run.
+ *
+ * Names alone trust whatever npm says they published. So the probe also records the version's
+ * `dist.integrity`, the registry's signatures over it and its provenance attestation, and the
+ * hook installs only a version whose signature verifies against an npm registry key pinned in
+ * `trust.json` and that was built with SLSA provenance (published by CI, not from a laptop).
  */
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -25,6 +31,11 @@ const TRUST_FILE = path.join(__dirname, '..', 'trust.json');
 const OIDC_PUBLISHER = 'github-actions-oidc';
 const OIDC_EMAIL = 'npm-oidc-no-reply@github.com';
 
+/** The provenance npm records for a package built by a CI workflow with `--provenance` (release.yml). */
+const PROVENANCE = 'https://slsa.dev/provenance/v1';
+const INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
 function publisherName(entry) {
   const email = entry && typeof entry === 'object' ? entry.email : (String(entry || '').match(/<([^>]*)>/) || [])[1];
   if (typeof email === 'string' && email.trim().toLowerCase() === OIDC_EMAIL) return OIDC_PUBLISHER;
@@ -40,7 +51,7 @@ function accountName(entry) {
 }
 
 /**
- * Reads the answer of `npm view @passioncode-ai/passioncode version maintainers _npmUser --json`.
+ * Reads the answer of `npm view @passioncode-ai/passioncode version maintainers _npmUser dist --json`.
  * Returns what the probe records: `{ published: true, latest, maintainers, publisher }`,
  * `{ published: false }` for a name nobody has published (E404), or `{ checkError }`.
  */
@@ -67,20 +78,38 @@ function parseView(stdout, error) {
     // An entry that is not a readable account name poisons the list: it cannot be trusted.
     maintainers: maintainers.includes(null) ? [] : maintainers,
     publisher: doc._npmUser ? publisherName(doc._npmUser) : null,
+    verify: readDist(doc.dist),
   };
+}
+
+/**
+ * What `dist` says about the bytes: their integrity, the registry's signatures over
+ * `<name>@<version>:<integrity>` and the provenance attestation's type. Anything unreadable is
+ * recorded as absent, so the hook refuses it; nothing here is trusted until decide() verifies it.
+ */
+function readDist(dist) {
+  const d = dist && typeof dist === 'object' && !Array.isArray(dist) ? dist : {};
+  const integrity = typeof d.integrity === 'string' && INTEGRITY.test(d.integrity) ? d.integrity : null;
+  const signatures = (Array.isArray(d.signatures) ? d.signatures : [])
+    .filter((x) => x && typeof x.keyid === 'string' && typeof x.sig === 'string' && x.keyid.length <= 200 && BASE64.test(x.sig) && x.sig.length <= 400)
+    .slice(0, 8)
+    .map((x) => ({ keyid: x.keyid, sig: x.sig }));
+  const prov = d.attestations && typeof d.attestations === 'object' && d.attestations.provenance;
+  const provenance = prov && typeof prov.predicateType === 'string' ? prov.predicateType.slice(0, 200) : null;
+  return { integrity, signatures, provenance };
 }
 
 /** Applies a probe result to the state: every run replaces the previous answer whole. */
 function recordProbe(state, result, now = new Date()) {
   const next = { ...state, checkedAt: now.toISOString() };
-  for (const key of ['published', 'latest', 'maintainers', 'publisher', 'checkError']) delete next[key];
+  for (const key of ['published', 'latest', 'maintainers', 'publisher', 'verify', 'checkError']) delete next[key];
   if (result.checkError) {
     next.checkError = result.checkError.slice(0, 200);
     return next;
   }
   delete next.checkErrorShown; // a later failure is news again
   next.published = result.published;
-  if (result.published) Object.assign(next, { latest: result.latest, maintainers: result.maintainers, publisher: result.publisher });
+  if (result.published) Object.assign(next, { latest: result.latest, maintainers: result.maintainers, publisher: result.publisher, verify: result.verify });
   return next;
 }
 
@@ -93,6 +122,37 @@ function loadTrust(file = TRUST_FILE) {
   } catch (_) {
     return [];
   }
+}
+
+/**
+ * The npm registry keys pinned in the plugin (`npmRegistryKeys`: `{ keyid, key }`, the key as
+ * base64 DER SPKI, as https://registry.npmjs.org/-/npm/v1/keys publishes it). Missing or damaged
+ * means no signature can verify, so nothing is installed on its own.
+ */
+function loadRegistryKeys(file = TRUST_FILE) {
+  try {
+    const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return (Array.isArray(doc.npmRegistryKeys) ? doc.npmRegistryKeys : [])
+      .filter((k) => k && typeof k.keyid === 'string' && typeof k.key === 'string' && BASE64.test(k.key))
+      .map((k) => ({ keyid: k.keyid, key: k.key }));
+  } catch (_) {
+    return [];
+  }
+}
+
+/** True when one of the recorded signatures over `<PACKAGE>@<version>:<integrity>` verifies with a pinned key. */
+function registrySigned(version, verify, keys) {
+  if (!verify || !verify.integrity || !Array.isArray(verify.signatures)) return false;
+  const message = Buffer.from(`${PACKAGE}@${version}:${verify.integrity}`);
+  return verify.signatures.some((s) => keys.some((k) => {
+    if (!s || k.keyid !== s.keyid) return false;
+    try {
+      const key = crypto.createPublicKey({ key: Buffer.from(k.key, 'base64'), format: 'der', type: 'spki' });
+      return crypto.verify('sha256', message, key, Buffer.from(String(s.sig), 'base64'));
+    } catch (_) {
+      return false;
+    }
+  }));
 }
 
 function newer(a, b) {
@@ -140,7 +200,7 @@ function oneLine(text) { return String(text).replace(/\s+/g, ' ').trim().slice(0
  * What the session-start hook does with the recorded state. Returns
  * `{ lines, spawn, stateChanges }`: `spawn` is the exact argv for `npx` or null.
  */
-function decide(state, trust, now = Date.now()) {
+function decide(state, trust, now = Date.now(), keys = []) {
   const lines = [];
   const stateChanges = {};
   let spawn = null;
@@ -160,6 +220,12 @@ function decide(state, trust, now = Date.now()) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md.`);
     } else if (untrusted.length) {
       lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md.`);
+    } else if (!state.verify || typeof state.verify !== 'object') {
+      // Recorded by a probe older than this check: the hook starts a fresh probe (needsProbe); until it answers, nothing installs.
+    } else if (!registrySigned(latest, state.verify, keys)) {
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; see SECURITY.md.`);
+    } else if (state.verify.provenance !== PROVENANCE) {
+      lines.push(`[passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; see SECURITY.md.`);
     } else {
       const auto = (state.config && state.config.auto) !== false;
       const runningAge = now - Date.parse(state.updatingSince);
@@ -176,4 +242,9 @@ function decide(state, trust, now = Date.now()) {
   return { lines, spawn, stateChanges };
 }
 
-module.exports = { PACKAGE, OIDC_PUBLISHER, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, recordProbe, loadTrust, newer, decide, claimProbe, releaseProbe };
+/** A state recorded by a probe older than the signature check (no `verify`) asks for a fresh probe. */
+function needsProbe(state) {
+  return state.published === true && typeof state.latest === 'string' && (!state.verify || typeof state.verify !== 'object');
+}
+
+module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, needsProbe, claimProbe, releaseProbe };

@@ -103,9 +103,11 @@ command may write `~/.passioncode/analytics.json` and its notice marker and crea
 
 The SessionStart hook reads `~/.passioncode/state.json` and reuses a check for up to
 24 hours. An absent, invalid, future or expired timestamp starts
-`npm view @passioncode-ai/passioncode version maintainers _npmUser --json`, detached, logging to
-`~/.passioncode/logs/`. It records the latest version, the package's npm maintainers
-and the account that published that version.
+`npm view @passioncode-ai/passioncode version maintainers _npmUser dist --json`, detached, logging to
+`~/.passioncode/logs/`. It records the latest version, the package's npm maintainers,
+the account that published that version, and from `dist` the version's integrity, the npm
+registry's signatures over it and the type of its provenance attestation. A record from an
+older probe, without these, starts a fresh probe at once.
 
 The hook installs a newer version on its own only when all of these hold:
 
@@ -117,12 +119,19 @@ The hook installs a newer version on its own only when all of these hold:
   a release published by this repository's `release.yml` through npm trusted publishing
   appears as `github-actions-oidc` (npm's `npm-oidc-no-reply@github.com` identity, matched
   by email, never by display name), and only a maintainer can register that workflow;
+- one of npm's signatures over `@passioncode-ai/passioncode@<version>:<integrity>` verifies
+  with an npm registry key pinned in `trust.json` (`npmRegistryKeys`, copied from
+  `https://registry.npmjs.org/-/npm/v1/keys`), so the bytes are the ones npm signed;
+- the version carries an SLSA build provenance attestation
+  (`https://slsa.dev/provenance/v1`), as every release built by `release.yml` does;
 - the version is a plain `x.y.z`.
 
 It then runs `npx --yes @passioncode-ai/passioncode@<that exact version> update --quiet`, detached, so
 the version that was checked is the version that runs. In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
-account ("… not a trusted PassionCode publisher, so it is not installed"); a name nobody has
+account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose
+signature does not verify or that has no provenance is reported the same way and not offered as a
+manual command either ([ADR-0005](docs/adr/0005-self-update-verifies-registry-signature-and-provenance.md)); a name nobody has
 published (npm E404) is silent; a failed check is shown once.
 
 The current allowlist lives in [`plugin/passioncode/trust.json`](plugin/passioncode/trust.json).
@@ -134,10 +143,13 @@ The package contains executable launcher code and member plugin hooks as well as
 skill text. The vendor scans supported text-file sizes for credential-shaped strings
 and rejects an invalid self-plugin trust list; that scan is not a proof that all
 possible secrets or malicious code are absent. Review member code at its pinned tag.
-Automatic updates trust the npm registry's attribution and the local cached state;
-they do not independently verify signatures or sandbox the installed code.
+Automatic updates verify npm's registry signature against the pinned key and require a
+provenance attestation of the SLSA type; they do not verify the attestation's Sigstore bundle
+(npm checks it at publish time), they trust the local cached state, and they do not sandbox the
+installed code. When npm rotates its registry key, a release adds the new key first; an older
+plugin then refuses automatic updates and says so.
 
 Evidence: `update()`, `restore()` and `uninstall()` in `lib/launcher.js`;
-`parseView()` and `decide()` in `plugin/passioncode/hooks/update-check.js`;
+`parseView()`, `readDist()`, `registrySigned()` and `decide()` in `plugin/passioncode/hooks/update-check.js`;
 `scanForSecrets()` in `scripts/vendor.mjs`; regression tests in
 `test/launcher.test.js` and `test/self-update.test.js`.

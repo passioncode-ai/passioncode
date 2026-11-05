@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Detached: asks npm for the published version AND who publishes it, and records
-// both with the time. The session-start hook decides from this record alone.
+// Detached: asks npm for the published version, who publishes it and its signed integrity
+// and provenance, and records them with the time. The session-start hook decides from this record alone.
 'use strict';
 const { execFile } = require('child_process');
 const fs = require('fs');
@@ -10,7 +10,7 @@ const { PACKAGE, parseView, recordProbe, releaseProbe } = require('./update-chec
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
 const STATE = path.join(DIR, 'state.json');
-execFile('npm', ['view', PACKAGE, 'version', 'maintainers', '_npmUser', '--json'], { timeout: 30000 }, (error, stdout) => {
+execFile('npm', ['view', PACKAGE, 'version', 'maintainers', '_npmUser', 'dist', '--json'], { timeout: 30000 }, (error, stdout) => {
   try { record(error, stdout); } finally { releaseProbe(DIR); } // the hook claimed probe.pending before it started us
 });
 

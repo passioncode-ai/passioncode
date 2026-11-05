@@ -164,9 +164,11 @@ Contract: brand-contract v1
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:422 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:220 | SCN-011 | proposed | layout |
-| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:160 | SCN-006 | proposed | copy |
-| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:162 | SCN-006 | proposed | copy |
-| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:170 | SCN-006 | proposed | copy |
+| hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:220 | SCN-006 | proposed | copy |
+| hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:222 | SCN-006 | proposed | copy |
+| hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:226 | SCN-006 | proposed | copy |
+| hook.no-provenance | [passioncode] ${PACKAGE}@${latest} is on npm without a build provenance attestation, so it is not installed; see SECURITY.md. | plugin/passioncode/hooks/update-check.js:228 | SCN-006 | proposed | copy |
+| hook.updating | [passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session. | plugin/passioncode/hooks/update-check.js:236 | SCN-006 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further
 wording changes. Version values and timestamps remain verbatim observations.

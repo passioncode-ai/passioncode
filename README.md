@@ -137,8 +137,9 @@ change to the file is a launcher release.
 
 At Claude Code session start the `passioncode` plugin uses a cached npm check for up
 to 24 hours and, when a newer set is out **and every npm account that publishes it is in the
-plugin's `trust.json`**, updates to that exact version in the background; it takes
-effect in the next session. A version published by anyone else is named and not
+plugin's `trust.json`, npm's signature over it verifies with the registry key pinned there and it
+carries build provenance**, updates to that exact version in the background; it takes
+effect in the next session. Any other version is named and not
 installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so.
 
@@ -206,8 +207,10 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
 2. Bump `version` in `package.json` and `plugin/passioncode/.claude-plugin/plugin.json`
    (a test holds them and the CHANGELOG in sync), add the CHANGELOG section.
 3. The npm account that publishes must be listed in `plugin/passioncode/trust.json`
-   (`npmPublishers`), and be the package's only kind of maintainer. Otherwise every
-   installed hook refuses the update and says so.
+   (`npmPublishers`), and be the package's only kind of maintainer, and the release must be
+   published by `release.yml` with provenance (a public repository). Otherwise every installed
+   hook refuses the update and says so. When npm announces a new registry key, add it to
+   `npmRegistryKeys` in a release before npm signs with it.
 4. Merge, then tag the merge commit `vX.Y.Z` and push the tag. `.github/workflows/release.yml`
    validates, checks the tag against both manifests, creates the GitHub release from the
    CHANGELOG section, vendors every member **from its own repository** at its pinned tag,
