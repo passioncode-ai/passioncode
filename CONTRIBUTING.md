@@ -28,11 +28,16 @@ source locations and test names, but do not judge prose correctness.
 Run `actionlint` when changing workflows. The reusable validation workflow accepts
 the release ref so a manual release validates its selected tag, not the branch the
 workflow was dispatched from. `node scripts/check-registry.mjs PACKAGE VERSION`
-waits separately for metadata and the canonical tarball, then verifies SHA-512.
+waits separately for metadata and the canonical tarball, then verifies SHA-512, and
+asserts what installed plugins require (ADR-0005): an npm registry signature over
+`@passioncode-ai/passioncode@<version>:<integrity>` that verifies with the key in this
+checkout's `plugin/passioncode/trust.json`, and an SLSA provenance attestation (a missing
+one retries like a propagation delay, then fails). It checks this release's `trust.json`,
+not the one on people's machines (PC-142).
 Each phase allows 60 attempts with 10-second intervals and 15-second request
 timeouts; an already-published version must pass this receipt too. The local
 HTTP fixtures in `test/registry.test.js` cover metadata/archive propagation,
-persistent 404, corrupt bytes and the wrong version. A tag release still needs the vendor and strict
+persistent 404, corrupt bytes, the wrong version, and a missing provenance, a signature over another version or no pinned key. A tag release still needs the vendor and strict
 plugin checks above; a successful source test run is not a publication receipt.
 
 `scripts/test.mjs` enumerates explicit test paths so `npm test` also works on

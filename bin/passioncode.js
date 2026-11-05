@@ -3,6 +3,9 @@
 const L = require('../lib/launcher');
 const VERSION = require('../package.json').version;
 
+// The session hook's refusal codes (PC-131) as a person reads them.
+const REFUSED = { registry_signature: 'its signature does not verify', provenance: 'no build provenance', untrusted_publisher: 'its publisher is not trusted', unreadable_publisher: 'its publisher could not be read' };
+
 function cachedNpmStatus({ latest, checkedAt, installed, refused }) {
   if (!latest) return 'npm latest: not checked';
   const checked = typeof checkedAt === 'string' && Number.isFinite(Date.parse(checkedAt))
@@ -15,7 +18,7 @@ function cachedNpmStatus({ latest, checkedAt, installed, refused }) {
     const difference = a.findIndex((part, i) => part !== b[i]);
     stale = difference !== -1 && a[difference] < b[difference];
   }
-  return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''}${refused ? `; not installed automatically: ${refused.replace(/_/g, ' ')}` : ''})`;
+  return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''}${refused ? `; not installed automatically: ${REFUSED[refused] || 'refused'}` : ''})`;
 }
 
 const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills

@@ -22,6 +22,13 @@ One command does the setup on a new computer and the check-and-repair on an exis
 is to run it, read what it returns, finish what it says an agent may finish, and give the person a
 short list of what only they can do. Never install anything by hand that the command installs.
 
+**When the session shows a refused version.** If this session's start printed a line
+`[passioncode] … is on npm but …, so it is not installed; keep using <version> …`, the newest
+release on npm failed the launcher's checks (signature, provenance or publisher), and `@latest`
+would run it. Run every command below with `@<version>` from that line instead of `@latest`,
+tell the person why, and do not install or update to the refused version (SECURITY.md, "If a
+session shows such a line").
+
 ## 1. Set up, or check and repair
 
 ```bash

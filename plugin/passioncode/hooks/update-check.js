@@ -37,6 +37,8 @@ const OIDC_EMAIL = 'npm-oidc-no-reply@github.com';
 const PROVENANCE = 'https://slsa.dev/provenance/v1';
 const INTEGRITY = /^sha512-[A-Za-z0-9+/]{86}==$/;
 const REGISTRY = 'https://registry.npmjs.org';
+// npm prefers a registry set for the scope (`@passioncode-ai:registry` in .npmrc) over `--registry`: pin both.
+const REGISTRY_ARGS = [`--registry=${REGISTRY}`, `--${PACKAGE.split('/')[0]}:registry=${REGISTRY}`];
 const SECURITY_URL = 'https://github.com/passioncode-ai/passioncode/blob/main/SECURITY.md#the-self-update-and-who-it-trusts';
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
@@ -255,12 +257,12 @@ function decide(state, trust, now = Date.now(), keys = []) {
       const runningAge = now - Date.parse(state.updatingSince);
       const running = Number.isFinite(runningAge) && runningAge >= 0 && runningAge < 10 * 60 * 1000;
       if (auto && !running) {
-        spawn = ['--yes', `--registry=${REGISTRY}`, `${PACKAGE}@${latest}`, 'update', '--quiet'];
+        spawn = ['--yes', ...REGISTRY_ARGS, `${PACKAGE}@${latest}`, 'update', '--quiet'];
         stateChanges.updatingSince = new Date(now).toISOString();
         events.push({ event: 'update_download', outcome: 'started' });
         lines.push(`[passioncode] ${latest} is out (you have ${state.installed}); updating in the background; it takes effect next session.`);
       } else if (!auto) {
-        lines.push(`[passioncode] ${latest} is out (you have ${state.installed}): npx ${PACKAGE}@${latest} update`);
+        lines.push(`[passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update`);
       }
     }
   }
@@ -290,4 +292,4 @@ function needsProbe(state) {
   return state.published === true && typeof state.latest === 'string' && !verifiedFor(state);
 }
 
-module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };
+module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, REGISTRY_ARGS, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };

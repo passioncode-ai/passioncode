@@ -20,8 +20,9 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
   maintainers _npmUser dist --json` and records, besides the version and the accounts,
   `dist.integrity`, the registry's `dist.signatures`, the provenance attestation's `predicateType` and
   the version they were read for (`verify` in `~/.passioncode/state.json`). It asks npm's registry
-  whatever registry the person's npm uses: the pinned key speaks only for it, and a mirror that drops
-  signatures would otherwise stop every update.
+  whatever registry the person's npm uses, for the scope too (`--@passioncode-ai:registry`, which npm
+  prefers over `--registry`): the pinned key speaks only for it, and a mirror that drops signatures or
+  serves other bytes would otherwise decide what installs.
 - `trust.json` pins npm's registry public key (`npmRegistryKeys`: `keyid` and the base64 DER key, as
   `https://registry.npmjs.org/-/npm/v1/keys` publishes it). The key ships with the plugin; the
   registry is never asked which key to trust. A pinned key that is not ECDSA P-256 verifies nothing,
@@ -35,10 +36,13 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
   `@latest` (which would run the refused version). `status` shows the refusal.
 - A state recorded by an older probe (no `verify`), or whose `verify` was read for another version (an
   older plugin's probe keeps it), installs nothing and starts a fresh probe at once.
-- The update runs `npx --yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@<version> update --quiet`.
+- The update runs `npx --yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@<version> update --quiet`;
+  the manual command offered with `update.auto` off carries the same two flags.
 - `release.yml` publishes only with provenance (it stops when the repository is not public), and its
   registry receipt (`scripts/check-registry.mjs`) runs the hook's own signature and provenance checks
-  on the published version, so a release installed plugins would refuse fails in CI.
+  on the published version, so a release installed plugins would refuse fails in CI (after publishing:
+  the version is already `latest`, and README's release steps say to publish a corrected one at once).
+  It checks the new release's `trust.json`, not the previous one on people's machines (PC-142).
 - Each check, refusal, download, install and switch change is a line of codes in
   `~/.passioncode/logs/update-events.log` (LC-16's log events), and the update logs rotate at 5 MB,
   five files kept (LC-12).

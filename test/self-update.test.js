@@ -101,7 +101,7 @@ async function npxCalls(sb, { expect = 0, ms = 5000 } = {}) {
 test('probe records the latest version, its maintainers and its publisher', () => {
   const sb = sandbox();
   const state = probe(sb, published('0.2.0', ['PassionCode-AI', 'sshlg'], 'sshlg'));
-  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view --registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
+  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), ['view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
   assert.equal(state.published, true);
   assert.equal(state.latest, '0.2.0');
   assert.deepEqual(state.maintainers, ['passioncode-ai', 'sshlg']);
@@ -210,10 +210,10 @@ test('hook: a trusted publisher starts one update, pinned to the verified versio
   const sb = sandbox({ trust: ['passioncode-ai', 'sshlg'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai', 'sshlg'], publisher: 'sshlg' });
   assert.match(hook(sb), /0\.2\.0 is out \(you have 0\.1\.0\); updating in the background/);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.ok(Date.parse(stateOf(sb).updatingSince) > 0, 'the running update is recorded');
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
+  assert.deepEqual(await npxCalls(sb, { expect: 2, ms: 700 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet'], 'a second session start does not start a second update');
 });
 
 test('hook: a tampered, unsigned, foreign-signed or provenance-less version is refused and nothing is spawned (PC-131)', async () => {
@@ -269,7 +269,7 @@ test('hook: a check recorded before signatures were read installs nothing and as
   assert.equal(lines(file).length, 1, 'a fresh check, although the last one is less than a day old');
   assert.deepEqual(await npxCalls(sb), []);
   assert.match(hook(sb), /updating in the background/, 'the next session installs the verified version');
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
 });
 
 test('hook: signature data recorded for another version (an older plugin probed since) is not used; it asks npm again (PC-131)', async () => {
@@ -327,7 +327,7 @@ test('the npm registry key shipped in trust.json verifies a real release (0.2.75
   assert.ok(!u.registrySigned(real.version, { ...verify, integrity: INTEGRITY }, keys), 'nor other bytes');
   assert.ok(!u.registrySigned(real.version, verify, [TEST_KEY]), 'nor verifies with another key');
   const state = { installed: '0.2.74', published: true, latest: real.version, maintainers: ['ssheleg'], publisher: u.OIDC_PUBLISHER, verify };
-  assert.deepEqual(u.decide(state, u.loadTrust(), Date.now(), keys).spawn, ['--yes', `--registry=${u.REGISTRY}`, `${u.PACKAGE}@0.2.75`, 'update', '--quiet']);
+  assert.deepEqual(u.decide(state, u.loadTrust(), Date.now(), keys).spawn, ['--yes', ...u.REGISTRY_ARGS, `${u.PACKAGE}@0.2.75`, 'update', '--quiet']);
 });
 
 test('probe reads only well-formed signature fields from dist', () => {
@@ -351,7 +351,7 @@ test('PC-131: a refusal is logged once per version and reason, an update start o
   assert.deepEqual(eventsOf(sb).slice(1), ['update_check signature_failed untrusted_publisher'], 'another reason is news');
   setState(sb, { ...stateOf(sb), publisher: 'passioncode-ai', verify: verified('0.2.0') });
   hook(sb);
-  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update --quiet']);
   assert.deepEqual(eventsOf(sb).slice(2), ['update_download started']);
 });
 
@@ -416,7 +416,7 @@ test('PC-131: update logs are capped at five files of 5 MB, 0600, and only codes
 test('hook: with auto-update off it names the pinned command and spawns nothing', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', config: { auto: false } });
-  assert.equal(hook(sb), '[passioncode] 0.2.0 is out (you have 0.1.0): npx @passioncode-ai/passioncode@0.2.0 update\n');
+  assert.equal(hook(sb), '[passioncode] 0.2.0 is out (you have 0.1.0): npx --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@0.2.0 update\n');
   assert.deepEqual(await npxCalls(sb), []);
 });
 
@@ -463,7 +463,7 @@ test('hook: a stale check starts the probe, which asks npm who publishes', async
   const file = path.join(sb.home, 'npm-calls.log');
   const until = Date.now() + 5000;
   while (!lines(file).length && Date.now() < until) await sleep(50);
-  assert.deepEqual(lines(file), ['view --registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
+  assert.deepEqual(lines(file), ['view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json']);
 });
 
 test('hook: session starts inside one probe window start one npm view, not one each (F13)', async () => {
@@ -533,7 +533,7 @@ test('a version published by GitHub Actions through npm trusted publishing is re
   // The name alone is not the identity: anyone can call an account "GitHub Actions".
   assert.notEqual(u.parseView(view('GitHub Actions <someone@example.com>')).publisher, u.OIDC_PUBLISHER);
   const state = { installed: '0.1.0', published: true, latest: '0.2.0', maintainers: ['ssheleg'], publisher: u.OIDC_PUBLISHER, verify: verified('0.2.0'), config: { auto: true } };
-  assert.deepEqual(u.decide(state, ['ssheleg', u.OIDC_PUBLISHER], Date.now(), [TEST_KEY]).spawn, ['--yes', `--registry=${u.REGISTRY}`, `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
+  assert.deepEqual(u.decide(state, ['ssheleg', u.OIDC_PUBLISHER], Date.now(), [TEST_KEY]).spawn, ['--yes', ...u.REGISTRY_ARGS, `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
   assert.equal(u.decide(state, ['ssheleg'], Date.now(), [TEST_KEY]).spawn, null, 'not listed in trust.json: not installed');
   assert.ok(u.loadTrust().includes(u.OIDC_PUBLISHER), 'the shipped trust list accepts the release workflow');
 });
@@ -545,7 +545,7 @@ test('npm 12 singleton view metadata preserves the publisher trust decision', ()
   const result = u.parseView(JSON.stringify([metadata]));
   assert.deepEqual(result, u.parseView(JSON.stringify(metadata)));
   assert.deepEqual(u.decide({ installed: '0.1.0', ...result }, u.loadTrust(), Date.now(), [TEST_KEY]).spawn,
-    ['--yes', `--registry=${u.REGISTRY}`, `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
+    ['--yes', ...u.REGISTRY_ARGS, `${u.PACKAGE}@0.2.0`, 'update', '--quiet']);
   for (const malformed of [[], [metadata, metadata], [[metadata]], [null], ['metadata']]) {
     assert.ok(u.parseView(JSON.stringify(malformed)).checkError, 'ambiguous or malformed arrays fail closed');
   }

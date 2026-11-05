@@ -48,6 +48,7 @@ in [launcher tests](../../test/launcher.test.js).
 | `package` | Version of the payload beside the invoked CLI, which an update would install |
 | `source` | Where member descriptions came from: `installed`, `package`, or null |
 | `latest`, `checkedAt` | Raw saved npm observation and check timestamp, or null; no live npm probe |
+| `refused` | The session hook's last refusal of the cached latest version while it is newer than installed (`registry_signature`, `provenance`, `untrusted_publisher`, `unreadable_publisher`), or null (PC-131) |
 | `auto` | Saved automatic-update preference; defaults to true |
 | `members` | Declared member versions, plugin presence, legacy entries, hub link targets and shadowing files |
 
@@ -58,7 +59,8 @@ reading the active release; mutating commands refuse to overwrite that state.
 Claude availability is checked once per command, with a five-second timeout.
 
 The text output labels npm data cached, displays its timestamp or unknown time,
-and marks a stable cached version below installed as stale. Equal or higher cache
+and marks a stable cached version below installed as stale; a newer one the hook refused
+adds `not installed automatically` and the reason in words. Equal or higher cache
 values still do not prove registry freshness. Sources: `status()` in
 [launcher](../../lib/launcher.js), `cachedNpmStatus()` in
 [CLI](../../bin/passioncode.js), and status regressions in the launcher tests.
@@ -465,7 +467,8 @@ Only a successful npm response with readable maintainers and publisher, with a
 release installed, can authorize an automatic update; every identity must be trusted, one of npm's
 registry signatures over the version's integrity must verify with a key pinned in `trust.json`, and
 the version must carry SLSA build provenance (ADR-0005). The probe and the update ask
-`https://registry.npmjs.org` whatever registry npm is set to. A record from an older probe, without
+`https://registry.npmjs.org` whatever registry npm is set to, for the scope too
+(`--registry` and `--@passioncode-ai:registry`). A record from an older probe, without
 `verify` or with one read for another version, starts a fresh probe at once and installs nothing
 meanwhile. While a refusal stands the hook's lines name the installed version instead of `@latest`,
 and `status` adds "not installed automatically: <reason>" (`refused` in `--json`). The spawned

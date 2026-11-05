@@ -139,8 +139,9 @@ At Claude Code session start the `passioncode` plugin uses a cached npm check fo
 to 24 hours and, when a newer set is out **and every npm account that publishes it is in the
 plugin's `trust.json`, npm's signature over it verifies with the registry key pinned there and it
 carries build provenance**, updates to that exact version in the background; it takes
-effect in the next session. Any other version is named and not
-installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
+effect in the next session. Any other version is named and not installed
+automatically; while that stands, `@latest` runs it, so use the version the line names
+(`npx @passioncode-ai/passioncode@<installed> status`) until a release is accepted ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so. `status` and `doctor` show
 when the switch is off (by `config set`, or by an uninstall by 0.2.75 or earlier), and `config set update.auto on` turns it
 back on.
@@ -225,9 +226,11 @@ npx --yes sshlg-skills@latest update            # the family; it takes no member
    (OIDC) or the `NPM_TOKEN` secret; a private member needs `MEMBERS_READ_TOKEN`.
    The job writes `lib/analytics-key.json` from the `PASSIONCODE_ANALYTICS_APP_KEY` secret (the App Key for the
    anonymous counts, PC-123) and refuses to publish without it.
-   By hand, `npm publish` still works: `prepublishOnly` vendors from tags only (`--release`),
-   refuses credential-shaped strings and runs the tests; but a hand-published package carries no App Key and sends no
-   counts, so release through the tag.
+   Release only through the tag. A hand `npm publish` (`prepublishOnly` vendors from tags only, refuses
+   credential-shaped strings and runs the tests) carries no build provenance, so every installed plugin refuses it
+   and its users see a line that may mean tampering; it also carries no App Key and sends no counts.
+   If the registry receipt fails after publishing (the version is already `latest`), publish a corrected next
+   version through the tag at once and say in its CHANGELOG section that the refused one was not tampering.
 5. `npx @passioncode-ai/passioncode@<version> update` on each machine; restart the agents.
 
 Vendoring clones every member from its own repository at its tag. A maintainer with

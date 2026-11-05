@@ -84,8 +84,8 @@ async function main() {
     const when = typeof last.at === 'string' ? last.at.slice(0, 10) : 'an earlier session';
     // A release train this launcher cannot use is not repaired by plain setup (PC-89).
     const how = Array.isArray(last.failed) && last.failed.includes('train') ? 'setup --yes --no-apps --train none` (or a train this launcher ships) clears the unusable release train, `doctor' : 'setup` repairs them, `doctor';
-    // While the latest version is refused, `@latest` would run it: name the installed one instead.
-    const pin = refused && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
+    // While the latest version is refused, or not yet checked, `@latest` would run it: name the installed one instead.
+    const pin = (refused || needsProbe(state)) && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
     lines.push(`[passioncode] the setup check of ${when} found ${fails} problem(s)${ids.length ? ` (${ids.join(', ')}${last.failed.length > 3 ? ', …' : ''})` : ''}; \`npx @passioncode-ai/passioncode@${pin} ${how}\` shows them.`);
   }
   if (lines.length) process.stdout.write(lines.join('\n') + '\n');

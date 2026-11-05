@@ -103,8 +103,8 @@ command may write `~/.passioncode/analytics.json` and its notice marker and crea
 
 The SessionStart hook reads `~/.passioncode/state.json` and reuses a check for up to
 24 hours. An absent, invalid, future or expired timestamp starts
-`npm view --registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json`
-(npm's own registry whatever registry the person's npm uses, because the pinned key speaks only for it), detached, logging to
+`npm view --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode version maintainers _npmUser dist --json`
+(npm's own registry whatever registry, or scope registry, the person's npm uses, because the pinned key speaks only for it), detached, logging to
 `~/.passioncode/logs/`. It records the latest version, the package's npm maintainers,
 the account that published that version, and from `dist` the version's integrity, the npm
 registry's signatures over it and the type of its provenance attestation. A record from an
@@ -133,7 +133,7 @@ The hook installs a newer version on its own only when all of these hold:
   release built by `release.yml` does; which builder made it is not checked here;
 - the version is a plain `x.y.z`.
 
-It then runs `npx --yes --registry=https://registry.npmjs.org @passioncode-ai/passioncode@<that exact version> update --quiet`,
+It then runs `npx --yes --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org @passioncode-ai/passioncode@<that exact version> update --quiet`,
 detached, so the version that was checked is the version that runs; npm checks the download against
 the integrity it reads at that moment (up to a day after the check), so a different tarball for the
 same version would need the registry itself to serve other metadata than it signed. In every other case it spawns
@@ -148,11 +148,14 @@ version instead, and `status` adds "not installed automatically" with the reason
 
 **If a session shows such a line.** Keep working on the version you have and run commands as
 `npx @passioncode-ai/passioncode@<installed version> …` (the line names it), not `@latest`. Then:
-a release published after an npm registry key rotation is installed by hand once the next launcher
-release pins the new key (`npx @passioncode-ai/passioncode@<that version> update`); a registry
-mirror or proxy cannot cause the line, because the check reads npm's registry itself, but one that
-blocks `registry.npmjs.org` makes the check fail instead ("the daily update check failed"); any
-other refusal, a signature that does not verify above all, may mean tampering: report it to
+an npm registry key rotation and tampering print the same signature line; it is a rotation when
+`https://registry.npmjs.org/-/npm/v1/keys` lists a key `trust.json` lacks, and then the CHANGELOG
+names the launcher release that pins it, which you install by hand once
+(`npx @passioncode-ai/passioncode@<that version> update`). A registry mirror or proxy cannot cause
+the line, because the check reads npm's registry itself; a network that reaches only a mirror makes
+the check fail instead ("the daily update check failed" once per new error), and then updates are
+by hand. Any other refusal, a signature that does not verify with no new key listed above all, may
+mean tampering: report it to
 contact@passioncode.ai with the line and `~/.passioncode/logs/update-events.log`. A plugin of 0.2.75
 or earlier, installed by hand again, checks only the publishers until it updates.
 

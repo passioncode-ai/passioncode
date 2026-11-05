@@ -41,7 +41,7 @@
   1. Run `passioncode status`.
   2. Compare installed, package and cached npm versions; read when npm was checked.
 - **Expected result:** The npm version is labelled cached, with its recorded timestamp. A cache below the installed stable version is explicitly labelled stale.
-- **Alt paths:** No cached version: say not checked. Missing or invalid timestamp: say check time unknown. A cache equal to or above installed remains labelled cached, without claiming a live lookup.
+- **Alt paths:** No cached version: say not checked. Missing or invalid timestamp: say check time unknown. A cache equal to or above installed remains labelled cached, without claiming a live lookup. A newer cached version the session hook refused adds `not installed automatically` with the reason (`refused` in `--json`, PC-131).
 - **UI elements:** First line of terminal output.
 - **States covered:** empty, success, error
 - **Errors & recovery:** Unknown check time does not crash status. A later session-start probe can refresh the observation; status itself does not perform a probe.

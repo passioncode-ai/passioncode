@@ -182,7 +182,11 @@ jobs:
           # the one that was tested, so publish it as is.
           # Installed plugins refuse a version without provenance (ADR-0005), and npm gives provenance
           # only to a public repository: a private one would publish a release nobody updates to.
-          if [ "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" != "false" ]; then
+          if ! private=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private); then
+            echo "could not read whether the repository is public; not publishing (retry the job)" >&2
+            exit 1
+          fi
+          if [ "$private" != "false" ]; then
             echo "the repository is not public: npm cannot attach provenance, and every installed plugin would refuse this release (ADR-0005)" >&2
             exit 1
           fi
