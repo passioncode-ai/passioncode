@@ -132,6 +132,8 @@ test('PC-129: a relative CLAUDE_CONFIG_DIR means one folder to the launcher and 
   const doc = JSON.parse(at('doctor', '--json', '--offline').stdout);
   const row = doc.checks.find((c) => c.id === 'skills.example-agent');
   assert.match(row.detail, /shadowed by \S*claude-config[\\/]skills[\\/]example-agent/, row.detail); // the folder it checked
+  const mcpRow = doc.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  assert.ok(mcpRow && !/is not registered/.test(mcpRow.detail), `doctor reads the folder's .claude.json: ${JSON.stringify(mcpRow)}`);
   const un = at('uninstall', '--json');
   assert.equal(un.status, 0, un.stderr + un.stdout);
   assert.equal(servers()['fabric-dashboards'], undefined, 'uninstall removes it from the same file');
@@ -220,6 +222,10 @@ test('PC-129: inside a Switchboard home the launcher writes settings and MCP to 
   const installed = Object.keys(JSON.parse(fs.readFileSync(path.join(operator, 'plugins/installed_plugins.json'), 'utf8')).plugins);
   assert.ok(installed.includes('example-agent@passioncode'), installed.join(', '));
   assert.equal(JSON.parse(run(env, 'status', '--json').stdout).members.find((m) => m.name === 'example-agent').claude, 'plugin', 'status reads them through the home');
+  const doc = JSON.parse(run(env, 'doctor', '--json', '--offline').stdout);
+  const mcpRow = doc.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  // The stand-in server does not answer its proving call; what matters is that doctor found the entry where it was written.
+  assert.ok(mcpRow && !/is not registered/.test(mcpRow.detail), `doctor reads the person's ~/.claude.json: ${JSON.stringify(mcpRow)}`);
   const mode = run(env, 'permissions', 'mode', 'acceptEdits', '--json');
   assert.equal(mode.status, 0, mode.stderr + mode.stdout);
   assert.equal(JSON.parse(fs.readFileSync(path.join(operator, 'settings.json'), 'utf8')).permissions.defaultMode, 'acceptEdits', "the mode lands in the operator's settings");
