@@ -143,7 +143,8 @@ carries build provenance**, updates to that exact version in the background; it 
 effect in the next session. Any other version is named and not installed
 automatically; while that stands, `@latest` runs it, so use the version the line names
 (`npx @passioncode-ai/passioncode@<installed> status`) until a release is accepted ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
-On Windows, an installation from 0.2.75 or earlier never updates itself (its hook could not start npm): run
+On Windows, where npm is installed as `.cmd` files (the Node installer, nvm-windows, fnm), an installation from 0.2.75 or
+earlier never updates itself (its hook could not start npm): run
 `npx --yes @passioncode-ai/passioncode@latest update` once, and it updates itself from 0.2.76 on (PC-135).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so. `status` and `doctor` show
 when the switch is off (by `config set`, or by an uninstall by 0.2.75 or earlier), and `config set update.auto on` turns it

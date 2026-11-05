@@ -54,11 +54,13 @@
 
 ### Fixed
 
-- **Automatic updates work on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
-  cannot start their `.cmd` files, so the daily check failed and no update ever started there. The hook now runs npm's
+- **Automatic updates can start on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
+  cannot start their `.cmd` files, so wherever npm is installed that way (the Node installer, nvm-windows, fnm) the daily
+  check failed and no update ever started. The hook now runs npm's
   own `npx-cli.js` and `npm-cli.js` (the npm in the folder of the Node that runs it, through that Node), and the processes
   the hook starts open no console window (whether npm's own shell for the package shows one is not yet checked on a
-  Windows desktop, PC-143). An installation on Windows from 0.2.75 or earlier still runs
+  Windows desktop, PC-143; CI proves that npm's scripts start there, and a full background update on a Windows desktop is
+  still to be observed, PC-143). An installation on Windows from 0.2.75 or earlier still runs
   its old hook, which cannot learn of this version: update it once by hand
   (`npx --yes @passioncode-ai/passioncode@latest update`); it updates itself from then on.
 - **`update` moves entries aside on Windows** (PC-135): a shadowing `~/.claude/skills` entry, or a foreign link or copy in
