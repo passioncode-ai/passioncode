@@ -140,7 +140,9 @@ to 24 hours and, when a newer set is out **and every npm account that publishes 
 plugin's `trust.json`**, updates to that exact version in the background; it takes
 effect in the next session. A version published by anyone else is named and not
 installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
-`npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so.
+`npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so. `status` and `doctor` show
+when the switch is off (by `config set`, or by an uninstall by 0.2.75 or earlier), and `config set update.auto on` turns it
+back on.
 
 `status` reads local state without contacting npm. Its npm version is labelled
 `npm latest (cached)` with the saved check timestamp, or `check time unknown`.

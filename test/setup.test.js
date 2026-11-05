@@ -207,6 +207,33 @@ test('an existing broken setup: setup repairs, checks again and prints before â†
   assert.ok(JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers.fabric, 'fabric registered by the repair');
 });
 
+test('PC-131: doctor says, as information, when automatic updates are off, and how to turn them on', async (t) => {
+  const api = await releaseServer(t);
+  const on = machine();
+  const quiet = await cli(on, api, 'doctor', '--json');
+  assert.ok(!quiet.json.checks.some((c) => c.id === 'skills.auto-update'), 'nothing to say while the switch is on');
+  const off = machine();
+  fs.mkdirSync(path.join(off.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(off.home, '.passioncode', 'state.json'), JSON.stringify({ installed: null, config: { auto: false } }));
+  const r = await cli(off, api, 'doctor', '--json');
+  const row = r.json.checks.find((c) => c.id === 'skills.auto-update');
+  assert.ok(row, JSON.stringify(r.json.checks.map((c) => c.id)));
+  assert.equal(row.state, 'info', 'information, never a failure or a repair');
+  assert.equal(row.fix, 'npx @passioncode-ai/passioncode@latest config set update.auto on');
+  assert.ok(!row.repair, 'no repair: doctor --fix leaves the switch alone');
+  const saved = JSON.parse(fs.readFileSync(path.join(off.home, '.passioncode', 'doctor.json'), 'utf8'));
+  assert.ok(!saved.failed.includes('skills.auto-update'), 'the saved check never counts it as a failure');
+  const fixed = await cli(off, api, 'doctor', '--fix', '--json');
+  assert.ok(!fixed.json.humanSteps.some((step) => /update\.auto on/.test(step)), 'never one of the steps setup or --fix asks for');
+  assert.ok(!fixed.json.actions.some((a) => /update\.auto|config set/.test(JSON.stringify(a))), 'no action touches the switch');
+  // --fix installed the set: the row is still there, information only, after the set's own rows.
+  const after = fixed.json.after.checks.map((c) => c.id).filter((id) => id.startsWith('skills.'));
+  assert.equal(fixed.json.after.checks.find((c) => c.id === 'skills.installed').state, 'ok', after.join(' '));
+  assert.equal(after[after.length - 1], 'skills.auto-update', after.join(' '));
+  assert.equal(fixed.json.after.checks.find((c) => c.id === 'skills.auto-update').state, 'info');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(off.home, '.passioncode', 'state.json'), 'utf8')).config.auto, false, 'doctor never turns it on');
+});
+
 test('doctor is read-only and exits 1 on a problem; doctor --fix repairs but installs and opens nothing', async (t) => {
   const api = await releaseServer(t);
   const m = machine();

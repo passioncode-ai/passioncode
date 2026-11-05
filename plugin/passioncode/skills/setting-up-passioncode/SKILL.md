@@ -119,7 +119,8 @@ Reply in the person's language, briefly:
    notice, and `analytics off` is their switch. If `analytics status` prints no such line, give the person the status
    line it printed (on, or off and why); `analytics off` and `analytics on` are their switch. The `sessions.on-demand`
    check is a readiness note: report it, never act on it as a repair, and treat a `--allow-tools` in its fix like any
-   other. `permissions allow` and
+   other. The `skills.auto-update` information row is the person's update switch (LC-16): tell them automatic updates
+   are off and give its fix as their choice; never run it for them. `permissions allow` and
    `permissions mode` are the same security decision as `--allow-tools`: run them only on the person's own yes to
    that rule or mode, with `--by` naming who asked.
 3. **Your steps**: the numbered `humanSteps` you could not finish yourself: sign-ins, consents,

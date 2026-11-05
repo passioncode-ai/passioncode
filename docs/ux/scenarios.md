@@ -15,7 +15,7 @@
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
 | SCN-009 | Check and repair an existing setup with the same command | setup | Operator | REQ-7a | implemented | 2026-10-13 |
-| SCN-010 | Check the setup without changing anything (but the anonymous counts) | doctor | Operator, Automation | REQ-6, REQ-8 | implemented | 2026-10-13 |
+| SCN-010 | Check the setup without changing anything (but the anonymous counts) | doctor | Operator, Automation | REQ-6, REQ-8 | implemented | 2026-11-05 |
 | SCN-011 | A download that fails verification installs nothing | setup | Newcomer | REQ-2 | implemented | 2026-10-13 |
 | SCN-012 | A coding agent sets the computer up from one pasted prompt | setting-up-passioncode | Newcomer | REQ-9, REQ-10 | implemented | 2026-10-13 |
 | SCN-013 | A new session names the problems of the last setup check | session start | Operator | REQ-9 | implemented | 2026-10-13 |
@@ -210,12 +210,13 @@
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
-  own (PC-86).
+  own (PC-86). When `update.auto` is off, a `skills.auto-update` information row says so and names
+  `config set update.auto on` as the person's choice; doctor never turns it on (PC-131).
 - **UI elements:** Grouped text lines or JSON; exit code.
 - **States covered:** success, error
 - **Errors & recovery:** Every failing line names the command or the step that fixes it.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`; PC-124's `sessions.on-demand` row: `test/setup.test.js` test beginning `doctor never starts Fabric's MCP server` and `test/analytics.test.js` test beginning `PC-124:`.
+- **Coverage:** `test/setup.test.js`, tests beginning `doctor is read-only` and `a proving call that fails`; PC-124's `sessions.on-demand` row: `test/setup.test.js` test beginning `doctor never starts Fabric's MCP server` and `test/analytics.test.js` test beginning `PC-124:`; the PC-131 update-switch row: `test/setup.test.js` `PC-131: doctor says, as information, when automatic updates are off, and how to turn them on`.
   `test/windows.test.js`, tests beginning `PC-86`.
 - **Product:** unobserved
 

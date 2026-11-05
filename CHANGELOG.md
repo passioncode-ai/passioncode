@@ -21,6 +21,9 @@
   read are missing; it is never one of setup's steps for the person. As a warning it adds one to doctor's and setup's
   warning count on a Mac or Windows machine with Fabric that lacks a part. The page
   `docs/reference/session-chain.md` says which part of that chain is the launcher's.
+- **`doctor` says when automatic updates are off** (PC-131): a `skills.auto-update` information row, shown whenever
+  `update.auto` is off, names `config set update.auto on` as the person's choice; it is never a failure, a repair or one
+  of setup's steps, and doctor never turns the switch on.
 
 ### Fixed
 
@@ -29,7 +32,8 @@
   nothing installed the session hook starts no update (one it had already started still finishes, which can take several minutes: once
   `~/.passioncode/logs/update.log` shows it ended, run `status`, and if it shows a version run `uninstall` again), and a reinstall keeps the choice. An uninstall by 0.2.75 or
   earlier wrote the switch off: `status` then shows `auto-update off`, and
-  `npx @passioncode-ai/passioncode@latest config set update.auto on` turns it back on.
+  `npx @passioncode-ai/passioncode@latest config set update.auto on` turns it back on; `doctor` now shows an information row
+  (`skills.auto-update`) whenever the switch is off, naming that command as the person's choice, and never turns it on itself.
 
 - **`~/.codex/config.toml` keeps its link and its mode** (PC-126): registering an MCP server there, and removing it
   through `restore` or `uninstall`, now writes the file where a link points and keeps its permission bits, as the JSON

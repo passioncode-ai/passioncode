@@ -31,7 +31,7 @@ Contract: brand-contract v1
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:74 | SCN-008, SCN-014 | proposed | copy |
 | setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:380 | SCN-009, SCN-014 | proposed | copy |
 | setup.install-note.train | ${setupStep} --with | lib/setup.js:379 | SCN-014 | proposed | copy |
-| doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:189 | SCN-009, SCN-010 | proposed | layout |
+| doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:192 | SCN-009, SCN-010 | proposed | layout |
 | setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:412 | SCN-009 | proposed | copy |
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:413 | SCN-009 | proposed | copy |
 | setup.declined | You declined every offer; nothing was changed.${stand(a)} | lib/setup.js:411 | SCN-008, SCN-009 | proposed | copy |
@@ -125,9 +125,10 @@ Contract: brand-contract v1
 | perm.allow-hint | To allow them: ${require('../lib/doctor').NPX} permissions allow <rule> | bin/passioncode.js:185 | SCN-015 | proposed | copy |
 | perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:187 | SCN-015 | proposed | copy |
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:188 | SCN-015 | proposed | copy |
-| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:375 | SCN-010 | proposed | copy |
-| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:377 | SCN-010 | proposed | copy |
-| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:406 | SCN-010 | proposed | copy |
+| doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:178 | SCN-010 | proposed | copy |
+| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:378 | SCN-010 | proposed | copy |
+| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:380 | SCN-010 | proposed | copy |
+| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:409 | SCN-010 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch). | lib/analytics.js:31 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:205 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:203 | SCN-016 | proposed | copy |

@@ -80,7 +80,7 @@ marker, the shared `installation.json` created once, and one request to `https:/
 | Area | What is read | A failure means |
 |---|---|---|
 | prerequisites | Node ≥ 18; coding agents present; Docker answering and the Supabase CLI when Fabric is installed | Node too old; Docker or the Supabase CLI missing (a stopped Docker is a warning) |
-| skills | `status`: the set installed, each member's plugin, hub links, shadows, legacy copies | the set is missing or broken |
+| skills | `status`: the set installed, each member's plugin, hub links, shadows, legacy copies; the update switch (`skills.auto-update`, information only, when `update.auto` is off, with the command that turns it on: an uninstall by 0.2.75 or earlier wrote it off, PC-131) | the set is missing or broken |
 | apps (macOS) | each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
 | mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
@@ -104,7 +104,7 @@ for Fabric without its prerequisites unless `--with fabric`), `update`,
 launchd service that does not answer), each with the check ids that caused it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
-fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124), each product's onboarding for apps installed in this run, and the restart. A plan lists
+`fail` or `warn` fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124; information rows such as `skills.auto-update` stay in `after.checks` too), each product's onboarding for apps installed in this run, and the restart. A plan lists
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
