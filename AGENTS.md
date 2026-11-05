@@ -58,7 +58,7 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   rules setup offers, and the `permissions` command's ledger, PC-119 and PC-125), `bin/passioncode.js` (the CLI),
   `scripts/vendor.mjs` (the payload), `plugin/passioncode/` (the self-update SessionStart
   hook: `hooks/update-check.js` decides, `probe.js` asks npm, `session-start.js` acts;
-  `trust.json` names the npm accounts allowed to publish).
+  `trust.json` names the npm accounts allowed to publish and pins npm's registry key).
 - `plugin/passioncode/skills/working-in-passioncode/`: the organisation's working rules as
   a skill for every contributor's agent; its trigger and scenario evals are in
   `test/evals/working-in-passioncode/`, held to the Agent Skills standard by `test/skill.test.js`.
@@ -81,7 +81,9 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   and the vendor step refuses credential-shaped strings.
 - The self-update never runs a version it has not attributed: only a pinned
   `@passioncode-ai/passioncode@<x.y.z>` whose every npm maintainer and publisher is in `trust.json`
-  ([ADR-0002](docs/adr/0002-self-update-trusts-named-publishers.md)).
+  ([ADR-0002](docs/adr/0002-self-update-trusts-named-publishers.md)), whose npm registry signature
+  verifies with the key pinned there and which carries SLSA build provenance
+  ([ADR-0005](docs/adr/0005-self-update-verifies-registry-signature-and-provenance.md)).
 - Members are PassionCode.ai products only. An agent someone builds for themselves is never
   added, even when it implements a Fabric protocol.
 - `family.json` names no machine paths: local clones are an environment override

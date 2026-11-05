@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, loadTrust, claimProbe, releaseProbe } = require('./update-check');
+const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
@@ -40,10 +40,10 @@ async function main() {
   const now = Date.now();
   const age = now - Date.parse(state.checkedAt);
   // The marker is claimed before the spawn: sessions restored together start one probe.
-  if ((!Number.isFinite(age) || age < 0 || age > DAY) && claimProbe(DIR, now)) {
+  if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state)) && claimProbe(DIR, now)) {
     if (!await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
-  const { lines, spawn: args, stateChanges } = decide(state, loadTrust(), now);
+  const { lines, spawn: args, stateChanges } = decide(state, loadTrust(), now, loadRegistryKeys());
   if (Object.keys(stateChanges).length) {
     // Re-read: the probe may have written meanwhile; only our own keys change.
     const fresh = { ...read(STATE, {}), ...stateChanges };

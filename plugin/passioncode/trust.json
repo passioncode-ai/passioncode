@@ -1,7 +1,13 @@
 {
-  "$comment": "Who may publish @passioncode-ai/passioncode. The session-start hook auto-updates only to a version whose every npm maintainer and publisher is listed here; see SECURITY.md. github-actions-oidc is this repository's release.yml publishing through npm trusted publishing (registered by a maintainer).",
+  "$comment": "Who may publish @passioncode-ai/passioncode, and the npm registry key its signatures must verify against. The session-start hook auto-updates only to a version whose every npm maintainer and publisher is listed here, whose registry signature verifies with a key listed here, and which carries SLSA build provenance; see SECURITY.md. github-actions-oidc is this repository's release.yml publishing through npm trusted publishing (registered by a maintainer). npmRegistryKeys is copied from https://registry.npmjs.org/-/npm/v1/keys; a key npm rotates in is added here in a release before npm signs with it.",
   "npmPublishers": [
     "ssheleg",
     "github-actions-oidc"
+  ],
+  "npmRegistryKeys": [
+    {
+      "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U",
+      "key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEY6Ya7W++7aUPzvMTrezH6Ycx3c+HOKYCcNGybJZSCJq/fd7Qa8uuAKtdIkUQtQiEKERhAmE5lMMJhP8OkDOa2g=="
+    }
   ]
 }
