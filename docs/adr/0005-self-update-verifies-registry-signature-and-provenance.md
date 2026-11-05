@@ -37,7 +37,7 @@ signature by keyid `SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U`.
 - A state recorded by an older probe (no `verify`), or whose `verify` was read for another version (an
   older plugin's probe keeps it beside its own answer: `verify` carries the time of the check that
   wrote it), installs nothing and starts a fresh probe at once.
-- The update runs `npx --yes --cache=~/.passioncode/run/cache-<new> --logs-dir=~/.passioncode/logs/npm --logs-max=5 --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<version> update --quiet`;
+- The update runs `npx --yes --cache=~/.passioncode/run/cache-<new> --logs-dir=~/.passioncode/logs/npm --logs-max=5 --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<version> update --quiet` (without the two log flags when `logs/npm` cannot be made);
   the manual command offered with `update.auto` off carries the same registry flags and `--workspaces=false`, not the
   cache (it runs wherever the person runs it).
 - `release.yml` publishes only with provenance (it stops when the repository is not public), and its

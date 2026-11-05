@@ -144,7 +144,8 @@ the session's project: started there, npm would run a copy from that project's `
 without downloading or checking anything and read that project's `.npmrc`. `--workspaces=false` keeps
 npm from walking up to a monorepo root above that folder, and the update installs through a cache of
 its own (a new `~/.passioncode/run/cache-*` folder each time; without one the update does not start),
-so a copy an earlier `npx` cached is not reused; npm's debug logs go to `~/.passioncode/logs/npm`.
+so a copy an earlier `npx` cached is not reused; npm's debug logs go to `~/.passioncode/logs/npm` (when that folder cannot be made, npm keeps its default
+log place and the update still runs, without `--logs-dir`).
 A global install of that exact version (`npm install -g`) would still be used as it is (PC-142). In every other case it spawns
 nothing: a version from an account outside the list is reported in one line naming the
 account ("… not a trusted PassionCode publisher, so it is not installed"), and a version whose
@@ -171,7 +172,7 @@ the check fail instead ("the daily update check failed" once per new error), and
 by hand. Any other refusal, a signature that does not verify with no new key listed above all, may
 mean tampering: report it to
 contact@passioncode.ai with the line, `~/.passioncode/logs/update-events.log` and, if an update ran,
-`~/.passioncode/logs/update.log` and `~/.passioncode/logs/npm/`. The line is printed
+`~/.passioncode/logs/update.log` and `~/.passioncode/logs/npm/` (if it exists). The line is printed
 at the start of a Claude Code session, into the agent's context; the setup skill and the README's prompt
 tell the agent to pass it on when it sets up or checks PassionCode. When the last check failed while a
 refusal stands, the hook says so at every session start and still names the version to keep, and

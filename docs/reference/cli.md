@@ -470,7 +470,7 @@ the version must carry SLSA build provenance (ADR-0005). The probe and the updat
 `https://registry.npmjs.org` whatever registry npm is set to, for the scope too
 (`--registry` and `--@passioncode-ai:registry`), with `--workspaces=false` so npm does not walk up to a
 monorepo root, from `~/.passioncode/run/`; the update installs through a new cache folder of its own (`run/cache-*`; without one it does not
-start), with npm's debug logs in `logs/npm`. A record from an older probe, without
+start), with npm's debug logs in `logs/npm` (npm's default place when that folder cannot be made; the update still runs). A record from an older probe, without
 `verify` or with one read for another version, starts a fresh probe at once and installs nothing
 meanwhile. While a refusal stands the hook's lines name the installed version instead of `@latest`,
 and `status` adds "not installed automatically: <reason>" (`refused` in `--json`). The spawned
