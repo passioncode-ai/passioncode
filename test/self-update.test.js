@@ -792,6 +792,17 @@ test('PC-135: on Windows the hooks start npm\'s own script through this Node; el
   assert.deepEqual(npmCommand('npm', { env: { PASSIONCODE_NPM: '/t/npm' }, platform: 'win32', execPath: '/n' }), ['/t/npm', []]);
 });
 
+test('PC-143: npm is missing only on Windows, with no stand-in and no npm script beside Node', () => {
+  const { npmMissing } = require(path.join(PLUGIN, 'hooks/update-check'));
+  const node = 'C:\\Program Files\\nodejs\\node.exe';
+  const cli = 'C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npx-cli.js';
+  assert.equal(npmMissing('npx', { env: {}, platform: 'win32', execPath: node, exists: () => false }), 'C:\\Program Files\\nodejs', 'the folder of the Node that runs the hook');
+  assert.equal(npmMissing('npx', { env: {}, platform: 'win32', execPath: node, exists: (f) => f === cli }), null, 'npm beside Node');
+  assert.equal(npmMissing('npx', { env: { PASSIONCODE_NPX: 'C:\\t\\npx.cmd' }, platform: 'win32', execPath: node, exists: () => false }), null, 'a stand-in');
+  assert.equal(npmMissing('npx', { env: { PASSIONCODE_NPX: '' }, platform: 'win32', execPath: node, exists: () => false }), 'C:\\Program Files\\nodejs', 'an empty stand-in is none');
+  assert.equal(npmMissing('npm', { env: {}, platform: 'darwin', execPath: '/usr/local/bin/node', exists: () => false }), null, 'elsewhere the name starts npm');
+});
+
 // On Windows itself, with no stand-in: the npm script beside this Node exists and starts (no download).
 test('PC-135: on Windows the npm and npx scripts beside Node start with --version', { skip: process.platform !== 'win32' && 'needs Windows' }, () => {
   const { npmCommand } = require(path.join(PLUGIN, 'hooks/update-check'));
@@ -805,4 +816,48 @@ test('PC-135: on Windows the npm and npx scripts beside Node start with --versio
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+/);
   }
+});
+
+// On real Windows the npm beside Node is there, and the update would really start: the stand-in platform runs elsewhere.
+test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PATH', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0'), updateCache: '/x/earlier' });
+  // The sandbox's npx stays on PATH: by name it would start here, so only the npm rule keeps the hook from starting it.
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPX: '' }), cwd: os.tmpdir(), input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /there is no npm beside the Node in .*, so automatic updates cannot be checked or installed; reinstall that Node\.js with npm \(with the tool that installed it\), or put a Node\.js that has npm first on PATH, then start Claude Code again: the next session checks again\./);
+  // The manual command names the verified version and npm's own registry, as the hook's other manual line does.
+  assert.match(r.stdout, /To update now, run in a terminal where npx works: npx --yes --registry=https:\/\/registry\.npmjs\.org \S+ \S+ @passioncode-ai\/passioncode@0\.2\.0 update\n/);
+  assert.doesNotMatch(r.stdout, /check that npx is on PATH|@latest/);
+  assert.deepEqual(eventsOf(sb), ['update_install failed npm'], 'no download logged as started when nothing could start');
+  assert.equal(stateOf(sb).updatingSince, undefined);
+  const run = path.join(sb.stateDir, 'run');
+  assert.deepEqual(fs.existsSync(run) ? fs.readdirSync(run).filter((n) => n.startsWith('cache')) : [], [], 'no cache folder for an update that cannot start');
+  assert.deepEqual(await npxCalls(sb), [], 'nothing started');
+  assert.equal(fs.existsSync(path.join(sb.stateDir, 'logs', 'update.log')), false);
+  assert.equal(stateOf(sb).updateCache, '/x/earlier', 'the earlier update folder stays recorded');
+});
+
+test('PC-143: on Windows with no npm beside Node the probe records it, and the session line names the fix, not spawn npm ENOENT', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, () => {
+  const sb = sandbox();
+  setState(sb, { installed: '0.1.0' });
+  const win = { PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPM: '', PASSIONCODE_NPX: '' };
+  fs.writeFileSync(path.join(sb.stateDir, 'probe.pending'), new Date().toISOString()); // the hook claimed it before starting the probe
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/probe.js')], { encoding: 'utf8', env: sb.env(win) });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(fs.existsSync(path.join(sb.stateDir, 'probe.pending')), false, 'the probe releases its marker');
+  assert.equal(stateOf(sb).checkError, 'npm-missing');
+  assert.deepEqual(lines(path.join(sb.home, 'npm-calls.log')), [], 'nothing is started');
+  assert.deepEqual(eventsOf(sb), ['update_check check_failed npm']);
+  const out = hook(sb, win);
+  assert.match(out, /^\[passioncode\] there is no npm beside the Node in .*, so automatic updates cannot be checked or installed; .*the next session checks again\.\n$/);
+  assert.doesNotMatch(out, /ENOENT|daily update check failed|To update now/);
+  assert.equal(hook(sb, win), '', 'shown once, as every check error');
+  // With npm back beside Node, the next session checks again at once instead of a day later.
+  fs.rmSync(path.join(sb.home, 'npm-calls.log'), { force: true });
+  hook(sb, { PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPX: '', PASSIONCODE_NPM: path.join(sb.base, 'bin', 'npm.js') }); // npm is there now
+  const until = Date.now() + 20000;
+  while (stateOf(sb).checkError === 'npm-missing' && Date.now() < until) spawnSync(process.execPath, ['-e', 'setTimeout(() => {}, 100)']);
+  assert.notEqual(stateOf(sb).checkError, 'npm-missing', 'the probe ran again');
+  assert.equal(lines(path.join(sb.home, 'npm-calls.log')).length, 1);
 });

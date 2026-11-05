@@ -212,7 +212,7 @@ function oneLine(text) { return String(text).replace(/\s+/g, ' ').trim().slice(0
  * What the session-start hook does with the recorded state. Returns
  * `{ lines, spawn, stateChanges }`: `spawn` is the exact argv for `npx` or null.
  */
-function decide(state, trust, now = Date.now(), keys = []) {
+function decide(state, trust, now = Date.now(), keys = [], nodeDir = path.dirname(process.execPath)) {
   const lines = [];
   const stateChanges = {};
   const events = [];
@@ -232,7 +232,8 @@ function decide(state, trust, now = Date.now(), keys = []) {
   };
 
   if (state.checkError && state.checkError !== state.checkErrorShown) {
-    lines.push(`[passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log).`);
+    lines.push(state.checkError === NPM_MISSING ? npmMissingLine(nodeDir)
+      : `[passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log).`);
     stateChanges.checkErrorShown = state.checkError;
   }
 
@@ -325,4 +326,23 @@ function npmCommand(name, { env = process.env, platform = process.platform, exec
   return [name, []];
 }
 
-module.exports = { npmCommand, PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, REGISTRY_ARGS, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };
+/**
+ * On Windows the name alone cannot start npm's `.cmd` files, so with no npm beside the Node that runs the hooks (and no
+ * stand-in) they can neither check for updates nor start one, and no PATH change for npx helps (PC-143). Returns that
+ * Node's folder, or null when npm can be started.
+ */
+function npmMissing(name, { env = process.env, platform = process.platform, execPath = process.execPath, exists = fs.existsSync } = {}) {
+  if (platform !== 'win32' || env[`PASSIONCODE_${name.toUpperCase()}`]) return null;
+  return npmCommand(name, { env, platform, execPath, exists })[1].length ? null : path.win32.dirname(execPath);
+}
+/** The `checkError` the probe records when it finds no npm to start (PC-143). */
+const NPM_MISSING = 'npm-missing';
+/** The session line for it: the lasting fixes first, then, when a verified version is known, the pinned manual update. */
+function npmMissingLine(nodeDir, latest) {
+  const now = latest && VERSION.test(latest)
+    ? ` To update now, run in a terminal where npx works: npx --yes ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update`
+    : '';
+  return `[passioncode] there is no npm beside the Node in ${nodeDir}, so automatic updates cannot be checked or installed; reinstall that Node.js with npm (with the tool that installed it), or put a Node.js that has npm first on PATH, then start Claude Code again: the next session checks again.${now}`;
+}
+
+module.exports = { npmCommand, npmMissing, NPM_MISSING, npmMissingLine, PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, REGISTRY_ARGS, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };
