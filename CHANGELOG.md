@@ -25,6 +25,16 @@
   `update.auto` is off, names `config set update.auto on` as the person's choice; it is never a failure, a repair or one
   of setup's steps, and doctor never turns the switch on.
 
+- **The self-update installs only bytes npm signed, built by CI** (PC-131, ADR-0005): besides the trusted publishers,
+  the session hook now requires one of npm's registry signatures over the version's integrity to verify with npm's key,
+  pinned in the plugin's `trust.json`, and an SLSA build provenance attestation. A tampered, unsigned, foreign-signed or
+  provenance-less version is named in one line and neither installed nor offered as a manual command. The release
+  build refuses a `trust.json` without a usable registry key.
+- **An update log, and every update log capped** (PC-131, LC-12, LC-16): `~/.passioncode/logs/update-events.log`
+  records `update_check` (`ready` or `current` once per answer, `check_failed`, `signature_failed` with its reason
+  once per version), `update_download`, `update_install` and `auto_update`, codes only; it, `probe.log` and
+  `update.log` move aside at 5 MB, five files kept, mode 0600.
+
 ### Fixed
 
 - **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped
