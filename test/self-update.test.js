@@ -1,4 +1,5 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // The self-update: the probe that asks npm who publishes `passioncode`, and the
 // session-start hook that installs a newer version only from a trusted publisher.
 // Each test runs a copy of the plugin (so trust.json can be set) against a fake

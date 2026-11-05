@@ -1,4 +1,5 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // PC-123: anonymous usage and error counts, on by default, off for this product alone.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

@@ -1,4 +1,5 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // setup and doctor end to end (ADR-0004): a new machine, an existing broken one, the no-op re-run,
 // and every way a download must be refused. Releases come from a local server imitating GitHub's
 // API, signed by a throwaway key; macOS tools are test/fake-tools.js; nothing real is touched.

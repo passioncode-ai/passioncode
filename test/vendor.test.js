@@ -1,4 +1,5 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // scripts/vendor.mjs against a throwaway repository root: a member that lives only
 // in a (local, bare) remote, and the self plugin copied from this repository.
 const assert = require('node:assert/strict');

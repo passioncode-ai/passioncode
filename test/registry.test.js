@@ -1,4 +1,5 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 const assert = require('node:assert/strict');
 const { createHash, generateKeyPairSync, sign } = require('node:crypto');
 

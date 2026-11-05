@@ -111,6 +111,51 @@ test('PC-129: with CLAUDE_CONFIG_DIR set, update installs, checks shadows and ke
   assert.equal(status.members.find((m) => m.name === 'example-agent').claude, 'plugin', 'status reads the plugins from that folder');
 });
 
+test('PC-129: a relative CLAUDE_CONFIG_DIR means one folder to the launcher and the CLI: MCP, doctor and uninstall agree', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg);
+  fs.renameSync(path.join(env.home, '.claude.json'), path.join(cfg, '.claude.json'));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: 'claude-config' }; // relative: the CLI runs from ~/.passioncode, the launcher from home
+  const at = (...args) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', cwd: env.home, env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', ...env.extra } });
+  const up = at('update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  const servers = () => JSON.parse(fs.readFileSync(path.join(cfg, '.claude.json'), 'utf8')).mcpServers;
+  assert.ok(servers()['fabric-dashboards'], 'registered in the folder the variable names');
+  assert.equal(fs.existsSync(path.join(env.home, '.passioncode', 'claude-config')), false, 'no stray folder where the CLI runs');
+  assert.equal(fs.existsSync(path.join(env.home, '.claude.json')), false);
+  fs.mkdirSync(path.join(cfg, 'skills', 'example-agent'), { recursive: true }); // a plain copy that shadows the plugin
+  const doc = JSON.parse(at('doctor', '--json', '--offline').stdout);
+  const row = doc.checks.find((c) => c.id === 'skills.example-agent');
+  assert.match(row.detail, /shadowed by \S*claude-config[\\/]skills[\\/]example-agent/, row.detail); // the folder it checked
+  const un = at('uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(servers()['fabric-dashboards'], undefined, 'uninstall removes it from the same file');
+  assert.ok(servers().someone, "the person's own entry stays");
+});
+
+test('PC-129: uninstall without the variable removes the entry from the folder it was written to, never a same-named one in ~/.claude.json', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg);
+  fs.renameSync(path.join(env.home, '.claude.json'), path.join(cfg, '.claude.json'));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: cfg };
+  assert.equal(run(env, 'update', '--json').status, 0);
+  const servers = (file) => JSON.parse(fs.readFileSync(file, 'utf8')).mcpServers;
+  assert.ok(servers(path.join(cfg, '.claude.json'))['fabric-dashboards']);
+  // The person's own entry of the same name in the default file.
+  fs.writeFileSync(path.join(env.home, '.claude.json'), JSON.stringify({ mcpServers: { 'fabric-dashboards': { command: '/their/own' } } }));
+  delete env.extra.CLAUDE_CONFIG_DIR;
+  const un = run(env, 'uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(servers(path.join(cfg, '.claude.json'))['fabric-dashboards'], undefined, 'removed from the folder it was written to');
+  assert.deepEqual(servers(path.join(env.home, '.claude.json'))['fabric-dashboards'], { command: '/their/own' }, "the person's entry stays");
+});
+
 test('PC-129: paths() puts every Claude Code file under CLAUDE_CONFIG_DIR when it is set, and an empty one counts as unset', () => {
   const L = require('../lib/launcher');
   const saved = process.env.CLAUDE_CONFIG_DIR;

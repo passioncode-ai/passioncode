@@ -1,4 +1,5 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // PC-115: a test run leaves nothing in the system's temporary folder. scripts/test.mjs gives the run a
 // folder of its own (TMPDIR, TMP, TEMP, inherited by the processes the tests start) and removes it.
 const assert = require('node:assert/strict');

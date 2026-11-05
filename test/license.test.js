@@ -1,4 +1,5 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // Fabric ADR-0092: the launcher is AGPL-3.0-only OR the PassionCode.ai commercial licence.
 // LICENSE, COMMERCIAL-LICENSE.md and CLA.md are byte for byte the templates in fabric-workspace
 // knowledge/templates/ (that repository is not readable from here, so their SHA-256 is pinned),
