@@ -5,7 +5,7 @@ carries credentials or a working exploit.
 
 Claude Code's files in this document: every `~/.claude` path and `~/.claude.json` means the folder `CLAUDE_CONFIG_DIR`
 names when it is set (its `.claude.json` inside it), as Claude Code itself reads them (PC-129). In a session Fabric
-Switchboard launched, its home is that folder: settings and MCP servers then go to the person's own folder that
+Switchboard launched, its home is that folder: settings, plugins and MCP servers then go to the person's own folder that
 `SWITCHBOARD_CLAUDE_SOURCE_DIR` names (`~/.claude.json` when that folder is `~/.claude`), and with a Switchboard before
 0.7.14, which names none, to `~/.claude`, because Switchboard rebuilds the home's settings at every launch (SB-259).
 

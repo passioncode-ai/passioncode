@@ -4,6 +4,12 @@ This page describes the source tree on `main`. A source merge is not an npm
 publication: use the [handoff index](../README.md) to distinguish source fixes
 from released and installed versions.
 
+Claude Code's files on this page: every `~/.claude` path and `~/.claude.json` means the folder `CLAUDE_CONFIG_DIR`
+names when it is set (its `.claude.json` inside it), as Claude Code itself reads them; in a session of Fabric
+Switchboard 0.7.14 or later, settings, plugins and MCP servers mean the person's own folder that
+`SWITCHBOARD_CLAUDE_SOURCE_DIR` names, and with an earlier Switchboard `~/.claude` (PC-129;
+[the two rows in Locations](#locations-and-development-overrides)).
+
 ## Commands and results
 
 Run the published launcher as `npx @passioncode-ai/passioncode@<version> <command>`.
@@ -131,7 +137,7 @@ asking. It is the person's security decision, taken only on its own yes: one que
 are merged: every other key and rule, and their order, is kept; a rule the person lists under `permissions.deny` or
 `permissions.ask` is not added; a second run adds nothing. Only `~/.claude/settings.json` is read (a rule granted in a
 project's or a managed settings file, or in another spelling such as `mcp__fabric__*`, is offered again), and the rules
-are offered only where Claude Code is (its `~/.claude` folder exists). Without a terminal and without `--yes`,
+are offered only where Claude Code is (the folder of its settings file exists). Without a terminal and without `--yes`,
 `--allow-tools` adds them when nothing else would change, and is part of the plan otherwise. A settings file that cannot
 be read, is not valid JSON, or whose `permissions`, `allow`, `deny` or `ask` has the wrong shape, is left as it is and
 named; a run with `--allow-tools` fails that step (exit 1), and a `--dry-run` with it says so ("A run with

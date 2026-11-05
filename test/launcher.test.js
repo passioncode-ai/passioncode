@@ -286,6 +286,26 @@ test('PC-129: a shadow moved aside through a Switchboard home goes back into the
   assert.equal(fs.existsSync(sb), false, 'no folder is made where the home was');
 });
 
+test('PC-129: a person\'s own linked skills folder keeps its path: restore follows wherever the link points then', () => {
+  const env = setup(); // ~/.claude/skills/example-agent shadows the plugin
+  const skills = path.join(env.home, '.claude', 'skills');
+  const dots = path.join(env.home, 'dots', 'skills');
+  fs.mkdirSync(path.dirname(dots), { recursive: true });
+  fs.renameSync(skills, dots);
+  fs.symlinkSync(dots, skills, 'junction');
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.equal(isLink(path.join(skills, 'example-agent')), false, 'moved aside');
+  const dots2 = path.join(env.home, 'dots2', 'skills');
+  fs.mkdirSync(path.dirname(dots2), { recursive: true });
+  fs.renameSync(dots, dots2);
+  fs.unlinkSync(skills);
+  fs.symlinkSync(dots2, skills, 'junction');
+  const r = run(env, 'restore', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.ok(isLink(path.join(skills, 'example-agent')), 'back in ~/.claude/skills');
+  assert.equal(fs.existsSync(dots), false, 'the old target is not made again');
+});
+
 test('a second update is idempotent: updates plugins, moves nothing', () => {
   const env = setup();
   assert.equal(run(env, 'update').status, 0);
