@@ -64,8 +64,9 @@
   and `restore` putting a retired marketplace back into the folder it was taken from (docs/reference/cli.md). An MCP
   entry an earlier release put in that folder (and then reported as failed) is left as the person's: `uninstall` does
   not remove it, so remove it by hand with `claude mcp remove --scope user <name>` run with that variable; rules and a mode an earlier release
-  wrote to `~/.claude/settings.json` while the variable was set stay there and do nothing (`setup` or `permissions allow`
-  adds them to the right folder). With the
+  wrote to `~/.claude/settings.json` while the variable named a folder of your own stay there and do nothing (`setup` or
+  `permissions allow` adds them to that folder); in a Switchboard session built from `~/.claude` they were already in
+  the right place. With the
   variable set, the anonymous error counts of `update` and `doctor` should fall: those failures are what this fixes.
 - **Automatic updates can start on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
   cannot start their `.cmd` files, so wherever npm is installed that way (the Node installer, nvm-windows, fnm) the daily

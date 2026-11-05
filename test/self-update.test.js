@@ -829,6 +829,13 @@ test('PC-129: a relative CLAUDE_CONFIG_DIR reaches the background update as the 
   assert.equal(r.status, 0, r.stderr);
   assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
   assert.deepEqual(lines(path.join(sb.home, 'npx-config-dir.log')).map((l) => fs.realpathSync(path.dirname(l)) + path.sep + path.basename(l)), [fs.realpathSync(project) + path.sep + 'cc']);
+  // An empty value stays unset: it is not made into the session's folder.
+  const empty = sandbox({ trust: ['passioncode-ai'] });
+  setState(empty, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const e = spawnSync(process.execPath, [path.join(empty.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: empty.env({ CLAUDE_CONFIG_DIR: '' }), cwd: project, input: '' });
+  assert.equal(e.status, 0, e.stderr);
+  assert.equal((await npxCalls(empty, { expect: 1 })).length, 1);
+  assert.deepEqual(lines(path.join(empty.home, 'npx-config-dir.log')), ['-']);
 });
 
 test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PATH', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, async () => {
