@@ -24,6 +24,13 @@
 
 ### Fixed
 
+- **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped
+  updating itself although the person never turned it off. It now leaves the switch as the person set it; with
+  nothing installed the session hook starts no update (one it had already started still finishes: a minute later run `status`,
+  and if it shows a version run `uninstall` again), and a reinstall keeps the choice. An uninstall by 0.2.75 or
+  earlier wrote the switch off: `status` then shows `auto-update off`, and
+  `npx @passioncode-ai/passioncode@latest config set update.auto on` turns it back on.
+
 - **`~/.codex/config.toml` keeps its link and its mode** (PC-126): registering an MCP server there, and removing it
   through `restore` or `uninstall`, now writes the file where a link points and keeps its permission bits, as the JSON
   settings files already did (PC-120); a file the launcher creates is private (mode 600 on macOS and Linux). Before, a

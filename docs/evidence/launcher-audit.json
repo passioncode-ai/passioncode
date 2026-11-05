@@ -54,7 +54,7 @@
     {
       "id": "AUD-09",
       "file": "test/launcher.test.js",
-      "test": "uninstall clears installed state, disables automatic reinstallation and is repeatable",
+      "test": "uninstall clears installed state, never reinstalls itself, keeps the update switch and is repeatable",
       "scenario": "SCN-005"
     },
     {
@@ -296,6 +296,18 @@
       "file": "test/launcher.test.js",
       "test": "PC-127: a trailing comment keeps a Codex table; a root inline declaration counts, a root key in another table does not",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-50",
+      "file": "test/launcher.test.js",
+      "test": "PC-131: an update switch turned off stays off through uninstall and a reinstall",
+      "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-51",
+      "file": "test/self-update.test.js",
+      "test": "hook: with nothing installed (after uninstall, or an older state without the key) it installs nothing (PC-131)",
+      "scenario": "SCN-006"
     }
   ]
 }

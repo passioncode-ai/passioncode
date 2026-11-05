@@ -137,6 +137,17 @@ test('hook: missing publisher or malformed maintainer never authorizes an update
   }
 });
 
+test('hook: with nothing installed (after uninstall, or an older state without the key) it installs nothing (PC-131)', () => {
+  const { decide } = require('../plugin/passioncode/hooks/update-check');
+  const trusted = { published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', config: { auto: true } };
+  for (const state of [{ ...trusted, installed: null }, { ...trusted }]) {
+    const r = decide(state, ['passioncode-ai']);
+    assert.equal(r.spawn, null);
+    assert.deepEqual(r.lines, []);
+    assert.deepEqual(r.stateChanges, {});
+  }
+});
+
 test('probe rejects valid-looking stdout when npm exits with an error', () => {
   const sb = sandbox();
   const state = probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai'), 1);

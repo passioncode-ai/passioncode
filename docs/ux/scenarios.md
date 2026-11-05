@@ -11,7 +11,7 @@
 | SCN-003 | Update with a partial failure | update | Operator | REQ-A1 | implemented | 2026-11-05 |
 | SCN-004 | Restore displaced entries safely | restore | Operator | REQ-A1 | implemented | 2026-11-05 |
 | SCN-005 | Uninstall and retry a failed removal | uninstall | Operator | REQ-A1 | implemented | 2026-11-05 |
-| SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-10-01 |
+| SCN-006 | Start a session with a registry observation | self-update | Operator | REQ-A2 | implemented | 2026-11-05 |
 | SCN-007 | Reject unsupported arguments or damaged state | command validation | Operator | REQ-A1 | implemented | 2026-10-01 |
 | SCN-008 | Set up a new computer with one command | setup | Newcomer | REQ-1…REQ-5 | implemented | 2026-10-13 |
 | SCN-009 | Check and repair an existing setup with the same command | setup | Operator | REQ-7a | implemented | 2026-10-13 |
@@ -113,13 +113,13 @@
   1. Run uninstall.
   2. Fix any reported plugin failure and retry.
   3. Inspect status (it does not list an MCP entry an incomplete uninstall kept; the uninstall's error names it); optionally restore displaced files.
-- **Expected result:** Success clears the active installation and disables automatic updates; recovery copies remain. Repeating uninstall is safe.
+- **Expected result:** Success clears the active installation, so nothing updates itself while nothing is installed; the update switch stays as the person set it (LC-16, PC-131), and `status` still shows it (on by default) although nothing installed updates (an update the session hook had already started still finishes: a minute later, run status, and if it shows a version run uninstall again); recovery copies remain. Repeating uninstall is safe.
 - **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json`, the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
-- **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. An MCP entry whose file the system cannot open now (a link into a locked folder) does not stop the rest: uninstall finishes and lists what it removed, exits 1 naming the file and keeps the entry recorded, and a retry once the file and its folder are readable and writable removes it (PC-127). `config.toml` is read as text: a launcher table edited since (a key or comment added inside it included) or a server declared another way is reported as kept; an entry no longer declared is taken as gone; an entry kept because it was changed is no longer tracked, so a retry leaves it (PC-127). Reinstallation retains the off preference until explicitly enabled.
+- **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. An MCP entry whose file the system cannot open now (a link into a locked folder) does not stop the rest: uninstall finishes and lists what it removed, exits 1 naming the file and keeps the entry recorded, and a retry once the file and its folder are readable and writable removes it (PC-127). `config.toml` is read as text: a launcher table edited since (a key or comment added inside it included) or a server declared another way is reported as kept; an entry no longer declared is taken as gone; an entry kept because it was changed is no longer tracked, so a retry leaves it (PC-127). A reinstall keeps the update switch as it was; an uninstall by 0.2.75 or earlier wrote it off, and `config set update.auto on` turns it back on.
 - **Status:** implemented
-- **Coverage:** `test/launcher.test.js`; SCN-005 evidence names successful/repeated and failed uninstall tests and the PC-127 uninstall test.
+- **Coverage:** `test/launcher.test.js`; SCN-005 evidence names successful/repeated and failed uninstall tests and the PC-127 uninstall test and the PC-131 update-switch test (AUD-50).
 - **Product:** unobserved
 
 ### SCN-006: Start a session with a registry observation
@@ -132,7 +132,7 @@
   1. Start a session.
   2. Read any update/check diagnostic; continue the session.
 - **Expected result:** Only a newer pinned version with all maintainers and its publisher known and trusted can start automatically. Probe errors cannot authorize an update.
-- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent.
+- **Alt paths:** Auto off yields a pinned manual command; missing/future/expired check time starts a probe, one at a time across sessions started together; current version is silent; with nothing installed it starts no update (PC-131); after a successful uninstall the self plugin is gone, so no hook runs.
 - **UI elements:** One-line hook notifications and logs.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Missing npx does not fail the session or leave a false running marker. Repair PATH and retry next session.
