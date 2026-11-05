@@ -43,7 +43,7 @@ jobs:
   # replaced by the real rename that failed on the tester's machine (2026-10-28).
   # PC-135: the whole gate runs here as on Linux and macOS. Cases that cannot run on Windows skip by name with
   # their reason (AGENTS.md lists them): POSIX links, paths and modes, signals, an unwritable folder,
-  # setup.test.js's macOS simulation, and the reg-simulated PC-86/88/89 doctor cases (shell-script stand-ins).
+  # setup.test.js's macOS simulation, and the reg-simulated PC-86/88/89 doctor and setup cases (shell-script stand-ins).
   windows:
     runs-on: windows-latest
     timeout-minutes: 20
