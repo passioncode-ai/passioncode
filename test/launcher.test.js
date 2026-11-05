@@ -136,10 +136,11 @@ test('restore reports a conflicting user replacement and can be retried', () => 
   assert.equal(run(env, 'update').status, 0);
   const hub = path.join(env.home, '.agents/skills/example-agent');
   fs.unlinkSync(hub);
-  fs.symlinkSync('/user-replacement', hub);
+  const replacement = path.resolve('/user-replacement'); // Windows reads the link back with its drive
+  fs.symlinkSync(replacement, hub);
   const conflict = run(env, 'restore');
   assert.equal(conflict.status, 1);
-  assert.equal(fs.readlinkSync(hub), '/user-replacement');
+  assert.equal(fs.readlinkSync(hub), replacement);
   assert.match(conflict.stderr, /conflict/i);
   fs.unlinkSync(hub);
   assert.equal(run(env, 'restore').status, 0);
@@ -182,7 +183,8 @@ test('a failed release copy leaves the old release and state active', () => {
   const stateFile = path.join(env.home, '.passioncode/state.json');
   const before = fs.readFileSync(stateFile, 'utf8');
   makePayload(env.payload, '0.2.0', env.members);
-  fs.writeFileSync(path.join(env.home, '.passioncode/releases/0.2.0'), 'not a directory');
+  // A folder in the way that holds no manifest: the rename onto it fails on every OS (Windows replaces a plain file).
+  fs.mkdirSync(path.join(env.home, '.passioncode/releases/0.2.0/stray'), { recursive: true });
   fs.writeFileSync(path.join(env.home, 'claude-calls.log'), '');
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 1);
@@ -508,7 +510,7 @@ test('status reports an absent npm observation without inventing a check time', 
 });
 
 test('vendor refuses credential-shaped strings', async () => {
-  const { scanForSecrets } = await import(path.join(ROOT, 'scripts/vendor.mjs'));
+  const { scanForSecrets } = await import(require('url').pathToFileURL(path.join(ROOT, 'scripts/vendor.mjs')).href);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-scan-'));
   fs.writeFileSync(path.join(dir, 'SKILL.md'), 'Use sk-or-v1-' + 'a'.repeat(40) + ' to call the model.');
   fs.writeFileSync(path.join(dir, 'ok.md'), 'Read the key from the vault by name.');
