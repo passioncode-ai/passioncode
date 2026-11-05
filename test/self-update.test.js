@@ -838,6 +838,18 @@ test('PC-129: a relative CLAUDE_CONFIG_DIR reaches the background update as the 
   assert.deepEqual(lines(path.join(empty.home, 'npx-config-dir.log')), ['-']);
 });
 
+test('PC-129: a session folder removed under a relative CLAUDE_CONFIG_DIR still starts the update, the value left as it is', { skip: process.platform === 'win32' && 'a removed working folder' }, async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const gone = path.join(sb.base, 'gone');
+  fs.mkdirSync(gone);
+  const r = spawnSync('/bin/sh', ['-c', 'cd "$1" && rmdir "$1" && exec "$2" "$3"', 'sh', gone, process.execPath, path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ CLAUDE_CONFIG_DIR: 'cc' }), input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(!fs.existsSync(gone), 'the session folder is gone');
+  assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
+  assert.deepEqual(lines(path.join(sb.home, 'npx-config-dir.log')).map((l) => path.basename(l)), ['cc']);
+});
+
 test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PATH', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0'), updateCache: '/x/earlier' });
