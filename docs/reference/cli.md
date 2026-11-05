@@ -434,7 +434,7 @@ in its place, is reported as kept and no longer tracked; remove that entry by ha
 unchanged, one edited since (a key or comment added inside it included) is reported as kept, and
 the entry is taken as gone without a note only when the server is no longer declared
 in the file. An entry kept because it was changed is no longer tracked:
-a retry leaves it; delete the table by hand if you no longer want it.
+a retry leaves it; delete its declaration by hand if you no longer want it.
 
 After success, `current` is removed, `installed` becomes null, member bookkeeping
 is cleared, and automatic updates are off. The current and previous release

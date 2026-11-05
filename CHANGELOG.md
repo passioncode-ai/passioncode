@@ -48,8 +48,9 @@
   wrote in `~/.codex/config.toml` (`["mcp_servers"."fabric-dashboards"]`, and likewise for `switchboard` and `fabric`)
   with any key or comment a person had added inside it, such as an inline `env = { … }` holding a token, and reported
   it as removed. They now keep a table that holds anything beside the launcher's own `command` and `args`, and report
-  it as kept; a server the person declared inline or with dotted keys under `[mcp_servers]` is now reported as kept
-  too (before, it was left alone without a note).
+  it as kept; a server the person declared another way under `mcp_servers` (inline or with dotted keys under
+  `[mcp_servers]`, a `[mcp_servers.<name>.…]` sub-table, or a root `mcp_servers.<name>` key before the first table) is
+  now reported as kept too (before, it was left alone without a note).
 - What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
   `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
   on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it
