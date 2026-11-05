@@ -436,13 +436,14 @@ the entry is taken as gone without a note only when the server is no longer decl
 in the file. An entry kept because it was changed is no longer tracked:
 a retry leaves it; delete its declaration by hand if you no longer want it.
 
-After success, `current` is removed, `installed` becomes null, member bookkeeping
-is cleared, and automatic updates are off. The current and previous release
-directories and the quarantines remain available; `restore` still works. Repeated uninstall is safe. A later
-manual install preserves the off preference; enable it explicitly with
-`config set update.auto on` if wanted.
+After success, `current` is removed, `installed` becomes null and member bookkeeping
+is cleared; with nothing installed the session hook installs nothing. The update
+switch is the person's: uninstall never writes it, and a later install keeps it as
+it was (on unless `config set update.auto off` turned it off; LC-16, PC-131). The
+current and previous release directories and the quarantines remain available;
+`restore` still works. Repeated uninstall is safe.
 
-Evidence: `uninstall()` in the launcher, both `uninstall...` regressions and the PC-127 uninstall test.
+Evidence: `uninstall()` in the launcher, both `uninstall...` regressions, the PC-127 uninstall test and `PC-131: an update switch turned off stays off through uninstall and a reinstall`.
 
 ## Background checks and trust
 

@@ -24,6 +24,10 @@
 
 ### Fixed
 
+- **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped
+  updating itself although the person never turned it off. It now leaves the switch as the person set it; with
+  nothing installed the session hook installs nothing, and a reinstall keeps the choice.
+
 - **`~/.codex/config.toml` keeps its link and its mode** (PC-126): registering an MCP server there, and removing it
   through `restore` or `uninstall`, now writes the file where a link points and keeps its permission bits, as the JSON
   settings files already did (PC-120); a file the launcher creates is private (mode 600 on macOS and Linux). Before, a

@@ -228,7 +228,17 @@ test('a successful plugin command must register the requested version before cle
   assert.ok(fs.existsSync(shadow));
 });
 
-test('uninstall clears installed state, disables automatic reinstallation and is repeatable', () => {
+test('PC-131: an update switch turned off stays off through uninstall and a reinstall', () => {
+  const env = setup();
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(run(env, 'config', 'set', 'update.auto', 'off').status, 0);
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).auto, false);
+  assert.equal(run(env, 'update').status, 0);
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).auto, false, 'a reinstall keeps the choice (LC-14, LC-16)');
+});
+
+test('uninstall clears installed state, never reinstalls itself, keeps the update switch and is repeatable', () => {
   const env = setup();
   assert.equal(run(env, 'update').status, 0);
   const channel = path.join(env.home, '.cursor/skills/example-agent');
@@ -237,7 +247,11 @@ test('uninstall clears installed state, disables automatic reinstallation and is
   assert.equal(run(env, 'uninstall').status, 0);
   const status = JSON.parse(run(env, 'status', '--json').stdout);
   assert.equal(status.installed, null);
-  assert.equal(status.auto, false);
+  assert.equal(status.auto, true, 'uninstall never writes the switch (LC-16, PC-131)');
+  const { decide } = require('../plugin/passioncode/hooks/update-check');
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  const after = decide({ ...state, published: true, latest: '9.9.9', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' }, ['passioncode-ai']);
+  assert.equal(after.spawn, null, 'with nothing installed the session hook installs nothing');
   assert.equal(fs.existsSync(path.join(env.home, '.passioncode/current')), false);
   assert.throws(() => fs.lstatSync(channel), { code: 'ENOENT' });
   assert.deepEqual(JSON.parse(run(env, 'uninstall', '--json').stdout), []);
@@ -982,7 +996,7 @@ test('PC-127: uninstall finishes when an MCP entry cannot be removed, keeps it r
     assert.ok(r.stderr.includes(`${file}: fabric-dashboards for Codex CLI could not be removed`), r.stderr);
     const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
     assert.equal(state.installed, null, 'the rest of uninstall is done');
-    assert.equal(state.config.auto, false);
+    assert.notEqual((state.config || {}).auto, false, 'uninstall never writes the update switch');
     assert.deepEqual(state.mcpRegistrations.map((m) => m.agent), ['Codex CLI'], 'only the kept entry stays recorded');
     assert.equal(mcpEntry(path.join(env.home, '.kimi-code', 'mcp.json')), undefined);
   } finally { unlock(); }
