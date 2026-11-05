@@ -874,7 +874,9 @@ test('PC-126: an update whose only change is a failed registration saves no reco
     second = run(env, 'update');
   } finally { fs.chmodSync(path.dirname(real), 0o755); }
   assert.equal(second.status, 1);
-  assert.doesNotMatch(second.stdout, /recovery entry/);
+  assert.doesNotMatch(second.stdout, /recovery entry|passioncode restore/);
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  assert.deepEqual(fs.readdirSync(path.join(env.home, '.passioncode', 'quarantine')).map((d) => path.join(env.home, '.passioncode', 'quarantine', d)), state.quarantines, 'the failed-only batch left no folder (nor its copy of config.toml)');
   assert.equal(run(env, 'restore').status, 0);
   assert.equal(fs.readlinkSync(path.join(env.home, '.agents/skills/example-agent')), path.join(env.home, 'DATA/example-agent-agent/skills/example-agent'), 'the first batch is still the one restore reads');
 });
@@ -897,6 +899,25 @@ test('PC-126: a failed registration journalled by an earlier version does not ta
   assert.equal(run(env, 'update').status, 0);
   assert.equal(run(env, 'restore').status, 0);
   assert.equal(fs.readFileSync(real, 'utf8'), mine, 'restore takes out only what an update recorded as registered');
+});
+
+test('PC-126: a registration is recorded as soon as it is written, so an update killed later leaves it removable', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  // Stop the process right after the first state write that follows the Codex write.
+  const preload = path.join(env.home, 'die-after-codex.js');
+  fs.writeFileSync(preload, `const fs = require('fs'); const rename = fs.renameSync; let codex = false;
+fs.renameSync = function (from, to) { rename.call(fs, from, to);
+  if (String(to).endsWith('config.toml')) codex = true;
+  else if (codex && String(to).endsWith('state.json')) process.exit(9); };\n`);
+  env.extra = { ...env.extra, NODE_OPTIONS: `--require ${preload}` };
+  assert.equal(run(env, 'update').status, 9);
+  delete env.extra.NODE_OPTIONS;
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  assert.ok((state.mcpRegistrations || []).some((r) => r.agent === 'Codex CLI'), JSON.stringify(state.mcpRegistrations));
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.equal(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8'), CODEX_CONF, 'uninstall still removes it');
 });
 
 test('PC-126: a Codex config.toml the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {

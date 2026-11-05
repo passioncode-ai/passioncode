@@ -14,7 +14,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 |---|---|---|---|
 | `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Check of everything that changes nothing but the [anonymous counts](#anonymous-usage-counts); `--fix` runs setup's repairs without new apps |
-| `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
+| `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` (a `moved` entry with `failedAt` is a registration that was never written, not a recovery entry) | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed or kept | Restore the latest quarantine batch; retry unfinished entries |
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release, disable auto-update |
@@ -328,7 +328,9 @@ Any update that registers or moves something starts a new batch, including
 only the latest: if a later restore succeeds while the entry is still in the file,
 delete it by hand (`uninstall`, which removes PassionCode too, also does). A file
 that does not parse, or a folder in the file's place, is reported as kept and no
-longer tracked: fix it and remove the entry by hand. A path that now runs through a
+longer tracked: fix it and remove the entry by hand. `~/.codex/config.toml` is read
+as text: the launcher removes its own table when it finds it intact, and otherwise
+takes the entry as gone without a note. A path that now runs through a
 file is taken as already gone. A conflict in the same batch stops restore with nothing listed,
 although MCP entries it reached first are already removed; after you move the
 replacement aside, the retry puts back the rest and names the kept entry (PC-127).
@@ -422,7 +424,8 @@ folder) does not stop the rest: uninstall finishes and lists what it removed, ke
 that entry recorded in `state.json`, and exits 1 naming the file; once it can be
 written, another uninstall removes the entry. A file that does not parse, or a folder
 in its place, is reported as kept and no longer tracked; remove that entry by hand
-(PC-127).
+(PC-127). `~/.codex/config.toml` is read as text: its own table is removed when it is
+intact, and otherwise the entry is taken as gone without a note.
 
 After success, `current` is removed, `installed` becomes null, member bookkeeping
 is cleared, and automatic updates are off. The current and previous release
