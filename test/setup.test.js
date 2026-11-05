@@ -115,6 +115,7 @@ function cliEnv(m, api) {
   };
   delete env.PASSIONCODE_FABRIC_DASHBOARDS_MCP;
   if (m.trains) env.PASSIONCODE_TRAINS = m.trains; else delete env.PASSIONCODE_TRAINS;
+  if (m.configDir) env.CLAUDE_CONFIG_DIR = m.configDir;
   return env;
 }
 
@@ -1134,6 +1135,25 @@ test('PC-112: a bundled install that fails runs no update and was not asked abou
 });
 
 // PC-117: Claude Code's rules for PassionCode's own tools are added only on the person's yes to that set.
+test('PC-129: with CLAUDE_CONFIG_DIR set setup offers and writes the tool rules in that folder, ~/.claude untouched', async (t) => {
+  const api = await releaseServer(t);
+  const P = require('../lib/permissions');
+  const m = machine({ toolRules: false });
+  m.configDir = path.join(m.home, 'own-claude');
+  const homeSettings = path.join(m.home, '.claude', 'settings.json');
+  const snapshot = () => fs.readdirSync(path.join(m.home, '.claude')).sort().map((n) => [n, fs.statSync(path.join(m.home, '.claude', n)).isFile() ? fs.readFileSync(path.join(m.home, '.claude', n), 'utf8') : 'dir']);
+  const before = snapshot();
+  const run = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  const doc = JSON.parse(fs.readFileSync(path.join(m.configDir, 'settings.json'), 'utf8'));
+  assert.ok(P.RULES.every((rule) => doc.permissions.allow.includes(rule)), 'the rules are in that folder');
+  assert.ok(fs.existsSync(homeSettings) && !P.RULES.some((rule) => (JSON.parse(fs.readFileSync(homeSettings, 'utf8')).permissions?.allow || []).includes(rule)), '~/.claude/settings.json gets none of them');
+  assert.deepEqual(snapshot(), before, 'nothing in ~/.claude changed');
+  // The next run reads the same file: nothing is offered again.
+  const again = await cli(m, api, 'setup', '--yes', '--no-apps', '--offline', '--json');
+  assert.equal(again.json.permissions, undefined, again.stdout);
+});
+
 test('PC-117: setup offers the tool rules, adds them only on their own yes, and keeps the settings it finds', async (t) => {
   const api = await releaseServer(t);
   const P = require('../lib/permissions');

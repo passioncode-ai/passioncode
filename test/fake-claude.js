@@ -7,7 +7,7 @@
 //   marketplace list --json           [{ name, source, ... }]
 //   mcp add --scope user <name> -- <command>   writes { type: 'stdio', command, args, env } to
 //                                              ~/.claude.json mcpServers, keeping the rest
-//   mcp remove --scope user <name>             drops it; exit 1 when there is none
+//   mcp remove --scope user <name>             drops it; exit 1 when there is none; FAKE_CLAUDE_KEEP_MCP: exit 0, entry kept
 const fs = require('fs');
 const path = require('path');
 const home = process.env.HOME;
@@ -35,6 +35,7 @@ if (args[0] === 'mcp') {
     doc.mcpServers = { ...(doc.mcpServers || {}), [name]: { type: 'stdio', command, args: cmdArgs, env: {} } };
   } else if (args[1] === 'remove') {
     if (!doc.mcpServers || !doc.mcpServers[rest[0]]) { console.error(`No MCP server found with name: ${rest[0]}`); process.exit(1); }
+    if (process.env.FAKE_CLAUDE_KEEP_MCP) process.exit(0); // answers removed and leaves the entry
     delete doc.mcpServers[rest[0]];
   }
   fs.writeFileSync(claudeJson, JSON.stringify(doc, null, 2));

@@ -160,6 +160,17 @@ test('PC-129: uninstall without the variable removes the entry from the folder i
   assert.deepEqual(servers(path.join(env.home, '.claude.json'))['fabric-dashboards'], { command: '/their/own' }, "the person's entry stays");
 });
 
+test('PC-129: an entry claude mcp remove answers for but leaves is named, not counted as removed', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.ok(JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers['fabric-dashboards']);
+  env.extra = { ...env.extra, FAKE_CLAUDE_KEEP_MCP: '1' };
+  const un = run(env, 'uninstall');
+  assert.match(un.stdout + un.stderr, /is still there after claude mcp remove/, un.stdout + un.stderr);
+});
+
 test('PC-129: paths() puts every Claude Code file under CLAUDE_CONFIG_DIR when it is set, and an empty one counts as unset', () => {
   const L = require('../lib/launcher');
   const saved = process.env.CLAUDE_CONFIG_DIR;

@@ -241,3 +241,15 @@ test('PC-125: a linked settings file stays a link with its mode through allow, r
   m.json('allow', 'mcp__fabric');
   assert.equal(fs.statSync(path.join(m.state, 'permissions.json')).mode & 0o777, 0o600, 'and private again after it was opened up');
 });
+
+test('PC-129: with CLAUDE_CONFIG_DIR set the permissions command reads and writes that folder, ~/.claude untouched', () => {
+  const m = machine();
+  const own = path.join(m.home, 'own-claude');
+  const r = spawnSync(process.execPath, [BIN, 'permissions', 'allow', 'mcp__fabric', '--json'], { env: { ...process.env, HOME: m.home, USERPROFILE: m.home, PASSIONCODE_HOME: '', CLAUDE_CONFIG_DIR: own }, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const v = JSON.parse(r.stdout);
+  assert.equal(v.settingsFile, path.join(own, 'settings.json'));
+  assert.ok(JSON.parse(fs.readFileSync(path.join(own, 'settings.json'), 'utf8')).permissions.allow.includes('mcp__fabric'));
+  assert.ok(!fs.existsSync(m.settings), '~/.claude/settings.json is not written');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(m.state, 'permissions.json'), 'utf8')).settingsFile, path.join(own, 'settings.json'), 'the ledger names that file');
+});
