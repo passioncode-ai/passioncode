@@ -54,6 +54,25 @@ function run(env, ...args) {
 }
 const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
+test('PC-131: an install, a background download and the update switch go into the update log, codes only (LC-16)', () => {
+  const env = setup();
+  const events = () => { try { return fs.readFileSync(path.join(env.home, '.passioncode/logs/update-events.log'), 'utf8').trim().split('\n').map((l) => l.split(' ').slice(1).join(' ')); } catch (_) { return []; } };
+  assert.equal(run(env, 'update', '--dry-run').status, 0);
+  assert.deepEqual(events(), [], 'a plan installs nothing and logs nothing');
+  assert.equal(run(env, 'update').status, 0);
+  assert.deepEqual(events(), ['update_install installed']);
+  env.extra = { PASSIONCODE_UPDATE_FROM: 'session-start' };
+  assert.equal(run(env, 'update', '--quiet').status, 0);
+  assert.deepEqual(events().slice(1), ['update_download done', 'update_install installed'], 'the update the hook started');
+  env.extra = {};
+  assert.equal(run(env, 'config', 'set', 'update.auto', 'off').status, 0);
+  assert.equal(run(env, 'config', 'set', 'update.auto', 'on').status, 0);
+  assert.deepEqual(events().slice(3), ['auto_update off', 'auto_update on']);
+  const line = fs.readFileSync(path.join(env.home, '.passioncode/logs/update-events.log'), 'utf8').split('\n')[0];
+  assert.match(line, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z update_install installed$/);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(env.home, '.passioncode/logs/update-events.log')).mode & 0o777, 0o600);
+});
+
 test('update installs the release, the plugins, the hub and channels, and moves shadows aside', () => {
   const env = setup();
   const r = run(env, 'update', '--json');

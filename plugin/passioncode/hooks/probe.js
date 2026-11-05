@@ -6,7 +6,8 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { PACKAGE, parseView, recordProbe, releaseProbe } = require('./update-check');
+const { PACKAGE, parseView, recordProbe, releaseProbe, checkEvent } = require('./update-check');
+const { logEvent } = require('./update-log');
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
 const STATE = path.join(DIR, 'state.json');
@@ -19,6 +20,11 @@ function record(error, stdout) {
   try { state = JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch (_) { /* first run */ }
   const result = parseView(stdout, error);
   const next = recordProbe(state, result);
+  const event = checkEvent(next);
+  if (event) {
+    logEvent(DIR, 'update_check', event.outcome);
+    next.lastCheckEvent = event.key;
+  }
   fs.mkdirSync(DIR, { recursive: true });
   const tmp = `${STATE}.${process.pid}`;
   fs.writeFileSync(tmp, JSON.stringify(next, null, 2));

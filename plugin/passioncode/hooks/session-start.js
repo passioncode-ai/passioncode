@@ -12,6 +12,7 @@ const os = require('os');
 const path = require('path');
 const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
+const { openLog, logEvent } = require('./update-log');
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
 const STATE = path.join(DIR, 'state.json');
@@ -25,9 +26,9 @@ function detached(cmd, args, logName) {
   return new Promise((resolve) => {
     let out;
     try {
-      fs.mkdirSync(path.join(DIR, 'logs'), { recursive: true });
-      out = fs.openSync(path.join(DIR, 'logs', logName), 'a');
-      const child = spawn(cmd, args, { detached: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off' } }); // PC-123: the background update sends no counts
+      out = openLog(path.join(DIR, 'logs', logName)); // rotated at 5 MB, five files, 0600 (LC-12)
+      // PC-123: the background update sends no counts; PASSIONCODE_UPDATE_FROM lets it log its download as done (LC-16).
+      const child = spawn(cmd, args, { detached: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_UPDATE_FROM: 'session-start' } });
       child.once('error', () => resolve(false));
       child.once('spawn', () => { child.unref(); resolve(true); });
     } catch (_) { resolve(false); }
@@ -43,7 +44,8 @@ async function main() {
   if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state)) && claimProbe(DIR, now)) {
     if (!await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
-  const { lines, spawn: args, stateChanges } = decide(state, loadTrust(), now, loadRegistryKeys());
+  const { lines, spawn: args, stateChanges, events } = decide(state, loadTrust(), now, loadRegistryKeys());
+  for (const e of events) logEvent(DIR, e.event, e.outcome, e.reason);
   if (Object.keys(stateChanges).length) {
     // Re-read: the probe may have written meanwhile; only our own keys change.
     const fresh = { ...read(STATE, {}), ...stateChanges };
@@ -62,6 +64,7 @@ async function main() {
       fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
       fs.renameSync(tmp, STATE);
     }
+    logEvent(DIR, 'update_install', 'failed', 'spawn');
     lines.pop(); // decide appends the update-start notice last when it returns args
     lines.push('[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }

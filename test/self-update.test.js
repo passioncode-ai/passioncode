@@ -293,6 +293,82 @@ test('probe reads only well-formed signature fields from dist', () => {
   assert.deepEqual(odd.signatures, [{ keyid: 'k', sig: 'AA==' }]);
 });
 
+const eventsOf = (sb) => lines(path.join(sb.stateDir, 'logs/update-events.log')).map((l) => l.split(' ').slice(1).join(' '));
+
+test('PC-131: a refusal is logged once per version and reason, an update start once (LC-16)', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  const who = { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' };
+  setState(sb, { ...who, verify: verified('0.2.0', { provenance: null }) });
+  hook(sb);
+  hook(sb);
+  assert.deepEqual(eventsOf(sb), ['update_check signature_failed provenance'], 'the line repeats at every session, the log entry does not');
+  setState(sb, { ...stateOf(sb), publisher: 'mallory' });
+  hook(sb);
+  assert.deepEqual(eventsOf(sb).slice(1), ['update_check signature_failed untrusted_publisher'], 'another reason is news');
+  setState(sb, { ...stateOf(sb), publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  hook(sb);
+  assert.deepEqual(await npxCalls(sb, { expect: 1 }), ['--yes @passioncode-ai/passioncode@0.2.0 update --quiet']);
+  assert.deepEqual(eventsOf(sb).slice(2), ['update_download started']);
+});
+
+test('PC-131: an update npx cannot start is logged as a failed install', () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const emptyPath = path.join(sb.base, 'empty-bin');
+  fs.mkdirSync(emptyPath);
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath }), cwd: os.tmpdir(), input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(eventsOf(sb), ['update_download started', 'update_install failed spawn']);
+});
+
+test('PC-131: the probe logs a check once until its answer changes, and every failure (LC-16)', () => {
+  const sb = sandbox();
+  setState(sb, { installed: '0.1.0' });
+  probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai'));
+  probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai'));
+  assert.deepEqual(eventsOf(sb), ['update_check ready'], 'the same answer adds no line');
+  probe(sb, 'garbage');
+  probe(sb, 'garbage');
+  assert.deepEqual(eventsOf(sb).slice(1), ['update_check check_failed', 'update_check check_failed']);
+  setState(sb, { ...stateOf(sb), installed: '0.2.0' });
+  probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai'));
+  probe(sb, published('0.2.0', ['passioncode-ai'], 'passioncode-ai'));
+  assert.deepEqual(eventsOf(sb).slice(3), ['update_check current'], 'after a failure the answer is news again, once');
+  probe(sb, E404, 1);
+  assert.equal(eventsOf(sb).length, 4, 'an unpublished name is not an update check event');
+});
+
+test('PC-131: update logs are capped at five files of 5 MB, 0600, and only codes are written (LC-12)', () => {
+  const log = require(path.join(PLUGIN, 'hooks/update-log'));
+  assert.equal(fs.readFileSync(path.join(PLUGIN, 'hooks/update-log.js'), 'utf8'), fs.readFileSync(path.join(ROOT, 'lib/update-log.js'), 'utf8'), 'the CLI copy is the plugin file, byte for byte');
+  assert.equal(log.MAX_BYTES, 5 * 1024 * 1024);
+  assert.equal(log.KEEP, 5);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-log-'));
+  const file = path.join(dir, 'probe.log');
+  for (let i = 0; i < 7; i += 1) {
+    fs.writeFileSync(file, `generation ${i}\n`.padEnd(64, '.'));
+    assert.equal(log.rotateLog(file, 32, 5), true);
+  }
+  assert.equal(log.rotateLog(path.join(dir, 'absent.log'), 32, 5), false);
+  const names = fs.readdirSync(dir).sort();
+  assert.deepEqual(names, ['probe.log.1', 'probe.log.2', 'probe.log.3', 'probe.log.4'], 'four older files and room for the live one');
+  assert.match(fs.readFileSync(path.join(dir, 'probe.log.1'), 'utf8'), /^generation 6/);
+  assert.match(fs.readFileSync(path.join(dir, 'probe.log.4'), 'utf8'), /^generation 3/);
+  fs.writeFileSync(file, 'small', { mode: 0o644 });
+  assert.equal(log.rotateLog(file, 32, 5), false, 'under the cap it stays');
+  fs.closeSync(log.openLog(file));
+  if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o600, 'an older, wider file is made 0600');
+  fs.writeFileSync(file, Buffer.alloc(log.MAX_BYTES));
+  fs.closeSync(log.openLog(file));
+  assert.equal(fs.statSync(file).size, 0, 'a log that reached 5 MB is moved aside when it is opened');
+  assert.equal(fs.statSync(`${file}.1`).size, log.MAX_BYTES);
+  assert.equal(log.logEvent(dir, 'update_check', 'current; rm -rf ~'), false, 'not a code: nothing written');
+  assert.equal(log.logEvent(dir, 'update_check', 'ready', 'a reason with spaces'), false);
+  assert.equal(log.logEvent(dir, 'update_check', 'ready', undefined, new Date('2026-11-05T00:00:00Z')), true);
+  assert.deepEqual(lines(path.join(dir, 'logs', log.EVENTS)), ['2026-11-05T00:00:00.000Z update_check ready']);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('hook: with auto-update off it names the pinned command and spawns nothing', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', config: { auto: false } });
