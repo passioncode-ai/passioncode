@@ -123,7 +123,7 @@ async function main() {
       fs.renameSync(tmp, STATE);
     }
     logEvent(DIR, 'update_install', 'failed', failure);
-    if (cacheDir) fs.rmSync(cacheDir, { recursive: true, force: true }); // nothing ran from it
+    if (cacheDir) try { fs.rmSync(cacheDir, { recursive: true, force: true }); } catch (_) { /* nothing ran from it; the hourly sweep removes it */ }
     lines.pop(); // decide appends the update-start notice last when it returns args
     lines.push(failure === 'cache'
       ? `[passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session.`
@@ -146,7 +146,7 @@ async function main() {
     // A release train this launcher cannot use is not repaired by plain setup (PC-89).
     const how = Array.isArray(last.failed) && last.failed.includes('train') ? 'setup --yes --no-apps --train none` (or a train this launcher ships) clears the unusable release train, `doctor' : 'setup` repairs them, `doctor';
     // While the latest version is refused, or not yet checked, `@latest` would run it: name the installed one instead.
-    const pin = (refused || needsProbe(state) || (typeof state.refusalLogged === 'string' && !state.latest && state.checkError)) && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
+    const pin = (refused || needsProbe(state)) && /^\d+\.\d+\.\d+$/.test(String(state.installed)) ? state.installed : 'latest';
     lines.push(`[passioncode] the setup check of ${when} found ${fails} problem(s)${ids.length ? ` (${ids.join(', ')}${last.failed.length > 3 ? ', …' : ''})` : ''}; \`npx @passioncode-ai/passioncode@${pin} ${how}\` shows them.`);
   }
   if (lines.length) process.stdout.write(lines.join('\n') + '\n');

@@ -447,6 +447,7 @@ test('PC-131: the update runs in the launcher\'s own folder, never the session p
   assert.equal(path.dirname(cache), run, 'a new cache folder of its own: npx downloads and npm checks');
   assert.match(path.basename(cache), /^cache-/);
   assert.ok(call.includes(`--logs-dir=${path.join(sb.stateDir, 'logs', 'npm')} `), "npm's debug logs stay beside the update log");
+  assert.ok(fs.existsSync(cache), 'the folder of an update that started stays for it');
   // The probe's npm view runs there too.
   setState(sb, { ...stateOf(sb), checkedAt: '2026-01-01T00:00:00.000Z' });
   spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env(), cwd: project, input: '' });
@@ -493,11 +494,13 @@ test('PC-131: every session start removes update cache folders older than an hou
   for (const d of [old, kept, recent]) fs.mkdirSync(d, { recursive: true });
   const twoHours = (Date.now() - 2 * 60 * 60 * 1000) / 1000;
   for (const d of [old, kept]) fs.utimesSync(d, twoHours, twoHours);
+  const halfHour = (Date.now() - 30 * 60 * 1000) / 1000;
+  fs.utimesSync(recent, halfHour, halfHour);
   setState(sb, { installed: '0.2.0', checkedAt: fresh(), published: true, latest: '0.2.0', updateCache: kept });
   hook(sb);
   assert.ok(!fs.existsSync(old), 'an old folder is removed with nothing to install');
   assert.ok(fs.existsSync(kept), 'the folder the last update runs from stays');
-  assert.ok(fs.existsSync(recent), 'a recent one stays');
+  assert.ok(fs.existsSync(recent), 'one under an hour old stays');
   // A session that starts an update sweeps too (its own new marker does not stop it), and records its folder.
   fs.mkdirSync(old);
   fs.utimesSync(old, twoHours, twoHours);
@@ -508,6 +511,17 @@ test('PC-131: every session start removes update cache folders older than an hou
   const cache = stateOf(sb).updateCache;
   assert.ok(cache && fs.existsSync(cache) && path.dirname(cache) === run, 'the new update\'s folder is recorded');
   assert.ok(fs.existsSync(kept), 'an older recorded folder is swept only once it is no longer the recorded one');
+});
+
+test('PC-131: an npm log folder left wider by an earlier version is made 0700', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const npmLogs = path.join(sb.stateDir, 'logs', 'npm');
+  fs.mkdirSync(npmLogs, { recursive: true });
+  fs.chmodSync(npmLogs, 0o755);
+  assert.match(hook(sb), /updating in the background/);
+  assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(npmLogs).mode & 0o777, 0o700);
 });
 
 test('PC-131: an npm log folder that cannot be made does not stop the update or blame the run folder', async () => {
@@ -525,7 +539,12 @@ test('the hook loads only pinned keys written as plain one-line base64', () => {
   const u = require(path.join(PLUGIN, 'hooks/update-check'));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-keys-'));
   const file = path.join(dir, 'trust.json');
-  for (const key of [`${TEST_KEY.key.slice(0, 40)}\n${TEST_KEY.key.slice(40)}`, TEST_KEY.key.replace(/\+/g, '-').replace(/\//g, '_')]) {
+  // A URL-safe spelling differs from the plain one only when the key holds + or /: draw keys until one does.
+  let plain = TEST_KEY.key;
+  while (!/[+/]/.test(plain)) plain = spki(crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' }));
+  const urlSafe = plain.replace(/\+/g, '-').replace(/\//g, '_');
+  assert.notEqual(urlSafe, plain);
+  for (const key of [`${plain.slice(0, 40)}\n${plain.slice(40)}`, urlSafe]) {
     fs.writeFileSync(file, JSON.stringify({ npmRegistryKeys: [{ keyid: 'k', key }] }));
     assert.deepEqual(u.loadRegistryKeys(file), []);
   }
