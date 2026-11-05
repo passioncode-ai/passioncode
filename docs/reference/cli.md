@@ -500,6 +500,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `~/.claude/skills` | Shadowing entries may be quarantined after replacement verification |
 | `PASSIONCODE_HOME` | Override launcher state/release/quarantine/log root (and the `run/` folder the session hook uses), and with it the `rules.d` folder `setup` reads declared rules from and the permissions ledger; agent directories still use the user's home |
 | `PASSIONCODE_PAYLOAD` | Override payload directory for checkout/testing |
+| `CLAUDE_CONFIG_DIR` | Claude Code's own variable: when set, the launcher reads and writes Claude Code's settings, plugins, skills and `.claude.json` in that folder instead of `~/.claude` and `~/.claude.json`, as Claude Code does (PC-129) |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing; a `.js`, `.cjs` or `.mjs` file runs through this Node |
 | `PASSIONCODE_NPM`, `PASSIONCODE_NPX` | Replace the `npm` the session hook's probe runs and the `npx` its background update runs, for tests; a `.js`, `.cjs` or `.mjs` file runs through this Node. Whatever they name runs in place of npm, so they are trusted local configuration like every override here |
 | `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |

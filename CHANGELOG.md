@@ -54,6 +54,9 @@
 
 ### Fixed
 
+- **`CLAUDE_CONFIG_DIR` is honoured** (PC-129): with Claude Code's own variable set, the launcher read and wrote
+  `~/.claude` and `~/.claude.json`, so `update`, `setup`, `doctor`, `status`, `permissions` and `uninstall` looked at a
+  folder Claude Code was not using. They now use the folder the variable names, as Claude Code does.
 - **Automatic updates can start on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
   cannot start their `.cmd` files, so wherever npm is installed that way (the Node installer, nvm-windows, fnm) the daily
   check failed and no update ever started. The hook now runs npm's

@@ -96,6 +96,39 @@ test('update installs the release, the plugins, the hub and channels, and moves 
   assert.equal(moved.length, 3);
 });
 
+test('PC-129: with CLAUDE_CONFIG_DIR set, update installs, checks shadows and keeps state in that folder, not ~/.claude', () => {
+  const env = setup();
+  const cfg = path.join(env.home, 'claude-config');
+  fs.renameSync(path.join(env.home, '.claude'), cfg); // where Claude Code keeps everything when the variable is set
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: cfg };
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.equal(fs.existsSync(path.join(env.home, '.claude')), false, 'nothing is written under ~/.claude');
+  const installed = Object.keys(JSON.parse(fs.readFileSync(path.join(cfg, 'plugins/installed_plugins.json'), 'utf8')).plugins);
+  assert.ok(installed.includes('example-agent@passioncode'), installed.join(', '));
+  assert.equal(fs.existsSync(path.join(cfg, 'skills/example-agent')), false, 'the shadowing entry in that folder is moved aside');
+  const status = JSON.parse(run(env, 'status', '--json').stdout);
+  assert.equal(status.members.find((m) => m.name === 'example-agent').claude, 'plugin', 'status reads the plugins from that folder');
+});
+
+test('PC-129: paths() puts every Claude Code file under CLAUDE_CONFIG_DIR when it is set, and an empty one counts as unset', () => {
+  const L = require('../lib/launcher');
+  const saved = process.env.CLAUDE_CONFIG_DIR;
+  try {
+    process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'cc');
+    const p = L.paths(path.join(os.tmpdir(), 'h'));
+    const cc = path.resolve(path.join(os.tmpdir(), 'cc'));
+    assert.deepEqual([p.claudeSkills, p.claudePlugins, p.claudeSettings, p.claudeJson],
+      [path.join(cc, 'skills'), path.join(cc, 'plugins'), path.join(cc, 'settings.json'), path.join(cc, '.claude.json')]);
+    process.env.CLAUDE_CONFIG_DIR = '';
+    const d = L.paths(path.join(os.tmpdir(), 'h'));
+    assert.equal(d.claudeSettings, path.join(os.tmpdir(), 'h', '.claude', 'settings.json'));
+    assert.equal(d.claudeJson, path.join(os.tmpdir(), 'h', '.claude.json'));
+  } finally {
+    if (saved === undefined) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = saved;
+  }
+});
+
 test('a second update is idempotent: updates plugins, moves nothing', () => {
   const env = setup();
   assert.equal(run(env, 'update').status, 0);

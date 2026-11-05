@@ -11,8 +11,10 @@
 const fs = require('fs');
 const path = require('path');
 const home = process.env.HOME;
-const dir = path.join(home, '.claude', 'plugins');
-const settingsFile = path.join(home, '.claude', 'settings.json');
+// Like the real CLI, everything moves under CLAUDE_CONFIG_DIR when it is set, .claude.json included (PC-129).
+const configDir = process.env.CLAUDE_CONFIG_DIR ? path.resolve(process.env.CLAUDE_CONFIG_DIR) : null;
+const dir = path.join(configDir || path.join(home, '.claude'), 'plugins');
+const settingsFile = path.join(configDir || path.join(home, '.claude'), 'settings.json');
 fs.mkdirSync(dir, { recursive: true });
 const args = process.argv.slice(2);
 fs.appendFileSync(path.join(home, 'claude-calls.log'), args.join(' ') + '\n');
@@ -24,7 +26,7 @@ const writeSettings = (v) => { if (v) fs.writeFileSync(settingsFile, JSON.string
 if (args[0] === '--version') { console.log('2.1.0 (Claude Code)'); process.exit(0); }
 if (process.env.FAKE_CLAUDE_FAIL && args.join(' ').includes(process.env.FAKE_CLAUDE_FAIL)) { console.error('simulated failure'); process.exit(1); }
 if (args[0] === 'mcp') {
-  const claudeJson = path.join(home, '.claude.json');
+  const claudeJson = path.join(configDir || home, '.claude.json');
   const doc = (() => { try { return JSON.parse(fs.readFileSync(claudeJson, 'utf8')); } catch (_) { return {}; } })();
   const rest = args.slice(2).filter((x, i, all) => x !== '--scope' && all[i - 1] !== '--scope');
   if (args[1] === 'add') {
