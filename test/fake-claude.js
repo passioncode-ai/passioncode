@@ -15,8 +15,8 @@ const home = process.env.HOME;
 const configDir = process.env.CLAUDE_CONFIG_DIR ? path.resolve(process.env.CLAUDE_CONFIG_DIR) : null;
 const dir = path.join(configDir || path.join(home, '.claude'), 'plugins');
 const settingsFile = path.join(configDir || path.join(home, '.claude'), 'settings.json');
-fs.mkdirSync(dir, { recursive: true });
 const args = process.argv.slice(2);
+if (args[0] !== '--version') fs.mkdirSync(dir, { recursive: true }); // the real CLI makes no folder to answer --version
 fs.appendFileSync(path.join(home, 'claude-calls.log'), args.join(' ') + '\n');
 const read = (f, d) => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (_) { return d; } };
 const write = (f, v) => fs.writeFileSync(path.join(dir, f), JSON.stringify(v, null, 2));

@@ -1140,6 +1140,7 @@ test('PC-129: with CLAUDE_CONFIG_DIR set setup offers and writes the tool rules 
   const P = require('../lib/permissions');
   const m = machine({ toolRules: false });
   m.configDir = path.join(m.home, 'own-claude');
+  fs.mkdirSync(m.configDir); // a folder Claude Code already uses; the real CLI does not make it on --version
   const homeSettings = path.join(m.home, '.claude', 'settings.json');
   const snapshot = () => fs.readdirSync(path.join(m.home, '.claude')).sort().map((n) => [n, fs.statSync(path.join(m.home, '.claude', n)).isFile() ? fs.readFileSync(path.join(m.home, '.claude', n), 'utf8') : 'dir']);
   const before = snapshot();

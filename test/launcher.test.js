@@ -160,7 +160,7 @@ test('PC-129: uninstall without the variable removes the entry from the folder i
   assert.deepEqual(servers(path.join(env.home, '.claude.json'))['fabric-dashboards'], { command: '/their/own' }, "the person's entry stays");
 });
 
-test('PC-129: an entry claude mcp remove answers for but leaves is named, not counted as removed', () => {
+test('PC-129: an entry claude mcp remove answers for but leaves is named in the uninstall output', () => {
   const env = setup();
   withFakeMcp(env);
   withAgents(env);
