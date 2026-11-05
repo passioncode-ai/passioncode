@@ -309,4 +309,20 @@ function needsProbe(state) {
   return state.published === true && typeof state.latest === 'string' && !verifiedFor(state);
 }
 
-module.exports = { PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, REGISTRY_ARGS, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };
+/**
+ * How a hook starts npm's `npm` or `npx` (PC-135). On Windows both are `.cmd` files, which a spawn without a shell
+ * cannot start, and a shell would re-read every argument: so this runs npm's own script, which npm ships beside the
+ * Node that runs the hook, through that Node. Anywhere else, and when that script is not there, the command by name.
+ * `PASSIONCODE_NPM` and `PASSIONCODE_NPX` name a stand-in for tests (a `.js` one runs through this Node).
+ */
+function npmCommand(name, { env = process.env, platform = process.platform, execPath = process.execPath, exists = fs.existsSync } = {}) {
+  const stand = env[`PASSIONCODE_${name.toUpperCase()}`];
+  if (stand) return /\.[cm]?js$/.test(stand) ? [execPath, [stand]] : [stand, []];
+  if (platform === 'win32') {
+    const cli = path.win32.join(path.win32.dirname(execPath), 'node_modules', 'npm', 'bin', `${name}-cli.js`);
+    if (exists(cli)) return [execPath, [cli]];
+  }
+  return [name, []];
+}
+
+module.exports = { npmCommand, PACKAGE, OIDC_PUBLISHER, PROVENANCE, REGISTRY, REGISTRY_ARGS, SECURITY_URL, verifiedFor, TRUST_FILE, PROBE_MARKER, PROBE_STALE_MS, accountName, parseView, readDist, recordProbe, loadTrust, loadRegistryKeys, registrySigned, newer, decide, checkEvent, needsProbe, claimProbe, releaseProbe };
