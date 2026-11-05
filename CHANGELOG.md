@@ -44,10 +44,12 @@
   version journalled. Before, both stopped at that entry (`uninstall` with `current` already gone), and an entry whose file the
   system could not open was dropped from the record: a `config.toml` was taken as already cleaned, the JSON files of
   Claude Code, Gemini and Kimi were reported as kept and then forgotten.
-- **A key added inside the launcher's Codex table is kept** (PC-127): `restore` and `uninstall` removed the launcher's
-  `[mcp_servers."fabric-dashboards"]` table with any key a person had added inside it, such as an inline
-  `env = { … }` holding a token, and reported it as removed. They now keep a table that holds anything beside the
-  launcher's own `command` and `args`, and a server declared inline under `[mcp_servers]`, and report it as kept.
+- **A key added inside a launcher Codex table is kept** (PC-127): `restore` and `uninstall` removed a table the launcher
+  wrote in `~/.codex/config.toml` (`["mcp_servers"."fabric-dashboards"]`, and likewise for `switchboard` and `fabric`)
+  with any key or comment a person had added inside it, such as an inline `env = { … }` holding a token, and reported
+  it as removed. They now keep a table that holds anything beside the launcher's own `command` and `args`, and report
+  it as kept; a server the person declared inline or with dotted keys under `[mcp_servers]` is now reported as kept
+  too (before, it was left alone without a note).
 - What earlier versions left in `~/.codex/config.toml` stays as it is: a link an earlier update, `restore` or
   `uninstall` replaced is not put back, and a file one of them rewrote may have been left readable by others (mode 644
   on macOS and Linux; `chmod 600 ~/.codex/config.toml` narrows it again, since the launcher now keeps the mode it

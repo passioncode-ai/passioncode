@@ -330,7 +330,7 @@ delete it by hand (`uninstall`, which removes PassionCode too, also does). A fil
 that does not parse, or a folder in the file's place, is reported as kept and no
 longer tracked: fix it and remove the entry by hand. `~/.codex/config.toml` is read
 as text: the launcher removes its own table while it is unchanged, reports one edited
-since (another command or arguments, any key added inside it such as an inline `env`,
+since (another command or arguments, any key or comment added inside it such as an inline `env`,
 or settings added under it) as kept, and takes the entry as gone without a note only
 when the server is no longer declared in the file. A path that now runs through a
 file is taken as already gone. A conflict, a missing source, or a marketplace that cannot be re-added or whose settings cannot be restored, in the same batch stops restore with nothing listed,
@@ -429,7 +429,7 @@ that entry recorded in `state.json`, and exits 1 naming the file; once the file 
 its folder are readable and writable, another uninstall removes the entry. A file that does not parse, or a folder
 in its place, is reported as kept and no longer tracked; remove that entry by hand
 (PC-127). `~/.codex/config.toml` is read as text: its own table is removed while it is
-unchanged, one edited since (a key added inside it included) is reported as kept, and
+unchanged, one edited since (a key or comment added inside it included) is reported as kept, and
 the entry is taken as gone without a note only when the server is no longer declared
 in the file.
 

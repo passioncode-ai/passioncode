@@ -1103,6 +1103,46 @@ test('PC-127: a Codex server the person declares inline instead of the launcher 
   assert.equal(fs.readFileSync(file, 'utf8'), inline);
 });
 
+test('PC-127: a Codex table with a comment of the person keeps it; a same-named key elsewhere is not a declaration', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const text = fs.readFileSync(file, 'utf8') + '# my own servers below\n[mcp_servers.mine]\ncommand = "m"\n';
+  fs.writeFileSync(file, text);
+  const r = run(env, 'restore');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /fabric-dashboards for Codex CLI has settings added since; kept/);
+  assert.equal(fs.readFileSync(file, 'utf8'), text, 'the comment stays');
+
+  const other = setup();
+  withFakeMcp(other);
+  withAgents(other);
+  assert.equal(run(other, 'update').status, 0);
+  const otherFile = path.join(other.home, '.codex', 'config.toml');
+  const gone = fs.readFileSync(otherFile, 'utf8').replace(/\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/, '') + '[projects."/x"]\nfabric-dashboards = "trusted"\n';
+  fs.writeFileSync(otherFile, gone);
+  const u = run(other, 'uninstall');
+  assert.equal(u.status, 0, u.stderr);
+  assert.doesNotMatch(u.stdout, /for Codex CLI/, 'a key in another table is not the server');
+  assert.equal(fs.readFileSync(otherFile, 'utf8'), gone);
+});
+
+test('PC-127: a Codex server the person declares with dotted keys under [mcp_servers] is kept, not taken as gone', () => {
+  const env = setup();
+  const bin = withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const file = path.join(env.home, '.codex', 'config.toml');
+  const dotted = fs.readFileSync(file, 'utf8').replace(/\["mcp_servers"\."fabric-dashboards"\]\ncommand = [^\n]*\nargs = [^\n]*\n/, '') + `[mcp_servers]\nfabric-dashboards.command = ${JSON.stringify(bin)}\n`;
+  fs.writeFileSync(file, dotted);
+  const r = run(env, 'uninstall');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /fabric-dashboards for Codex CLI was changed; kept/);
+  assert.equal(fs.readFileSync(file, 'utf8'), dotted);
+});
+
 test('PC-120: a Kimi MCP file the launcher creates is private', { skip: process.platform === 'win32' && 'POSIX modes' }, () => {
   const env = setup();
   withFakeMcp(env);

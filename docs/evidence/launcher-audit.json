@@ -278,6 +278,18 @@
       "file": "test/launcher.test.js",
       "test": "PC-127: a Codex server the person declares inline instead of the launcher table is kept, not taken as gone",
       "scenario": "SCN-005"
+    },
+    {
+      "id": "AUD-47",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex table with a comment of the person keeps it; a same-named key elsewhere is not a declaration",
+      "scenario": "SCN-004"
+    },
+    {
+      "id": "AUD-48",
+      "file": "test/launcher.test.js",
+      "test": "PC-127: a Codex server the person declares with dotted keys under [mcp_servers] is kept, not taken as gone",
+      "scenario": "SCN-005"
     }
   ]
 }
