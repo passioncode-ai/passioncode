@@ -225,7 +225,12 @@ test('PC-131: doctor says, as information, when automatic updates are off, and h
   assert.ok(!saved.failed.includes('skills.auto-update'), 'the saved check never counts it as a failure');
   const fixed = await cli(off, api, 'doctor', '--fix', '--json');
   assert.ok(!fixed.json.humanSteps.some((step) => /update\.auto on/.test(step)), 'never one of the steps setup or --fix asks for');
-  assert.ok(!fixed.json.actions.some((a) => /auto/.test(JSON.stringify(a))), 'no action touches the switch');
+  assert.ok(!fixed.json.actions.some((a) => /update\.auto|config set/.test(JSON.stringify(a))), 'no action touches the switch');
+  // --fix installed the set: the row is still there, information only, after the set's own rows.
+  const after = fixed.json.after.checks.map((c) => c.id).filter((id) => id.startsWith('skills.'));
+  assert.equal(fixed.json.after.checks.find((c) => c.id === 'skills.installed').state, 'ok', after.join(' '));
+  assert.equal(after[after.length - 1], 'skills.auto-update', after.join(' '));
+  assert.equal(fixed.json.after.checks.find((c) => c.id === 'skills.auto-update').state, 'info');
   assert.equal(JSON.parse(fs.readFileSync(path.join(off.home, '.passioncode', 'state.json'), 'utf8')).config.auto, false, 'doctor never turns it on');
 });
 
