@@ -3,12 +3,15 @@
 Report vulnerabilities privately to contact@passioncode.ai. Do not open an issue that
 carries credentials or a working exploit.
 
+Claude Code's files in this document: every `~/.claude` path and `~/.claude.json` means the folder `CLAUDE_CONFIG_DIR`
+names when it is set (its `.claude.json` inside it), as Claude Code itself reads them (PC-129). In a session Fabric
+Switchboard launched, its home is that folder: settings and MCP servers then go to the person's own folder that
+`SWITCHBOARD_CLAUDE_SOURCE_DIR` names (`~/.claude.json` when that folder is `~/.claude`), and with a Switchboard before
+0.7.14, which names none, to `~/.claude`, because Switchboard rebuilds the home's settings at every launch (SB-259).
+
 What `passioncode update` touches (setup and doctor: [below](#what-setup-and-doctor-touch); every command also the
 [anonymous counts](#what-anonymous-counts-send) while they are on): `~/.passioncode/` (releases, state, quarantine,
-logs); Claude Code's plugin registry through the `claude plugin` CLI only (every `~/.claude` path and `~/.claude.json`
-named here means the folder `CLAUDE_CONFIG_DIR` names when it is set, as Claude Code itself reads them, PC-129; in a
-session Fabric Switchboard launched, settings and `.claude.json` mean the person's own folder that `SWITCHBOARD_CLAUDE_SOURCE_DIR`
-names, because Switchboard rebuilds its copy of the settings at every launch, SB-259);
+logs); Claude Code's plugin registry through the `claude plugin` CLI only;
 `~/.agents/skills/<member skill>` and `<agent channel>/<member skill>` links (junctions on Windows); and
 `~/.claude/skills/<member skill>`, which it moves into the quarantine once the plugin
 that replaces it is verified. For a member's old single-member marketplace

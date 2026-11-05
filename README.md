@@ -98,7 +98,7 @@ secret into a product's own hidden prompt, starting Docker for Fabric, and resta
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
   is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
-  tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json`, and agents' declarations in
+  tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a Fabric Switchboard session, your own Claude folder, [docs/reference/cli.md](docs/reference/cli.md)), and agents' declarations in
   `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay)
   ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
   [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
@@ -164,7 +164,7 @@ npx @passioncode-ai/passioncode@latest status   # the installed release: its mem
 npx @passioncode-ai/passioncode@latest update --dry-run
 npx @passioncode-ai/passioncode@latest uninstall
 npx @passioncode-ai/passioncode@latest analytics off # stop the launcher's anonymous usage and error counts (on by default)
-npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed Claude Code to do without asking (in ~/.claude/settings.json), and who asked for it
+npx @passioncode-ai/passioncode@latest permissions   # what PassionCode allowed Claude Code to do without asking (in Claude Code's user settings), and who asked for it
 ```
 
 For supported flags, JSON fields, exit codes and partial-failure recovery, read the

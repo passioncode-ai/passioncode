@@ -177,12 +177,18 @@ test('PC-129: paths() puts every Claude Code file under CLAUDE_CONFIG_DIR when i
     const s = L.paths(path.join(os.tmpdir(), 'h'));
     const own = path.resolve(path.join(os.tmpdir(), 'own'));
     assert.deepEqual([s.claudeSkills, s.claudePlugins, s.claudeSettings, s.claudeJson],
-      [path.join(cc, 'skills'), path.join(cc, 'plugins'), path.join(own, 'settings.json'), path.join(own, '.claude.json')]);
+      [path.join(cc, 'skills'), path.join(own, 'plugins'), path.join(own, 'settings.json'), path.join(own, '.claude.json')]);
     process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'h', '.claude'); // the default folder: ~/.claude.json
     const o = L.paths(path.join(os.tmpdir(), 'h'));
     assert.deepEqual([o.claudeSettings, o.claudeJson], [path.join(os.tmpdir(), 'h', '.claude', 'settings.json'), path.join(os.tmpdir(), 'h', '.claude.json')]);
     process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = 'own'; // not absolute: not Switchboard's, ignored
     assert.equal(L.paths(path.join(os.tmpdir(), 'h')).claudeSettings, path.join(cc, 'settings.json'));
+    // A home of a Switchboard before 0.7.14 (no source named) lies in its data folder: ~/.claude, as 0.2.75 wrote.
+    delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR;
+    process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'ai.passioncode.fabric-switchboard', 'shell', 'claude-p1');
+    const old = L.paths(path.join(os.tmpdir(), 'h'));
+    assert.deepEqual([old.claudeSettings, old.claudeJson, old.claudePlugins],
+      [path.join(os.tmpdir(), 'h', '.claude', 'settings.json'), path.join(os.tmpdir(), 'h', '.claude.json'), path.join(os.tmpdir(), 'h', '.claude', 'plugins')]);
     process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'own');
     process.env.CLAUDE_CONFIG_DIR = ''; // without a home the session is not Switchboard's: ~/.claude
     assert.equal(L.paths(path.join(os.tmpdir(), 'h')).claudeSettings, path.join(os.tmpdir(), 'h', '.claude', 'settings.json'));
@@ -221,6 +227,37 @@ test('PC-129: inside a Switchboard home the launcher writes settings and MCP to 
   const un = run(env, 'uninstall', '--json');
   assert.equal(un.status, 0, un.stderr + un.stdout);
   assert.equal(mcpEntry(path.join(env.home, '.claude.json')), undefined, 'uninstall removes it from the same file');
+});
+
+test('PC-129: a Switchboard home with a plugins folder of its own still updates: the registry is checked where the CLI installs', () => {
+  const env = setup();
+  const operator = path.join(env.home, '.claude');
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(path.join(sb, 'plugins'), { recursive: true }); // a real folder, which Switchboard never replaces with a link
+  env.extra = { ...(env.extra || {}), CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  assert.ok(Object.keys(JSON.parse(fs.readFileSync(path.join(operator, 'plugins/installed_plugins.json'), 'utf8')).plugins).includes('example-agent@passioncode'));
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).members.find((m) => m.name === 'example-agent').claude, 'plugin');
+  fs.rmSync(path.join(env.home, 'claude-calls.log'));
+  assert.equal(run(env, 'update', '--json').status, 0);
+  assert.ok(!calls(env.home).some((c) => c.startsWith('plugin marketplace add')), 'the marketplace is not added again: ' + calls(env.home).join('; '));
+});
+
+test('PC-129: uninstall with the variable set removes an entry written without it from ~/.claude.json, never a same-named one in that folder', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  const cfg = path.join(env.home, 'claude-config');
+  fs.mkdirSync(cfg, { recursive: true });
+  fs.writeFileSync(path.join(cfg, '.claude.json'), JSON.stringify({ mcpServers: { 'fabric-dashboards': { command: '/their/own' } } }));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: cfg };
+  const un = run(env, 'uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(mcpEntry(path.join(env.home, '.claude.json')), undefined, 'removed from the file it was written to');
+  assert.equal(mcpEntry(path.join(cfg, '.claude.json')).command, '/their/own', "the person's own entry stays");
 });
 
 test('a second update is idempotent: updates plugins, moves nothing', () => {
