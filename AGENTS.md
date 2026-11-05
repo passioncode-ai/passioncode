@@ -41,7 +41,10 @@ refuses to run here; `npm test` works on a fresh clone. `.gitattributes` checks 
 out with LF on every platform (PC-99); a Windows clone made before it refreshes its files once,
 on a clean tree, with `git rm --cached -r .` and then `git reset --hard`. Hosted workflows exist
 (`validate.yml` runs `npm test` on Linux, macOS (PC-132) and Windows (PC-135); on Windows the cases that cannot run
-there skip by name with their reason: POSIX links and modes, and `test/setup.test.js`'s macOS simulation;
+there skip by name with their reason: POSIX links and modes, signals (PC-116), a folder made unwritable (PC-115), the
+run-through-`npm test` case (PC-115), `test/setup.test.js`'s macOS simulation, and the PC-86, PC-88 and PC-89 doctor and
+setup cases, which simulate Windows on Linux and macOS because their `reg` stand-in is a shell script (on Windows itself
+`test/windows.test.js` proves the real `reg` output parses and the junction links);
 `release.yml` releases and publishes on a `v*` tag when `RELEASE_ENABLED` and `PUBLISH_NPMJS` are
 `true`). The repository is public, so they run outside the organisation's
 spending cap; the local gate above is still the evidence, and a skipped run is reported as skipped.
@@ -63,7 +66,7 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   a skill for every contributor's agent; its trigger and scenario evals are in
   `test/evals/working-in-passioncode/`, held to the Agent Skills standard by `test/skill.test.js`.
 - Tests: `test/launcher.test.js` (fake `claude` in `test/fake-claude.js`),
-  `test/self-update.test.js` (fake `npm`/`npx` on PATH), `test/vendor.test.js` (a local bare remote),
+  `test/self-update.test.js` (fake `npm`/`npx` on PATH; on Windows named by `PASSIONCODE_NPM`/`PASSIONCODE_NPX`), `test/vendor.test.js` (a local bare remote),
   `test/skill.test.js` (the self plugin's skills).
 - Decisions: [docs/adr/](docs/adr/). What the launcher touches: [SECURITY.md](SECURITY.md).
 - `payload/` is generated and never committed.

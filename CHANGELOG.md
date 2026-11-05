@@ -56,8 +56,10 @@
 
 - **Automatic updates work on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
   cannot start their `.cmd` files, so the daily check failed and no update ever started there. The hook now runs npm's
-  own `npx-cli.js` and `npm-cli.js` from beside the Node that runs it, and its background processes open no console
-  window.
+  own `npx-cli.js` and `npm-cli.js` (the npm bundled with the Node that runs it, through that Node), and the processes
+  it and the update start directly open no console window. An installation on Windows from 0.2.75 or earlier still runs
+  its old hook, which cannot learn of this version: update it once by hand
+  (`npx --yes @passioncode-ai/passioncode@latest update`); it updates itself from then on.
 - **Shadowed skills are moved aside on Windows** (PC-135): `update` named a moved path by its forward slashes alone, so
   on Windows the name kept the drive's colon and the move failed; the quarantine now flattens Windows paths too.
 - **`uninstall` keeps the update switch** (PC-131, LC-16): it wrote `update.auto` off, so a later install stopped

@@ -789,3 +789,17 @@ test('PC-135: on Windows the hooks start npm\'s own script through this Node; el
   assert.deepEqual(npmCommand('npx', { env: { PASSIONCODE_NPX: '/t/npx.js' }, platform: 'linux', execPath: '/n' }), ['/n', ['/t/npx.js']], 'a JavaScript stand-in runs through Node');
   assert.deepEqual(npmCommand('npm', { env: { PASSIONCODE_NPM: '/t/npm' }, platform: 'win32', execPath: '/n' }), ['/t/npm', []]);
 });
+
+// On Windows itself, with no stand-in: the npm script beside this Node exists and starts (no download).
+test('PC-135: on Windows the npm and npx scripts beside Node start with --version', { skip: process.platform !== 'win32' && 'needs Windows' }, () => {
+  const { npmCommand } = require(path.join(PLUGIN, 'hooks/update-check'));
+  const env = { ...process.env }; delete env.PASSIONCODE_NPM; delete env.PASSIONCODE_NPX;
+  for (const name of ['npm', 'npx']) {
+    const [cmd, pre] = npmCommand(name, { env });
+    assert.equal(cmd, process.execPath, `${name} runs through this Node`);
+    assert.ok(fs.existsSync(pre[0]), `${pre[0]} exists`);
+    const r = spawnSync(cmd, [...pre, '--version'], { encoding: 'utf8', timeout: 60000, windowsHide: true });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+/);
+  }
+});

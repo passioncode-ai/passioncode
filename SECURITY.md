@@ -135,7 +135,9 @@ The hook installs a newer version on its own only when all of these hold:
 
 It then runs `npx --yes --cache=~/.passioncode/run/cache-<new> --logs-dir=~/.passioncode/logs/npm --logs-max=5 --registry=https://registry.npmjs.org --@passioncode-ai:registry=https://registry.npmjs.org --workspaces=false @passioncode-ai/passioncode@<that exact version> update --quiet`
 (on Windows, where `npx` and `npm` are `.cmd` files that a process started without a shell cannot run, the hooks
-run npm's own `npx-cli.js` and `npm-cli.js` from beside the Node that runs them, through that Node, PC-135),
+run npm's own `npx-cli.js` and `npm-cli.js` from beside the Node that runs them, through that Node: the npm bundled
+with that Node, not one upgraded globally, PC-135; `PASSIONCODE_NPM` and `PASSIONCODE_NPX`, when set, replace npm and
+npx, as the development overrides in docs/reference/cli.md replace what they name),
 detached, so the version that was checked is the version that runs; npm checks the download against
 the integrity it reads at that moment (up to a day after the check), so a different tarball for the
 same version would need the registry itself to serve other metadata than it signed, or the person's own

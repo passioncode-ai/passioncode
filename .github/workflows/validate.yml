@@ -42,7 +42,8 @@ jobs:
   # PC-85 and PC-86 are Windows defects: their tests run on Windows itself, where `current` is
   # replaced by the real rename that failed on the tester's machine (2026-10-28).
   # PC-135: the whole gate runs here as on Linux and macOS. Cases that cannot run on Windows skip by name with
-  # their reason: POSIX links and modes, and setup.test.js's macOS simulation (shell-script ditto, codesign, hdiutil).
+  # their reason (AGENTS.md lists them): POSIX links and modes, signals, an unwritable folder, the run through npm test,
+  # setup.test.js's macOS simulation, and the reg-simulated PC-86/88/89 doctor cases (shell-script stand-ins).
   windows:
     runs-on: windows-latest
     timeout-minutes: 20
