@@ -21,6 +21,9 @@
   read are missing; it is never one of setup's steps for the person. As a warning it adds one to doctor's and setup's
   warning count on a Mac or Windows machine with Fabric that lacks a part. The page
   `docs/reference/session-chain.md` says which part of that chain is the launcher's.
+- **`doctor` says when automatic updates are off** (PC-131): a `skills.auto-update` information row, shown whenever
+  `update.auto` is off, names `config set update.auto on` as the person's choice; it is never a failure, a repair or one
+  of setup's steps, and doctor never turns the switch on.
 
 ### Fixed
 

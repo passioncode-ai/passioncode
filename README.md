@@ -141,7 +141,7 @@ plugin's `trust.json`**, updates to that exact version in the background; it tak
 effect in the next session. A version published by anyone else is named and not
 installed ([SECURITY.md](SECURITY.md#the-self-update-and-who-it-trusts)).
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so. `status` and `doctor` show
-when the switch is off (an uninstall by 0.2.75 or earlier turned it off), and `config set update.auto on` turns it
+when the switch is off (by `config set`, or by an uninstall by 0.2.75 or earlier), and `config set update.auto on` turns it
 back on.
 
 `status` reads local state without contacting npm. Its npm version is labelled

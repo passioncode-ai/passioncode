@@ -125,7 +125,7 @@ Contract: brand-contract v1
 | perm.allow-hint | To allow them: ${require('../lib/doctor').NPX} permissions allow <rule> | bin/passioncode.js:185 | SCN-015 | proposed | copy |
 | perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:187 | SCN-015 | proposed | copy |
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:188 | SCN-015 | proposed | copy |
-| doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall of 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:178 | SCN-010 | proposed | copy |
+| doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:178 | SCN-010 | proposed | copy |
 | doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:378 | SCN-010 | proposed | copy |
 | doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:380 | SCN-010 | proposed | copy |
 | doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:409 | SCN-010 | proposed | copy |
