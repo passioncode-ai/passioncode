@@ -1,5 +1,6 @@
 'use strict';
-delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // The string registry (docs/brand/strings.md) points every row at the line that prints it. Code moves
 // those lines; this keeps each Location honest: the row's whole text, placeholders included, is the
 // source that starts on the cited line (whitespace collapsed, so a template that wraps across lines,

@@ -1,5 +1,6 @@
 'use strict';
-delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // PC-117: setup merges PassionCode's permission rules into Claude Code's settings and loses nothing there.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

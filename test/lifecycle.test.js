@@ -1,5 +1,6 @@
 'use strict';
-delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // The launcher held to the organization's lifecycle contract
 // (fabric-workspace knowledge/lifecycle.md): one update at a time (LC-03, F14), and the
 // launcher's own releases kept at current + previous (LC-11, LC-15, F15). Every test runs in

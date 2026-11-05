@@ -1,4 +1,6 @@
 'use strict';
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -169,9 +171,56 @@ test('PC-129: paths() puts every Claude Code file under CLAUDE_CONFIG_DIR when i
     const d = L.paths(path.join(os.tmpdir(), 'h'));
     assert.equal(d.claudeSettings, path.join(os.tmpdir(), 'h', '.claude', 'settings.json'));
     assert.equal(d.claudeJson, path.join(os.tmpdir(), 'h', '.claude.json'));
+    // SB-259: with SWITCHBOARD_CLAUDE_SOURCE_DIR, settings and .claude.json are the operator folder's, plugins and skills the home's.
+    process.env.CLAUDE_CONFIG_DIR = path.join(os.tmpdir(), 'cc');
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'own');
+    const s = L.paths(path.join(os.tmpdir(), 'h'));
+    const own = path.resolve(path.join(os.tmpdir(), 'own'));
+    assert.deepEqual([s.claudeSkills, s.claudePlugins, s.claudeSettings, s.claudeJson],
+      [path.join(cc, 'skills'), path.join(cc, 'plugins'), path.join(own, 'settings.json'), path.join(own, '.claude.json')]);
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'h', '.claude'); // the default folder: ~/.claude.json
+    const o = L.paths(path.join(os.tmpdir(), 'h'));
+    assert.deepEqual([o.claudeSettings, o.claudeJson], [path.join(os.tmpdir(), 'h', '.claude', 'settings.json'), path.join(os.tmpdir(), 'h', '.claude.json')]);
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = 'own'; // not absolute: not Switchboard's, ignored
+    assert.equal(L.paths(path.join(os.tmpdir(), 'h')).claudeSettings, path.join(cc, 'settings.json'));
+    process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR = path.join(os.tmpdir(), 'own');
+    process.env.CLAUDE_CONFIG_DIR = ''; // without a home the session is not Switchboard's: ~/.claude
+    assert.equal(L.paths(path.join(os.tmpdir(), 'h')).claudeSettings, path.join(os.tmpdir(), 'h', '.claude', 'settings.json'));
   } finally {
     if (saved === undefined) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = saved;
+    delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR;
   }
+});
+
+test('PC-129: inside a Switchboard home the launcher writes settings and MCP to the operator folder and reads plugins from the home (SB-259)', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  const operator = path.join(env.home, '.claude');
+  fs.writeFileSync(path.join(operator, 'settings.json'), JSON.stringify({ theme: 'dark' }));
+  // The home Switchboard builds: plugins and skills lead to the operator folder, settings.json is a copy rebuilt per launch.
+  const sb = path.join(env.home, 'switchboard', 'claude-home');
+  fs.mkdirSync(sb, { recursive: true });
+  fs.symlinkSync(path.join(operator, 'plugins'), path.join(sb, 'plugins'), 'junction');
+  fs.symlinkSync(path.join(operator, 'skills'), path.join(sb, 'skills'), 'junction');
+  fs.copyFileSync(path.join(operator, 'settings.json'), path.join(sb, 'settings.json'));
+  fs.writeFileSync(path.join(sb, '.claude.json'), JSON.stringify({ hasCompletedOnboarding: true }));
+  env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: sb, SWITCHBOARD_CLAUDE_SOURCE_DIR: operator };
+  const up = run(env, 'update', '--json');
+  assert.equal(up.status, 0, up.stderr + up.stdout);
+  assert.ok(mcpEntry(path.join(env.home, '.claude.json')), "registered in the operator's ~/.claude.json");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(sb, '.claude.json'), 'utf8')).mcpServers, undefined, "the home's own file is left alone");
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(sb, 'settings.json'), 'utf8')), { theme: 'dark' }, 'the rebuilt copy is not written');
+  const installed = Object.keys(JSON.parse(fs.readFileSync(path.join(operator, 'plugins/installed_plugins.json'), 'utf8')).plugins);
+  assert.ok(installed.includes('example-agent@passioncode'), installed.join(', '));
+  assert.equal(JSON.parse(run(env, 'status', '--json').stdout).members.find((m) => m.name === 'example-agent').claude, 'plugin', 'status reads them through the home');
+  const mode = run(env, 'permissions', 'mode', 'acceptEdits', '--json');
+  assert.equal(mode.status, 0, mode.stderr + mode.stdout);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(operator, 'settings.json'), 'utf8')).permissions.defaultMode, 'acceptEdits', "the mode lands in the operator's settings");
+  assert.equal(JSON.parse(fs.readFileSync(path.join(sb, 'settings.json'), 'utf8')).permissions, undefined);
+  const un = run(env, 'uninstall', '--json');
+  assert.equal(un.status, 0, un.stderr + un.stdout);
+  assert.equal(mcpEntry(path.join(env.home, '.claude.json')), undefined, 'uninstall removes it from the same file');
 });
 
 test('a second update is idempotent: updates plugins, moves nothing', () => {

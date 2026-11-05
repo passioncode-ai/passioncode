@@ -24,9 +24,11 @@ if (!tests.length) throw new Error('No test files found.');
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-test-'));
 let status = 1;
 try {
-  // PC-129: a developer's CLAUDE_CONFIG_DIR would send the sandboxed launcher to their real Claude Code folder.
+  // PC-129: a developer's CLAUDE_CONFIG_DIR (or Switchboard's SWITCHBOARD_CLAUDE_SOURCE_DIR) would send the sandboxed
+  // launcher to their real Claude Code folder.
   const env = { ...process.env, PASSIONCODE_TEST_RUN: '1', TMPDIR: scratch, TMP: scratch, TEMP: scratch };
   delete env.CLAUDE_CONFIG_DIR;
+  delete env.SWITCHBOARD_CLAUDE_SOURCE_DIR;
   const child = spawn(process.execPath, ['--test', ...flags, ...tests], { stdio: 'inherit', env });
   // PC-116: an interrupted run (Ctrl-C, SIGTERM) stops its tests and still removes its folder: the signal goes
   // to node --test, and this process waits for it to end instead of ending first.

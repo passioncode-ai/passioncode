@@ -1,5 +1,6 @@
 'use strict';
-delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // The organisation's text rule: what a person reads carries no em dash (U+2014). Every line of
 // code the launcher runs is held to it; comments, which no person running it reads, are not.
 // PC-97: the source is read as JavaScript, character by character: strings, template literals

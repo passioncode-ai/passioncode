@@ -1,5 +1,6 @@
 'use strict';
-delete process.env.CLAUDE_CONFIG_DIR; // PC-129: a run never reaches the developer's Claude Code folder
+delete process.env.CLAUDE_CONFIG_DIR;
+delete process.env.SWITCHBOARD_CLAUDE_SOURCE_DIR; // PC-129: a run never reaches the developer's Claude Code folder
 // The skills this repository ships in its own plugin (plugin/passioncode/skills/*),
 // held to the Agent Skills standard and to the organisation's publishing rules. The
 // front matter is read the way the strictest consumer reads it: an agent that loads the
