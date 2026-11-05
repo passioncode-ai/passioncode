@@ -462,7 +462,10 @@ has recorded, and a marker older than five minutes is taken over. A probe is
 consumed by a later hook invocation.
 
 Only a successful npm response with readable maintainers and publisher, with a
-release installed, can authorize an automatic update; every identity must be trusted. The spawned
+release installed, can authorize an automatic update; every identity must be trusted, one of npm's
+registry signatures over the version's integrity must verify with a key pinned in `trust.json`, and
+the version must carry SLSA build provenance (ADR-0005). A record from an older probe, without
+`verify`, starts a fresh probe at once and installs nothing meanwhile. The spawned
 command pins the verified version. Missing `npx` is reported without crashing the
 session or retaining a false running marker. The running marker suppresses another
 automatic attempt for ten minutes; it is not a process lock or proof of completion.

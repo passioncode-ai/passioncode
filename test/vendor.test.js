@@ -179,6 +179,11 @@ test('vendor refuses a self plugin without a valid trust list', async () => {
   assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /trust\.json is missing/);
   fs.writeFileSync(path.join(f.root, 'plugin/passioncode/trust.json'), JSON.stringify({ npmPublishers: ['Not An Account'] }));
   assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /lowercase npm account names/);
+  // ADR-0005: a list without a usable npm registry key would make every machine refuse the update.
+  for (const npmRegistryKeys of [undefined, [], [{ keyid: 'SHA256:x', key: 'not a key' }], [{ keyid: '', key: 'MFkw' }]]) {
+    fs.writeFileSync(path.join(f.root, 'plugin/passioncode/trust.json'), JSON.stringify({ npmPublishers: ['ssheleg'], npmRegistryKeys }));
+    assert.throws(() => build({ root: f.root, out: f.out, gitBase: f.gitBase, env: {} }), /npmRegistryKeys/);
+  }
 });
 
 test('versions are in sync: package.json, the self plugin and the CHANGELOG', () => {

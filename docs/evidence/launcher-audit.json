@@ -314,6 +314,18 @@
       "file": "test/setup.test.js",
       "test": "PC-131: doctor says, as information, when automatic updates are off, and how to turn them on",
       "scenario": "SCN-010"
+    },
+    {
+      "id": "AUD-53",
+      "file": "test/self-update.test.js",
+      "test": "hook: a tampered, unsigned, foreign-signed or provenance-less version is refused and nothing is spawned (PC-131)",
+      "scenario": "SCN-006"
+    },
+    {
+      "id": "AUD-54",
+      "file": "test/self-update.test.js",
+      "test": "the npm registry key shipped in trust.json verifies a real release (0.2.75), and only it",
+      "scenario": "SCN-006"
     }
   ]
 }
