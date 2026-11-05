@@ -24,6 +24,7 @@ Contract: brand-contract v1
 | args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:236 | SCN-007 | proposed | copy |
 | args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}. | bin/passioncode.js:85 | SCN-007 | proposed | copy |
 | hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:141 | SCN-006 | proposed | copy |
+| hook.npm-missing | [passioncode] could not start the background update: there is no npm beside the Node in ${shown(path.dirname(process.execPath))}; reinstall Node.js with npm, or update by hand with npx --yes @passioncode-ai/passioncode@latest update. | plugin/passioncode/hooks/session-start.js:147 | SCN-006 | proposed | copy |
 | hook.cache-failed | [passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session. | plugin/passioncode/hooks/session-start.js:140 | SCN-006 | proposed | copy |
 | update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:256 | SCN-003 | proposed | copy |

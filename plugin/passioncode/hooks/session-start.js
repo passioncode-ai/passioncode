@@ -120,7 +120,11 @@ async function main() {
       } catch (_) { /* the sweep's one-hour age protects it */ }
     }
   }
-  const [npx, npxPre] = npmCommand('npx'); // npm's own npx through this Node on Windows (PC-135)
+  // npm's own npx through this Node on Windows (PC-135); PASSIONCODE_PLATFORM stands in for the system in tests.
+  const platform = process.env.PASSIONCODE_PLATFORM || process.platform;
+  const [npx, npxPre] = npmCommand('npx', { platform });
+  // On Windows the name alone cannot start npx's .cmd file, so no PATH change helps: npm is not beside this Node (PC-143).
+  const noNpm = platform === 'win32' && !process.env.PASSIONCODE_NPX && npxPre.length === 0;
   if (args && (!updateArgs || !await detached(npx, [...npxPre, ...updateArgs], 'update.log'))) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
@@ -133,12 +137,15 @@ async function main() {
       fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
       fs.renameSync(tmp, STATE);
     }
+    if (failure === 'spawn' && noNpm) failure = 'npm';
     logEvent(DIR, 'update_install', 'failed', failure);
     if (cacheDir) try { fs.rmSync(cacheDir, { recursive: true, force: true }); } catch (_) { /* nothing ran from it; the hourly sweep removes it */ }
     lines.pop(); // decide appends the update-start notice last when it returns args
     lines.push(failure === 'cache'
       ? `[passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session.`
-      : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
+      : failure === 'npm'
+        ? `[passioncode] could not start the background update: there is no npm beside the Node in ${shown(path.dirname(process.execPath))}; reinstall Node.js with npm, or update by hand with npx --yes @passioncode-ai/passioncode@latest update.`
+        : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }
   // Claude Code passes the session's directory on stdin; the process cwd is the fallback.
   let cwd = process.cwd();

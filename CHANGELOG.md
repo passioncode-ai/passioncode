@@ -56,7 +56,8 @@
 
 - **Automatic updates can start on Windows** (PC-135): the session hook started `npx` and `npm` without a shell, which
   cannot start their `.cmd` files, so wherever npm is installed that way (the Node installer, nvm-windows, fnm) the daily
-  check failed and no update ever started. The hook now runs npm's
+  check failed and no update ever started. Where no npm sits beside that Node, the session line now says so and names the
+  manual update, instead of asking to fix PATH (PC-143). The hook now runs npm's
   own `npx-cli.js` and `npm-cli.js` (the npm in the folder of the Node that runs it, through that Node), and the processes
   the hook starts open no console window (whether npm's own shell for the package shows one is not yet checked on a
   Windows desktop, PC-143; CI proves that npm's scripts start there, and a full background update on a Windows desktop is

@@ -804,3 +804,17 @@ test('PC-135: on Windows the npm and npx scripts beside Node start with --versio
     assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+/);
   }
 });
+
+// On real Windows the npm beside Node is there, and the update would really start: the stand-in platform runs elsewhere.
+test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PATH', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const emptyPath = path.join(sb.base, 'empty-bin');
+  fs.mkdirSync(emptyPath);
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath, PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPX: '' }), cwd: os.tmpdir(), input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /there is no npm beside the Node in /);
+  assert.doesNotMatch(r.stdout, /check that npx is on PATH/);
+  assert.ok(eventsOf(sb).includes('update_install failed npm'), eventsOf(sb).join('; '));
+  assert.equal(stateOf(sb).updatingSince, undefined);
+});
