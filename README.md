@@ -40,13 +40,14 @@ Paste this into Claude Code, Codex or another coding agent:
 
 Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
-secret into a product's own hidden prompt, starting Docker for Fabric, and restarting your agent.
+secret into a product's own hidden prompt, starting Docker for Fabric, unlocking a folder setup cannot write (or asking
+an administrator), and restarting your agent.
 
 ## Quick start for a new teammate
 
 1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
    `npx @passioncode-ai/passioncode@latest setup`, then restart your agents. In a terminal it asks
-   one question per absent app (on macOS), one for the repairs, if any are left, one for Claude Code's rules for PassionCode's own tools where Claude Code is and they are missing, and one for the rules for commands where Claude Code is and any are missing (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
+   one question per absent app (on macOS; one whose folder you cannot write is named instead, SCN-017), one for the repairs, if any are left, one for Claude Code's rules for PassionCode's own tools where Claude Code is and they are missing, and one for the rules for commands where Claude Code is and any are missing (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
    (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`), `--no-apps` sets up the skills
    and MCP only, `--dry-run` shows the plan, `--allow-tools` lets Claude Code use PassionCode's own tools without asking and
    `--allow-commands` run the commands setup lists, such as `gh pr merge` (each offered as its own question in a
@@ -111,8 +112,11 @@ computer it changes nothing (apart from the anonymous counts) and exits 0. An ap
 `SHA256SUMS.asc` verifies against the PassionCode.ai release key bundled in this package
 (fingerprint `63B3 0DC3 24BD 6974 87AA 3194 4FAF B8AE C803 B6A7`), the file matches the signed
 checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35UYYL22`, has its
-notarization ticket stapled and is accepted by Gatekeeper. An outdated or damaged app is
-reinstalled only when it is not running; the old one goes to the Trash. A family service that
+notarization ticket stapled and is accepted by Gatekeeper. Apps go into your own `~/Applications` (made on the first
+install); a copy in `/Applications` that is yours and that you may replace stays there. An outdated or damaged app is
+reinstalled only when it is not running and you may replace it; the old one goes to the Trash ("running" means running
+for you: on a Mac with several users only your own processes count, so a copy of yours that another user has open, or runs an MCP server from, is still replaced and goes to your Trash; that user restarts it, PC-151 and PC-149). One you cannot replace
+(another user's, or in a folder you cannot write) is named, never reinstalled. A family service that
 does not answer is started through launchd (`launchctl kickstart`, never a kill).
 
 `doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature

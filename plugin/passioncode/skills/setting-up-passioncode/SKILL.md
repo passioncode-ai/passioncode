@@ -41,7 +41,7 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 - It checks everything first, installs the apps that are missing from their signed releases,
   repairs what is wrong (skills, MCP registrations, an outdated or damaged app that is not
   running, a stopped service its supervisor owns), checks again and returns JSON.
-- A healthy machine: an empty `actions` list, no `skipped`, exit 0. Running it again is always safe.
+- A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe.
 - Exit 0: no step and no check failed; 1: a step or a check failed; 2: bad arguments. A plan
   (`planOnly: true`: `--dry-run`, or a run without `--yes` that would change something, since a
   `--json` run never asks; a declined terminal run is not a plan and exits by its checks, and when it
@@ -80,6 +80,12 @@ reference names the format); never write one there for them.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
   (Fabric without Docker); each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
+- `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
+  their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its
+  `blocked: true` plan item; an app with no such item (an outdated copy in use, an app the run left out) has it in the
+  `fix` of its check marked `blocked: true` (in `before.checks` for a plan, `after.checks` for a run), and a run's
+  `humanSteps` names it. Running `setup` again changes nothing for those apps until
+  that folder is writable: tell the person, never call the machine fully set up, and never count them as skipped.
 - `permissions.rules` and `commands.rules`: rules offered and not taken (`taken: false`); `commands.refused`: rules
   declared on this machine and not offered as declared (refused, or counted once), each with why. Tell the person both.
 
@@ -109,15 +115,21 @@ Then run `doctor --json` again and report the change.
   machine rule that says how apps start wins over `open`.
 - Never download an app another way, and never pipe a downloaded script into a shell. The command verifies the signed
   checksums, the Developer ID team and Apple's notarization; a hand download skips all three.
+- Never run setup with sudo and never ask for an administrator's password: apps go into the person's own
+  `~/Applications`; a folder they cannot write is named in `blocked`, and you pass its note on.
 - Never replace an app the person is running. The result says "quit X, then run setup"; pass that on.
-- Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides.
+- Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides. An entry doctor warns
+  "runs from <copy in /Applications>, not from your copy in <folder>" (PC-146) is usually one an earlier `setup`
+  registered, but doctor does not check who set it: with the person's yes, remove that server from that agent, then
+  run `doctor --fix`, which registers it from their own copy; say that `restore` cannot put a hand-set entry back.
 
 ## 5. Report
 
 Reply in the person's language, briefly:
 
 1. What was set up or repaired (from `actions`), what was skipped (from `skipped`, or, when there is no `skipped` (a plan,
-   or a run with any `actions`), the `plan` install items with `selected: false`), the train a plan would save or forget
+   or a run with any `actions`), the `plan` install items with `selected: false` that are not `blocked`), what could not
+   be installed or replaced because its folder is not writable (from `blocked`, with each one's reason as above), the train a plan would save or forget
    (`trainNotSaved`, `none` meaning the saved train would be forgotten), and the before → after counts.
 2. What still fails, each with its `fix`; rules offered and not taken, with the flag that takes them (`--allow-tools`,
    `--allow-commands`), and every `commands.refused` line. `npx @passioncode-ai/passioncode@latest permissions` shows what
@@ -129,7 +141,10 @@ Reply in the person's language, briefly:
    notice, and `analytics off` is their switch. If `analytics status` prints no such line, give the person the status
    line it printed (on, or off and why); `analytics off` and `analytics on` are their switch. The `sessions.on-demand`
    check is a readiness note: report it, never act on it as a repair, and treat a `--allow-tools` in its fix like any
-   other. The `skills.auto-update` information row is the person's update switch (LC-16): tell them automatic updates
+   other. An `app.<id>.shared` information row names a copy in `/Applications` left as it is: relay its `detail` as
+   written (whose copy it is: another user's, one an administrator installed, one they cannot replace, or their own
+   earlier one; and, only when the row says so, that macOS may open the app's links with it); tell them it was not
+   replaced; it is no failure and has no fix. The `skills.auto-update` information row is the person's update switch (LC-16): tell them automatic updates
    are off and give its fix as their choice; never run it for them. `permissions allow` and
    `permissions mode` are the same security decision as `--allow-tools`: run them only on the person's own yes to
    that rule or mode, with `--by` naming who asked.

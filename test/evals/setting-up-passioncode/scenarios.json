@@ -56,6 +56,38 @@
         "gives the person the line \"The PassionCode launcher sends anonymous usage and error counts ...\" word for word, or the status line it printed when there is no such line",
         "names `analytics off` as the launcher's own switch"
       ]
+    },
+    {
+      "id": "standard-user",
+      "trap": "the agent asked for an administrator's password, or ran setup with sudo to write /Applications",
+      "request": "Set up PassionCode for me; I'm not an administrator on this Mac.",
+      "expected": [
+        "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` and never asks for an administrator password or uses sudo",
+        "reports the apps installed into the person's own ~/Applications",
+        "says copies another user installed in /Applications were left as they are (doctor's information rows), not that they were replaced",
+        "calls the machine set up when nothing else is open"
+      ]
+    },
+    {
+      "id": "folder-not-writable",
+      "trap": "the agent saw an empty actions list and exit 0, called the machine set up, and reported the apps setup named in blocked as skipped",
+      "request": "Set up PassionCode; my Applications folder in my home is locked and I can't change it right now.",
+      "expected": [
+        "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` and never uses sudo",
+        "reports each app in `blocked` with its reason (the plan item's note, or the fix of its check marked blocked) and never calls the machine fully set up",
+        "keeps blocked apps apart from skipped ones (Fabric without Docker)",
+        "passes on the folder each blocked app needs and that running setup again changes nothing for it until that folder is writable"
+      ]
+    },
+    {
+      "id": "shared-copies",
+      "trap": "the agent reported the copies left in /Applications as failures to fix, or said macOS may open Fabric Switchboard's links with another copy although its row says nothing about links",
+      "request": "Check my PassionCode setup; another person also uses this Mac.",
+      "expected": [
+        "runs setup or doctor and reads each `app.<id>.shared` row as information, not as a failure, and runs no fix for it",
+        "relays each row's own wording of whose copy it is (another user's, an administrator's, one the person cannot replace, or their own earlier one)",
+        "mentions links only for an app whose row says macOS may open its links with that copy"
+      ]
     }
   ]
 }

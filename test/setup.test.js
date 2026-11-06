@@ -116,6 +116,8 @@ function cliEnv(m, api) {
   delete env.PASSIONCODE_FABRIC_DASHBOARDS_MCP;
   if (m.trains) env.PASSIONCODE_TRAINS = m.trains; else delete env.PASSIONCODE_TRAINS;
   if (m.configDir) env.CLAUDE_CONFIG_DIR = m.configDir;
+  // PC-145: a per-user run names no folder; the shared one is this machine's stand-in for /Applications.
+  if (m.perUser) { delete env.PASSIONCODE_APPLICATIONS; env.PASSIONCODE_SHARED_APPLICATIONS = m.shared; }
   return env;
 }
 
@@ -576,6 +578,337 @@ function onTrain(m, apps = { switchboard: '1.1.0', dashboards: '1.1.0', observat
   fs.writeFileSync(path.join(m.trains, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', pinned: '2026-10-28', apps }));
   return m;
 }
+
+test('PC-145, PC-146: a second user gets the apps in ~/Applications, made when absent; another user\'s copies are left byte for byte (SCN-017)', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  m.perUser = true;
+  m.shared = path.join(m.home, 'shared-Applications');
+  fs.rmdirSync(m.apps); // machine() made ~/Applications; this user has none yet
+  // The first user's Dashboards in the shared folder, which this user cannot write (a standard user's /Applications).
+  const theirs = path.join(m.shared, 'Fabric Dashboards.app');
+  fs.mkdirSync(path.join(theirs, 'Contents'), { recursive: true });
+  fs.writeFileSync(path.join(theirs, 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: '0.0.1' }));
+  const before = fs.readFileSync(path.join(theirs, 'Contents', 'Info.plist'));
+  fs.chmodSync(m.shared, 0o555);
+  t.after(() => fs.chmodSync(m.shared, 0o755));
+  const own = path.join(m.home, 'Applications');
+  assert.equal(fs.existsSync(own), false);
+  // The plan names the folder each app goes into.
+  const plan = await cli(m, api, 'setup', '--dry-run', '--json');
+  assert.ok(plan.json.plan.some((i) => i.kind === 'install' && i.product === 'switchboard' && i.detail.includes(`into ${own} from`)), JSON.stringify(plan.json.plan));
+  const r = await cli(m, api, 'setup', '--yes', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox']) {
+    assert.ok(fs.existsSync(path.join(own, catalog.byId(id).app)), `${id} in ~/Applications`);
+  }
+  assert.deepEqual(fs.readdirSync(m.shared), ['Fabric Dashboards.app'], 'nothing added to the shared folder');
+  assert.deepEqual(fs.readFileSync(path.join(theirs, 'Contents', 'Info.plist')), before, "the other user's copy is unchanged");
+  assert.equal(fs.existsSync(path.join(m.home, '.Trash')) && fs.readdirSync(path.join(m.home, '.Trash')).length, false, 'nothing went to the Trash');
+  const claudeJson = JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers;
+  assert.ok(claudeJson['fabric-dashboards'].command.startsWith(path.join(own, 'Fabric Dashboards.app')), claudeJson['fabric-dashboards'].command);
+  const shared = r.json.after.checks.find((c) => c.id === 'app.dashboards.shared');
+  assert.ok(shared && shared.state === 'info', JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  assert.equal(shared.detail, `Fabric Dashboards: the copy in ${theirs} is one you cannot replace, left as it is; macOS may open fabric-dashboards:// links with it instead of yours`);
+  // An app with no links (Switchboard) gets no links clause; with no copy of its own, no "instead of yours".
+  const sb = path.join(m.shared, 'Fabric Switchboard.app');
+  fs.chmodSync(m.shared, 0o755);
+  fs.mkdirSync(path.join(sb, 'Contents'), { recursive: true });
+  fs.writeFileSync(path.join(sb, 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: '0.0.1' }));
+  fs.renameSync(path.join(own, 'Fabric Inbox.app'), path.join(m.home, 'inbox-aside.app'));
+  fs.mkdirSync(path.join(m.shared, 'Fabric Inbox.app', 'Contents'), { recursive: true });
+  fs.writeFileSync(path.join(m.shared, 'Fabric Inbox.app', 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: '0.0.1' }));
+  fs.chmodSync(m.shared, 0o555);
+  const again = await cli(m, api, 'doctor', '--offline', '--json');
+  const row = (id) => again.json.checks.find((c) => c.id === id);
+  assert.equal(row('app.switchboard.shared').detail, `Fabric Switchboard: the copy in ${sb} is one you cannot replace, left as it is`);
+  assert.equal(row('app.inbox.shared').detail, `Fabric Inbox: the copy in ${path.join(m.shared, 'Fabric Inbox.app')} is one you cannot replace, left as it is; macOS may open fabric-inbox:// links with it`);
+  // A plain doctor afterwards reads this user's copies.
+  const d = await cli(m, api, 'doctor', '--offline', '--json');
+  assert.ok(d.json.checks.some((c) => c.id === 'app.dashboards' && c.state !== 'info'), JSON.stringify(d.json.checks.filter((c) => c.area === 'apps')));
+  // An entry an earlier launcher registered from the other user's copy is named, with the step that moves it to this user's.
+  const dash = catalog.byId('dashboards');
+  const theirBin = path.join(theirs, dash.mcp.bin);
+  fs.chmodSync(m.shared, 0o755);
+  fs.mkdirSync(path.dirname(theirBin), { recursive: true });
+  fs.writeFileSync(theirBin, '#!/bin/sh\n', { mode: 0o755 });
+  fs.chmodSync(m.shared, 0o555);
+  const cj = path.join(m.home, '.claude.json');
+  const conf = JSON.parse(fs.readFileSync(cj, 'utf8'));
+  conf.mcpServers['fabric-dashboards'] = { ...conf.mcpServers['fabric-dashboards'], command: theirBin };
+  fs.writeFileSync(cj, JSON.stringify(conf));
+  const stale = (await cli(m, api, 'doctor', '--offline', '--json')).json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  assert.equal(stale.state, 'warn', JSON.stringify(stale));
+  assert.equal(stale.detail, `Claude Code: fabric-dashboards runs from ${theirs}, not from your copy in ${own}`);
+  assert.equal(stale.fix, 'remove fabric-dashboards from Claude Code, then npx @passioncode-ai/passioncode@latest doctor --fix');
+});
+
+test('PC-147: a folder the user cannot write is named in the plan and nothing is downloaded', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  fs.chmodSync(m.apps, 0o555); // PASSIONCODE_APPLICATIONS names it, as a standard user's /Applications would be
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const r = await cli(m, api, 'setup', '--yes', '--json');
+  const installs = r.json.plan.filter((i) => i.kind === 'install');
+  assert.ok(installs.length && installs.every((i) => !i.selected && i.note.startsWith(`${m.apps} is not writable for you, so nothing is downloaded`)), JSON.stringify(installs));
+  assert.deepEqual(fs.readdirSync(m.apps), [], 'nothing installed');
+  assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
+  // Blocked apps are named as blocked, never as offers skipped or declined; doctor's fix names the folder, not --with.
+  assert.deepEqual(r.json.blocked, installs.map((i) => catalog.byId(i.product).name));
+  assert.equal(r.json.skipped, undefined, JSON.stringify(r.json.skipped));
+  assert.equal(r.json.notTaken, undefined, JSON.stringify(r.json.notTaken));
+  // Once the skills are in, a run changes nothing: its line names the blocked apps, never as offers not installed.
+  const again = await cli(m, api, 'setup', '--yes', '--json');
+  assert.equal(again.json.actions.length, 0, JSON.stringify(again.json.actions));
+  assert.equal(again.json.skipped, undefined, JSON.stringify(again.json.skipped));
+  const text = await cli(m, api, 'setup', '--yes');
+  assert.match(text.stdout, /Nothing was changed: Fabric Switchboard, Fabric Dashboards, [^\n]* and [^,\n]* need a folder you can write; the steps below say which\./, text.stdout);
+  const d = await cli(m, api, 'doctor', '--json', '--offline');
+  const row = d.json.checks.find((c) => c.id === 'app.switchboard');
+  assert.equal(row.fix, `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`);
+});
+
+test('PC-147: a blocked app is named and never asked about, in a terminal and with --yes; a blocked reinstall stays out of the repairs question', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' }); // outdated: setup would reinstall it
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    const asked = [];
+    S.setup({ online: true, noOpen: true, withIds: ['dashboards', 'switchboard'], ask: async (q) => { asked.push(q); return 'y'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ actions: r.actions, steps: r.humanSteps, asked })), (e) => { console.error(e); process.exit(1); });`;
+  const run = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  assert.ok(!out.asked.some((q) => /^Install /.test(q)), JSON.stringify(out.asked));
+  assert.ok(!out.asked.some((q) => /reinstall Fabric Switchboard/.test(q)), JSON.stringify(out.asked));
+  assert.ok(!out.actions.some((a) => a.kind === 'install' || a.kind === 'replace'), JSON.stringify(out.actions));
+  assert.ok(out.steps.includes(`Fabric Switchboard: ${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`), JSON.stringify(out.steps));
+  assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
+  // --yes says the same, and never calls the machine set up.
+  const yes = await cli(m, api, 'setup', '--yes');
+  assert.match(yes.stdout, /Fabric Switchboard: .* is not writable for you/, yes.stdout);
+  assert.doesNotMatch(yes.stdout, /is in place/, yes.stdout);
+  assert.doesNotMatch(yes.stdout, /\n\s*\d+\. npx @passioncode-ai\/passioncode@latest setup\n/, yes.stdout);
+});
+
+test('PC-147: blocked names its apps in every run: a dry run, a run that changed something else, and doctor offers no setup for them', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' }); // outdated: a replace this user cannot make
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  // The doctor rows for the outdated copy name the folder, never a setup that cannot replace it.
+  const d = await cli(m, api, 'doctor', '--json');
+  const row = d.json.checks.find((c) => c.id === 'app.switchboard');
+  assert.equal(row.state, 'warn', JSON.stringify(row));
+  assert.ok(row.fix.startsWith(`${m.apps} is not writable for you, so nothing is downloaded`), row.fix);
+  // A first run sets up the skills and MCP (it changes something) and still names the blocked apps, two of them in plural.
+  const first = await cli(m, api, 'setup', '--yes', '--with', 'dashboards,switchboard');
+  assert.match(first.stdout, /\nDone:\n/, first.stdout);
+  assert.match(first.stdout, /Not installed or replaced: Fabric Dashboards and Fabric Switchboard need a folder you can write; the steps below say which\./, first.stdout);
+  const json = await cli(m, api, 'setup', '--yes', '--json', '--with', 'dashboards,switchboard');
+  assert.deepEqual(json.json.blocked, ['Fabric Dashboards', 'Fabric Switchboard']);
+  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`;
+  assert.deepEqual(json.json.humanSteps, [`Fabric Dashboards: ${note}`, `Fabric Switchboard: ${note}`], JSON.stringify(json.json.humanSteps));
+  // doctor --fix makes the same repairs without the blocked one, and names it.
+  const fix = await cli(m, api, 'doctor', '--fix', '--json');
+  assert.ok(!fix.json.actions.some((x) => x.kind === 'replace'), JSON.stringify(fix.json.actions));
+  assert.deepEqual(fix.json.blocked, ['Fabric Switchboard']);
+  assert.deepEqual(fix.json.humanSteps.filter((x) => x.includes('is not writable')), [`Fabric Switchboard: ${note}`]);
+  // A dry run once the skills are in: nothing selected, so its headline names the apps that need a folder, and its JSON carries them.
+  const dry = await cli(m, api, 'setup', '--dry-run', '--json', '--without', 'dashboards,observatory,inbox,fabric');
+  assert.deepEqual(dry.json.blocked, ['Fabric Switchboard'], JSON.stringify(dry.json.plan));
+  const dryText = await cli(m, api, 'setup', '--dry-run', '--without', 'dashboards,observatory,inbox,fabric');
+  assert.match(dryText.stdout, /Nothing would change: Fabric Switchboard needs a folder you can write \(see the plan below\)\./, dryText.stdout);
+});
+
+test('PC-147: a terminal run answered no names the blocked apps as never asked, not as offers it left; doctor names the folder for Switchboard everywhere', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  installApp(m, catalog.byId('fabric'));
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    const asked = [];
+    S.setup({ online: true, noOpen: true, ask: async (q) => { asked.push(q); return 'n'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, notTaken: r.notTaken, blocked: r.blocked, text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
+  const run = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  assert.ok(out.asked.length && !out.asked.some((q) => /^Install /.test(q)), JSON.stringify(out.asked));
+  assert.equal(out.declined, true);
+  assert.equal(out.notTaken, undefined, JSON.stringify(out.notTaken));
+  assert.ok(out.blocked.includes('Fabric Switchboard'), JSON.stringify(out.blocked));
+  assert.match(out.text, /You declined every offer; nothing was changed\. Not asked about: Fabric Switchboard, [^\n]* need a folder you can write; the steps below say which\./, out.text);
+  // doctor: the sessions row and a stale MCP entry for the absent, blocked Switchboard name the folder, never setup --with.
+  const stale = path.join(m.apps, 'Fabric Switchboard.app/Contents/MacOS/switchboard-mcp');
+  const cj = path.join(m.home, '.claude.json');
+  const json = fs.existsSync(cj) ? JSON.parse(fs.readFileSync(cj, 'utf8')) : {};
+  json.mcpServers = { ...(json.mcpServers || {}), switchboard: { type: 'stdio', command: stale, args: [] } };
+  fs.writeFileSync(cj, JSON.stringify(json));
+  const d = await cli(m, api, 'doctor', '--json');
+  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`;
+  const on = d.json.checks.find((x) => x.id === 'sessions.on-demand');
+  assert.ok(on.fix.includes(note) && !on.fix.includes('setup --with switchboard'), on.fix);
+  const entry = d.json.checks.find((x) => x.id === 'mcp.claude.switchboard');
+  assert.equal(entry.state, 'fail', JSON.stringify(entry));
+  assert.equal(entry.fix, note);
+  const saved = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'));
+  assert.ok(saved.blocked.includes('mcp.claude.switchboard'), JSON.stringify(saved));
+  // setup's steps name the app once, the stale entry's row and the blocked install sharing one line.
+  const steps = (await cli(m, api, 'setup', '--yes', '--json')).json.humanSteps;
+  assert.deepEqual(steps.filter((x) => x.includes('Switchboard') && x.includes('is not writable')), [`Fabric Switchboard: ${note}`], JSON.stringify(steps));
+  assert.ok(!steps.includes(note), 'no step without its app');
+});
+
+test('PC-147: an outdated app in use, in a folder the user cannot write, is named in blocked, never called in place; a damaged one is a blocked failure', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  for (const id of ['dashboards', 'observatory', 'inbox']) installApp(m, catalog.byId(id));
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0', running: true });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--without', 'fabric')).status, 0); // skills and MCP settled
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
+  assert.deepEqual(r.json.blocked, ['Fabric Switchboard'], JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  const text = await cli(m, api, 'setup', '--yes', '--without', 'fabric');
+  assert.doesNotMatch(text.stdout, /is in place/, text.stdout);
+  assert.match(text.stdout, /Nothing was changed: Fabric Switchboard needs a folder you can write/, text.stdout);
+  // With Fabric in the run too (a blocked install item), each app is one step: Switchboard by its row, Fabric by its note.
+  const both = await cli(m, api, 'setup', '--yes', '--json');
+  const named = (app) => both.json.humanSteps.filter((x) => x.startsWith(`${app}: `) && x.includes('is not writable'));
+  assert.equal(named('Fabric Switchboard').length, 1, JSON.stringify(both.json.humanSteps));
+  assert.equal(named('Fabric').length, 1, JSON.stringify(both.json.humanSteps));
+  assert.match(named('Fabric')[0], /it also needs Docker/);
+  // A plan names it under its items with the folder, since the plan has no item of its own for it.
+  const dry = await cli(m, api, 'setup', '--dry-run', '--without', 'fabric');
+  assert.match(dry.stdout, /Nothing would change: Fabric Switchboard needs a folder you can write \(see the plan below\)\.[\s\S]*\n  – Fabric Switchboard: .* is not writable for you/, dry.stdout);
+  const dryJson = await cli(m, api, 'setup', '--dry-run', '--json', '--without', 'fabric');
+  assert.ok(dryJson.json.before.checks.some((c) => c.product === 'switchboard' && c.blocked && /is not writable for you/.test(c.fix)), 'the reason is in the check');
+  // A damaged bundle there fails its signature check: doctor.json lists it as blocked, so the hook sends the person to doctor.
+  fs.chmodSync(m.apps, 0o755);
+  installApp(m, catalog.byId('inbox'), { broken: true });
+  fs.chmodSync(m.apps, 0o555);
+  await cli(m, api, 'doctor', '--json', '--offline');
+  const saved = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'));
+  assert.ok(saved.failed.includes('app.inbox.signature'), JSON.stringify(saved));
+  assert.deepEqual(saved.blocked, saved.failed.filter((id) => ['app.inbox.signature', 'app.switchboard.signature'].includes(id)), JSON.stringify(saved));
+  // The damaged, idle Inbox has a reinstall item of its own: the plan names it on that one line, never again below it.
+  const dryDamaged = await cli(m, api, 'setup', '--dry-run', '--without', 'fabric');
+  const inboxLines = dryDamaged.stdout.split('\n').filter((l) => /^\s+– /.test(l) && l.includes('Fabric Inbox'));
+  assert.equal(inboxLines.length, 1, dryDamaged.stdout);
+  assert.match(inboxLines[0], /reinstall Fabric Inbox/, dryDamaged.stdout);
+});
+
+test('PC-145, PC-147: setup plans from the home it is given, as doctor and the install do', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') }); // HOME, with a ~/Applications this user may write
+  m.perUser = true;
+  m.shared = path.join(m.home, 'shared-Applications');
+  fs.mkdirSync(m.shared);
+  const other = machine({ tools: TOOLS.filter((x) => x !== 'docker') }); // the home passed in, whose Applications is locked
+  fs.chmodSync(other.apps, 0o555);
+  t.after(() => fs.chmodSync(other.apps, 0o755));
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ home: ${JSON.stringify(other.home)}, online: false, noOpen: true, dryRun: true })
+      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, blocked: r.blocked })), (e) => { console.error(e); process.exit(1); });`;
+  const run = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  const installs = out.plan.filter((i) => i.kind === 'install');
+  assert.equal(installs.length, catalog.PRODUCTS.length, JSON.stringify(out.plan));
+  for (const i of installs) {
+    assert.ok(i.blocked && i.detail.includes(`into ${other.apps} from`), JSON.stringify(i));
+    assert.ok(i.note.startsWith(`${other.apps} is not writable for you`), JSON.stringify(i));
+  }
+  assert.deepEqual([...out.blocked].sort(), catalog.PRODUCTS.map((p) => p.name).sort());
+  // The other way round: the home passed in may be written, HOME's may not. On a release train, its damaged Switchboard
+  // ahead of its pin is reinstalled from the latest and its Inbox behind its pin from the pin; the Install question names
+  // its folder; none of them is worked out from HOME, where no app is.
+  fs.chmodSync(other.apps, 0o755);
+  installApp(other, catalog.byId('switchboard'), { version: '1.0.0', broken: true });
+  installApp(other, catalog.byId('inbox'), { version: '1.0.0' });
+  onTrain(m, { switchboard: '0.9.0', dashboards: '1.1.0', observatory: '1.1.0', inbox: '1.1.0', fabric: '1.1.0' });
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const asking = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    const asked = [];
+    S.setup({ home: ${JSON.stringify(other.home)}, online: true, noOpen: true, train: 'org-test', withIds: ['dashboards', 'switchboard', 'inbox'], ask: async (q) => { asked.push(q); return 'n'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, asked })), (e) => { console.error(e); process.exit(1); });`;
+  const second = await new Promise((resolve) => { // async: the release server answers from this process
+    const child = spawn(process.execPath, ['-e', asking], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(second.status, 0, second.stderr);
+  const back = JSON.parse(second.stdout);
+  assert.ok(back.asked.some((q) => q.startsWith(`Install Fabric Dashboards into ${other.apps}?`)), JSON.stringify(back.asked));
+  const item = (id) => back.plan.find((i) => i.kind === 'replace' && i.product === id) || {};
+  assert.ok(!item('switchboard').blocked && /from its latest signed release/.test(item('switchboard').detail), JSON.stringify(back.plan));
+  assert.ok(!item('inbox').blocked && /from its release 1\.1\.0, pinned by release train org-test/.test(item('inbox').detail), JSON.stringify(back.plan));
+  assert.ok(!back.plan.some((i) => i.kind === 'install' && ['switchboard', 'inbox'].includes(i.product)), JSON.stringify(back.plan));
+  assert.ok(back.asked.some((q) => /reinstall Fabric Switchboard/.test(q)), JSON.stringify(back.asked));
+});
+
+test('PC-147: on a release train, an app behind its pin, in use, in a locked folder is blocked once; an unreadable version is not', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
+  for (const id of ['dashboards', 'observatory', 'inbox']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0', running: true });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--train', 'org-test', '--without', 'fabric')).status, 0);
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
+  assert.deepEqual(r.json.blocked, ['Fabric Switchboard'], JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  const dry = await cli(m, api, 'setup', '--dry-run', '--without', 'fabric');
+  assert.equal(dry.stdout.split('\n').filter((l) => l.startsWith('  – Fabric Switchboard: ')).length, 1, dry.stdout);
+  // A version the launcher cannot read, its signature fine: no replace, so not blocked, and no step asks for the folder alone.
+  fs.chmodSync(m.apps, 0o755);
+  const plist = path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist');
+  fs.writeFileSync(plist, JSON.stringify({ ...JSON.parse(fs.readFileSync(plist, 'utf8')), CFBundleShortVersionString: 'nightly' }));
+  fs.chmodSync(m.apps, 0o555);
+  const odd = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
+  assert.equal(odd.json.blocked, undefined, JSON.stringify(odd.json.blocked));
+  assert.ok(odd.json.humanSteps.every((x) => !/is not writable/.test(x) || /if its signature check fails too, setup cannot reinstall it/.test(x)), JSON.stringify(odd.json.humanSteps));
+});
+
+test('PC-147: a blocked Fabric without Docker, with a stale MCP entry, is one step that says both', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const cj = path.join(m.home, '.claude.json');
+  const conf = fs.existsSync(cj) ? JSON.parse(fs.readFileSync(cj, 'utf8')) : {};
+  conf.mcpServers = { ...(conf.mcpServers || {}), fabric: { type: 'stdio', command: path.join(m.apps, 'Fabric.app/Contents/MacOS/fabric-mcp'), args: ['--runner', 'claude-code'] } };
+  fs.writeFileSync(cj, JSON.stringify(conf));
+  const r = await cli(m, api, 'setup', '--yes', '--json');
+  const fabric = r.json.humanSteps.filter((x) => x.startsWith('Fabric: '));
+  assert.equal(fabric.length, 1, JSON.stringify(r.json.humanSteps));
+  assert.match(fabric[0], /it also needs Docker/);
+  // With no blocked item for Fabric (left out, or doctor --fix), the stale entry is still its step, once.
+  for (const args of [['setup', '--yes', '--json', '--without', 'fabric'], ['doctor', '--fix', '--json']]) {
+    const run = await cli(m, api, ...args);
+    const steps = run.json.humanSteps.filter((x) => x.startsWith('Fabric: '));
+    assert.equal(steps.length, 1, `${args.join(' ')}: ${JSON.stringify(run.json.humanSteps)}`);
+    assert.match(steps[0], /is not writable for you/);
+  }
+});
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
@@ -1511,7 +1844,7 @@ test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaul
       assert.match(plan.stdout, /  – install Fabric/, plan.stdout);
       assert.match(plan.stdout, /\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/, plan.stdout);
       assert.equal(run.asked.length, 1, JSON.stringify(run.asked));
-      assert.match(run.asked[0], /^Install Fabric/);
+      assert.match(run.asked[0], /^Install Fabric \(early preview\) into \S/); // PC-145: the question names the folder
     } else {
       assert.doesNotMatch(plan.stdout, /^ {2}– /m, plan.stdout);
       assert.match(plan.stdout, /\nRun it with --yes, or in a terminal, to apply\.\n/, plan.stdout);

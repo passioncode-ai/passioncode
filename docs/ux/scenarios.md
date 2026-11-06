@@ -22,6 +22,7 @@
 | SCN-014 | Follow an organization's release train | setup, doctor | Operator | PC-89 | implemented | 2026-10-28 |
 | SCN-015 | See and change what Claude Code may do without asking | permissions | Operator | PC-125 | implemented | 2026-11-04 |
 | SCN-016 | Know about and turn off the anonymous usage counts | analytics | Operator | PC-123 | implemented | 2026-11-04 |
+| SCN-017 | Set up a second macOS user on a Mac where another user installed the apps | setup, doctor | Newcomer | PC-145, PC-146, PC-147 | implemented | 2026-11-06 |
 
 ## Personas
 
@@ -166,7 +167,7 @@
 - **Entry point:** `npx @passioncode-ai/passioncode@latest setup` (in a terminal), or `setup --yes --json` from a coding agent
 - **Preconditions:** Node 18+; macOS for the apps; no PassionCode.ai app or skill installed.
 - **Steps:**
-  1. Run setup. In a terminal, answer one question per absent app (Fabric, an early preview, defaults to no without Docker and the Supabase CLI), one for the repairs, if any are left, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
+  1. Run setup. In a terminal, answer one question per absent app (an app whose folder you cannot write is named instead and never asked, SCN-017; Fabric, an early preview, defaults to no without Docker and the Supabase CLI), one for the repairs, if any are left, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
   2. Read the result: what was installed, the checks before and after, and the numbered steps that stay the person's.
   3. Do those steps (sign-ins, consents, secrets in each product's hidden prompt), restart the coding agents.
 - **Expected result:** The chosen apps are installed from verified releases and opened once; the skill set is installed; every bundled MCP server is registered for every agent present and answers its proving call; the person's steps are listed once.
@@ -188,7 +189,7 @@
   1. Run setup. It checks first and lists the repairs.
   2. Accept. It repairs, checks again and prints before → after.
   3. Do the listed steps that stay the person's (quit a running app that needs an update, start Docker, a product's own onboarding).
-- **Expected result:** The closing line counts what is still open: "No problems" or the number of problems (FAILs), with the warnings named beside them ("No problems, 1 warning(s).", or "No problems remain (before: 2), 1 warning(s)." after repairs); open checks are "Still open:" after any run, a declined one included, and "Open now:" under a plan. The skill set and MCP registrations are repaired; an outdated or damaged app that is not running is reinstalled from its verified release and the old one is in the Trash; a family service launchd owns that does not answer is started with `launchctl kickstart` (no `-k`); a running app is never replaced; nothing is killed. On a healthy computer nothing changes (apart from the launcher's anonymous counts, SCN-016) and the exit code is 0; a `sessions.on-demand` warning is listed under the checks, never as a step for the person.
+- **Expected result:** The closing line counts what is still open: "No problems" or the number of problems (FAILs), with the warnings named beside them ("No problems, 1 warning(s).", or "No problems remain (before: 2), 1 warning(s)." after repairs); open checks are "Still open:" after any run, a declined one included, and "Open now:" under a plan. The skill set and MCP registrations are repaired; an outdated or damaged app that is not running is reinstalled from its verified release and the old one is in the Trash, unless its folder or the app itself is not this user's to replace (SCN-017); a family service launchd owns that does not answer is started with `launchctl kickstart` (no `-k`); a running app is never replaced (running for this user: on a Mac with several users only this user's own processes count, so a copy of theirs that another user has open, or runs an MCP server from, is still replaced and goes to their Trash; that user restarts it, PC-151 and PC-149); nothing is killed. On a healthy computer nothing changes (apart from the launcher's anonymous counts, SCN-016) and the exit code is 0; a `sessions.on-demand` warning is listed under the checks, never as a step for the person.
 - **Alt paths:** `doctor --fix` runs the same repairs without installing new apps or opening anything (it never asks). `setup` in a terminal, answered no to the repairs and to every other offer, changes nothing, is reported as declined (never as "everything is in place") and still names `setup` among the person's steps when a failing or warning check's own fix names it (a service it would start keeps that check's own fix). The steps rule holds for any terminal run that answers no to the repairs, whatever else it took (an install, or forgetting a train with `--train none`): `setup` stays among the person's steps where a failing or warning check's own fix names it. An app it installs that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) is registered through the skill and MCP update, so once such an install is taken the repairs question leaves that update out, and the update runs after that install succeeds, not when it fails (PC-112); the update also makes the skill-set and MCP-registration repairs, so their checks may pass and leave no `setup` step (PC-108). A yes to PassionCode's tool rules alone (PC-117), or to the rules for commands alone (PC-119), is not a declined run: it adds those rules. An existing machine is offered the rules for commands on its next `setup` until the person takes them or lists them under ask or deny (PC-119). An app answered no that has no note (its prerequisites are there) is no step of its own: running `setup` again offers it, and the steps name `setup` only when a failing or warning check's own fix names it. Fabric named with `--with fabric` without its prerequisites and then answered no is "not installed (--with fabric)" among the steps (with a declined train, `setup --train <name> --with fabric`). On a set-up Mac where the only offer defaults to no (Fabric without Docker or the Supabase CLI), a terminal run that takes nothing and names no train other than the saved one (`--train none` with a train saved is a change) says "Nothing was changed: Fabric was offered and not installed" and lists the app's note among the person's steps (a run that names a new train saves it, "Done: saved release train"). The same machine re-run with `--yes`, or without a terminal, naming no train other than the saved one, says "Nothing was changed: Fabric was not installed (see your steps below)" rather than "everything is in place". A terminal run that answers no to every offer that defaults to yes and leaves Fabric's says "You declined every other offer, and Fabric was not installed": leaving a default-no offer is not declining it. Each of these lines adds "The checks below still stand." when a check fails or warns, and only then. A run that is not a plan, changes nothing and leaves no app out (none offered and not installed, none skipped) says "Everything this command can set up is in place; nothing was changed." ("Everything else this command can set up is in place" while Claude Code's tool rules or the rules for commands are offered and not taken, or its settings cannot be read, PC-117, PC-119), adding "The checks below still stand." the same way; with a check it cannot repair failing it exits 1. A `--dry-run` is a plan and says "Nothing to do" instead.
 - **UI elements:** The before → after table by area, every check that changed state, what is still open, the person's steps.
 - **States covered:** success, error
@@ -211,7 +212,10 @@
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
   own (PC-86). When `update.auto` is off, a `skills.auto-update` information row says so and names
-  `config set update.auto on` as the person's choice; doctor never turns it on (PC-131).
+  `config set update.auto on` as the person's choice; doctor never turns it on (PC-131). Until Fabric Dashboards
+  pins 0.2.76 or later for its "Check setup" button, that button runs the 0.2.2 doctor, which looks only in
+  `/Applications`: it shows apps setup put in `~/Applications` as not installed; run doctor in a terminal instead
+  (PC-161).
 - **UI elements:** Grouped text lines or JSON; exit code.
 - **States covered:** success, error
 - **Errors & recovery:** Every failing line names the command or the step that fixes it.
@@ -263,13 +267,13 @@
 - **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run.
 - **Steps:**
   1. Start a session.
-- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them. The hook never runs doctor.
+- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), the line names `doctor`, which shows that folder, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
 - **Alt paths:** No failures or no file: silent.
 - **UI elements:** One hook line.
 - **States covered:** empty, error
 - **Errors & recovery:** A damaged file is ignored.
 - **Status:** implemented
-- **Coverage:** `test/self-update.test.js`, test beginning `session start names the failures`.
+- **Coverage:** `test/self-update.test.js`, test beginning `session start names the failures` (its blocked case too).
 - **Product:** unobserved
 
 ### SCN-014: Follow an organization's release train
@@ -282,7 +286,7 @@
   1. Run setup with the train. The plan names each app's pinned release instead of its latest.
   2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
   3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
-- **Expected result:** Every installed app the train pins is at its pinned version; `doctor` says how many are.
+- **Expected result:** Every installed app the train pins is at its pinned version, unless its folder or the app itself is not this user's to replace (SCN-017: the run names it in `blocked`, "Not installed or replaced: ..."); `doctor` says how many are.
 - **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (when it names a train other than the saved one, its last item is "save release train <name>", followed only by Claude Code's tool rules while they are offered, PC-117) and saves nothing; without a terminal and without `--yes`, a plan whose only item is the train closes with "Run it with --yes, or in a terminal, to apply.", since a terminal then asks nothing and saves the train at once (while Claude Code's tool rules are offered a terminal asks about them, so it closes with the questions footer, PC-117); a yes to the tool rules alone is a run the person agreed to, so it saves a named train with them; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), the report lists no plan under its headline, and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup` (and `setup --train <name> --with fabric` for Fabric without its prerequisites); `--train none` in a terminal is saved on any answer, and when the repairs are answered no, the steps name `setup` where a failing or warning check's own fix names it.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
@@ -328,3 +332,42 @@
 - **Status:** implemented
 - **Coverage:** `test/analytics.test.js` tests beginning `PC-123:`.
 - **Product:** unobserved
+
+### SCN-017: Set up a second macOS user on a Mac where another user installed the apps
+
+- **Persona:** Newcomer
+- **Feature:** setup, doctor
+- **Entry point:** `npx @passioncode-ai/passioncode@latest setup` in the second user's terminal or coding agent
+- **Preconditions:** The Mac has a first user whose apps are in `/Applications`; the second user is a standard user
+  (no administrator rights), has no `~/Applications` yet and has not run `setup` before.
+- **Steps:**
+  1. Run `setup` (or `setup --yes`) as the second user.
+  2. Read where each app goes: each install line of the plan (`--dry-run`, or a run without a terminal) and each install question in a terminal names the second user's `~/Applications`.
+  3. Run `doctor`.
+- **Expected result:** Each app is installed into `~/Applications` (made when absent); no administrator password is
+  asked; the first user's copies in `/Applications` are left byte for byte as they were. `doctor`, `update` and the
+  session hook use the second user's copies, and the MCP servers setup registers run from them.
+- **Alt paths:** A copy in `/Applications` that this user owns and can replace stays where it is and is updated there.
+  A copy in `~/Applications` always wins over one in `/Applications`. `PASSIONCODE_APPLICATIONS` names one folder for
+  every app and turns the rule off; it is read on each run, so it is set wherever `setup`, `doctor` and the agents start
+  (the Fabric Agent Adapter, v0.70.0, takes an absolute value as the one place to look for Fabric too, and skips another user's copy there, which setup and doctor still use (PC-160)).
+  A user who ran `setup` before this release keeps the MCP entries it registered from another user's copy until PC-149
+  points them at their own copy; until then `doctor` warns that each such entry runs from that copy, with the step:
+  remove the entry, then `doctor --fix` registers this user's own. Sessions Fabric starts find this user's
+  `~/Applications/Fabric.app` first, flag another user's registered copy and name a root-owned one as an
+  administrator's, from Fabric Agent Adapter v0.70.0, which this release pins (PC-141, FAA-229, FAA-237). A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
+  in the plan and among the steps, is never asked about, and nothing is downloaded (Fabric's note adds what else it
+  needs, such as Docker; a folder of the user's own says how to unlock it, any other to ask an administrator); every run, a plan included, names
+  those apps in `blocked`, and its closing line names them ("Nothing was changed: ... needs a folder you can write", or
+  "Not installed or replaced: ..." after what else it did, or "Nothing would change: ..." for a plan). `doctor`'s fix
+  for such an app names the folder, never a `setup` that cannot replace it.
+- **UI elements:** the plan's install lines; `doctor`'s app rows and the note naming another user's copy.
+- **States covered:** empty, success, partial
+- **Errors & recovery:** Another user's copy is never replaced, moved or put in the Trash; `doctor` names it with its
+  reason (another user's, one an administrator installed (owned by root), one this user cannot replace, or this user's own earlier copy beside the one in
+  `~/Applications`) and, for an app with links (`fabric-dashboards://`, `fabric-inbox://`, `fabric://`), that macOS may
+  open them with it; there is no fix to run.
+- **Status:** implemented
+- **Coverage:** `test/catalog.test.js` (where an app goes, the note for another user's or an administrator's copy), `test/setup.test.js` tests beginning `PC-145, PC-146` and `PC-147`, `test/self-update.test.js` test beginning `session start names the failures`.
+- **Product:** unobserved
+

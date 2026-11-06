@@ -4,6 +4,8 @@ The launcher sends anonymous usage and error counts to PassionCode's own analyti
 existing machines, so the product can be improved (PC-123; the operator's decision of 2026-11-04 for every PassionCode
 product). This page is the event catalogue: an event's name is a time series and is never renamed or reused; a removed
 event stays listed as retired with its date. `test/analytics.test.js` fails when an event the code sends is missing here.
+An installation, and a "machine" in these series, is one macOS user's home (its `installation.json` is in that home): a
+Mac with two users counts twice.
 
 ## What is sent
 
@@ -64,7 +66,15 @@ final: a shared "no" is not read over it.
 Reading the launcher's own series: existing machines are counted from their first run without `--json` or `--quiet`
 after 0.2.76 (or the setup skill's `analytics status`), so the early `existing` installs and daily active machines are a
 floor that rises as machines run setup again, not adoption. A run of an older version after a newer one (a caller that pins a version) is also sent as
-`app_updated`, with the newer version in `from`.
+`app_updated`, with the newer version in `from`. From 0.2.76 a standard user's `setup` installs the apps into their
+own `~/Applications` and ends `ok` where it used to fail with a permission error on `/Applications`: a real change (SCN-017). The
+launcher's own installs are counted per user (each home has its own installation file) and do not move; an app's own
+`app_installed` is sent at its first start per macOS user (its state is in that user's own folder), whatever copy runs,
+so it rises only where setup now installs and opens an app for a user who had never started it; a user who already ran
+another user's copy is not counted again. A run whose target folder is not writable (their own `~/Applications`, a
+`PASSIONCODE_APPLICATIONS` folder, or a locked bundle there) also ends `ok`, with the apps in `blocked`, unless a check still fails. And `doctor`
+no longer counts another user's copy in `/Applications` as this user's problem (it is an information row), so its
+check-failed share on Macs with several users may fall.
 
 The host sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing
 it; events are kept two years and the installation id is removed from them after 400 days
@@ -76,3 +86,7 @@ it; events are kept two years and the installation id is removed from them after
   shared `installation.json` at its first counted run, often before any PassionCode app starts. On machines set up with
   the launcher, the apps' `app_installed` then carries `first_passioncode_app` false more often. The drop is a change in
   measurement, not in what people do: read it as a break in the series.
+- From launcher 0.2.76, on a Mac with several users, each user's `setup` installs the apps into their own
+  `~/Applications` (PC-145) and opens it once, so an app's own `app_installed` (sent at its first start per macOS user)
+  can rise for a user who had never started it: a real change in what people get, not a measurement break. A user who
+  already ran another user's copy is not counted again.

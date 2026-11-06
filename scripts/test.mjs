@@ -29,6 +29,8 @@ try {
   const env = { ...process.env, PASSIONCODE_TEST_RUN: '1', TMPDIR: scratch, TMP: scratch, TEMP: scratch };
   delete env.CLAUDE_CONFIG_DIR;
   delete env.SWITCHBOARD_CLAUDE_SOURCE_DIR;
+  // PC-145: the shared apps folder is a scratch one, so no test reads the machine's own /Applications.
+  env.PASSIONCODE_SHARED_APPLICATIONS = path.join(scratch, 'shared-Applications');
   const child = spawn(process.execPath, ['--test', ...flags, ...tests], { stdio: 'inherit', env });
   // PC-116: an interrupted run (Ctrl-C, SIGTERM) stops its tests and still removes its folder: the signal goes
   // to node --test, and this process waits for it to end instead of ending first.

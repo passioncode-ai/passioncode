@@ -79,8 +79,8 @@ values still do not prove registry freshness. Sources: `status()` in
 `fix` is the command or step that resolves it; `repair` names what `setup` may do
 about it (`update`, `replace`, `kickstart`) or is null. `ok` is false when any
 check fails. The summary and the failed ids are saved to
-`~/.passioncode/doctor.json`, which the SessionStart hook repeats while it has
-failures, and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
+`~/.passioncode/doctor.json` (with `blocked`, the failed ids whose app folder this user cannot write, PC-147), which the
+SessionStart hook repeats while it has failures (naming `doctor` instead of `setup` when every one is blocked), and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
 starts, stops or opens nothing, apart from the anonymous counts every command
 sends when they are on ([Anonymous usage counts](#anonymous-usage-counts): `~/.passioncode/analytics.json`, its notice
 marker, the shared `installation.json` created once, and one request to `https://analytics.passioncode.ai`).
@@ -89,8 +89,8 @@ marker, the shared `installation.json` created once, and one request to `https:/
 |---|---|---|
 | prerequisites | Node ≥ 18; coding agents present; Docker answering and the Supabase CLI when Fabric is installed | Node too old; Docker or the Supabase CLI missing (a stopped Docker is a warning) |
 | skills | `status`: the set installed, each member's plugin, hub links, shadows, legacy copies; the update switch (`skills.auto-update`, information only, when `update.auto` is off, with the command that turns it on: an uninstall by 0.2.75 or earlier wrote it off, PC-131) | the set is missing or broken |
-| apps (macOS) | each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
-| mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
+| apps (macOS) | this user's copy of each app (the per-user rule of `PASSIONCODE_APPLICATIONS` below), with an information row `app.<id>.shared` for a copy in `/Applications` left as it is; each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
+| mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning; an entry that runs from a copy in `/Applications` this user does not use, while their own copy is installed, is a warning whose fix removes it and runs `doctor --fix`, PC-146) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 | services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing (the person's choice; Switchboard's default agent may be another) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
 
@@ -109,14 +109,26 @@ saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set 
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
 `replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; only this user's processes count, matched on the bundle's whole path, PC-151; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
-launchd service that does not answer), each with the check ids that caused it.
+launchd service that does not answer), each with the check ids that caused it. An `install` or `replace` whose
+folder (or, for a replace, the app itself) this user cannot write is `blocked: true`, `selected` false and never asked
+about, with the reason in `note`; it is among `humanSteps`, and every run, a plan included, names those apps in
+`blocked`, whatever else it changed, never in `notTaken` (with the apps of problems doctor marks blocked that the plan
+has no item for: an outdated copy in use, an app the run leaves out, a stale MCP entry; a plan lists each of those under
+its items with doctor's fix, and their checks carry `blocked: true`). The closing line says so: "Nothing was changed: X needs a
+folder you can write" when nothing ran, "Not installed or replaced: X needs a folder you can write" after "Done:",
+"Not asked about: X needs a folder you can write" after a declined run's line, and "Nothing would change: X needs a
+folder you can write" for a plan with nothing selected (PC-147); when an app is skipped too (Fabric without its
+prerequisites), a plan's headline names the skipped app and a run's names the blocked one, and the plan items and the
+steps name both. doctor's fix for such an app, in its app rows, a stale
+MCP entry and the `sessions.on-demand` row, names the folder, never a `setup` that cannot install or replace it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
-`fail` or `warn` fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124; information rows such as `skills.auto-update` stay in `after.checks` too), each product's onboarding for apps installed in this run, and the restart. A plan lists
+`fail` or `warn` fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124; information rows such as `skills.auto-update` stay in `after.checks` too; a check marked `blocked` whose app has a blocked plan item is named by that item's note, PC-147), each product's onboarding for apps installed in this run, and the restart. A plan lists
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
-Questions are asked only on a terminal: one per absent app (on macOS), one for the
+Questions are asked only on a terminal: one per absent app (on macOS, naming the folder it goes into; one whose folder
+this user cannot write is named, never asked, PC-147), one for the
 repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
 tools where Claude Code is and they are missing (default no; see PC-117 below), and one for the rules for shell commands
 where Claude Code is and one of them is missing (default no; see PC-119 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
@@ -512,7 +524,8 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `SWITCHBOARD_CLAUDE_SOURCE_DIR` | Set by Fabric Switchboard 0.7.14 and later beside a `CLAUDE_CONFIG_DIR` that points at its own Claude Code home, in the sessions it launches and in the terminals its hook keeps in a group's folder: the absolute path of the person's folder that home is built from. With both set, the launcher writes settings (permission rules, the mode, marketplace declarations), installs plugins and registers MCP servers there (`.claude.json` inside it, or `~/.claude.json` when it is `~/.claude`), checks the plugin registry there, where the CLI wrote it, and moves shadowing skills in the home, whose links (on macOS and Linux, and on Windows from Switchboard 0.7.17) lead to the same files; Switchboard rebuilds the home's `settings.json` at every launch, so a write there would be lost, and Switchboard's sessions see a change from their next launch (PC-129, SB-259). A home of an earlier Switchboard, which names no source, lies in Switchboard's data folder (`ai.passioncode.fabric-switchboard`): the launcher then writes to `~/.claude` (where 0.2.75 wrote settings too; its plugin and MCP calls went into the home). If your own Claude Code folder is not `~/.claude`, use Switchboard 0.7.14 or later: an earlier one does not tell the launcher where it is. Before Switchboard 0.7.15 on macOS and Linux, and on Windows before Switchboard 0.7.17 (earlier releases make no links in the homes they launch there; SB-266), a home whose own `plugins` folder is a real folder (not a link) does not see plugins installed in the person's folder (SB-260); the organization-r1 train pins Switchboard 0.7.17 (PC-148). Ignored when it is not absolute or `CLAUDE_CONFIG_DIR` is not set. MCP servers registered this way reach sessions outside Switchboard; Switchboard's own sessions get the servers Switchboard carries into its homes |
 | `PASSIONCODE_CLAUDE` | Override Claude executable for checkout/testing; a `.js`, `.cjs` or `.mjs` file runs through this Node |
 | `PASSIONCODE_NPM`, `PASSIONCODE_NPX` | Replace the `npm` the session hook's probe runs and the `npx` its background update runs, for tests; a `.js`, `.cjs` or `.mjs` file runs through this Node. Whatever they name runs in place of npm, so they are trusted local configuration like every override here |
-| `PASSIONCODE_APPLICATIONS` | Applications folder setup and doctor use (default `/Applications`) |
+| `PASSIONCODE_APPLICATIONS` | One applications folder for every app setup and doctor use. Unset: each app is in this user's `~/Applications` (made on the first install), or in `/Applications` when the copy there is this user's and its folder and the app itself let them replace it; another user's copy is never replaced, moved or put in the Trash, and `doctor` names it (`app.<id>.shared`; PC-145, PC-146, SCN-017). Read on each run, never remembered: set it wherever `setup`, `doctor` and the agents start. A folder the user cannot write is named in the plan before anything is downloaded (PC-147). The Fabric Agent Adapter (v0.70.0) takes an absolute value as the one place to look for Fabric too, and skips another user's copy there, which setup and doctor still use (PC-160). |
+| `PASSIONCODE_SHARED_APPLICATIONS` | The shared folder of that rule (default `/Applications`); tests set it so none reaches the machine's own |
 | `PASSIONCODE_GITHUB_API` | GitHub API base for release lookups (default `https://api.github.com`) |
 | `PASSIONCODE_RELEASE_KEY` | An armoured key file that replaces the bundled release key, for tests; setup names it in its output whenever it is set |
 | `PASSIONCODE_PLATFORM` | Treat the system as this platform (tests); the session hook and its update check read it too, to choose how they start npm and npx |

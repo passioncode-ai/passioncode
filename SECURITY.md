@@ -53,7 +53,9 @@ its notice marker, the shared `PassionCode/installation.json` created once if ab
 `setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`; a train
 changes which release is downloaded (the pinned tag instead of the latest), never how it is verified.
 `setup` also downloads releases from GitHub into `~/.passioncode/downloads/` (removed after
-each app), copies a verified app into `/Applications`, moves an app it replaces into `~/.Trash/`,
+each app), copies a verified app into the person's own `~/Applications` (made when absent; a copy in `/Applications` the
+person owns and may replace stays there, another user's is never touched, PC-145, PC-146), moves an app it replaces
+into `~/.Trash/`,
 runs `update` (above), on the person's own yes (a terminal question, default no, or `--allow-tools`) merges
 Claude Code's rules for PassionCode's own MCP tools (`mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard`,
 `mcp__plugin_switchboard_switchboard`, `mcp__observatory`) into `permissions.allow` in `~/.claude/settings.json`,
@@ -68,7 +70,8 @@ interpreter or a program whose options run other code, and any wildcard over a p
 home folder; `docs/reference/cli.md` lists them, PC-119), records every rule it added in a private ledger when it can write it (the rules stand without it)
 (`~/.passioncode/permissions.json`: the rule, who declared it, from where and when, PC-125), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
 descriptor names launchd and that does not answer, and opens the apps it installed. It never
-stops or kills a process, never replaces a running app, never asks for or stores a secret, and
+stops or kills a process, never replaces an app that is running for this user (another user's process running from
+this user's copy does not count, PC-151; that user restarts it, PC-149), never asks for or stores a secret, and
 never installs a byte whose signature, checksum, team or notarization does not verify. The trust
 root is the release key bundled at `lib/release-key.asc`, pinned by fingerprint in
 `lib/openpgp.js`; a new key needs a launcher release. `PASSIONCODE_RELEASE_KEY` replaces it for
