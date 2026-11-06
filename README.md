@@ -111,8 +111,10 @@ computer it changes nothing (apart from the anonymous counts) and exits 0. An ap
 `SHA256SUMS.asc` verifies against the PassionCode.ai release key bundled in this package
 (fingerprint `63B3 0DC3 24BD 6974 87AA 3194 4FAF B8AE C803 B6A7`), the file matches the signed
 checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35UYYL22`, has its
-notarization ticket stapled and is accepted by Gatekeeper. An outdated or damaged app is
-reinstalled only when it is not running; the old one goes to the Trash. A family service that
+notarization ticket stapled and is accepted by Gatekeeper. Apps go into your own `~/Applications` (made on the first
+install); a copy in `/Applications` that is yours and that you may replace stays there. An outdated or damaged app is
+reinstalled only when it is not running and you may replace it; the old one goes to the Trash. One you cannot replace
+(another user's, or in a folder you cannot write) is named, never reinstalled. A family service that
 does not answer is started through launchd (`launchctl kickstart`, never a kill).
 
 `doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature

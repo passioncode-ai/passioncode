@@ -42,8 +42,8 @@ Contract: brand-contract v1
 | doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:195 | SCN-009, SCN-010 | proposed | layout |
 | setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:425 | SCN-009 | proposed | copy |
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:426 | SCN-009 | proposed | copy |
-| setup.declined | You declined every offer; nothing was changed. | lib/setup.js:422 | SCN-008, SCN-009 | proposed | copy |
-| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed. | lib/setup.js:421 | SCN-008, SCN-009 | proposed | copy |
+| setup.declined | You declined every offer; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:422 | SCN-008, SCN-009 | proposed | copy |
+| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:421 | SCN-008, SCN-009 | proposed | copy |
 | setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:497 | SCN-009 | proposed | copy |
 | setup.in-place.tools | Everything else this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:496 | SCN-009 | proposed | copy |
 | setup.checks-stand |  The checks below still stand. | lib/setup.js:435 | SCN-008, SCN-009 | proposed | copy |

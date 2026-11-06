@@ -41,7 +41,7 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 - It checks everything first, installs the apps that are missing from their signed releases,
   repairs what is wrong (skills, MCP registrations, an outdated or damaged app that is not
   running, a stopped service its supervisor owns), checks again and returns JSON.
-- A healthy machine: an empty `actions` list, no `skipped`, exit 0. Running it again is always safe.
+- A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe.
 - Exit 0: no step and no check failed; 1: a step or a check failed; 2: bad arguments. A plan
   (`planOnly: true`: `--dry-run`, or a run without `--yes` that would change something, since a
   `--json` run never asks; a declined terminal run is not a plan and exits by its checks, and when it
@@ -83,7 +83,7 @@ reference names the format); never write one there for them.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user; each one's `blocked: true` plan item
   carries the reason in `note`, and `humanSteps` names it. Running `setup` again changes nothing for those apps until
-  that folder is writable: tell the person.
+  that folder is writable: tell the person, never call the machine fully set up, and never count them as skipped.
 - `permissions.rules` and `commands.rules`: rules offered and not taken (`taken: false`); `commands.refused`: rules
   declared on this machine and not offered as declared (refused, or counted once), each with why. Tell the person both.
 
@@ -121,7 +121,8 @@ Then run `doctor --json` again and report the change.
 Reply in the person's language, briefly:
 
 1. What was set up or repaired (from `actions`), what was skipped (from `skipped`, or, when there is no `skipped` (a plan,
-   or a run with any `actions`), the `plan` install items with `selected: false`), the train a plan would save or forget
+   or a run with any `actions`), the `plan` install items with `selected: false` that are not `blocked`), what could not
+   be installed or replaced because its folder is not writable (from `blocked`, with each item's `note`), the train a plan would save or forget
    (`trainNotSaved`, `none` meaning the saved train would be forgotten), and the before → after counts.
 2. What still fails, each with its `fix`; rules offered and not taken, with the flag that takes them (`--allow-tools`,
    `--allow-commands`), and every `commands.refused` line. `npx @passioncode-ai/passioncode@latest permissions` shows what

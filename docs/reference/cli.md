@@ -115,7 +115,9 @@ about, with the reason in `note`; it is among `humanSteps`, and every run, a pla
 `blocked`, whatever else it changed, never in `notTaken`. The closing line says so: "Nothing was changed: X needs a
 folder you can write" when nothing ran, "Not installed or replaced: X needs a folder you can write" after "Done:",
 "Not asked about: X needs a folder you can write" after a declined run's line, and "Nothing would change: X needs a
-folder you can write" for a plan with nothing selected (PC-147). doctor's fix for such an app, in its app rows, a stale
+folder you can write" for a plan with nothing selected (PC-147); when an app is skipped too (Fabric without its
+prerequisites), a plan's headline names the skipped app and a run's names the blocked one, and the plan items and the
+steps name both. doctor's fix for such an app, in its app rows, a stale
 MCP entry and the `sessions.on-demand` row, names the folder, never a `setup` that cannot install or replace it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
