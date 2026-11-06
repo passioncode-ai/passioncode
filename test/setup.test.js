@@ -116,6 +116,8 @@ function cliEnv(m, api) {
   delete env.PASSIONCODE_FABRIC_DASHBOARDS_MCP;
   if (m.trains) env.PASSIONCODE_TRAINS = m.trains; else delete env.PASSIONCODE_TRAINS;
   if (m.configDir) env.CLAUDE_CONFIG_DIR = m.configDir;
+  // PC-145: a per-user run names no folder; the shared one is this machine's stand-in for /Applications.
+  if (m.perUser) { delete env.PASSIONCODE_APPLICATIONS; env.PASSIONCODE_SHARED_APPLICATIONS = m.shared; }
   return env;
 }
 
@@ -576,6 +578,38 @@ function onTrain(m, apps = { switchboard: '1.1.0', dashboards: '1.1.0', observat
   fs.writeFileSync(path.join(m.trains, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', pinned: '2026-10-28', apps }));
   return m;
 }
+
+test('PC-145: a second user gets the apps in ~/Applications, made when absent; another user\'s copies are left byte for byte (SCN-017)', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  m.perUser = true;
+  m.shared = path.join(m.home, 'shared-Applications');
+  fs.rmdirSync(m.apps); // machine() made ~/Applications; this user has none yet
+  // The first user's Dashboards in the shared folder, which this user cannot write (a standard user's /Applications).
+  const theirs = path.join(m.shared, 'Fabric Dashboards.app');
+  fs.mkdirSync(path.join(theirs, 'Contents'), { recursive: true });
+  fs.writeFileSync(path.join(theirs, 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: '0.0.1' }));
+  const before = fs.readFileSync(path.join(theirs, 'Contents', 'Info.plist'));
+  fs.chmodSync(m.shared, 0o555);
+  t.after(() => fs.chmodSync(m.shared, 0o755));
+  const own = path.join(m.home, 'Applications');
+  assert.equal(fs.existsSync(own), false);
+  const r = await cli(m, api, 'setup', '--yes', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox']) {
+    assert.ok(fs.existsSync(path.join(own, catalog.byId(id).app)), `${id} in ~/Applications`);
+  }
+  assert.deepEqual(fs.readdirSync(m.shared), ['Fabric Dashboards.app'], 'nothing added to the shared folder');
+  assert.deepEqual(fs.readFileSync(path.join(theirs, 'Contents', 'Info.plist')), before, "the other user's copy is unchanged");
+  assert.equal(fs.existsSync(path.join(m.home, '.Trash')) && fs.readdirSync(path.join(m.home, '.Trash')).length, false, 'nothing went to the Trash');
+  const claudeJson = JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers;
+  assert.ok(claudeJson['fabric-dashboards'].command.startsWith(path.join(own, 'Fabric Dashboards.app')), claudeJson['fabric-dashboards'].command);
+  const shared = r.json.after.checks.find((c) => c.id === 'app.dashboards.shared');
+  assert.ok(shared && shared.state === 'info' && shared.detail.includes(theirs), JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  // A plain doctor afterwards reads this user's copies.
+  const d = await cli(m, api, 'doctor', '--offline', '--json');
+  assert.ok(d.json.checks.some((c) => c.id === 'app.dashboards' && c.state !== 'info'), JSON.stringify(d.json.checks.filter((c) => c.area === 'apps')));
+});
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });

@@ -54,6 +54,13 @@
 
 ### Fixed
 
+- **A second macOS user gets the apps in their own `~/Applications`** (PC-145, PC-146, PC-147, SCN-017): `setup`
+  installed only into `/Applications`, counted another user's copy there as installed, and replaced an outdated one by
+  moving it into the running user's Trash; a standard user got a bare permission error. Each app now goes into the
+  user's `~/Applications` (made on the first install) unless the copy in `/Applications` is theirs and its folder lets
+  them replace it; another user's copy is left byte for byte and `doctor` names it, since macOS may open the app's
+  links with it. No administrator password is needed. `PASSIONCODE_APPLICATIONS` still names one folder for every app.
+
 - **Another user's app is not "in use"** (PC-151): `setup` and `doctor` asked `pgrep` about every user's processes and
   matched the bundle's path anywhere in a command line, so on a Mac with two users a copy in one user's
   `~/Applications` kept the same app in `/Applications` from being replaced. Now only this user's processes count,

@@ -22,6 +22,7 @@
 | SCN-014 | Follow an organization's release train | setup, doctor | Operator | PC-89 | implemented | 2026-10-28 |
 | SCN-015 | See and change what Claude Code may do without asking | permissions | Operator | PC-125 | implemented | 2026-11-04 |
 | SCN-016 | Know about and turn off the anonymous usage counts | analytics | Operator | PC-123 | implemented | 2026-11-04 |
+| SCN-017 | Set up a second macOS user on a Mac where another user installed the apps | setup, doctor | Newcomer | PC-145, PC-146, PC-147 | implemented | 2026-11-06 |
 
 ## Personas
 
@@ -328,3 +329,28 @@
 - **Status:** implemented
 - **Coverage:** `test/analytics.test.js` tests beginning `PC-123:`.
 - **Product:** unobserved
+
+### SCN-017: Set up a second macOS user on a Mac where another user installed the apps
+
+- **Persona:** Newcomer
+- **Feature:** setup, doctor
+- **Entry point:** `npx @passioncode-ai/passioncode setup` in the second user's terminal or coding agent
+- **Preconditions:** The Mac has a first user whose apps are in `/Applications`; the second user is a standard user
+  (no administrator rights) and has no `~/Applications` yet.
+- **Steps:**
+  1. Run `setup` (or `setup --yes`) as the second user.
+  2. Read the plan: each app is installed into the second user's `~/Applications`.
+  3. Run `doctor`.
+- **Expected result:** Each app is installed into `~/Applications` (made when absent); no administrator password is
+  asked; the first user's copies in `/Applications` are left byte for byte as they were. `doctor`, `update` and the
+  session hook use the second user's copies, and the MCP servers setup registers run from them.
+- **Alt paths:** A copy in `/Applications` that this user owns and can replace stays where it is and is updated there.
+  A copy in `~/Applications` always wins over one in `/Applications`. `PASSIONCODE_APPLICATIONS` names one folder for
+  every app and turns the rule off.
+- **UI elements:** the plan's install lines; `doctor`'s app rows and the note naming another user's copy.
+- **States covered:** empty, success, partial
+- **Errors & recovery:** Another user's copy is never replaced, moved or put in the Trash; `doctor` names it as a copy
+  that may answer `fabric-dashboards://` and `fabric-inbox://` before this user's, with no fix to run.
+- **Status:** implemented
+- **Coverage:** `test/catalog.test.js` (where an app goes), `test/setup.test.js` test beginning `PC-145`.
+

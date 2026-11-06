@@ -53,7 +53,9 @@ its notice marker, the shared `PassionCode/installation.json` created once if ab
 `setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`; a train
 changes which release is downloaded (the pinned tag instead of the latest), never how it is verified.
 `setup` also downloads releases from GitHub into `~/.passioncode/downloads/` (removed after
-each app), copies a verified app into `/Applications`, moves an app it replaces into `~/.Trash/`,
+each app), copies a verified app into the person's own `~/Applications` (made when absent; a copy in `/Applications` the
+person owns and may replace stays there, another user's is never touched, PC-145, PC-146), moves an app it replaces
+into `~/.Trash/`,
 runs `update` (above), on the person's own yes (a terminal question, default no, or `--allow-tools`) merges
 Claude Code's rules for PassionCode's own MCP tools (`mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard`,
 `mcp__plugin_switchboard_switchboard`, `mcp__observatory`) into `permissions.allow` in `~/.claude/settings.json`,

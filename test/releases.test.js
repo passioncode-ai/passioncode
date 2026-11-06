@@ -20,6 +20,16 @@ test('PC-151: the pattern matches the bundle at the start of the command or afte
   assert.ok(!re.test('/Applications/Fabric Switchboard.app.old/Contents/MacOS/x'));
 });
 
+test('PC-151: every character a regular expression reads specially is escaped, so a bundle named like a pattern matches only itself', () => {
+  const special = '/Applications/A (1) [x]{2}+?*^$|\\.app';
+  const re = new RegExp(R.runningPattern(special));
+  assert.ok(re.test(`${special}/Contents/MacOS/A`), 'its own command line');
+  for (const ch of '()[]{}+?*^$|\\.') {
+    const other = special.split(ch).join('Z');
+    assert.ok(!re.test(`${other}/Contents/MacOS/A`), `with ${ch} replaced it is another bundle`);
+  }
+});
+
 const pgrep = spawnSync('pgrep', ['-x', 'no-such-process-pc151'], { encoding: 'utf8' });
 test('PC-151: with the real pgrep, a copy running under another path is not this bundle in use', { skip: (process.platform === 'win32' || pgrep.error) && 'needs pgrep' }, async (t) => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'pc151-'));

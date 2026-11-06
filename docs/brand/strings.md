@@ -135,9 +135,10 @@ Contract: brand-contract v1
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:192 | SCN-015 | proposed | copy |
 | doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:181 | SCN-010 | proposed | copy |
 | doctor.skills-shadowed | shadowed by ${path.join(skillsDir, m.shadows.join(', '))} | lib/doctor.js:174 | SCN-010 | proposed | copy |
-| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:381 | SCN-010 | proposed | copy |
-| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:383 | SCN-010 | proposed | copy |
-| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:412 | SCN-010 | proposed | copy |
+| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:384 | SCN-010 | proposed | copy |
+| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:386 | SCN-010 | proposed | copy |
+| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:415 | SCN-010 | proposed | copy |
+| doctor.app-shared | ${label}: the copy in ${other} is another user's or one you cannot replace; it is left as it is, and macOS may open ${pr.name}'s links with it instead of yours | lib/doctor.js:198 | SCN-017 | proposed | layout |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: npx @passioncode-ai/passioncode@latest analytics off (each PassionCode app has its own switch). | lib/analytics.js:31 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:209 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:207 | SCN-016 | proposed | copy |
