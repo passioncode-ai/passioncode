@@ -799,7 +799,8 @@ test('PC-147: an outdated app in use, in a folder the user cannot write, is name
   fs.chmodSync(m.apps, 0o555);
   await cli(m, api, 'doctor', '--json', '--offline');
   const saved = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'));
-  assert.ok(saved.failed.includes('app.inbox.signature') && saved.blocked.includes('app.inbox.signature'), JSON.stringify(saved));
+  assert.ok(saved.failed.includes('app.inbox.signature'), JSON.stringify(saved));
+  assert.deepEqual(saved.blocked, saved.failed.filter((id) => ['app.inbox.signature', 'app.switchboard.signature'].includes(id)), JSON.stringify(saved));
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
