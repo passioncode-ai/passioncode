@@ -646,8 +646,12 @@ test('PC-145, PC-146: a second user gets the apps in ~/Applications, made when a
   // PC-149: one an earlier launcher set from that copy (recorded, unchanged since) is re-pointed by setup.
   const stateFile = path.join(m.home, '.passioncode', 'state.json');
   const st = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
-  st.mcpRegistrations = st.mcpRegistrations.map((x) => (x.agent === 'Claude Code' && x.name === 'fabric-dashboards' ? { ...x, entry: conf.mcpServers['fabric-dashboards'] } : x));
-  fs.writeFileSync(stateFile, JSON.stringify(st));
+  const recordAs = (entry) => fs.writeFileSync(stateFile, JSON.stringify({ ...st, mcpRegistrations: st.mcpRegistrations.map((x) => (x.agent === 'Claude Code' && x.name === 'fabric-dashboards' ? { ...x, entry } : x)) }));
+  // The same command with other arguments than the launcher recorded: changed since, so the person's.
+  recordAs({ ...conf.mcpServers['fabric-dashboards'], args: ['--other'] });
+  const changed = (await cli(m, api, 'doctor', '--offline', '--json')).json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  assert.match(changed.detail, /the launcher did not set this entry$/, JSON.stringify(changed));
+  recordAs(conf.mcpServers['fabric-dashboards']);
   const ours = (await cli(m, api, 'doctor', '--offline', '--json')).json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
   assert.equal(ours.detail, `Claude Code: fabric-dashboards runs from ${theirs}, not from your copy in ${own}; setup points it at yours`);
   assert.equal(ours.fix, 'npx @passioncode-ai/passioncode@latest setup');

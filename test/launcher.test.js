@@ -1635,18 +1635,40 @@ test('PC-149: an entry changed since the launcher wrote it, or one a person set,
   const k = JSON.parse(fs.readFileSync(kimi, 'utf8'));
   k.mcpServers['fabric-dashboards'] = { command: '/elsewhere/mcp', args: [], env: {} };
   fs.writeFileSync(kimi, JSON.stringify(k, null, 2));
-  const geminiBefore = fs.readFileSync(gemini, 'utf8');
-  const kimiBefore = fs.readFileSync(kimi, 'utf8');
+  // And the Claude Code and Codex entries' arguments.
+  const cj = path.join(env.home, '.claude.json');
+  const c = JSON.parse(fs.readFileSync(cj, 'utf8'));
+  c.mcpServers['fabric-dashboards'].args = ['--mine'];
+  fs.writeFileSync(cj, JSON.stringify(c, null, 2));
+  const codex = path.join(env.home, '.codex', 'config.toml');
+  fs.writeFileSync(codex, fs.readFileSync(codex, 'utf8').replace(/(\["mcp_servers"\."fabric-dashboards"\]\ncommand = "[^"]+"\n)args = \[\]/, '$1args = ["--mine"]'));
+  const before = MCP_FILES.map((f) => fs.readFileSync(path.join(env.home, f), 'utf8'));
+  assert.ok(before[1].includes('args = ["--mine"]'), before[1]);
   const own = movedMcp(env);
   const r = run(env, 'update', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
-  assert.equal(steps.filter((s) => s.outcome === 'done' && s.detail.startsWith('re-point')).length, 2, JSON.stringify(steps));
-  assert.equal(steps.filter((s) => s.detail.includes('it was kept')).length, 2, JSON.stringify(steps));
-  assert.equal(fs.readFileSync(gemini, 'utf8'), geminiBefore);
-  assert.equal(fs.readFileSync(kimi, 'utf8'), kimiBefore);
-  assert.equal(mcpEntry(path.join(env.home, '.claude.json')).command, own);
+  assert.equal(steps.filter((s) => s.detail.startsWith('re-point')).length, 0, JSON.stringify(steps));
+  assert.equal(steps.filter((s) => s.detail.includes('it was kept')).length, 4, JSON.stringify(steps));
+  assert.deepEqual(MCP_FILES.map((f) => fs.readFileSync(path.join(env.home, f), 'utf8')), before);
   assert.ok(!old.startsWith(own));
+});
+
+test('PC-149: when Claude Code cannot register the new command, the old entry is put back and the step fails', () => {
+  const env = setup();
+  const old = withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const own = movedMcp(env);
+  env.extra.FAKE_CLAUDE_FAIL = `mcp add --scope user fabric-dashboards -- ${own}`;
+  const r = run(env, 'update', '--json');
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.startsWith('re-point fabric-dashboards for Claude Code'));
+  assert.equal(steps.length, 1, r.stdout);
+  assert.equal(steps[0].outcome, 'failed', JSON.stringify(steps));
+  assert.match(steps[0].error, /did not register fabric-dashboards/);
+  assert.equal(mcpEntry(path.join(env.home, '.claude.json')).command, old, 'the old entry is back, not none');
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  assert.equal(state.mcpRegistrations.find((x) => x.agent === 'Claude Code').entry.command, old, 'still recorded as it is');
 });
 
 test('PC-149: a dry run plans the re-point and writes nothing', () => {
