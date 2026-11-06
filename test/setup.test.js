@@ -769,6 +769,10 @@ test('PC-147: a terminal run answered no names the blocked apps as never asked, 
   assert.equal(entry.fix, note);
   const saved = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'));
   assert.ok(saved.blocked.includes('mcp.claude.switchboard'), JSON.stringify(saved));
+  // setup's steps name the app once, the stale entry's row and the blocked install sharing one line.
+  const steps = (await cli(m, api, 'setup', '--yes', '--json')).json.humanSteps;
+  assert.deepEqual(steps.filter((x) => x.includes('Switchboard') && x.includes('is not writable')), [`Fabric Switchboard: ${note}`], JSON.stringify(steps));
+  assert.ok(!steps.includes(note), 'no step without its app');
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
