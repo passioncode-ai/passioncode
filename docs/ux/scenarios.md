@@ -212,7 +212,10 @@
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
   one is out, or "not installed" with the download page; a registry hive that could not be read is a warning of its
   own (PC-86). When `update.auto` is off, a `skills.auto-update` information row says so and names
-  `config set update.auto on` as the person's choice; doctor never turns it on (PC-131).
+  `config set update.auto on` as the person's choice; doctor never turns it on (PC-131). Until Fabric Dashboards
+  pins 0.2.76 or later for its "Check setup" button, that button runs the 0.2.2 doctor, which looks only in
+  `/Applications`: it shows apps setup put in `~/Applications` as not installed; run doctor in a terminal instead
+  (PC-161).
 - **UI elements:** Grouped text lines or JSON; exit code.
 - **States covered:** success, error
 - **Errors & recovery:** Every failing line names the command or the step that fixes it.
@@ -334,7 +337,7 @@
 
 - **Persona:** Newcomer
 - **Feature:** setup, doctor
-- **Entry point:** `npx @passioncode-ai/passioncode setup` in the second user's terminal or coding agent
+- **Entry point:** `npx @passioncode-ai/passioncode@latest setup` in the second user's terminal or coding agent
 - **Preconditions:** The Mac has a first user whose apps are in `/Applications`; the second user is a standard user
   (no administrator rights), has no `~/Applications` yet and has not run `setup` before.
 - **Steps:**

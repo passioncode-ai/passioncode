@@ -71,8 +71,8 @@ own `~/Applications` and ends `ok` where it used to fail with a permission error
 launcher's own installs are counted per user (each home has its own installation file) and do not move; an app's own
 `app_installed` is sent at its first start per macOS user (its state is in that user's own folder), whatever copy runs,
 so it rises only where setup now installs and opens an app for a user who had never started it; a user who already ran
-another user's copy is not counted again. A run whose target folder is not writable (a `PASSIONCODE_APPLICATIONS` folder, or
-a locked bundle in `~/Applications`) also ends `ok`, with the apps in `blocked`, unless a check still fails. And `doctor`
+another user's copy is not counted again. A run whose target folder is not writable (their own `~/Applications`, a
+`PASSIONCODE_APPLICATIONS` folder, or a locked bundle there) also ends `ok`, with the apps in `blocked`, unless a check still fails. And `doctor`
 no longer counts another user's copy in `/Applications` as this user's problem (it is an information row), so its
 check-failed share on Macs with several users may fall.
 
