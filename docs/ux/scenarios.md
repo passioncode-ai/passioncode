@@ -351,7 +351,8 @@
   points them at their own copy; until then `doctor` warns that each such entry runs from that copy, with the step:
   remove the entry, then `doctor --fix` registers this user's own. Sessions Fabric starts find Fabric through the Fabric
   Agent Adapter's own lookup, which tries `/Applications` first until its FAA-229 follows this rule. A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
-  in the plan and among the steps, is never asked about, and nothing is downloaded; every run, a plan included, names
+  in the plan and among the steps, is never asked about, and nothing is downloaded (Fabric's note adds what else it
+  needs, such as Docker; a folder of the user's own says how to unlock it, any other to ask an administrator); every run, a plan included, names
   those apps in `blocked`, and its closing line names them ("Nothing was changed: ... needs a folder you can write", or
   "Not installed or replaced: ..." after what else it did, or "Nothing would change: ..." for a plan). `doctor`'s fix
   for such an app names the folder, never a `setup` that cannot replace it.

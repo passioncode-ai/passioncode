@@ -46,6 +46,9 @@
 
 ### Changed
 
+- **New installs go into your own `~/Applications`, on every Mac** (PC-145): see the entry under Fixed; a copy already in
+  `/Applications` that is yours stays there, so one Mac may hold apps in both folders.
+
 - **The `organization-r1` train pins the current releases** (PC-148): Fabric 0.3.16, whose hub takes a port per macOS
   user (a second user on the same Mac no longer meets the first one's hub on 47070), Fabric Switchboard 0.7.17,
   Fabric Dashboards 0.8.25, Project Observatory 0.33.1 and Fabric Inbox 0.99.0 (it pinned 0.3.15, 0.7.0, 0.8.15,

@@ -176,7 +176,8 @@ Contract: brand-contract v1
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:451 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:231 | SCN-011 | proposed | layout |
-| setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}ask an administrator to let you write it | lib/catalog.js:153 | SCN-017 | proposed | layout |
+| setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}${how} | lib/catalog.js:159 | SCN-017 | proposed | layout |
+| setup.blocked-folder.how | make it writable (in Finder, Get Info, then Sharing & Permissions) | lib/catalog.js:158 | SCN-017 | proposed | copy |
 | setup.blocked | Nothing was changed: ${need(result.blocked)} a folder you can write; the steps below say which.${stand(a)} | lib/setup.js:506 | SCN-017 | proposed | layout |
 | setup.would-block | Nothing would change: ${need(names)} a folder you can write (see the plan below).${stand(a)} | lib/setup.js:442 | SCN-017 | proposed | layout |
 | setup.left-blocked | Not installed or replaced: ${need(names)} a folder you can write; the steps below say which. | lib/setup.js:443 | SCN-017 | proposed | layout |

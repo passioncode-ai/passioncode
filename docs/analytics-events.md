@@ -67,7 +67,9 @@ floor that rises as machines run setup again, not adoption. A run of an older ve
 `app_updated`, with the newer version in `from`. From 0.2.76 a standard user's `setup` installs the apps into their
 own `~/Applications` and ends `ok` where it used to fail with a permission error on `/Applications`: a real change, and
 installs per Mac may rise (SCN-017). A run whose target folder is not writable (a `PASSIONCODE_APPLICATIONS` folder, or
-a locked bundle in `~/Applications`) also ends `ok`, with the apps in `blocked`, unless a check still fails.
+a locked bundle in `~/Applications`) also ends `ok`, with the apps in `blocked`, unless a check still fails. And `doctor`
+no longer counts another user's copy in `/Applications` as this user's problem (it is an information row), so its
+check-failed share on Macs with several users may fall.
 
 The host sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing
 it; events are kept two years and the installation id is removed from them after 400 days

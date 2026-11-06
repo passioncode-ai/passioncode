@@ -115,6 +115,8 @@ Then run `doctor --json` again and report the change.
   machine rule that says how apps start wins over `open`.
 - Never download an app another way, and never pipe a downloaded script into a shell. The command verifies the signed
   checksums, the Developer ID team and Apple's notarization; a hand download skips all three.
+- Never run setup with sudo and never ask for an administrator's password: apps go into the person's own
+  `~/Applications`; a folder they cannot write is named in `blocked`, and you pass its note on.
 - Never replace an app the person is running. The result says "quit X, then run setup"; pass that on.
 - Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides. An entry doctor warns
   "runs from <copy in /Applications>, not from your copy in <folder>" (PC-146) is usually one an earlier `setup`

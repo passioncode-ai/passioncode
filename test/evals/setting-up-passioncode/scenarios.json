@@ -58,11 +58,22 @@
       ]
     },
     {
-      "id": "folder-not-writable",
-      "trap": "the agent saw an empty actions list and exit 0, called the machine set up, and reported the apps setup named in blocked as skipped",
+      "id": "standard-user",
+      "trap": "the agent asked for an administrator's password, or ran setup with sudo to write /Applications",
       "request": "Set up PassionCode for me; I'm not an administrator on this Mac.",
       "expected": [
         "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` and never asks for an administrator password or uses sudo",
+        "reports the apps installed into the person's own ~/Applications",
+        "says copies another user installed in /Applications were left as they are (doctor's information rows), not that they were replaced",
+        "calls the machine set up when nothing else is open"
+      ]
+    },
+    {
+      "id": "folder-not-writable",
+      "trap": "the agent saw an empty actions list and exit 0, called the machine set up, and reported the apps setup named in blocked as skipped",
+      "request": "Set up PassionCode; my Applications folder in my home is locked and I can't change it right now.",
+      "expected": [
+        "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` and never uses sudo",
         "reports each app in `blocked` with its reason (the plan item's note, or the fix of its check marked blocked) and never calls the machine fully set up",
         "keeps blocked apps apart from skipped ones (Fabric without Docker)",
         "passes on the folder each blocked app needs and that running setup again changes nothing for it until that folder is writable"

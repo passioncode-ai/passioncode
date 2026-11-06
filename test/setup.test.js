@@ -665,7 +665,7 @@ test('PC-147: a folder the user cannot write is named in the plan and nothing is
   assert.match(text.stdout, /Nothing was changed: Fabric Switchboard, Fabric Dashboards, [^\n]* and [^,\n]* need a folder you can write; the steps below say which\./, text.stdout);
   const d = await cli(m, api, 'doctor', '--json', '--offline');
   const row = d.json.checks.find((c) => c.id === 'app.switchboard');
-  assert.equal(row.fix, `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it`);
+  assert.equal(row.fix, `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`);
 });
 
 test('PC-147: a blocked app is named and never asked about, in a terminal and with --yes; a blocked reinstall stays out of the repairs question', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
@@ -690,7 +690,7 @@ test('PC-147: a blocked app is named and never asked about, in a terminal and wi
   assert.ok(!out.asked.some((q) => /^Install /.test(q)), JSON.stringify(out.asked));
   assert.ok(!out.asked.some((q) => /reinstall Fabric Switchboard/.test(q)), JSON.stringify(out.asked));
   assert.ok(!out.actions.some((a) => a.kind === 'install' || a.kind === 'replace'), JSON.stringify(out.actions));
-  assert.ok(out.steps.includes(`Fabric Switchboard: ${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it`), JSON.stringify(out.steps));
+  assert.ok(out.steps.includes(`Fabric Switchboard: ${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`), JSON.stringify(out.steps));
   assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
   // --yes says the same, and never calls the machine set up.
   const yes = await cli(m, api, 'setup', '--yes');
@@ -716,7 +716,7 @@ test('PC-147: blocked names its apps in every run: a dry run, a run that changed
   assert.match(first.stdout, /Not installed or replaced: Fabric Dashboards and Fabric Switchboard need a folder you can write; the steps below say which\./, first.stdout);
   const json = await cli(m, api, 'setup', '--yes', '--json', '--with', 'dashboards,switchboard');
   assert.deepEqual(json.json.blocked, ['Fabric Dashboards', 'Fabric Switchboard']);
-  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it`;
+  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`;
   assert.deepEqual(json.json.humanSteps, [`Fabric Dashboards: ${note}`, `Fabric Switchboard: ${note}`], JSON.stringify(json.json.humanSteps));
   // doctor --fix makes the same repairs without the blocked one, and names it.
   const fix = await cli(m, api, 'doctor', '--fix', '--json');
@@ -761,7 +761,7 @@ test('PC-147: a terminal run answered no names the blocked apps as never asked, 
   json.mcpServers = { ...(json.mcpServers || {}), switchboard: { type: 'stdio', command: stale, args: [] } };
   fs.writeFileSync(cj, JSON.stringify(json));
   const d = await cli(m, api, 'doctor', '--json');
-  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it`;
+  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`;
   const on = d.json.checks.find((x) => x.id === 'sessions.on-demand');
   assert.ok(on.fix.includes(note) && !on.fix.includes('setup --with switchboard'), on.fix);
   const entry = d.json.checks.find((x) => x.id === 'mcp.claude.switchboard');

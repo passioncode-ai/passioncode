@@ -114,6 +114,9 @@ test('PC-147: a bundle this user cannot write, in a folder they can, is what blo
 
 test('PC-147: the note for a folder this user cannot write names PASSIONCODE_APPLICATIONS only when it is set', () => {
   assert.equal(C.blockedNote('/Applications'), '/Applications is not writable for you, so nothing is downloaded: ask an administrator to let you write it');
+  // A folder of this user's own is theirs to unlock; one they do not own (or that is gone) is an administrator's.
+  const own = fs.mkdtempSync(path.join(os.tmpdir(), 'pc147-'));
+  if (me !== null) assert.equal(C.blockedNote(own), `${own} is not writable for you, so nothing is downloaded: make it writable (in Finder, Get Info, then Sharing & Permissions)`);
   process.env.PASSIONCODE_APPLICATIONS = '/x';
   assert.equal(C.blockedNote('/x'), '/x is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it');
 });
