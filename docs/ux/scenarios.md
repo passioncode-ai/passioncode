@@ -336,21 +336,25 @@
 - **Feature:** setup, doctor
 - **Entry point:** `npx @passioncode-ai/passioncode setup` in the second user's terminal or coding agent
 - **Preconditions:** The Mac has a first user whose apps are in `/Applications`; the second user is a standard user
-  (no administrator rights) and has no `~/Applications` yet.
+  (no administrator rights), has no `~/Applications` yet and has not run `setup` before.
 - **Steps:**
   1. Run `setup` (or `setup --yes`) as the second user.
-  2. Read the plan: each app is installed into the second user's `~/Applications`.
+  2. Read the plan: each install line names the second user's `~/Applications` as its folder.
   3. Run `doctor`.
 - **Expected result:** Each app is installed into `~/Applications` (made when absent); no administrator password is
   asked; the first user's copies in `/Applications` are left byte for byte as they were. `doctor`, `update` and the
   session hook use the second user's copies, and the MCP servers setup registers run from them.
 - **Alt paths:** A copy in `/Applications` that this user owns and can replace stays where it is and is updated there.
   A copy in `~/Applications` always wins over one in `/Applications`. `PASSIONCODE_APPLICATIONS` names one folder for
-  every app and turns the rule off.
+  every app and turns the rule off; it is read on each run, so it is set wherever `setup`, `doctor` and the agents start.
+  A user who ran `setup` before this release keeps the MCP entries it registered from another user's copy until PC-149
+  points them at their own copy. A folder the user cannot write is named in the plan and nothing is downloaded.
 - **UI elements:** the plan's install lines; `doctor`'s app rows and the note naming another user's copy.
 - **States covered:** empty, success, partial
-- **Errors & recovery:** Another user's copy is never replaced, moved or put in the Trash; `doctor` names it as a copy
-  that may answer `fabric-dashboards://` and `fabric-inbox://` before this user's, with no fix to run.
+- **Errors & recovery:** Another user's copy is never replaced, moved or put in the Trash; `doctor` names it with its
+  reason (another user's, in a folder this user cannot write, or this user's own earlier copy beside the one in
+  `~/Applications`) and, for an app with links (`fabric-dashboards://`, `fabric-inbox://`, `fabric://`), that macOS may
+  open them with it; there is no fix to run.
 - **Status:** implemented
-- **Coverage:** `test/catalog.test.js` (where an app goes), `test/setup.test.js` test beginning `PC-145`.
+- **Coverage:** `test/catalog.test.js` (where an app goes), `test/setup.test.js` tests beginning `PC-145` and `PC-147`.
 

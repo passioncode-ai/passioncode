@@ -18,7 +18,7 @@ detailed specification for each gap and closes them in waves. The plan puts thre
 
 And N-12 (X-9, settled 2026-10-28): the "Join an organization" step of PC-89, after Fabric CO-337 (2026-11-21).
 
-## What the launcher does today
+## What the launcher did at the reading (`86d50e7`)
 
 | Area | Today | Where |
 | --- | --- | --- |
@@ -39,6 +39,12 @@ Each row names what is needed, the check that accepts it and what it waits on. P
 (the organization's space).
 
 ### PC-145 (P1): apps per user in `~/Applications`
+
+Decision as built (2026-11-06, PR #277): no choice is kept in `state.json`; every run applies one placement rule
+(`lib/catalog.js` `appPath`): this user's `~/Applications` copy; else a `/Applications` copy this user owns whose folder
+and bundle they may write, which stays there (a single-user Mac keeps `/Applications`, the plan's placement.md); else
+`~/Applications`. `doctor`'s row for a copy left in `/Applications` is information, not a warning, since there is
+nothing for the user to fix. Question 1 below is answered by that rule and by the plan.
 
 Needed: install into `~/Applications`, making the folder when it is absent; keep the choice in `state.json` so
 `update`, `doctor` and the session hook use the same folder; `doctor` reads this user's copy first. An existing

@@ -594,6 +594,9 @@ test('PC-145: a second user gets the apps in ~/Applications, made when absent; a
   t.after(() => fs.chmodSync(m.shared, 0o755));
   const own = path.join(m.home, 'Applications');
   assert.equal(fs.existsSync(own), false);
+  // The plan names the folder each app goes into.
+  const plan = await cli(m, api, 'setup', '--dry-run', '--json');
+  assert.ok(plan.json.plan.some((i) => i.kind === 'install' && i.product === 'switchboard' && i.detail.includes(`into ${own} from`)), JSON.stringify(plan.json.plan));
   const r = await cli(m, api, 'setup', '--yes', '--json');
   assert.equal(r.status, 0, r.stderr + r.stdout);
   for (const id of ['switchboard', 'dashboards', 'observatory', 'inbox']) {
@@ -609,6 +612,18 @@ test('PC-145: a second user gets the apps in ~/Applications, made when absent; a
   // A plain doctor afterwards reads this user's copies.
   const d = await cli(m, api, 'doctor', '--offline', '--json');
   assert.ok(d.json.checks.some((c) => c.id === 'app.dashboards' && c.state !== 'info'), JSON.stringify(d.json.checks.filter((c) => c.area === 'apps')));
+});
+
+test('PC-147: a folder the user cannot write is named in the plan and nothing is downloaded', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  fs.chmodSync(m.apps, 0o555); // PASSIONCODE_APPLICATIONS names it, as a standard user's /Applications would be
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const r = await cli(m, api, 'setup', '--yes', '--json');
+  const installs = r.json.plan.filter((i) => i.kind === 'install');
+  assert.ok(installs.length && installs.every((i) => !i.selected && i.note.startsWith(`${m.apps} is not writable for you; nothing is downloaded`)), JSON.stringify(installs));
+  assert.deepEqual(fs.readdirSync(m.apps), [], 'nothing installed');
+  assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
