@@ -95,3 +95,25 @@ test('PC-145: PASSIONCODE_APPLICATIONS names one folder for every app and turns 
   assert.equal(C.appPath(fabric, { home: w.home, shared: w.shared, uid: me }), path.join(w.base, 'only', fabric.app));
   assert.equal(C.sharedCopy(fabric, { home: w.home, shared: w.shared, uid: me }), null);
 });
+
+test('PC-146: doctor names whose a shared copy is, and the links it may answer', () => {
+  const copy = (why) => ({ path: '/Applications/Fabric Dashboards.app', why });
+  const dash = C.byId('dashboards'), sb = C.byId('switchboard');
+  assert.equal(C.sharedNote(dash, 'Fabric Dashboards', copy('other-user'), true), "Fabric Dashboards: the copy in /Applications/Fabric Dashboards.app is another user's, left as it is; macOS may open fabric-dashboards:// links with it instead of yours");
+  assert.equal(C.sharedNote(dash, 'Fabric Dashboards', copy('own'), false), 'Fabric Dashboards: the copy in /Applications/Fabric Dashboards.app is your own earlier copy, left as it is; macOS may open fabric-dashboards:// links with it');
+  assert.equal(C.sharedNote(sb, 'Fabric Switchboard', copy('not-writable'), true), 'Fabric Switchboard: the copy in /Applications/Fabric Dashboards.app is one you cannot replace, left as it is');
+});
+
+test('PC-147: a bundle this user cannot write, in a folder they can, is what blocks a replace', { skip: (me === null && 'POSIX modes') || (me === 0 && 'root writes anyway') }, (t) => {
+  const w = world();
+  const there = w.bundle(w.shared);
+  fs.chmodSync(there, 0o555);
+  t.after(() => fs.chmodSync(there, 0o755));
+  assert.equal(C.blockedFolder(there), there);
+});
+
+test('PC-147: the note for a folder this user cannot write names PASSIONCODE_APPLICATIONS only when it is set', () => {
+  assert.equal(C.blockedNote('/Applications'), '/Applications is not writable for you; nothing is downloaded (ask an administrator to let you write it)');
+  process.env.PASSIONCODE_APPLICATIONS = '/x';
+  assert.equal(C.blockedNote('/x'), '/x is not writable for you; nothing is downloaded (unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it)');
+});

@@ -638,6 +638,19 @@ test('PC-147: a folder the user cannot write is named in the plan and nothing is
   assert.ok(installs.length && installs.every((i) => !i.selected && i.note.startsWith(`${m.apps} is not writable for you; nothing is downloaded`)), JSON.stringify(installs));
   assert.deepEqual(fs.readdirSync(m.apps), [], 'nothing installed');
   assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
+  // Blocked apps are named as blocked, never as offers skipped or declined; doctor's fix names the folder, not --with.
+  assert.deepEqual(r.json.blocked, installs.map((i) => catalog.byId(i.product).name));
+  assert.equal(r.json.skipped, undefined, JSON.stringify(r.json.skipped));
+  assert.equal(r.json.notTaken, undefined, JSON.stringify(r.json.notTaken));
+  // Once the skills are in, a run changes nothing: its line names the blocked apps, never as offers not installed.
+  const again = await cli(m, api, 'setup', '--yes', '--json');
+  assert.equal(again.json.actions.length, 0, JSON.stringify(again.json.actions));
+  assert.equal(again.json.skipped, undefined, JSON.stringify(again.json.skipped));
+  const text = await cli(m, api, 'setup', '--yes');
+  assert.match(text.stdout, /Nothing was changed: Fabric Switchboard, Fabric Dashboards, [^\n]* and [^,\n]* need a folder you can write; the steps below say which\./, text.stdout);
+  const d = await cli(m, api, 'doctor', '--json', '--offline');
+  const row = d.json.checks.find((c) => c.id === 'app.switchboard');
+  assert.equal(row.fix, `${m.apps} is not writable for you; nothing is downloaded (unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it)`);
 });
 
 test('PC-147: a blocked app is named and never asked about, in a terminal and with --yes; a blocked reinstall stays out of the repairs question', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
@@ -669,6 +682,32 @@ test('PC-147: a blocked app is named and never asked about, in a terminal and wi
   assert.match(yes.stdout, /Fabric Switchboard: .* is not writable for you/, yes.stdout);
   assert.doesNotMatch(yes.stdout, /is in place/, yes.stdout);
   assert.doesNotMatch(yes.stdout, /\n\s*\d+\. npx @passioncode-ai\/passioncode@latest setup\n/, yes.stdout);
+});
+
+test('PC-147: blocked names its apps in every run: a dry run, a run that changed something else, and doctor offers no setup for them', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' }); // outdated: a replace this user cannot make
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  // The doctor rows for the outdated copy name the folder, never a setup that cannot replace it.
+  const d = await cli(m, api, 'doctor', '--json');
+  const row = d.json.checks.find((c) => c.id === 'app.switchboard');
+  assert.equal(row.state, 'warn', JSON.stringify(row));
+  assert.ok(row.fix.startsWith(`${m.apps} is not writable for you; nothing is downloaded`), row.fix);
+  // A first run sets up the skills and MCP (it changes something) and still names the blocked apps, two of them in plural.
+  const first = await cli(m, api, 'setup', '--yes', '--with', 'dashboards,switchboard');
+  assert.match(first.stdout, /\nDone:\n/, first.stdout);
+  assert.match(first.stdout, /Not installed or replaced: Fabric Dashboards and Fabric Switchboard need a folder you can write; the steps below say which\./, first.stdout);
+  const json = await cli(m, api, 'setup', '--yes', '--json', '--with', 'dashboards,switchboard');
+  assert.deepEqual(json.json.blocked, ['Fabric Dashboards', 'Fabric Switchboard']);
+  const note = `${m.apps} is not writable for you; nothing is downloaded (unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it)`;
+  assert.deepEqual(json.json.humanSteps, [`Fabric Dashboards: ${note}`, `Fabric Switchboard: ${note}`], JSON.stringify(json.json.humanSteps));
+  // A dry run once the skills are in: nothing selected, so its headline names the apps that need a folder, and its JSON carries them.
+  const dry = await cli(m, api, 'setup', '--dry-run', '--json', '--without', 'dashboards,observatory,inbox,fabric');
+  assert.deepEqual(dry.json.blocked, ['Fabric Switchboard'], JSON.stringify(dry.json.plan));
+  const dryText = await cli(m, api, 'setup', '--dry-run', '--without', 'dashboards,observatory,inbox,fabric');
+  assert.match(dryText.stdout, /Nothing would change: Fabric Switchboard needs a folder you can write \(see the plan below\)\./, dryText.stdout);
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {

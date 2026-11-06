@@ -80,9 +80,10 @@ reference names the format); never write one there for them.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
   (Fabric without Docker); each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
-- `blocked[]`, when a run changed nothing because an app's folder (or the app itself) is not writable for this user:
-  the apps it could not install or replace; each one's `blocked: true` plan item carries the reason in `note`, and
-  `humanSteps` names it. Running `setup` again changes nothing until that folder is writable: tell the person.
+- `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
+  their folder (or, for a reinstall, the app itself) is not writable for this user; each one's `blocked: true` plan item
+  carries the reason in `note`, and `humanSteps` names it. Running `setup` again changes nothing for those apps until
+  that folder is writable: tell the person.
 - `permissions.rules` and `commands.rules`: rules offered and not taken (`taken: false`); `commands.refused`: rules
   declared on this machine and not offered as declared (refused, or counted once), each with why. Tell the person both.
 

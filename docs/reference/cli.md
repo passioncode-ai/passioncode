@@ -111,15 +111,18 @@ for Fabric without its prerequisites unless `--with fabric`), `update`,
 `replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; only this user's processes count, matched on the bundle's whole path, PC-151; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
 launchd service that does not answer), each with the check ids that caused it. An `install` or `replace` whose
 folder (or, for a replace, the app itself) this user cannot write is `blocked: true`, `selected` false and never asked
-about, with the reason in `note`; it is among `humanSteps`, and a run that changed nothing because of it names those
-apps in `blocked` instead of calling everything in place (PC-147).
+about, with the reason in `note`; it is among `humanSteps`, and every run, a plan included, names those apps in
+`blocked`, whatever else it changed. The closing line says so: "Nothing was changed: X needs a folder you can write"
+when nothing ran, "Not installed or replaced: X needs a folder you can write" after "Done:", and "Nothing would change:
+X needs a folder you can write" for a plan with nothing selected (PC-147).
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
 `fail` or `warn` fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124; information rows such as `skills.auto-update` stay in `after.checks` too), each product's onboarding for apps installed in this run, and the restart. A plan lists
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
-Questions are asked only on a terminal: one per absent app (on macOS), one for the
+Questions are asked only on a terminal: one per absent app (on macOS; one whose folder this user cannot write is named,
+never asked, PC-147), one for the
 repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
 tools where Claude Code is and they are missing (default no; see PC-117 below), and one for the rules for shell commands
 where Claude Code is and one of them is missing (default no; see PC-119 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change

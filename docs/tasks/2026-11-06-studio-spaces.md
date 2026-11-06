@@ -48,7 +48,7 @@ nothing for the user to fix. Question 1 below is answered by that rule and by th
 
 Needed: install into `~/Applications`, making the folder when it is absent; one rule (below) so `update`, `doctor`
 and the session hook use the same folder; `doctor` reads this user's copy first. An existing
-`/Applications` copy owned by the same user may stay where it is (question 1 below decides whether it moves).
+`/Applications` copy owned by the same user stays where it is (question 1, answered by the decision above).
 Accept: under a second macOS user with no `~/Applications`, `setup --yes` installs Fabric, Switchboard, Dashboards,
 Inbox and the Observatory app there; a later plain `doctor` and a session-start update read and use those paths.
 Waits on: the plan's decision that apps are per user (README "The apps themselves"); Dashboards FD-145 and
@@ -152,9 +152,9 @@ Waits on: the site (passioncode-ai.github.io).
 
 ## Questions for fabric-workspace
 
-1. Is `~/Applications` the rule for every user on every Mac (the MacBook too), or only where the `/Applications` copy
-   is another user's or not writable? Who removes the shared copies, and when (runbook 3.5)? May the launcher move a
-   copy the same user owns from `/Applications` to `~/Applications`?
+1. Answered (2026-11-06, the decision under PC-145): `~/Applications` for every new install on every Mac; a copy the
+   same user owns and may replace stays in `/Applications` and is never moved. Still open: who removes the shared
+   copies, and when (runbook 3.5).
 2. Runbook 3.1: which Observatory command installs the engine under a new user with a new, empty vault and no import?
    Should the launcher call it, or should the runbook name it?
 3. Which versions form `organization-r1` for a shared Mac, when is Fabric 0.3.16 published, and who records the re-pin?
