@@ -141,7 +141,9 @@ Reply in the person's language, briefly:
    notice, and `analytics off` is their switch. If `analytics status` prints no such line, give the person the status
    line it printed (on, or off and why); `analytics off` and `analytics on` are their switch. The `sessions.on-demand`
    check is a readiness note: report it, never act on it as a repair, and treat a `--allow-tools` in its fix like any
-   other. The `skills.auto-update` information row is the person's update switch (LC-16): tell them automatic updates
+   other. An `app.<id>.shared` information row names a copy in `/Applications` left as it is (another user's, an
+   administrator's, or the person's own earlier one): tell them it was not replaced and pass on that macOS may open the
+   app's links with it; it is no failure and has no fix. The `skills.auto-update` information row is the person's update switch (LC-16): tell them automatic updates
    are off and give its fix as their choice; never run it for them. `permissions allow` and
    `permissions mode` are the same security decision as `--allow-tools`: run them only on the person's own yes to
    that rule or mode, with `--by` naming who asked.

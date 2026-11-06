@@ -40,7 +40,8 @@ Paste this into Claude Code, Codex or another coding agent:
 
 Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
-secret into a product's own hidden prompt, starting Docker for Fabric, and restarting your agent.
+secret into a product's own hidden prompt, starting Docker for Fabric, unlocking a folder setup cannot write (or asking
+an administrator), and restarting your agent.
 
 ## Quick start for a new teammate
 

@@ -838,6 +838,13 @@ test('PC-147: a blocked Fabric without Docker, with a stale MCP entry, is one st
   const fabric = r.json.humanSteps.filter((x) => x.startsWith('Fabric: '));
   assert.equal(fabric.length, 1, JSON.stringify(r.json.humanSteps));
   assert.match(fabric[0], /it also needs Docker/);
+  // With no blocked item for Fabric (left out, or doctor --fix), the stale entry is still its step, once.
+  for (const args of [['setup', '--yes', '--json', '--without', 'fabric'], ['doctor', '--fix', '--json']]) {
+    const run = await cli(m, api, ...args);
+    const steps = run.json.humanSteps.filter((x) => x.startsWith('Fabric: '));
+    assert.equal(steps.length, 1, `${args.join(' ')}: ${JSON.stringify(run.json.humanSteps)}`);
+    assert.match(steps[0], /is not writable for you/);
+  }
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
