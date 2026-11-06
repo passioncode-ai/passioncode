@@ -803,6 +803,28 @@ test('PC-147: an outdated app in use, in a folder the user cannot write, is name
   assert.deepEqual(saved.blocked, saved.failed.filter((id) => ['app.inbox.signature', 'app.switchboard.signature'].includes(id)), JSON.stringify(saved));
 });
 
+test('PC-147: on a release train, an app behind its pin, in use, in a locked folder is blocked once; an unreadable version is not', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
+  const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
+  for (const id of ['dashboards', 'observatory', 'inbox']) installApp(m, catalog.byId(id), { version: '1.1.0' });
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0', running: true });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--train', 'org-test', '--without', 'fabric')).status, 0);
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
+  assert.deepEqual(r.json.blocked, ['Fabric Switchboard'], JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  const dry = await cli(m, api, 'setup', '--dry-run', '--without', 'fabric');
+  assert.equal(dry.stdout.split('\n').filter((l) => l.startsWith('  – Fabric Switchboard: ')).length, 1, dry.stdout);
+  // A version the launcher cannot read, its signature fine: no replace, so not blocked, and no step asks for the folder alone.
+  fs.chmodSync(m.apps, 0o755);
+  const plist = path.join(m.apps, 'Fabric Switchboard.app/Contents/Info.plist');
+  fs.writeFileSync(plist, JSON.stringify({ ...JSON.parse(fs.readFileSync(plist, 'utf8')), CFBundleShortVersionString: 'nightly' }));
+  fs.chmodSync(m.apps, 0o555);
+  const odd = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
+  assert.equal(odd.json.blocked, undefined, JSON.stringify(odd.json.blocked));
+  assert.ok(odd.json.humanSteps.every((x) => !/is not writable/.test(x) || /if its signature check fails too, setup cannot reinstall it/.test(x)), JSON.stringify(odd.json.humanSteps));
+});
+
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t, { version: '1.2.0', also: ['1.1.0'] });
   const m = onTrain(machine({ tools: TOOLS.filter((x) => x !== 'docker') }));
