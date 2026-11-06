@@ -788,6 +788,12 @@ test('PC-147: an outdated app in use, in a folder the user cannot write, is name
   const text = await cli(m, api, 'setup', '--yes', '--without', 'fabric');
   assert.doesNotMatch(text.stdout, /is in place/, text.stdout);
   assert.match(text.stdout, /Nothing was changed: Fabric Switchboard needs a folder you can write/, text.stdout);
+  // With Fabric in the run too (a blocked install item), each app is one step: Switchboard by its row, Fabric by its note.
+  const both = await cli(m, api, 'setup', '--yes', '--json');
+  const named = (app) => both.json.humanSteps.filter((x) => x.startsWith(`${app}: `) && x.includes('is not writable'));
+  assert.equal(named('Fabric Switchboard').length, 1, JSON.stringify(both.json.humanSteps));
+  assert.equal(named('Fabric').length, 1, JSON.stringify(both.json.humanSteps));
+  assert.match(named('Fabric')[0], /it also needs Docker/);
   // A plan names it under its items with the folder, since the plan has no item of its own for it.
   const dry = await cli(m, api, 'setup', '--dry-run', '--without', 'fabric');
   assert.match(dry.stdout, /Nothing would change: Fabric Switchboard needs a folder you can write \(see the plan below\)\.[\s\S]*\n  – Fabric Switchboard: .* is not writable for you/, dry.stdout);
