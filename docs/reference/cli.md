@@ -112,7 +112,8 @@ for Fabric without its prerequisites unless `--with fabric`), `update`,
 launchd service that does not answer), each with the check ids that caused it. An `install` or `replace` whose
 folder (or, for a replace, the app itself) this user cannot write is `blocked: true`, `selected` false and never asked
 about, with the reason in `note`; it is among `humanSteps`, and every run, a plan included, names those apps in
-`blocked`, whatever else it changed, never in `notTaken`. The closing line says so: "Nothing was changed: X needs a
+`blocked`, whatever else it changed, never in `notTaken` (with the apps of problems doctor marks blocked that the plan
+has no item for: an outdated copy in use, an app the run leaves out, a stale MCP entry). The closing line says so: "Nothing was changed: X needs a
 folder you can write" when nothing ran, "Not installed or replaced: X needs a folder you can write" after "Done:",
 "Not asked about: X needs a folder you can write" after a declined run's line, and "Nothing would change: X needs a
 folder you can write" for a plan with nothing selected (PC-147); when an app is skipped too (Fabric without its

@@ -640,7 +640,7 @@ test('PC-145, PC-146: a second user gets the apps in ~/Applications, made when a
   const stale = (await cli(m, api, 'doctor', '--offline', '--json')).json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
   assert.equal(stale.state, 'warn', JSON.stringify(stale));
   assert.equal(stale.detail, `Claude Code: fabric-dashboards runs from ${theirs}, not from your copy in ${own}`);
-  assert.equal(stale.fix, 'remove that entry from Claude Code, then npx @passioncode-ai/passioncode@latest doctor --fix');
+  assert.equal(stale.fix, 'remove fabric-dashboards from Claude Code, then npx @passioncode-ai/passioncode@latest doctor --fix');
 });
 
 test('PC-147: a folder the user cannot write is named in the plan and nothing is downloaded', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
@@ -773,6 +773,28 @@ test('PC-147: a terminal run answered no names the blocked apps as never asked, 
   const steps = (await cli(m, api, 'setup', '--yes', '--json')).json.humanSteps;
   assert.deepEqual(steps.filter((x) => x.includes('Switchboard') && x.includes('is not writable')), [`Fabric Switchboard: ${note}`], JSON.stringify(steps));
   assert.ok(!steps.includes(note), 'no step without its app');
+});
+
+test('PC-147: an outdated app in use, in a folder the user cannot write, is named in blocked, never called in place; a damaged one is a blocked failure', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  for (const id of ['dashboards', 'observatory', 'inbox']) installApp(m, catalog.byId(id));
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0', running: true });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--without', 'fabric')).status, 0); // skills and MCP settled
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
+  assert.deepEqual(r.json.blocked, ['Fabric Switchboard'], JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  const text = await cli(m, api, 'setup', '--yes', '--without', 'fabric');
+  assert.doesNotMatch(text.stdout, /is in place/, text.stdout);
+  assert.match(text.stdout, /Nothing was changed: Fabric Switchboard needs a folder you can write/, text.stdout);
+  // A damaged bundle there fails its signature check: doctor.json lists it as blocked, so the hook sends the person to doctor.
+  fs.chmodSync(m.apps, 0o755);
+  installApp(m, catalog.byId('inbox'), { broken: true });
+  fs.chmodSync(m.apps, 0o555);
+  await cli(m, api, 'doctor', '--json', '--offline');
+  const saved = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'));
+  assert.ok(saved.failed.includes('app.inbox.signature') && saved.blocked.includes('app.inbox.signature'), JSON.stringify(saved));
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {
@@ -1709,7 +1731,7 @@ test('PC-110: a train-only plan asks nothing in a terminal; an offer that defaul
       assert.match(plan.stdout, /  – install Fabric/, plan.stdout);
       assert.match(plan.stdout, /\nRun it with --yes to apply, or in a terminal to answer its questions\.\n/, plan.stdout);
       assert.equal(run.asked.length, 1, JSON.stringify(run.asked));
-      assert.match(run.asked[0], /^Install Fabric/);
+      assert.match(run.asked[0], /^Install Fabric \(early preview\) into \S/); // PC-145: the question names the folder
     } else {
       assert.doesNotMatch(plan.stdout, /^ {2}– /m, plan.stdout);
       assert.match(plan.stdout, /\nRun it with --yes, or in a terminal, to apply\.\n/, plan.stdout);

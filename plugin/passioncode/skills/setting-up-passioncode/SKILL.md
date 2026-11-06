@@ -114,7 +114,10 @@ Then run `doctor --json` again and report the change.
 - Never download an app another way, and never pipe a downloaded script into a shell. The command verifies the signed
   checksums, the Developer ID team and Apple's notarization; a hand download skips all three.
 - Never replace an app the person is running. The result says "quit X, then run setup"; pass that on.
-- Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides.
+- Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides. An entry doctor names
+  as running from a copy in `/Applications` that is not the person's (an earlier `setup` registered it, PC-146) is the
+  launcher's: with the person's yes, remove that server from that agent, then run `doctor --fix`, which registers it
+  from their own copy.
 
 ## 5. Report
 

@@ -31,7 +31,8 @@ and checksums from GitHub's asset digests and checks no signature.
    - **replace** an app that is outdated or fails its signature checks **and is not running**,
      from its latest verified release; the old bundle is moved to the person's Trash, never
      deleted, and put back if the copy fails; a running app is never touched — the person quits it
-     or accepts the app's own update; (amended 2026-11-06, PC-145 to PC-147) an app is installed into this user's
+     or accepts the app's own update ("running" counts only this user's processes, PC-151: another user's agent running
+     from this user's copy does not keep it, and that user restarts it, PC-149); (amended 2026-11-06, PC-145 to PC-147) an app is installed into this user's
      `~/Applications`, and replaced only where this user owns it and may write its folder and bundle; another user's or
      an administrator's copy is left as it is, and a folder this user cannot write is named (`blocked`), never asked
      about, nothing downloaded ([spec](../tasks/2026-11-06-studio-spaces.md#pc-145-p1-apps-per-user-in-applications));
