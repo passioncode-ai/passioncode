@@ -72,15 +72,19 @@
   that is theirs and that they may replace stays there and is updated there; the plan and the install question name the
   folder. Another user's copy, or one an administrator installed, is left byte for byte and `doctor` names it (for Fabric Dashboards, Fabric Inbox and Fabric it adds that macOS may open their links with it). No administrator password is needed, and a
   folder the user cannot write (or an app they cannot replace) is named in the plan, the steps and the `blocked` list
-  of every run, never asked about, and nothing is downloaded. `PASSIONCODE_APPLICATIONS` still names one folder for every app. Not yet: MCP entries an
-  earlier `setup` registered from another user's copy keep pointing there until PC-149; `doctor` warns about each one
-  and names the step that moves it to the user's own copy.
+  of every run, never asked about, and nothing is downloaded. `PASSIONCODE_APPLICATIONS` still names one folder for every app.
+
+- **The launcher's MCP entries follow your own copy** (PC-149): an entry an earlier `setup` registered from a copy you
+  no longer use (another user's in `/Applications`) is pointed at your own copy by the next `setup` or update, while it
+  is still exactly what the launcher wrote; `restore` puts the old entry back. An entry you set or changed yourself is
+  kept: `doctor` warns that it runs from that copy, says the launcher did not set it and names the step (for Claude
+  Code `claude mcp remove --scope user <name>`, then `doctor --fix`).
 
 - **Another user's app is not "in use"** (PC-151): `setup` and `doctor` asked `pgrep` about every user's processes and
   matched the bundle's path anywhere in a command line, so on a Mac with two users a copy in one user's
   `~/Applications` kept the same app in `/Applications` from being replaced. Now only this user's processes count,
   and the path must start the command or follow a space. So a copy of yours that another user has open, or runs an MCP
-  server from (an entry an earlier `setup` registered, until PC-149), is replaced and goes to your Trash; that user
+  server from (an entry they set by hand; the launcher's own follow each user's copy, PC-149), is replaced and goes to your Trash; that user
   restarts it.
 
 - **`CLAUDE_CONFIG_DIR` is honoured** (PC-129): with Claude Code's own variable set, the launcher read and wrote

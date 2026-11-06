@@ -1570,6 +1570,99 @@ test('restore keeps an entry whose nested settings were changed by hand', () => 
   assert.deepEqual(JSON.parse(fs.readFileSync(gemini, 'utf8')).mcpServers['fabric-dashboards'].env, { FD_DEBUG: '1' });
 });
 
+// PC-149: when the app the launcher registered moves (a per-user copy in ~/Applications replaces another user's in
+// /Applications), the launcher's own unchanged entries follow it; restore puts the old ones back.
+function movedMcp(env) {
+  const bin = path.join(env.home, 'own-app', 'fabric-dashboards-mcp');
+  fs.mkdirSync(path.dirname(bin), { recursive: true });
+  fs.writeFileSync(bin, '#!/bin/sh\n');
+  env.extra = { ...env.extra, PASSIONCODE_FABRIC_DASHBOARDS_MCP: bin };
+  return bin;
+}
+const MCP_FILES = ['.claude.json', '.codex/config.toml', '.gemini/settings.json', '.kimi-code/mcp.json'];
+
+test('PC-149: the launcher\'s own MCP entries follow the app to its new place; restore puts the old ones back', () => {
+  const env = setup();
+  const old = withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const own = movedMcp(env);
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
+  assert.equal(steps.filter((s) => s.outcome === 'done' && s.detail.startsWith('re-point fabric-dashboards')).length, 4, JSON.stringify(steps));
+  assert.ok(steps.every((s) => !s.detail.startsWith('re-point') || s.detail.includes(`from ${old}`)), JSON.stringify(steps));
+  assert.deepEqual(mcpEntry(path.join(env.home, '.claude.json')), { type: 'stdio', command: own, args: [], env: {} });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers.someone, { command: '/bin/someone' });
+  const toml = fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8');
+  assert.ok(toml.startsWith(CODEX_CONF) && toml.includes(`command = ${JSON.stringify(own)}`) && !toml.includes(old), toml);
+  assert.deepEqual(mcpEntry(path.join(env.home, '.gemini', 'settings.json')), { command: own, args: [], env: {} });
+  assert.deepEqual(mcpEntry(path.join(env.home, '.kimi-code', 'mcp.json')), { command: own, args: [], env: {} });
+  assert.ok(calls(env.home).includes('mcp remove --scope user fabric-dashboards'), calls(env.home).join('\n'));
+  const state = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  assert.equal(state.mcpRegistrations.length, 4);
+  assert.ok(state.mcpRegistrations.every((x) => x.entry.command === own), JSON.stringify(state.mcpRegistrations));
+  // Again: nothing to do.
+  const again = JSON.parse(run(env, 'update', '--json').stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
+  assert.ok(again.every((s) => s.outcome === 'skipped' && s.detail.includes('already runs')), JSON.stringify(again));
+  // restore takes the last batch back: each entry runs the old command again, and the launcher still owns it.
+  const r2 = run(env, 'restore', '--json');
+  assert.equal(r2.status, 0, r2.stderr + r2.stdout);
+  const notes = JSON.parse(r2.stdout);
+  assert.equal(notes.filter((n) => n.includes('fabric-dashboards') && n.includes('put back')).length, 4, JSON.stringify(notes));
+  assert.deepEqual(mcpEntry(path.join(env.home, '.claude.json')), { type: 'stdio', command: old, args: [], env: {} });
+  assert.ok(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8').includes(`command = ${JSON.stringify(old)}`));
+  assert.deepEqual(mcpEntry(path.join(env.home, '.gemini', 'settings.json')), { command: old, args: [], env: {} });
+  assert.deepEqual(mcpEntry(path.join(env.home, '.kimi-code', 'mcp.json')), { command: old, args: [], env: {} });
+  const back = JSON.parse(fs.readFileSync(path.join(env.home, '.passioncode', 'state.json'), 'utf8'));
+  assert.ok(back.mcpRegistrations.length === 4 && back.mcpRegistrations.every((x) => x.entry.command === old), JSON.stringify(back.mcpRegistrations));
+  // And uninstall then takes the restored entries out, as the launcher's.
+  assert.equal(run(env, 'uninstall').status, 0);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.home, '.claude.json'), 'utf8')).mcpServers, { someone: { command: '/bin/someone' } });
+});
+
+test('PC-149: an entry changed since the launcher wrote it, or one a person set, stays where it points', () => {
+  const env = setup();
+  const old = withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  // The person changed the Gemini entry's arguments and wrote their own Kimi entry over the launcher's.
+  const gemini = path.join(env.home, '.gemini', 'settings.json');
+  const g = JSON.parse(fs.readFileSync(gemini, 'utf8'));
+  g.mcpServers['fabric-dashboards'].args = ['--mine'];
+  fs.writeFileSync(gemini, JSON.stringify(g, null, 2));
+  const kimi = path.join(env.home, '.kimi-code', 'mcp.json');
+  const k = JSON.parse(fs.readFileSync(kimi, 'utf8'));
+  k.mcpServers['fabric-dashboards'] = { command: '/elsewhere/mcp', args: [], env: {} };
+  fs.writeFileSync(kimi, JSON.stringify(k, null, 2));
+  const geminiBefore = fs.readFileSync(gemini, 'utf8');
+  const kimiBefore = fs.readFileSync(kimi, 'utf8');
+  const own = movedMcp(env);
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.includes('fabric-dashboards'));
+  assert.equal(steps.filter((s) => s.outcome === 'done' && s.detail.startsWith('re-point')).length, 2, JSON.stringify(steps));
+  assert.equal(steps.filter((s) => s.detail.includes('it was kept')).length, 2, JSON.stringify(steps));
+  assert.equal(fs.readFileSync(gemini, 'utf8'), geminiBefore);
+  assert.equal(fs.readFileSync(kimi, 'utf8'), kimiBefore);
+  assert.equal(mcpEntry(path.join(env.home, '.claude.json')).command, own);
+  assert.ok(!old.startsWith(own));
+});
+
+test('PC-149: a dry run plans the re-point and writes nothing', () => {
+  const env = setup();
+  withFakeMcp(env);
+  withAgents(env);
+  assert.equal(run(env, 'update').status, 0);
+  const before = MCP_FILES.map((f) => fs.readFileSync(path.join(env.home, f), 'utf8'));
+  movedMcp(env);
+  const r = run(env, 'update', '--dry-run', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const steps = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.startsWith('re-point fabric-dashboards'));
+  assert.equal(steps.length, 4, JSON.stringify(JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp')));
+  assert.deepEqual(MCP_FILES.map((f) => fs.readFileSync(path.join(env.home, f), 'utf8')), before);
+});
+
 test('a dry run plans the MCP registrations and writes no agent config', () => {
   const env = setup();
   withFakeMcp(env);

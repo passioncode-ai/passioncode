@@ -639,8 +639,22 @@ test('PC-145, PC-146: a second user gets the apps in ~/Applications, made when a
   fs.writeFileSync(cj, JSON.stringify(conf));
   const stale = (await cli(m, api, 'doctor', '--offline', '--json')).json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
   assert.equal(stale.state, 'warn', JSON.stringify(stale));
-  assert.equal(stale.detail, `Claude Code: fabric-dashboards runs from ${theirs}, not from your copy in ${own}`);
-  assert.equal(stale.fix, 'remove fabric-dashboards from Claude Code, then npx @passioncode-ai/passioncode@latest doctor --fix');
+  // Edited by hand: the person's entry, never rewritten; doctor names the exact step.
+  assert.equal(stale.detail, `Claude Code: fabric-dashboards runs from ${theirs}, not from your copy in ${own}; the launcher did not set this entry`);
+  assert.equal(stale.fix, 'claude mcp remove --scope user fabric-dashboards, then npx @passioncode-ai/passioncode@latest doctor --fix');
+  assert.equal(stale.repair, null);
+  // PC-149: one an earlier launcher set from that copy (recorded, unchanged since) is re-pointed by setup.
+  const stateFile = path.join(m.home, '.passioncode', 'state.json');
+  const st = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  st.mcpRegistrations = st.mcpRegistrations.map((x) => (x.agent === 'Claude Code' && x.name === 'fabric-dashboards' ? { ...x, entry: conf.mcpServers['fabric-dashboards'] } : x));
+  fs.writeFileSync(stateFile, JSON.stringify(st));
+  const ours = (await cli(m, api, 'doctor', '--offline', '--json')).json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  assert.equal(ours.detail, `Claude Code: fabric-dashboards runs from ${theirs}, not from your copy in ${own}; setup points it at yours`);
+  assert.equal(ours.fix, 'npx @passioncode-ai/passioncode@latest setup');
+  const fixed = await cli(m, api, 'setup', '--yes', '--json');
+  assert.equal(fixed.status, 0, fixed.stdout + fixed.stderr);
+  assert.equal(JSON.parse(fs.readFileSync(cj, 'utf8')).mcpServers['fabric-dashboards'].command, path.join(own, 'Fabric Dashboards.app', dash.mcp.bin));
+  assert.equal(fixed.json.after.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards').state, 'ok', JSON.stringify(fixed.json.after.checks.filter((c) => c.area === 'mcp')));
 });
 
 test('PC-147: a folder the user cannot write is named in the plan and nothing is downloaded', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
