@@ -836,6 +836,34 @@ test('PC-145, PC-147: setup plans from the home it is given, as doctor and the i
     assert.ok(i.note.startsWith(`${other.apps} is not writable for you`), JSON.stringify(i));
   }
   assert.deepEqual([...out.blocked].sort(), catalog.PRODUCTS.map((p) => p.name).sort());
+  // The other way round: the home passed in may be written, HOME's may not. On a release train, its damaged Switchboard
+  // ahead of its pin is reinstalled from the latest and its Inbox behind its pin from the pin; the Install question names
+  // its folder; none of them is worked out from HOME, where no app is.
+  fs.chmodSync(other.apps, 0o755);
+  installApp(other, catalog.byId('switchboard'), { version: '1.0.0', broken: true });
+  installApp(other, catalog.byId('inbox'), { version: '1.0.0' });
+  onTrain(m, { switchboard: '0.9.0', dashboards: '1.1.0', observatory: '1.1.0', inbox: '1.1.0', fabric: '1.1.0' });
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const asking = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    const asked = [];
+    S.setup({ home: ${JSON.stringify(other.home)}, online: true, noOpen: true, train: 'org-test', withIds: ['dashboards', 'switchboard', 'inbox'], ask: async (q) => { asked.push(q); return 'n'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, asked })), (e) => { console.error(e); process.exit(1); });`;
+  const second = await new Promise((resolve) => { // async: the release server answers from this process
+    const child = spawn(process.execPath, ['-e', asking], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(second.status, 0, second.stderr);
+  const back = JSON.parse(second.stdout);
+  assert.ok(back.asked.some((q) => q.startsWith(`Install Fabric Dashboards into ${other.apps}?`)), JSON.stringify(back.asked));
+  const item = (id) => back.plan.find((i) => i.kind === 'replace' && i.product === id) || {};
+  assert.ok(!item('switchboard').blocked && /from its latest signed release/.test(item('switchboard').detail), JSON.stringify(back.plan));
+  assert.ok(!item('inbox').blocked && /from its release 1\.1\.0, pinned by release train org-test/.test(item('inbox').detail), JSON.stringify(back.plan));
+  assert.ok(!back.plan.some((i) => i.kind === 'install' && ['switchboard', 'inbox'].includes(i.product)), JSON.stringify(back.plan));
+  assert.ok(back.asked.some((q) => /reinstall Fabric Switchboard/.test(q)), JSON.stringify(back.asked));
 });
 
 test('PC-147: on a release train, an app behind its pin, in use, in a locked folder is blocked once; an unreadable version is not', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
