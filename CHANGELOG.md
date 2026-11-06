@@ -46,6 +46,12 @@
 
 ### Changed
 
+- **The `organization-r1` train pins the current releases** (PC-148): Fabric 0.3.16, whose hub takes a port per macOS
+  user (a second user on the same Mac no longer meets the first one's hub on 47070), Fabric Switchboard 0.7.17,
+  Fabric Dashboards 0.8.25, Project Observatory 0.33.1 and Fabric Inbox 0.99.0 (it pinned 0.3.15, 0.7.0, 0.8.15,
+  0.30.0 and 0.77.3). A machine on the train installs these with `setup --train organization-r1`; an app already newer
+  is left as it is.
+
 - **Fabric Agent Adapter is pinned at `v0.67.0`** (it was `v0.62.0`): the `working-with-fabric` session hooks take a
   board request as a session (FAA-201), answer the board at once (FAA-205) and take the owner's word the first time
   (FAA-207), a hook after a claim released as done asks for the retro in that turn (FAA-206), hook input in Cyrillic
