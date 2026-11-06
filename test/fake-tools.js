@@ -43,7 +43,7 @@ switch (tool) {
   case 'xcrun': { const app = args[args.length - 1]; if (has(app, 'BROKEN')) { err('does not have a ticket stapled to it'); process.exit(65); } out('The validate action worked!'); process.exit(0); }
   case 'spctl': { const app = args[args.length - 1]; if (has(app, 'BROKEN')) { err(`${app}: rejected\nsource=no usable signature`); process.exit(3); } err(`${app}: accepted\nsource=Notarized Developer ID`); process.exit(0); }
   case 'plutil': { try { out(JSON.parse(fs.readFileSync(args[args.length - 1], 'utf8')).CFBundleShortVersionString); process.exit(0); } catch (_) { process.exit(1); } }
-  case 'pgrep': { const at = args[1].replace(/\/Contents\/MacOS\/$/, ''); process.exit(has(at, 'RUNNING') ? 0 : 1); }
+  case 'pgrep': { const at = args[args.length - 1].replace(/^\(\^\| \)/, '').replace(/\/Contents\/MacOS\/$/, '').replace(/\\(.)/g, '$1'); process.exit(has(at, 'RUNNING') ? 0 : 1); }
   case 'ditto': {
     if (args[0] === '-x') {
       makeApp(args[2], args[3]);

@@ -108,7 +108,7 @@ same apps as `install` items with `selected` false and their note. A run that ch
 saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set and no
 app) or `existing`. `plan` items are `install` (an absent app; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `update`,
-`replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
+`replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; only this user's processes count, matched on the bundle's whole path, PC-151; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
 launchd service that does not answer), each with the check ids that caused it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
