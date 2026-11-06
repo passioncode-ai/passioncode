@@ -29,13 +29,13 @@ Contract: brand-contract v1
 | hook.cache-failed | [passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session. | plugin/passioncode/hooks/session-start.js:152 | SCN-006 | proposed | copy |
 | update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:256 | SCN-003 | proposed | copy |
-| setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr))}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:197 | SCN-008 | proposed | copy |
+| setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr, { home }))}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:197 | SCN-008 | proposed | copy |
 | setup.install-question.preview | (early preview) | lib/setup.js:197 | SCN-008 | proposed | copy |
 | setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:205 | SCN-008, SCN-009 | proposed | copy |
 | setup.repair-update | install or refresh the skill set and register the apps\' MCP servers for every agent | lib/setup.js:94 | SCN-008, SCN-009 | proposed | copy |
 | setup.repair-replace | reinstall ${pr.name} from ${from(pr)}${blocked ? '' : ' (the current one goes to the Trash)'} | lib/setup.js:95 | SCN-009, SCN-014 | proposed | copy |
 | setup.repair-kickstart | start the ${r.label} service through launchd | lib/setup.js:96 | SCN-009 | proposed | copy |
-| setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr))} from ${from(pr)} | lib/setup.js:74 | SCN-008 | proposed | copy |
+| setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr, { home }))} from ${from(pr)} | lib/setup.js:74 | SCN-008 | proposed | copy |
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:76 | SCN-008, SCN-014 | proposed | copy |
 | setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:398 | SCN-009, SCN-014 | proposed | copy |
 | setup.install-note.train | ${setupStep} --with | lib/setup.js:397 | SCN-014 | proposed | copy |

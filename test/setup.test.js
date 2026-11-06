@@ -807,6 +807,35 @@ test('PC-147: an outdated app in use, in a folder the user cannot write, is name
   const saved = JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode/doctor.json'), 'utf8'));
   assert.ok(saved.failed.includes('app.inbox.signature'), JSON.stringify(saved));
   assert.deepEqual(saved.blocked, saved.failed.filter((id) => ['app.inbox.signature', 'app.switchboard.signature'].includes(id)), JSON.stringify(saved));
+  // The damaged, idle Inbox has a reinstall item of its own: the plan names it on that one line, never again below it.
+  const dryDamaged = await cli(m, api, 'setup', '--dry-run', '--without', 'fabric');
+  const inboxLines = dryDamaged.stdout.split('\n').filter((l) => /^\s+– /.test(l) && l.includes('Fabric Inbox'));
+  assert.equal(inboxLines.length, 1, dryDamaged.stdout);
+  assert.match(inboxLines[0], /reinstall Fabric Inbox/, dryDamaged.stdout);
+});
+
+test('PC-145, PC-147: setup plans from the home it is given, as doctor and the install do', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') }); // HOME, with a ~/Applications this user may write
+  m.perUser = true;
+  m.shared = path.join(m.home, 'shared-Applications');
+  fs.mkdirSync(m.shared);
+  const other = machine({ tools: TOOLS.filter((x) => x !== 'docker') }); // the home passed in, whose Applications is locked
+  fs.chmodSync(other.apps, 0o555);
+  t.after(() => fs.chmodSync(other.apps, 0o755));
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    S.setup({ home: ${JSON.stringify(other.home)}, online: false, noOpen: true, dryRun: true })
+      .then((r) => process.stdout.write(JSON.stringify({ plan: r.plan, blocked: r.blocked })), (e) => { console.error(e); process.exit(1); });`;
+  const run = require('child_process').spawnSync(process.execPath, ['-e', script], { env: cliEnv(m, api), encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  const installs = out.plan.filter((i) => i.kind === 'install');
+  assert.equal(installs.length, catalog.PRODUCTS.length, JSON.stringify(out.plan));
+  for (const i of installs) {
+    assert.ok(i.blocked && i.detail.includes(`into ${other.apps} from`), JSON.stringify(i));
+    assert.ok(i.note.startsWith(`${other.apps} is not writable for you`), JSON.stringify(i));
+  }
+  assert.deepEqual([...out.blocked].sort(), catalog.PRODUCTS.map((p) => p.name).sort());
 });
 
 test('PC-147: on a release train, an app behind its pin, in use, in a locked folder is blocked once; an unreadable version is not', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {

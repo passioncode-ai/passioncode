@@ -60,8 +60,8 @@
   (FAA-207), a hook after a claim released as done asks for the retro in that turn (FAA-206), hook input in Cyrillic
   is no longer dropped on Windows, and the support-agent recipe is new (FAA-197); sessions Fabric starts find
   fabric-mcp in your own `~/Applications/Fabric.app` before `/Applications`, and another user's registered copy is
-  flagged (FAA-229, the adapter's side of PC-145); `PASSIONCODE_APPLICATIONS` is the one place it looks when set, and
-  a root-owned copy is named as an administrator's (FAA-237); the kit's API for services is unchanged (PC-141).
+  flagged (FAA-229, the adapter's side of PC-145); an absolute `PASSIONCODE_APPLICATIONS` is the one place it looks when set (it skips another
+  user's copy there, which `setup` and `doctor` still use, PC-160), and a root-owned copy is named as an administrator's (FAA-237); the kit's API for services is unchanged (PC-141).
 
 ### Fixed
 
@@ -70,7 +70,7 @@
   moving it into the running user's Trash; a standard user got a bare permission error. Each app now goes into the
   user's `~/Applications` (made on the first install), on a Mac with one user too; a copy already in `/Applications`
   that is theirs and that they may replace stays there and is updated there; the plan and the install question name the
-  folder. Another user's copy, or one an administrator installed, is left byte for byte and `doctor` names it, since macOS may open the app's links with it. No administrator password is needed, and a
+  folder. Another user's copy, or one an administrator installed, is left byte for byte and `doctor` names it (for Fabric Dashboards, Fabric Inbox and Fabric it adds that macOS may open their links with it). No administrator password is needed, and a
   folder the user cannot write (or an app they cannot replace) is named in the plan, the steps and the `blocked` list
   of every run, never asked about, and nothing is downloaded. `PASSIONCODE_APPLICATIONS` still names one folder for every app. Not yet: MCP entries an
   earlier `setup` registered from another user's copy keep pointing there until PC-149; `doctor` warns about each one

@@ -347,7 +347,7 @@
 - **Alt paths:** A copy in `/Applications` that this user owns and can replace stays where it is and is updated there.
   A copy in `~/Applications` always wins over one in `/Applications`. `PASSIONCODE_APPLICATIONS` names one folder for
   every app and turns the rule off; it is read on each run, so it is set wherever `setup`, `doctor` and the agents start
-  (the Fabric Agent Adapter, v0.70.0, takes it as the one place to look for Fabric too).
+  (the Fabric Agent Adapter, v0.70.0, takes an absolute value as the one place to look for Fabric too, and skips another user's copy there, which setup and doctor still use (PC-160)).
   A user who ran `setup` before this release keeps the MCP entries it registered from another user's copy until PC-149
   points them at their own copy; until then `doctor` warns that each such entry runs from that copy, with the step:
   remove the entry, then `doctor --fix` registers this user's own. Sessions Fabric starts find this user's
