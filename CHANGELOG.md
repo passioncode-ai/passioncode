@@ -52,7 +52,7 @@
   0.30.0 and 0.77.3). A machine on the train installs these with `setup --train organization-r1`; an app already newer
   is left as it is.
 
-- **Fabric Agent Adapter is pinned at `v0.67.0`** (it was `v0.62.0`): the `working-with-fabric` session hooks take a
+- **Fabric Agent Adapter is pinned at `v0.69.1`** (it was `v0.62.0`): the `working-with-fabric` session hooks take a
   board request as a session (FAA-201), answer the board at once (FAA-205) and take the owner's word the first time
   (FAA-207), a hook after a claim released as done asks for the retro in that turn (FAA-206), hook input in Cyrillic
   is no longer dropped on Windows, and the support-agent recipe is new (FAA-197); the kit's API for services is
