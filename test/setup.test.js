@@ -579,7 +579,7 @@ function onTrain(m, apps = { switchboard: '1.1.0', dashboards: '1.1.0', observat
   return m;
 }
 
-test('PC-145: a second user gets the apps in ~/Applications, made when absent; another user\'s copies are left byte for byte (SCN-017)', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+test('PC-145, PC-146: a second user gets the apps in ~/Applications, made when absent; another user\'s copies are left byte for byte (SCN-017)', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
   const api = await releaseServer(t);
   const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
   m.perUser = true;
@@ -608,7 +608,21 @@ test('PC-145: a second user gets the apps in ~/Applications, made when absent; a
   const claudeJson = JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers;
   assert.ok(claudeJson['fabric-dashboards'].command.startsWith(path.join(own, 'Fabric Dashboards.app')), claudeJson['fabric-dashboards'].command);
   const shared = r.json.after.checks.find((c) => c.id === 'app.dashboards.shared');
-  assert.ok(shared && shared.state === 'info' && shared.detail.includes(theirs), JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  assert.ok(shared && shared.state === 'info', JSON.stringify(r.json.after.checks.filter((c) => c.area === 'apps')));
+  assert.equal(shared.detail, `Fabric Dashboards: the copy in ${theirs} is one you cannot replace, left as it is; macOS may open fabric-dashboards:// links with it instead of yours`);
+  // An app with no links (Switchboard) gets no links clause; with no copy of its own, no "instead of yours".
+  const sb = path.join(m.shared, 'Fabric Switchboard.app');
+  fs.chmodSync(m.shared, 0o755);
+  fs.mkdirSync(path.join(sb, 'Contents'), { recursive: true });
+  fs.writeFileSync(path.join(sb, 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: '0.0.1' }));
+  fs.renameSync(path.join(own, 'Fabric Inbox.app'), path.join(m.home, 'inbox-aside.app'));
+  fs.mkdirSync(path.join(m.shared, 'Fabric Inbox.app', 'Contents'), { recursive: true });
+  fs.writeFileSync(path.join(m.shared, 'Fabric Inbox.app', 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: '0.0.1' }));
+  fs.chmodSync(m.shared, 0o555);
+  const again = await cli(m, api, 'doctor', '--offline', '--json');
+  const row = (id) => again.json.checks.find((c) => c.id === id);
+  assert.equal(row('app.switchboard.shared').detail, `Fabric Switchboard: the copy in ${sb} is one you cannot replace, left as it is`);
+  assert.equal(row('app.inbox.shared').detail, `Fabric Inbox: the copy in ${path.join(m.shared, 'Fabric Inbox.app')} is one you cannot replace, left as it is; macOS may open fabric-inbox:// links with it`);
   // A plain doctor afterwards reads this user's copies.
   const d = await cli(m, api, 'doctor', '--offline', '--json');
   assert.ok(d.json.checks.some((c) => c.id === 'app.dashboards' && c.state !== 'info'), JSON.stringify(d.json.checks.filter((c) => c.area === 'apps')));
@@ -624,6 +638,37 @@ test('PC-147: a folder the user cannot write is named in the plan and nothing is
   assert.ok(installs.length && installs.every((i) => !i.selected && i.note.startsWith(`${m.apps} is not writable for you; nothing is downloaded`)), JSON.stringify(installs));
   assert.deepEqual(fs.readdirSync(m.apps), [], 'nothing installed');
   assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
+});
+
+test('PC-147: a blocked app is named and never asked about, in a terminal and with --yes; a blocked reinstall stays out of the repairs question', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  installApp(m, catalog.byId('switchboard'), { version: '1.0.0' }); // outdated: setup would reinstall it
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const script = `const S = require(${JSON.stringify(path.join(__dirname, '../lib/setup'))});
+    const asked = [];
+    S.setup({ online: true, noOpen: true, withIds: ['dashboards', 'switchboard'], ask: async (q) => { asked.push(q); return 'y'; } })
+      .then((r) => process.stdout.write(JSON.stringify({ actions: r.actions, steps: r.humanSteps, asked })), (e) => { console.error(e); process.exit(1); });`;
+  const run = await new Promise((resolve) => {
+    const child = spawn(process.execPath, ['-e', script], { env: cliEnv(m, api), stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr }));
+  });
+  assert.equal(run.status, 0, run.stderr);
+  const out = JSON.parse(run.stdout);
+  assert.ok(!out.asked.some((q) => /^Install /.test(q)), JSON.stringify(out.asked));
+  assert.ok(!out.asked.some((q) => /reinstall Fabric Switchboard/.test(q)), JSON.stringify(out.asked));
+  assert.ok(!out.actions.some((a) => a.kind === 'install' || a.kind === 'replace'), JSON.stringify(out.actions));
+  assert.ok(out.steps.includes(`Fabric Switchboard: ${m.apps} is not writable for you; nothing is downloaded (unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it)`), JSON.stringify(out.steps));
+  assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
+  // --yes says the same, and never calls the machine set up.
+  const yes = await cli(m, api, 'setup', '--yes');
+  assert.match(yes.stdout, /Fabric Switchboard: .* is not writable for you/, yes.stdout);
+  assert.doesNotMatch(yes.stdout, /is in place/, yes.stdout);
+  assert.doesNotMatch(yes.stdout, /\n\s*\d+\. npx @passioncode-ai\/passioncode@latest setup\n/, yes.stdout);
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {

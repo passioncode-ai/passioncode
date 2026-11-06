@@ -46,8 +46,8 @@ and bundle they may write, which stays there (a single-user Mac keeps `/Applicat
 `~/Applications`. `doctor`'s row for a copy left in `/Applications` is information, not a warning, since there is
 nothing for the user to fix. Question 1 below is answered by that rule and by the plan.
 
-Needed: install into `~/Applications`, making the folder when it is absent; keep the choice in `state.json` so
-`update`, `doctor` and the session hook use the same folder; `doctor` reads this user's copy first. An existing
+Needed: install into `~/Applications`, making the folder when it is absent; one rule (below) so `update`, `doctor`
+and the session hook use the same folder; `doctor` reads this user's copy first. An existing
 `/Applications` copy owned by the same user may stay where it is (question 1 below decides whether it moves).
 Accept: under a second macOS user with no `~/Applications`, `setup --yes` installs Fabric, Switchboard, Dashboards,
 Inbox and the Observatory app there; a later plain `doctor` and a session-start update read and use those paths.
@@ -60,7 +60,7 @@ Needed: a bundle in `/Applications` owned by another uid, or not writable by thi
 plan a per-user install, never replace, move or Trash it; `doctor` names it as a copy that may answer
 `fabric-dashboards://` and `fabric-inbox://` before this user's.
 Accept: copies another user installed in `/Applications` are byte-identical after `setup` under the first and the second user;
-each user has its own copy; `doctor` warns about the shared one.
+each user has its own copy; `doctor` names the shared one (an information row, see the decision under PC-145).
 Waits on: runbook 3.5 (who removes the shared copies).
 
 ### PC-147 (P1): `setup` without administrator rights
