@@ -78,6 +78,16 @@
         "keeps blocked apps apart from skipped ones (Fabric without Docker)",
         "passes on the folder each blocked app needs and that running setup again changes nothing for it until that folder is writable"
       ]
+    },
+    {
+      "id": "shared-copies",
+      "trap": "the agent reported the copies left in /Applications as failures to fix, or said macOS may open Fabric Switchboard's links with another copy although its row says nothing about links",
+      "request": "Check my PassionCode setup; another person also uses this Mac.",
+      "expected": [
+        "runs setup or doctor and reads each `app.<id>.shared` row as information, not as a failure, and runs no fix for it",
+        "relays each row's own wording of whose copy it is (another user's, an administrator's, one the person cannot replace, or their own earlier one)",
+        "mentions links only for an app whose row says macOS may open its links with that copy"
+      ]
     }
   ]
 }
