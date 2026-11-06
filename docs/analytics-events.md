@@ -64,9 +64,10 @@ final: a shared "no" is not read over it.
 Reading the launcher's own series: existing machines are counted from their first run without `--json` or `--quiet`
 after 0.2.76 (or the setup skill's `analytics status`), so the early `existing` installs and daily active machines are a
 floor that rises as machines run setup again, not adoption. A run of an older version after a newer one (a caller that pins a version) is also sent as
-`app_updated`, with the newer version in `from`. From 0.2.76 a `setup` run whose apps are all in a folder the user
-cannot write ends `ok` (exit 0, the apps named in `blocked`, SCN-017), where it used to fail with a permission error:
-setup's `failed` share drops on standard users' machines with no change in what they get.
+`app_updated`, with the newer version in `from`. From 0.2.76 a standard user's `setup` installs the apps into their
+own `~/Applications` and ends `ok` where it used to fail with a permission error on `/Applications`: a real change, and
+installs per Mac may rise (SCN-017). A run whose target folder is not writable (a `PASSIONCODE_APPLICATIONS` folder, or
+a locked bundle in `~/Applications`) also ends `ok`, with the apps in `blocked`, unless a check still fails.
 
 The host sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing
 it; events are kept two years and the installation id is removed from them after 400 days

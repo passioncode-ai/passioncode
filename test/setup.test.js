@@ -788,6 +788,11 @@ test('PC-147: an outdated app in use, in a folder the user cannot write, is name
   const text = await cli(m, api, 'setup', '--yes', '--without', 'fabric');
   assert.doesNotMatch(text.stdout, /is in place/, text.stdout);
   assert.match(text.stdout, /Nothing was changed: Fabric Switchboard needs a folder you can write/, text.stdout);
+  // A plan names it under its items with the folder, since the plan has no item of its own for it.
+  const dry = await cli(m, api, 'setup', '--dry-run', '--without', 'fabric');
+  assert.match(dry.stdout, /Nothing would change: Fabric Switchboard needs a folder you can write \(see the plan below\)\.[\s\S]*\n  – Fabric Switchboard: .* is not writable for you/, dry.stdout);
+  const dryJson = await cli(m, api, 'setup', '--dry-run', '--json', '--without', 'fabric');
+  assert.ok(dryJson.json.before.checks.some((c) => c.product === 'switchboard' && c.blocked && /is not writable for you/.test(c.fix)), 'the reason is in the check');
   // A damaged bundle there fails its signature check: doctor.json lists it as blocked, so the hook sends the person to doctor.
   fs.chmodSync(m.apps, 0o755);
   installApp(m, catalog.byId('inbox'), { broken: true });

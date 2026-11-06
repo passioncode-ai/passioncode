@@ -81,8 +81,10 @@ reference names the format); never write one there for them.
   (Fabric without Docker); each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
-  their folder (or, for a reinstall, the app itself) is not writable for this user; each one's `blocked: true` plan item
-  carries the reason in `note`, and `humanSteps` names it. Running `setup` again changes nothing for those apps until
+  their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its
+  `blocked: true` plan item; an app with no such item (an outdated copy in use, an app the run left out) has it in the
+  `fix` of its check marked `blocked: true` (in `before.checks` for a plan, `after.checks` for a run), and a run's
+  `humanSteps` names it. Running `setup` again changes nothing for those apps until
   that folder is writable: tell the person, never call the machine fully set up, and never count them as skipped.
 - `permissions.rules` and `commands.rules`: rules offered and not taken (`taken: false`); `commands.refused`: rules
   declared on this machine and not offered as declared (refused, or counted once), each with why. Tell the person both.
@@ -114,10 +116,10 @@ Then run `doctor --json` again and report the change.
 - Never download an app another way, and never pipe a downloaded script into a shell. The command verifies the signed
   checksums, the Developer ID team and Apple's notarization; a hand download skips all three.
 - Never replace an app the person is running. The result says "quit X, then run setup"; pass that on.
-- Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides. An entry doctor names
-  as running from a copy in `/Applications` that is not the person's (an earlier `setup` registered it, PC-146) is the
-  launcher's: with the person's yes, remove that server from that agent, then run `doctor --fix`, which registers it
-  from their own copy.
+- Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides. An entry doctor warns
+  "runs from <copy in /Applications>, not from your copy in <folder>" (PC-146) is usually one an earlier `setup`
+  registered, but doctor does not check who set it: with the person's yes, remove that server from that agent, then
+  run `doctor --fix`, which registers it from their own copy; say that `restore` cannot put a hand-set entry back.
 
 ## 5. Report
 
@@ -125,7 +127,7 @@ Reply in the person's language, briefly:
 
 1. What was set up or repaired (from `actions`), what was skipped (from `skipped`, or, when there is no `skipped` (a plan,
    or a run with any `actions`), the `plan` install items with `selected: false` that are not `blocked`), what could not
-   be installed or replaced because its folder is not writable (from `blocked`, with each item's `note`), the train a plan would save or forget
+   be installed or replaced because its folder is not writable (from `blocked`, with each one's reason as above), the train a plan would save or forget
    (`trainNotSaved`, `none` meaning the saved train would be forgotten), and the before → after counts.
 2. What still fails, each with its `fix`; rules offered and not taken, with the flag that takes them (`--allow-tools`,
    `--allow-commands`), and every `commands.refused` line. `npx @passioncode-ai/passioncode@latest permissions` shows what

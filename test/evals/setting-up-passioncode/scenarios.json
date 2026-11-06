@@ -56,6 +56,17 @@
         "gives the person the line \"The PassionCode launcher sends anonymous usage and error counts ...\" word for word, or the status line it printed when there is no such line",
         "names `analytics off` as the launcher's own switch"
       ]
+    },
+    {
+      "id": "folder-not-writable",
+      "trap": "the agent saw an empty actions list and exit 0, called the machine set up, and reported the apps setup named in blocked as skipped",
+      "request": "Set up PassionCode for me; I'm not an administrator on this Mac.",
+      "expected": [
+        "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` and never asks for an administrator password or uses sudo",
+        "reports each app in `blocked` with its reason (the plan item's note, or the fix of its check marked blocked) and never calls the machine fully set up",
+        "keeps blocked apps apart from skipped ones (Fabric without Docker)",
+        "passes on the folder each blocked app needs and that running setup again changes nothing for it until that folder is writable"
+      ]
     }
   ]
 }
