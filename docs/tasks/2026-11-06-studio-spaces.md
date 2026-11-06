@@ -155,8 +155,8 @@ Waits on: the site (passioncode-ai.github.io).
 1. Answered (2026-11-06, the decision under PC-145): `~/Applications` for every new install on every Mac; a copy the
    same user owns and may replace stays in `/Applications` and is never moved. Still open: who removes the shared
    copies, and when (runbook 3.5).
-2. Runbook 3.1: which Observatory command installs the engine under a new user with a new, empty vault and no import?
-   Should the launcher call it, or should the runbook name it?
+2. Answered (Workspace and Observatory on the board, 2026-11-06): `setup` calls Observatory's own commands,
+   `project-observatory full init --fresh` and then `project-observatory full node --init` (PC-150).
 3. Which versions form `organization-r1` for a shared Mac, when is Fabric 0.3.16 published, and who records the re-pin?
 4. CO-337: what shape does the join take (a command, a deep link, a call to the hub on the user's port)? Should the
    launcher call it or open Fabric's screen? One organization per macOS user?
