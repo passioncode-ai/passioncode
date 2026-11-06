@@ -65,8 +65,9 @@ Reading the launcher's own series: existing machines are counted from their firs
 after 0.2.76 (or the setup skill's `analytics status`), so the early `existing` installs and daily active machines are a
 floor that rises as machines run setup again, not adoption. A run of an older version after a newer one (a caller that pins a version) is also sent as
 `app_updated`, with the newer version in `from`. From 0.2.76 a standard user's `setup` installs the apps into their
-own `~/Applications` and ends `ok` where it used to fail with a permission error on `/Applications`: a real change, and
-installs per Mac may rise (SCN-017). A run whose target folder is not writable (a `PASSIONCODE_APPLICATIONS` folder, or
+own `~/Applications` and ends `ok` where it used to fail with a permission error on `/Applications`: a real change (SCN-017). The
+launcher's own installs are counted per user (each home has its own installation file) and do not move; the apps' own
+`app_installed` series rise as each user installs copies of their own. A run whose target folder is not writable (a `PASSIONCODE_APPLICATIONS` folder, or
 a locked bundle in `~/Applications`) also ends `ok`, with the apps in `blocked`, unless a check still fails. And `doctor`
 no longer counts another user's copy in `/Applications` as this user's problem (it is an information row), so its
 check-failed share on Macs with several users may fall.
@@ -81,3 +82,6 @@ it; events are kept two years and the installation id is removed from them after
   shared `installation.json` at its first counted run, often before any PassionCode app starts. On machines set up with
   the launcher, the apps' `app_installed` then carries `first_passioncode_app` false more often. The drop is a change in
   measurement, not in what people do: read it as a break in the series.
+- From launcher 0.2.76, on a Mac with several users, each user's `setup` installs the apps into their own
+  `~/Applications` (PC-145), so the apps' own `app_installed` rises there: a real change in what people get, not a
+  measurement break.

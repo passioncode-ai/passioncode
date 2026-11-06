@@ -346,11 +346,13 @@
   session hook use the second user's copies, and the MCP servers setup registers run from them.
 - **Alt paths:** A copy in `/Applications` that this user owns and can replace stays where it is and is updated there.
   A copy in `~/Applications` always wins over one in `/Applications`. `PASSIONCODE_APPLICATIONS` names one folder for
-  every app and turns the rule off; it is read on each run, so it is set wherever `setup`, `doctor` and the agents start.
+  every app and turns the rule off; it is read on each run, so it is set wherever `setup`, `doctor` and the agents start
+  (the Fabric Agent Adapter's own lookup for Fabric does not read it yet).
   A user who ran `setup` before this release keeps the MCP entries it registered from another user's copy until PC-149
   points them at their own copy; until then `doctor` warns that each such entry runs from that copy, with the step:
-  remove the entry, then `doctor --fix` registers this user's own. Sessions Fabric starts find Fabric through the Fabric
-  Agent Adapter's own lookup, which tries `/Applications` first until its FAA-229 follows this rule. A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
+  remove the entry, then `doctor --fix` registers this user's own. Sessions Fabric starts find this user's
+  `~/Applications/Fabric.app` first, and flag another user's registered copy, from Fabric Agent Adapter v0.69.1, which
+  this release pins (PC-141, FAA-229). A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
   in the plan and among the steps, is never asked about, and nothing is downloaded (Fabric's note adds what else it
   needs, such as Docker; a folder of the user's own says how to unlock it, any other to ask an administrator); every run, a plan included, names
   those apps in `blocked`, and its closing line names them ("Nothing was changed: ... needs a folder you can write", or

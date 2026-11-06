@@ -112,11 +112,12 @@ test('PC-147: a bundle this user cannot write, in a folder they can, is what blo
   assert.equal(C.blockedFolder(there), there);
 });
 
-test('PC-147: the note for a folder this user cannot write names PASSIONCODE_APPLICATIONS only when it is set', () => {
+test('PC-147: the note for a folder this user cannot write names PASSIONCODE_APPLICATIONS only when it is set', { skip: me === 0 && 'root owns /Applications' }, (t) => {
   assert.equal(C.blockedNote('/Applications'), '/Applications is not writable for you, so nothing is downloaded: ask an administrator to let you write it');
   // A folder of this user's own is theirs to unlock; one they do not own (or that is gone) is an administrator's.
   const own = fs.mkdtempSync(path.join(os.tmpdir(), 'pc147-'));
-  if (me !== null) assert.equal(C.blockedNote(own), `${own} is not writable for you, so nothing is downloaded: make it writable (in Finder, Get Info, then Sharing & Permissions)`);
+  t.after(() => fs.rmSync(own, { recursive: true, force: true }));
+  if (me !== null) assert.equal(C.blockedNote(own), `${own} is not writable for you, so nothing is downloaded: make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`);
   process.env.PASSIONCODE_APPLICATIONS = '/x';
   assert.equal(C.blockedNote('/x'), '/x is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it');
 });
@@ -127,4 +128,15 @@ test('PC-146: a copy owned by root (a package or an administrator installed it) 
   const copy = C.sharedCopy(calculator, { home: w.home, shared: '/System/Applications', uid: me });
   assert.deepEqual(copy, { path: '/System/Applications/Calculator.app', why: 'admin' });
   assert.equal(C.sharedNote(calculator, 'Calculator', copy, false), 'Calculator: the copy in /System/Applications/Calculator.app is one an administrator installed, left as it is; macOS may open fabric:// links with it');
+});
+
+test('PC-147: a folder of the user\'s own locked with Finder\'s Locked flag is blocked, and the note names that flag', { skip: (process.platform !== 'darwin' && 'chflags is macOS') || (me === 0 && 'root writes anyway') }, (t) => {
+  const { execFileSync } = require('node:child_process');
+  const w = world();
+  const own = path.join(w.home, 'Applications');
+  fs.mkdirSync(own, { recursive: true });
+  execFileSync('chflags', ['uchg', own]);
+  t.after(() => execFileSync('chflags', ['nouchg', own]));
+  assert.equal(C.blockedFolder(path.join(own, fabric.app)), own);
+  assert.match(C.blockedNote(own), /untick Locked/);
 });

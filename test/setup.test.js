@@ -665,7 +665,7 @@ test('PC-147: a folder the user cannot write is named in the plan and nothing is
   assert.match(text.stdout, /Nothing was changed: Fabric Switchboard, Fabric Dashboards, [^\n]* and [^,\n]* need a folder you can write; the steps below say which\./, text.stdout);
   const d = await cli(m, api, 'doctor', '--json', '--offline');
   const row = d.json.checks.find((c) => c.id === 'app.switchboard');
-  assert.equal(row.fix, `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`);
+  assert.equal(row.fix, `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`);
 });
 
 test('PC-147: a blocked app is named and never asked about, in a terminal and with --yes; a blocked reinstall stays out of the repairs question', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
@@ -690,7 +690,7 @@ test('PC-147: a blocked app is named and never asked about, in a terminal and wi
   assert.ok(!out.asked.some((q) => /^Install /.test(q)), JSON.stringify(out.asked));
   assert.ok(!out.asked.some((q) => /reinstall Fabric Switchboard/.test(q)), JSON.stringify(out.asked));
   assert.ok(!out.actions.some((a) => a.kind === 'install' || a.kind === 'replace'), JSON.stringify(out.actions));
-  assert.ok(out.steps.includes(`Fabric Switchboard: ${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`), JSON.stringify(out.steps));
+  assert.ok(out.steps.includes(`Fabric Switchboard: ${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`), JSON.stringify(out.steps));
   assert.ok(!toolLog(m).some((l) => l.startsWith('ditto') || l.startsWith('hdiutil')), 'nothing unpacked');
   // --yes says the same, and never calls the machine set up.
   const yes = await cli(m, api, 'setup', '--yes');
@@ -716,7 +716,7 @@ test('PC-147: blocked names its apps in every run: a dry run, a run that changed
   assert.match(first.stdout, /Not installed or replaced: Fabric Dashboards and Fabric Switchboard need a folder you can write; the steps below say which\./, first.stdout);
   const json = await cli(m, api, 'setup', '--yes', '--json', '--with', 'dashboards,switchboard');
   assert.deepEqual(json.json.blocked, ['Fabric Dashboards', 'Fabric Switchboard']);
-  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`;
+  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`;
   assert.deepEqual(json.json.humanSteps, [`Fabric Dashboards: ${note}`, `Fabric Switchboard: ${note}`], JSON.stringify(json.json.humanSteps));
   // doctor --fix makes the same repairs without the blocked one, and names it.
   const fix = await cli(m, api, 'doctor', '--fix', '--json');
@@ -761,7 +761,7 @@ test('PC-147: a terminal run answered no names the blocked apps as never asked, 
   json.mcpServers = { ...(json.mcpServers || {}), switchboard: { type: 'stdio', command: stale, args: [] } };
   fs.writeFileSync(cj, JSON.stringify(json));
   const d = await cli(m, api, 'doctor', '--json');
-  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info, then Sharing & Permissions)`;
+  const note = `${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`;
   const on = d.json.checks.find((x) => x.id === 'sessions.on-demand');
   assert.ok(on.fix.includes(note) && !on.fix.includes('setup --with switchboard'), on.fix);
   const entry = d.json.checks.find((x) => x.id === 'mcp.claude.switchboard');
@@ -823,6 +823,21 @@ test('PC-147: on a release train, an app behind its pin, in use, in a locked fol
   const odd = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
   assert.equal(odd.json.blocked, undefined, JSON.stringify(odd.json.blocked));
   assert.ok(odd.json.humanSteps.every((x) => !/is not writable/.test(x) || /if its signature check fails too, setup cannot reinstall it/.test(x)), JSON.stringify(odd.json.humanSteps));
+});
+
+test('PC-147: a blocked Fabric without Docker, with a stale MCP entry, is one step that says both', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  fs.chmodSync(m.apps, 0o555);
+  t.after(() => fs.chmodSync(m.apps, 0o755));
+  const cj = path.join(m.home, '.claude.json');
+  const conf = fs.existsSync(cj) ? JSON.parse(fs.readFileSync(cj, 'utf8')) : {};
+  conf.mcpServers = { ...(conf.mcpServers || {}), fabric: { type: 'stdio', command: path.join(m.apps, 'Fabric.app/Contents/MacOS/fabric-mcp'), args: ['--runner', 'claude-code'] } };
+  fs.writeFileSync(cj, JSON.stringify(conf));
+  const r = await cli(m, api, 'setup', '--yes', '--json');
+  const fabric = r.json.humanSteps.filter((x) => x.startsWith('Fabric: '));
+  assert.equal(fabric.length, 1, JSON.stringify(r.json.humanSteps));
+  assert.match(fabric[0], /it also needs Docker/);
 });
 
 test('PC-89: setup --train installs the pinned release, not the latest, and doctor reports the train', { skip: MAC_SIM }, async (t) => {

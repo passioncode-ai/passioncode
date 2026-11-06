@@ -58,8 +58,9 @@
 - **Fabric Agent Adapter is pinned at `v0.69.1`** (it was `v0.62.0`): the `working-with-fabric` session hooks take a
   board request as a session (FAA-201), answer the board at once (FAA-205) and take the owner's word the first time
   (FAA-207), a hook after a claim released as done asks for the retro in that turn (FAA-206), hook input in Cyrillic
-  is no longer dropped on Windows, and the support-agent recipe is new (FAA-197); the kit's API for services is
-  unchanged (PC-141).
+  is no longer dropped on Windows, and the support-agent recipe is new (FAA-197); sessions Fabric starts find
+  fabric-mcp in your own `~/Applications/Fabric.app` before `/Applications`, and another user's registered copy is
+  flagged (FAA-229, the adapter's side of PC-145); the kit's API for services is unchanged (PC-141).
 
 ### Fixed
 
