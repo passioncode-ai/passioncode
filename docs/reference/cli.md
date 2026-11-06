@@ -79,8 +79,8 @@ values still do not prove registry freshness. Sources: `status()` in
 `fix` is the command or step that resolves it; `repair` names what `setup` may do
 about it (`update`, `replace`, `kickstart`) or is null. `ok` is false when any
 check fails. The summary and the failed ids are saved to
-`~/.passioncode/doctor.json`, which the SessionStart hook repeats while it has
-failures, and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
+`~/.passioncode/doctor.json` (with `blocked`, the failed ids whose app folder this user cannot write, PC-147), which the
+SessionStart hook repeats while it has failures (naming `doctor` instead of `setup` when every one is blocked), and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
 starts, stops or opens nothing, apart from the anonymous counts every command
 sends when they are on ([Anonymous usage counts](#anonymous-usage-counts): `~/.passioncode/analytics.json`, its notice
 marker, the shared `installation.json` created once, and one request to `https://analytics.passioncode.ai`).
@@ -90,7 +90,7 @@ marker, the shared `installation.json` created once, and one request to `https:/
 | prerequisites | Node ≥ 18; coding agents present; Docker answering and the Supabase CLI when Fabric is installed | Node too old; Docker or the Supabase CLI missing (a stopped Docker is a warning) |
 | skills | `status`: the set installed, each member's plugin, hub links, shadows, legacy copies; the update switch (`skills.auto-update`, information only, when `update.auto` is off, with the command that turns it on: an uninstall by 0.2.75 or earlier wrote it off, PC-131) | the set is missing or broken |
 | apps (macOS) | this user's copy of each app (the per-user rule of `PASSIONCODE_APPLICATIONS` below), with an information row `app.<id>.shared` for a copy in `/Applications` left as it is; each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
-| mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning) |
+| mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning; an entry that runs from a copy in `/Applications` this user does not use, while their own copy is installed, is a warning whose fix removes it and runs `doctor --fix`, PC-146) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback | the service does not answer (degraded is a warning) |
 | services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing (the person's choice; Switchboard's default agent may be another) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
 
@@ -112,17 +112,19 @@ for Fabric without its prerequisites unless `--with fabric`), `update`,
 launchd service that does not answer), each with the check ids that caused it. An `install` or `replace` whose
 folder (or, for a replace, the app itself) this user cannot write is `blocked: true`, `selected` false and never asked
 about, with the reason in `note`; it is among `humanSteps`, and every run, a plan included, names those apps in
-`blocked`, whatever else it changed. The closing line says so: "Nothing was changed: X needs a folder you can write"
-when nothing ran, "Not installed or replaced: X needs a folder you can write" after "Done:", and "Nothing would change:
-X needs a folder you can write" for a plan with nothing selected (PC-147).
+`blocked`, whatever else it changed, never in `notTaken`. The closing line says so: "Nothing was changed: X needs a
+folder you can write" when nothing ran, "Not installed or replaced: X needs a folder you can write" after "Done:",
+"Not asked about: X needs a folder you can write" after a declined run's line, and "Nothing would change: X needs a
+folder you can write" for a plan with nothing selected (PC-147). doctor's fix for such an app, in its app rows, a stale
+MCP entry and the `sessions.on-demand` row, names the folder, never a `setup` that cannot install or replace it.
 `actions` are what ran, with `outcome` `done` or `failed` and `error`. `before`
 and `after` are doctor results; `humanSteps` lists, once each, every remaining
 `fail` or `warn` fix (except the `sessions.on-demand` row's: a readiness note that stays in `after.checks`, PC-124; information rows such as `skills.auto-update` stay in `after.checks` too), each product's onboarding for apps installed in this run, and the restart. A plan lists
 none: its items carry their notes, and nothing ran. A declined run that named a train carries `planOnly` too, but it is
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
-Questions are asked only on a terminal: one per absent app (on macOS; one whose folder this user cannot write is named,
-never asked, PC-147), one for the
+Questions are asked only on a terminal: one per absent app (on macOS, naming the folder it goes into; one whose folder
+this user cannot write is named, never asked, PC-147), one for the
 repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
 tools where Claude Code is and they are missing (default no; see PC-117 below), and one for the rules for shell commands
 where Claude Code is and one of them is missing (default no; see PC-119 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change

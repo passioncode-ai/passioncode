@@ -772,6 +772,11 @@ test('session start names the failures of the last saved setup check, and is sil
   fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T10:00:00.000Z', summary: { ok: 9, warn: 1, fail: 2, info: 0 }, failed: ['mcp.claude.switchboard', 'skills.passioncode'] }));
   const out = hook(sb);
   assert.match(out, /\[passioncode\] the setup check of 2026-10-13 found 2 problem\(s\) \(mcp\.claude\.switchboard, skills\.passioncode\); `npx @passioncode-ai\/passioncode@latest setup` repairs them/);
+  // PC-147: failures setup cannot repair (an app whose folder this user cannot write) send the person to doctor alone.
+  fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T10:00:00.000Z', summary: { ok: 9, warn: 0, fail: 1, info: 0 }, failed: ['app.switchboard.signature'], blocked: ['app.switchboard.signature'] }));
+  assert.match(hook(sb), /found 1 problem\(s\) \(app\.switchboard\.signature\); `npx @passioncode-ai\/passioncode@latest doctor` shows them\./);
+  fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T10:00:00.000Z', summary: { ok: 9, warn: 0, fail: 2, info: 0 }, failed: ['app.switchboard.signature', 'skills.passioncode'], blocked: ['app.switchboard.signature'] }));
+  assert.match(hook(sb), /`npx @passioncode-ai\/passioncode@latest setup` repairs them/, 'a failure setup can repair still names setup');
   fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T11:00:00.000Z', summary: { ok: 12, warn: 1, fail: 0, info: 0 }, failed: [] }));
   assert.doesNotMatch(hook(sb), /setup check/);
   fs.writeFileSync(doctorFile, JSON.stringify({ at: '2026-10-13T10:00:00.000Z', summary: { ok: 9, warn: 0, fail: 2, info: 0 }, failed: ['mcp.claude.switchboard'] }));

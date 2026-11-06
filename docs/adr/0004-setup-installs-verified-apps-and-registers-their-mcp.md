@@ -1,4 +1,4 @@
-# ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only (amended 2026-11-04, PC-123: apart from the anonymous counts)
+# ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only (amended 2026-11-04, PC-123: apart from the anonymous counts; 2026-11-06, PC-145 to PC-147: apps per user)
 
 Status: accepted · 2026-10-13 · brief: [docs/tasks/2026-10-13-setup-doctor.md](../tasks/2026-10-13-setup-doctor.md)
 
@@ -31,7 +31,10 @@ and checksums from GitHub's asset digests and checks no signature.
    - **replace** an app that is outdated or fails its signature checks **and is not running**,
      from its latest verified release; the old bundle is moved to the person's Trash, never
      deleted, and put back if the copy fails; a running app is never touched — the person quits it
-     or accepts the app's own update;
+     or accepts the app's own update; (amended 2026-11-06, PC-145 to PC-147) an app is installed into this user's
+     `~/Applications`, and replaced only where this user owns it and may write its folder and bundle; another user's or
+     an administrator's copy is left as it is, and a folder this user cannot write is named (`blocked`), never asked
+     about, nothing downloaded ([spec](../tasks/2026-11-06-studio-spaces.md#pc-145-p1-apps-per-user-in-applications));
    - **kickstart** a family service that does not answer and whose descriptor names a launchd
      label: `launchctl kickstart gui/<uid>/<label>` (no `-k`: it starts, it never kills).
    On a healthy machine the plan is empty, nothing changes, and it exits 0.

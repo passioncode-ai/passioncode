@@ -113,7 +113,15 @@ test('PC-147: a bundle this user cannot write, in a folder they can, is what blo
 });
 
 test('PC-147: the note for a folder this user cannot write names PASSIONCODE_APPLICATIONS only when it is set', () => {
-  assert.equal(C.blockedNote('/Applications'), '/Applications is not writable for you; nothing is downloaded (ask an administrator to let you write it)');
+  assert.equal(C.blockedNote('/Applications'), '/Applications is not writable for you, so nothing is downloaded: ask an administrator to let you write it');
   process.env.PASSIONCODE_APPLICATIONS = '/x';
-  assert.equal(C.blockedNote('/x'), '/x is not writable for you; nothing is downloaded (unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it)');
+  assert.equal(C.blockedNote('/x'), '/x is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ask an administrator to let you write it');
+});
+
+test('PC-146: a copy owned by root (a package or an administrator installed it) is named as such, not as another user\'s', { skip: (process.platform !== 'darwin' && 'a root-owned bundle macOS ships') || (me === 0 && 'root owns it') }, () => {
+  const w = world();
+  const calculator = { ...fabric, app: 'Calculator.app' }; // root-owned on every Mac
+  const copy = C.sharedCopy(calculator, { home: w.home, shared: '/System/Applications', uid: me });
+  assert.deepEqual(copy, { path: '/System/Applications/Calculator.app', why: 'admin' });
+  assert.equal(C.sharedNote(calculator, 'Calculator', copy, false), 'Calculator: the copy in /System/Applications/Calculator.app is one an administrator installed, left as it is; macOS may open fabric:// links with it');
 });

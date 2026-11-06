@@ -64,11 +64,12 @@
   installed only into `/Applications`, counted another user's copy there as installed, and replaced an outdated one by
   moving it into the running user's Trash; a standard user got a bare permission error. Each app now goes into the
   user's `~/Applications` (made on the first install), on a Mac with one user too; a copy already in `/Applications`
-  that is theirs and that they may replace stays there and is updated there. Another user's copy is left byte for byte
-  and `doctor` names it, since macOS may open the app's links with it. No administrator password is needed, and a
+  that is theirs and that they may replace stays there and is updated there; the plan and the install question name the
+  folder. Another user's copy, or one an administrator installed, is left byte for byte and `doctor` names it, since macOS may open the app's links with it. No administrator password is needed, and a
   folder the user cannot write (or an app they cannot replace) is named in the plan, the steps and the `blocked` list
   of every run, never asked about, and nothing is downloaded. `PASSIONCODE_APPLICATIONS` still names one folder for every app. Not yet: MCP entries an
-  earlier `setup` registered from another user's copy keep pointing there until PC-149.
+  earlier `setup` registered from another user's copy keep pointing there until PC-149; `doctor` warns about each one
+  and names the step that moves it to the user's own copy.
 
 - **Another user's app is not "in use"** (PC-151): `setup` and `doctor` asked `pgrep` about every user's processes and
   matched the bundle's path anywhere in a command line, so on a Mac with two users a copy in one user's

@@ -264,13 +264,13 @@
 - **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run.
 - **Steps:**
   1. Start a session.
-- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them. The hook never runs doctor.
+- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), the line names `doctor`, which shows that folder. The hook never runs doctor.
 - **Alt paths:** No failures or no file: silent.
 - **UI elements:** One hook line.
 - **States covered:** empty, error
 - **Errors & recovery:** A damaged file is ignored.
 - **Status:** implemented
-- **Coverage:** `test/self-update.test.js`, test beginning `session start names the failures`.
+- **Coverage:** `test/self-update.test.js`, test beginning `session start names the failures` (its blocked case too).
 - **Product:** unobserved
 
 ### SCN-014: Follow an organization's release train
@@ -283,7 +283,7 @@
   1. Run setup with the train. The plan names each app's pinned release instead of its latest.
   2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
   3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
-- **Expected result:** Every installed app the train pins is at its pinned version; `doctor` says how many are.
+- **Expected result:** Every installed app the train pins is at its pinned version, unless its folder or the app itself is not this user's to replace (SCN-017: the run names it in `blocked`, "Not installed or replaced: ..."); `doctor` says how many are.
 - **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (when it names a train other than the saved one, its last item is "save release train <name>", followed only by Claude Code's tool rules while they are offered, PC-117) and saves nothing; without a terminal and without `--yes`, a plan whose only item is the train closes with "Run it with --yes, or in a terminal, to apply.", since a terminal then asks nothing and saves the train at once (while Claude Code's tool rules are offered a terminal asks about them, so it closes with the questions footer, PC-117); a yes to the tool rules alone is a run the person agreed to, so it saves a named train with them; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), the report lists no plan under its headline, and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup` (and `setup --train <name> --with fabric` for Fabric without its prerequisites); `--train none` in a terminal is saved on any answer, and when the repairs are answered no, the steps name `setup` where a failing or warning check's own fix names it.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
@@ -339,7 +339,7 @@
   (no administrator rights), has no `~/Applications` yet and has not run `setup` before.
 - **Steps:**
   1. Run `setup` (or `setup --yes`) as the second user.
-  2. Read the plan: each install line names the second user's `~/Applications` as its folder.
+  2. Read where each app goes: each install line of the plan (`--dry-run`, or a run without a terminal) and each install question in a terminal names the second user's `~/Applications`.
   3. Run `doctor`.
 - **Expected result:** Each app is installed into `~/Applications` (made when absent); no administrator password is
   asked; the first user's copies in `/Applications` are left byte for byte as they were. `doctor`, `update` and the
@@ -348,7 +348,8 @@
   A copy in `~/Applications` always wins over one in `/Applications`. `PASSIONCODE_APPLICATIONS` names one folder for
   every app and turns the rule off; it is read on each run, so it is set wherever `setup`, `doctor` and the agents start.
   A user who ran `setup` before this release keeps the MCP entries it registered from another user's copy until PC-149
-  points them at their own copy. A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
+  points them at their own copy; until then `doctor` warns that each such entry runs from that copy, with the step:
+  remove the entry, then `doctor --fix` registers this user's own. A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
   in the plan and among the steps, is never asked about, and nothing is downloaded; every run, a plan included, names
   those apps in `blocked`, and its closing line names them ("Nothing was changed: ... needs a folder you can write", or
   "Not installed or replaced: ..." after what else it did, or "Nothing would change: ..." for a plan). `doctor`'s fix
@@ -356,10 +357,10 @@
 - **UI elements:** the plan's install lines; `doctor`'s app rows and the note naming another user's copy.
 - **States covered:** empty, success, partial
 - **Errors & recovery:** Another user's copy is never replaced, moved or put in the Trash; `doctor` names it with its
-  reason (another user's, one this user cannot replace, or this user's own earlier copy beside the one in
+  reason (another user's, one an administrator installed (owned by root), one this user cannot replace, or this user's own earlier copy beside the one in
   `~/Applications`) and, for an app with links (`fabric-dashboards://`, `fabric-inbox://`, `fabric://`), that macOS may
   open them with it; there is no fix to run.
 - **Status:** implemented
-- **Coverage:** `test/catalog.test.js` (where an app goes, the note for another user's copy), `test/setup.test.js` tests beginning `PC-145, PC-146` and `PC-147`.
+- **Coverage:** `test/catalog.test.js` (where an app goes, the note for another user's or an administrator's copy), `test/setup.test.js` tests beginning `PC-145, PC-146` and `PC-147`, `test/self-update.test.js` test beginning `session start names the failures`.
 - **Product:** unobserved
 
