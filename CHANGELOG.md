@@ -103,6 +103,12 @@
   Windows the listening process's owner). A port another account's program holds, or one whose owner cannot be told,
   is a failed row that names the port; doctor sends that listener nothing, reads nothing from it and offers no
   `kickstart`. Before, on a Mac with two users, another user's process on your service's port answered for it.
+- **The owner is read on doctor's own connection** (PC-163, the contract's CT-254, `v0.1.0+2026-11-07.3`): `doctor`
+  opens the connection first and checks the process that holds its server end, then reads the answer over that same
+  connection; a list of listeners read before connecting says nothing about who accepted it. While a connection is
+  not yet accepted, the listener on `127.0.0.1` counts before a wildcard one, and listeners of two accounts there are
+  an owner that cannot be told. A socket table the system cuts short (some macOS releases show a process only its own
+  sockets) is a warning that names the port, never another account and never a healthy service.
 
 - **Another user's app is not "in use"** (PC-151): `setup` and `doctor` asked `pgrep` about every user's processes and
   matched the bundle's path anywhere in a command line, so on a Mac with two users a copy in one user's
