@@ -5,6 +5,8 @@
 //   BROKEN                codesign, stapler and Gatekeeper reject it
 //   TEAM                  the team identifier codesign reports (default KJ35UYYL22)
 //   RUNNING               pgrep finds a process running from it
+// netstat prints the file $FAKE_NETSTAT (a socket table in macOS's `netstat -anv -p tcp` form), or a table
+// with no listeners; ps answers `-o uid= -p <pid>` from $FAKE_PS_UIDS (`pid=uid,pid=uid`), else fails.
 // A release "archive" is JSON { app, version, broken?, team? }; ditto and hdiutil unpack it into a
 // bundle whose MCP binary (catalog `mcp.bin`) is test/fake-mcp.js.
 const fs = require('fs');
@@ -62,5 +64,17 @@ switch (tool) {
   case 'docker': if (args[0] === 'info') out('27.0.0'); else out('Docker version 27.0.0'); process.exit(0);
   case 'supabase': out('2.0.0'); process.exit(0);
   case 'launchctl': case 'open': process.exit(0);
+  case 'netstat': {
+    if (process.env.FAKE_NETSTAT) { process.stdout.write(fs.readFileSync(process.env.FAKE_NETSTAT, 'utf8')); process.exit(0); }
+    out('Active Internet connections (including servers)');
+    out('Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options');
+    process.exit(0);
+  }
+  case 'ps': {
+    const pid = args[args.indexOf('-p') + 1];
+    const hit = (process.env.FAKE_PS_UIDS || '').split(',').map((x) => x.split('=')).find(([p]) => p === pid);
+    if (!hit) { err(`ps: process ${pid} not found`); process.exit(1); }
+    out(`  ${hit[1]}`); process.exit(0);
+  }
   default: err(`fake-tools: unknown ${tool}`); process.exit(127);
 }

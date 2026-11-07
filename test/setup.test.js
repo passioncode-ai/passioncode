@@ -18,7 +18,7 @@ const { makeKey } = require('./pgp-fixture');
 const ROOT = path.resolve(__dirname, '..');
 const BIN = path.join(ROOT, 'bin/passioncode.js');
 const KEY = makeKey();
-const TOOLS = ['codesign', 'xcrun', 'spctl', 'plutil', 'pgrep', 'ditto', 'hdiutil', 'launchctl', 'open', 'supabase', 'docker'];
+const TOOLS = ['codesign', 'xcrun', 'spctl', 'plutil', 'pgrep', 'ditto', 'hdiutil', 'launchctl', 'open', 'supabase', 'docker', 'netstat', 'ps'];
 
 function makePayload(dir) {
   const members = [{ name: 'example-agent', version: '0.1.0', skills: ['example-agent'], legacyPluginIds: [] }];
@@ -214,6 +214,46 @@ test('an existing broken setup: setup repairs, checks again and prints before â†
   assert.ok(!toolLog(m).some((l) => /^launchctl (kill|stop|bootout)|kickstart -k/.test(l)), 'never a kill');
   assert.ok(!toolLog(m).some((l) => l.startsWith('open ')), 'nothing installed this run, nothing opened');
   assert.ok(JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers.fabric, 'fabric registered by the repair');
+});
+
+test('PC-152: doctor names a service whose port another OS account holds, and sends that listener nothing', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  let reads = 0;
+  const server = http.createServer((req, res) => { reads += 1; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ status: 'ok', service: { id: 'project-observatory', version: '9.9.9' } })); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  t.after(() => server.close());
+  const { port } = server.address();
+  const m = machine();
+  installApp(m, catalog.byId('observatory'));
+  fs.writeFileSync(path.join(m.home, 'services', 'project-observatory.default.json'), JSON.stringify({
+    protocol: 'fabric-service/0.1', id: 'project-observatory', instance: 'default', name: 'Project Observatory',
+    origin: `http://127.0.0.1:${port}`, lifecycle: { manager: 'launchd', label: 'org.example.observatory' },
+  }));
+  // macOS's socket table names process 4242 as the listener on the service's port.
+  const table = path.join(m.home, 'netstat.txt');
+  fs.writeFileSync(table, 'Active Internet connections (including servers)\n'
+    + 'Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options\n'
+    + `tcp4       0      0  127.0.0.1.${port}        *.*                    LISTEN                 0            0  131072  131072   python3.12:4242  00000 00000006 000000000ffc7886 00000000 00000800      1      0 000000\n`);
+  const uid = process.getuid();
+  const row = async (owner) => {
+    process.env.FAKE_NETSTAT = table;
+    if (owner === null) delete process.env.FAKE_PS_UIDS; else process.env.FAKE_PS_UIDS = `4242=${owner}`;
+    try { return (await cli(m, api, 'doctor', '--json')).json.checks.find((c) => c.id === 'service.project-observatory.default'); }
+    finally { delete process.env.FAKE_NETSTAT; delete process.env.FAKE_PS_UIDS; }
+  };
+  const foreign = await row(uid + 1);
+  assert.equal(foreign.state, 'fail', JSON.stringify(foreign));
+  assert.match(foreign.detail, new RegExp(`Project Observatory: port ${port} belongs to another OS account \\(uid ${uid + 1}\\); doctor sent it nothing and did not read its answer`));
+  assert.match(foreign.fix, new RegExp(`another OS account's program holds port ${port}`));
+  assert.equal(foreign.repair, null, 'a kickstart cannot free a port another account holds');
+  const untold = await row(null);
+  assert.equal(untold.state, 'fail', JSON.stringify(untold));
+  assert.match(untold.detail, new RegExp(`the owner of port ${port} cannot be told \\(the owner of process 4242 could not be read\\)`));
+  assert.equal(reads, 0, 'nothing went to a listener whose owner is not this account');
+  const own = await row(uid);
+  assert.equal(own.state, 'ok', JSON.stringify(own));
+  assert.match(own.detail, /answers at http:\/\/127\.0\.0\.1:\d+ \(9\.9\.9\), status ok/);
+  assert.equal(reads, 1, 'this account\'s listener is read once');
 });
 
 test('PC-131: doctor says, as information, when automatic updates are off, and how to turn them on', async (t) => {
