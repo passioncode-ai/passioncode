@@ -96,6 +96,13 @@ async function setupOrDoctor(cmd, rest) {
     process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : D.render(r) + '\n');
     return r.ok ? 0 : 1;
   }
+  // PC-159: setup and doctor --fix install into the person's own folders; run as root (sudo) they would compare owners
+  // with root's uid and could leave root-owned copies in that home that the person can never replace.
+  const uid = process.env.PASSIONCODE_UID !== undefined ? Number(process.env.PASSIONCODE_UID) : (typeof process.getuid === 'function' ? process.getuid() : null);
+  if (uid === 0) {
+    process.stderr.write(`passioncode: run ${cmd === 'doctor' ? 'doctor --fix' : 'setup'} as yourself, without sudo: it installs into your own home folder, and what root installs there you could not replace.\n`);
+    return 2;
+  }
   const S = require('../lib/setup');
   const repairOnly = cmd === 'doctor';
   const log = json ? () => {} : (line) => process.stderr.write(`${line}\n`);

@@ -69,6 +69,11 @@
 
 ### Fixed
 
+- **`setup` under sudo is refused** (PC-159): run as root, `setup` and `doctor --fix` compared owners with root's uid, so
+  a copy in `/Applications` read as someone else's and an install could land root-owned in the person's
+  `~/Applications`, never replaceable by them. Both now stop with one line saying to run them as yourself (exit 2);
+  plain `doctor` only reads and still runs.
+
 - **New installs go into the user's own `~/Applications`, so a second macOS user gets their own apps** (PC-145, PC-146, PC-147, SCN-017): `setup`
   installed only into `/Applications`, counted another user's copy there as installed, and replaced an outdated one by
   moving it into the running user's Trash; a standard user got a bare permission error. Each app now goes into the
