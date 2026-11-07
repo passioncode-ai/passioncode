@@ -55,13 +55,17 @@
   0.30.0 and 0.77.3). A machine on the train installs these with `setup --train organization-r1`; an app already newer
   is left as it is.
 
-- **Fabric Agent Adapter is pinned at `v0.70.0`** (it was `v0.62.0`): the `working-with-fabric` session hooks take a
+- **Fabric Agent Adapter is pinned at `v0.75.0`** (it was `v0.62.0`; `v0.70.0` was pinned first, PC-141): the `working-with-fabric` session hooks take a
   board request as a session (FAA-201), answer the board at once (FAA-205) and take the owner's word the first time
   (FAA-207), a hook after a claim released as done asks for the retro in that turn (FAA-206), hook input in Cyrillic
   is no longer dropped on Windows, and the support-agent recipe is new (FAA-197); sessions Fabric starts find
   fabric-mcp in your own `~/Applications/Fabric.app` before `/Applications`, and another user's registered copy is
   flagged (FAA-229, the adapter's side of PC-145); an absolute `PASSIONCODE_APPLICATIONS` is the one place it looks when set (it skips another
-  user's copy there, which `setup` and `doctor` still use, PC-160), and a root-owned copy is named as an administrator's (FAA-237); the kit's API for services is unchanged (PC-141).
+  user's copy there, which `setup` and `doctor` still use, PC-160), and a root-owned copy is named as an administrator's (FAA-237) (PC-141).
+  From `v0.74.0` its kit checks that a loopback listener belongs to your own OS account before it sends any credential
+  (FAA-226, the contract's DEC-0154 HA-2): a service that refreshes its copy of the kit sends nothing to another
+  account's process, and its probe fails such a port; `v0.75.0` adds the communication agent template (guidance only)
+  (PC-165).
 
 ### Fixed
 
