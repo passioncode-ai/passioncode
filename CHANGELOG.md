@@ -124,7 +124,9 @@
   connection; a list of listeners read before connecting says nothing about who accepted it. While a connection is
   not yet accepted, the listener on `127.0.0.1` counts before a wildcard one, and listeners of two accounts there are
   an owner that cannot be told. A socket table the system cuts short (some macOS releases show a process only its own
-  sockets) is a warning that names the port, never another account and never a healthy service.
+  sockets) is a warning that names the port, never another account and never a healthy service. Under the contract's
+  DEC-0155 (`v0.1.0+2026-11-07.5`, PC-168) a `netstat` that fails, or prints only its header, is such a table too: a
+  warning, not a failure.
 
 - **Another user's app is not "in use"** (PC-151): `setup` and `doctor` asked `pgrep` about every user's processes and
   matched the bundle's path anywhere in a command line, so on a Mac with two users a copy in one user's
