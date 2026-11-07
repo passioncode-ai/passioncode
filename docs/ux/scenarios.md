@@ -351,9 +351,11 @@
   A copy in `~/Applications` always wins over one in `/Applications`. `PASSIONCODE_APPLICATIONS` names one folder for
   every app and turns the rule off; it is read on each run, so it is set wherever `setup`, `doctor` and the agents start
   (the Fabric Agent Adapter, v0.70.0, takes an absolute value as the one place to look for Fabric too, and skips another user's copy there, which setup and doctor still use (PC-160)).
-  A user who ran `setup` before this release keeps the MCP entries it registered from another user's copy until PC-149
-  points them at their own copy; until then `doctor` warns that each such entry runs from that copy, with the step:
-  remove the entry, then `doctor --fix` registers this user's own. Sessions Fabric starts find this user's
+  A user who ran `setup` before this release has MCP entries it registered from another user's copy: the next `setup`
+  or update points each one the launcher set, unchanged since, at this user's own copy, and `restore` puts the old one
+  back (PC-149). An entry the person set or changed stays; `doctor` warns that it runs from that copy and that the
+  launcher did not set it, with the step: for Claude Code `claude mcp remove --scope user <name>`, for the others remove
+  it from that agent, then `doctor --fix` registers this user's own. Sessions Fabric starts find this user's
   `~/Applications/Fabric.app` first, flag another user's registered copy and name a root-owned one as an
   administrator's, from Fabric Agent Adapter v0.70.0, which this release pins (PC-141, FAA-229, FAA-237). A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
   in the plan and among the steps, is never asked about, and nothing is downloaded (Fabric's note adds what else it

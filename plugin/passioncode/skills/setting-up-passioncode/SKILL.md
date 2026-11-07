@@ -119,9 +119,10 @@ Then run `doctor --json` again and report the change.
   `~/Applications`; a folder they cannot write is named in `blocked`, and you pass its note on.
 - Never replace an app the person is running. The result says "quit X, then run setup"; pass that on.
 - Never rewrite an MCP entry the person set themselves. Doctor reports it; the person decides. An entry doctor warns
-  "runs from <copy in /Applications>, not from your copy in <folder>" (PC-146) is usually one an earlier `setup`
-  registered, but doctor does not check who set it: with the person's yes, remove that server from that agent, then
-  run `doctor --fix`, which registers it from their own copy; say that `restore` cannot put a hand-set entry back.
+  "runs from <copy in /Applications>, not from your copy in <folder>; setup points it at yours" is the launcher's own:
+  `setup` points it at their copy, and `restore` puts it back (PC-149). One that ends "; the launcher did not set this
+  entry" is the person's: with their yes, run the step doctor names, then `doctor --fix`, which registers it from
+  their own copy; say that `restore` cannot put a hand-set entry back.
 
 ## 5. Report
 

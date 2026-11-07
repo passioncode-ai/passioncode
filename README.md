@@ -115,7 +115,7 @@ checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35U
 notarization ticket stapled and is accepted by Gatekeeper. Apps go into your own `~/Applications` (made on the first
 install); a copy in `/Applications` that is yours and that you may replace stays there. An outdated or damaged app is
 reinstalled only when it is not running and you may replace it; the old one goes to the Trash ("running" means running
-for you: on a Mac with several users only your own processes count, so a copy of yours that another user has open, or runs an MCP server from, is still replaced and goes to your Trash; that user restarts it, PC-151 and PC-149). One you cannot replace
+for you: on a Mac with several users only your own processes count, so a copy of yours that another user has open, or runs an MCP server from (an entry they set by hand: the launcher's own follow each user's copy, PC-149), is still replaced and goes to your Trash; that user restarts it, PC-151). One you cannot replace
 (another user's, or in a folder you cannot write) is named, never reinstalled. A family service that
 does not answer is started through launchd (`launchctl kickstart`, never a kill).
 
