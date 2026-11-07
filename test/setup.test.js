@@ -256,6 +256,51 @@ test('PC-152: doctor names a service whose port another OS account holds, and se
   assert.equal(reads, 1, 'this account\'s listener is read once');
 });
 
+test('PC-164: a service degraded only by slots waiting for setup reads "waits for setup", not a failure', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  let answer = {};
+  const server = http.createServer((req, res) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(answer)); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  t.after(() => server.close());
+  const { port } = server.address();
+  const m = machine();
+  installApp(m, catalog.byId('observatory'));
+  fs.writeFileSync(path.join(m.home, 'services', 'project-observatory.default.json'), JSON.stringify({
+    protocol: 'fabric-service/0.1', id: 'project-observatory', instance: 'default', name: 'Project Observatory',
+    origin: `http://127.0.0.1:${port}`, lifecycle: { manager: 'launchd', label: 'org.example.observatory' },
+    commands: { doctor: ['project-observatory', 'doctor'] },
+  }));
+  // The listener is this account's own process (PC-152).
+  const table = path.join(m.home, 'netstat.txt');
+  fs.writeFileSync(table, 'Active Internet connections (including servers)\n'
+    + 'Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options\n'
+    + `tcp4       0      0  127.0.0.1.${port}        *.*                    LISTEN                 0            0  131072  131072   python3.12:4242  00000 00000006 000000000ffc7886 00000000 00000800      1      0 000000\n`);
+  const row = async (doc) => {
+    answer = doc;
+    process.env.FAKE_NETSTAT = table; process.env.FAKE_PS_UIDS = `4242=${process.getuid()}`;
+    try { return (await cli(m, api, 'doctor', '--json')).json.checks.find((c) => c.id === 'service.project-observatory.default'); }
+    finally { delete process.env.FAKE_NETSTAT; delete process.env.FAKE_PS_UIDS; }
+  };
+  const setup = await row({ status: 'degraded', service: { version: '1.0.0' }, degraded: [{ source: 'OPENROUTER_KEY', setup: true }, { source: 'workspace', setup: true }] });
+  assert.equal(setup.state, 'warn', JSON.stringify(setup));
+  assert.match(setup.detail, /answers at http:\/\/127\.0\.0\.1:\d+ \(1\.0\.0\), waits for setup: OPENROUTER_KEY, workspace$/);
+  assert.doesNotMatch(setup.detail, /status degraded/);
+  assert.equal(setup.fix, 'finish its setup: a person fills OPENROUTER_KEY, workspace; project-observatory doctor names the steps');
+  assert.equal(setup.repair, null);
+  // A failure beside a setup entry is a degradation: the failure first, the setup named after it.
+  const mixed = await row({ status: 'degraded', degraded: [{ source: 'store', reason: 'cannot write' }, { source: 'OPENROUTER_KEY', setup: true }] });
+  assert.match(mixed.detail, /status degraded; degraded: store; waits for setup: OPENROUTER_KEY$/);
+  assert.equal(mixed.fix, 'project-observatory doctor');
+  const failing = await row({ status: 'degraded', degraded: [{ source: 'upstream' }, 'odd entry'] });
+  assert.match(failing.detail, /status degraded; degraded: upstream, unnamed$/);
+  // «waits for setup» needs a degraded answer whose every entry waits for setup: not an empty list, not another status.
+  const empty = await row({ status: 'degraded', degraded: [] });
+  assert.match(empty.detail, /status degraded$/);
+  const starting = await row({ status: 'starting', degraded: [{ source: 'OPENROUTER_KEY', setup: true }] });
+  assert.match(starting.detail, /status starting; waits for setup: OPENROUTER_KEY$/);
+  assert.equal(starting.fix, 'project-observatory doctor');
+});
+
 test('PC-131: doctor says, as information, when automatic updates are off, and how to turn them on', async (t) => {
   const api = await releaseServer(t);
   const on = machine();
