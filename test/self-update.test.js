@@ -291,7 +291,8 @@ test('hook: signature data recorded for another version (an older plugin probed 
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.1', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
   assert.equal(hook(sb), '', 'no refusal for a version whose signature was never read');
-  assert.deepEqual(eventsOf(sb), []);
+  // PC-157: the detached probe may already have logged its own check; the hook itself installed nothing.
+  assert.deepEqual(eventsOf(sb).filter((e) => !e.startsWith('update_check ')), [], eventsOf(sb).join('\n'));
   const until = Date.now() + 20000;
   while (!lines(path.join(sb.home, 'npm-calls.log')).length && Date.now() < until) await sleep(50);
   assert.equal(lines(path.join(sb.home, 'npm-calls.log')).length, 1, 'a fresh probe');

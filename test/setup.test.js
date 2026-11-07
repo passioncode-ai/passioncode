@@ -2308,3 +2308,20 @@ test('a connection dropped before any answer is tried once more', async (t) => {
   assert.equal(fs.readFileSync(dest, 'utf8'), 'ok');
   assert.equal(calls, 2);
 });
+
+test('PC-159: setup and doctor --fix refuse to run as root, and plain doctor still reads', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  const asRoot = (...args) => require('child_process').spawnSync(process.execPath, [BIN, ...args], { env: { ...cliEnv(m, api), PASSIONCODE_UID: '0' }, encoding: 'utf8' });
+  const setup = asRoot('setup', '--yes', '--no-apps', '--offline');
+  assert.equal(setup.status, 2, setup.stdout + setup.stderr);
+  assert.match(setup.stderr, /run setup as yourself, without sudo: it installs into your own home folder, and what root installs there you could not replace\./);
+  assert.equal(setup.stdout, '');
+  assert.ok(!fs.existsSync(path.join(m.home, '.passioncode', 'state.json')), 'nothing was written');
+  const fix = asRoot('doctor', '--fix', '--offline');
+  assert.equal(fix.status, 2);
+  assert.match(fix.stderr, /run doctor --fix as yourself, without sudo/);
+  const read = asRoot('doctor', '--offline', '--json');
+  assert.notEqual(read.status, 2, read.stderr);
+  assert.ok(JSON.parse(read.stdout).checks, 'plain doctor only reads, so it runs');
+});
