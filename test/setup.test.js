@@ -1653,6 +1653,54 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   assert.ok(P.RULES.every((rule) => read(corrupt).permissions.allow.includes(rule)), 'the rules stand');
   const allowedText = await cli(machine({ toolRules: false }), api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools');
   assert.doesNotMatch(allowedText.stdout, /still asks/, allowedText.stdout); // they were just added
+  // PC-133: a rule the person took out with `permissions remove` stays out; setup names it and how to add it back.
+  const removedOne = P.RULES[1];
+  const rm = require('child_process').spawnSync(process.execPath, [BIN, 'permissions', 'remove', removedOne, '--by', 'Example Person'], { env: cliEnv(kept, api), encoding: 'utf8' });
+  assert.equal(rm.status, 0, rm.stderr);
+  const stays = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.ok(!read(kept).permissions.allow.includes(removedOne), 'not added back');
+  assert.equal(stays.json.permissions, undefined, 'nothing else lacking, nothing offered');
+  assert.deepEqual(stays.json.keptOut.map((k) => [k.rule, k.removedBy]), [[removedOne, 'Example Person']]);
+  assert.ok(Date.parse(stays.json.keptOut[0].removedAt));
+  const staysText = await cli(kept, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-tools');
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  assert.ok(staysText.stdout.includes(`\nLeft out, because you removed it with permissions remove: ${removedOne}. To add one back: npx @passioncode-ai/passioncode@latest permissions allow <rule>\n`), staysText.stdout);
+  assert.doesNotMatch(staysText.stdout, new RegExp(`allow [^\\n]*${esc(removedOne)}`), 'not in the plan');
+  const back = require('child_process').spawnSync(process.execPath, [BIN, 'permissions', 'allow', removedOne], { env: cliEnv(kept, api), encoding: 'utf8' });
+  assert.equal(back.status, 0, back.stderr);
+  assert.ok(read(kept).permissions.allow.includes(removedOne), 'named again, it is added');
+  const after = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.equal(after.json.keptOut, undefined, 'allowed again, nothing is left out');
+  const perm = (...args) => require('child_process').spawnSync(process.execPath, [BIN, 'permissions', ...args], { env: cliEnv(kept, api), encoding: 'utf8' });
+  const handEdit = (fn) => { const d = read(kept); fn(d.permissions); fs.writeFileSync(settingsOf(kept), JSON.stringify(d)); };
+  // Taken out by hand, not through the ledger, a rule allowed again is offered as before.
+  handEdit((p) => { p.allow = p.allow.filter((r) => r !== removedOne); });
+  const byHand = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.ok(read(kept).permissions.allow.includes(removedOne), 'a hand edit is not a removal the ledger keeps');
+  assert.equal(byHand.json.keptOut, undefined);
+  // Another rule still lacking runs the step: it adds that one, never the removed one beside it.
+  assert.equal(perm('remove', removedOne).status, 0);
+  handEdit((p) => { p.allow = p.allow.filter((r) => r !== P.RULES[0]); });
+  const mixed = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
+  assert.ok(read(kept).permissions.allow.includes(P.RULES[0]), 'the lacking rule is added');
+  assert.ok(!read(kept).permissions.allow.includes(removedOne), 'the removed one stays out while the step runs');
+  assert.deepEqual(mixed.json.keptOut.map((k) => k.rule), [removedOne]);
+  // The same for a rule for commands.
+  const cmdRule = 'Bash(gh pr merge:*)';
+  await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands', '--json');
+  assert.ok(read(kept).permissions.allow.includes(cmdRule), 'the command rules were added');
+  assert.equal(perm('remove', cmdRule).status, 0);
+  const cmds = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands', '--json');
+  assert.ok(!read(kept).permissions.allow.includes(cmdRule), 'a removed command rule stays out');
+  assert.ok(!(cmds.json.commands && cmds.json.commands.rules.some((r) => r.rule === cmdRule)), 'and is not offered');
+  assert.ok(cmds.json.keptOut.some((k) => k.rule === cmdRule), JSON.stringify(cmds.json.keptOut));
+  // Allowed again by hand, it is in place: nothing is left out, and nothing is said about it.
+  handEdit((p) => { p.allow.push(cmdRule); });
+  const handBack = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-commands', '--json');
+  assert.ok(!(handBack.json.keptOut || []).some((k) => k.rule === cmdRule), JSON.stringify(handBack.json.keptOut));
+  handEdit((p) => { p.allow = p.allow.filter((r) => r !== cmdRule); });
+  assert.equal(perm('allow', cmdRule).status, 0);
+  assert.equal(perm('allow', removedOne).status, 0);
   // Run again: nothing is missing, so nothing is offered or written.
   const again = await cli(kept, api, 'setup', '--yes', '--no-apps', '--offline', '--allow-tools', '--json');
   assert.equal(again.json.permissions, undefined);

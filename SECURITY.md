@@ -86,8 +86,10 @@ folder when they are absent. `permissions allow` adds only rules
 PassionCode offers, `permissions remove` takes out of `permissions.allow` only rules PassionCode offers or its ledger
 names, and `permissions mode` sets only `permissions.defaultMode`; every other key and rule of the settings file stays,
 a rule nobody offered is refused, and a file that cannot be read is never written. `bypassPermissions` lets Claude Code
-act without any prompt but the few no mode skips; setup never sets a mode, only `permissions mode` does, for whoever runs it, a person
-or a program, without checking which (PC-133 tracks a stronger gate for `bypassPermissions`). `--by` records who the caller says asked; it is not authentication
+act without any prompt but the few no mode skips; setup never sets a mode, only `permissions mode` does; `bypassPermissions` only on a person's yes in a terminal or
+with `--confirm-bypass`, which a program can pass, so the flag records a choice, it does not prove a person made it
+(PC-133). A rule taken out with `permissions remove` is not added back by setup until it is named again with
+`permissions allow`. `--by` records who the caller says asked; it is not authentication
 (PC-125).
 
 ## What anonymous counts send

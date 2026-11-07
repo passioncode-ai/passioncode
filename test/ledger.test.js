@@ -105,7 +105,7 @@ test('PC-125: allow records who asked and when; remove takes out only PassionCod
 test('PC-125: mode writes permissions.defaultMode only, and refuses a mode Claude Code does not have', () => {
   const m = machine();
   fs.writeFileSync(m.settings, JSON.stringify({ theme: 'dark', permissions: { allow: ['Bash(ls)'] } }));
-  const r = m.json('mode', 'bypassPermissions', '--by', 'Fabric (operator)');
+  const r = m.json('mode', 'bypassPermissions', '--confirm-bypass', '--by', 'Fabric (operator)');
   assert.equal(r.changed, true);
   assert.equal(r.from, null);
   assert.deepEqual(JSON.parse(fs.readFileSync(m.settings, 'utf8')), { theme: 'dark', permissions: { allow: ['Bash(ls)'], defaultMode: 'bypassPermissions' } });
@@ -117,6 +117,24 @@ test('PC-125: mode writes permissions.defaultMode only, and refuses a mode Claud
   const bad = m.run('mode', 'yolo');
   assert.equal(bad.status, 2);
   assert.match(bad.stderr, /mode must be one of default, acceptEdits, plan, auto, dontAsk, bypassPermissions/);
+});
+
+test('PC-133: bypassPermissions is set only in a terminal or with --confirm-bypass; other modes as before', () => {
+  const m = machine();
+  fs.writeFileSync(m.settings, JSON.stringify({ permissions: { allow: ['Bash(ls)'] } }));
+  const before = fs.readFileSync(m.settings, 'utf8');
+  const refused = m.run('mode', 'bypassPermissions', '--by', 'Fabric (operator)'); // no terminal here: stdin is a pipe
+  assert.equal(refused.status, 2, refused.stdout + refused.stderr);
+  assert.match(refused.stderr, /bypassPermissions lets Claude Code use every tool and run every command without asking you; set it in a terminal, or add --confirm-bypass/);
+  assert.equal(refused.stdout, '', 'no view');
+  assert.equal(fs.readFileSync(m.settings, 'utf8'), before, 'the settings are not written');
+  assert.equal(fs.existsSync(path.join(m.state, 'permissions.json')), false, 'nor the ledger');
+  assert.equal(m.json('mode', 'acceptEdits').changed, true, 'another mode needs no confirmation');
+  const misplaced = m.run('mode', 'plan', '--confirm-bypass');
+  assert.equal(misplaced.status, 2);
+  assert.match(misplaced.stderr, /--confirm-bypass goes with mode bypassPermissions/);
+  assert.equal(m.json('mode', 'bypassPermissions', '--confirm-bypass').changed, true);
+  assert.equal(m.json('mode', 'bypassPermissions').changed, false, 'a mode already set is not asked about again');
 });
 
 test('PC-125: settings that cannot be read are named, exit 1, and never written', () => {

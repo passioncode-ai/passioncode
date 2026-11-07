@@ -25,7 +25,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 | `restore` | `--json` | Array of restored paths/marketplace descriptions, and one note per MCP registration removed, put back (an entry the update re-pointed at the user's own copy runs the old command again, PC-149) or kept | Restore the latest quarantine batch; retry unfinished entries |
 | `uninstall` | `--json` | Array of removed links/plugin IDs, and one note per MCP registration removed or kept | Remove owned links/plugins, clear active release (the update switch is kept) |
 | `config set update.auto on` or `off` | `--json` | `{ auto: boolean }` | Persist the automatic-update preference |
-| `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json` | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
+| `permissions` (also `allow <rule>...`, `remove <rule>...`, `mode <mode>`) | `--by <who>`, `--json`, `--confirm-bypass` (with `mode bypassPermissions` only) | Permissions view described below (`allow` adds `added`, `remove` adds `removed`, `mode` adds the boolean `changed` and `from`; an act that stops prints its reason on stderr and no view) | Read, or change, the Claude Code permission rules PassionCode installed and the default mode (PC-125) |
 | `analytics` (also `on`, `off`, `status`) | `--json` | `{enabled, sending, reason, host}`: `reason` is null when counts are sent, else `off`, `off-elsewhere` (turned off in another PassionCode app before the launcher counted, see [Anonymous usage counts](#anonymous-usage-counts)), `unreadable` (the switch file is there but cannot be read: off for that run, never rewritten by a count), `shared-unreadable` (the shared `installation.json` is there but cannot be read, or holds no usable id: nothing is sent until it can be), `env`, `do-not-track`, `no-key` or `notice` (on, waiting for the notice: nothing is sent before it) | Turn the launcher's anonymous usage and error counts off or on, or say whether they are sent (PC-123); exit 1 when the switch cannot be saved |
 | `help`, `--help`, `-h`, or no command | None | Text only | Print usage |
 
@@ -95,7 +95,7 @@ marker, the shared `installation.json` created once, and one request to `https:/
 | services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing (the person's choice; Switchboard's default agent may be another) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
-humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `commands` (PC-119, below) when it lacks a command rule or a declared rule was not offered, `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
+humanSteps, planOnly, ok, keyOverride }`, plus `permissions` (PC-117, below) when Claude Code lacks PassionCode's tool rules, `commands` (PC-119, below) when it lacks a command rule or a declared rule was not offered, `keptOut` (PC-133) listing each rule it lacks that is left out because the person took it out with `permissions remove` (`rule`, `removedAt`, `removedBy`), `dryRun: true` on a `--dry-run` (PC-107), and `trainNotSaved` (the train, or
 `none` when a train is saved) when a run named a train other than the saved one but was only a plan, or was a declined
 terminal run that named one.
 A terminal run that took no offer (at least one of them defaulting to yes) and changed nothing is `declined: true`; its
@@ -407,6 +407,11 @@ before (`from`), who asked and when; the file can change by hand since, so compa
 out of `permissions.allow` only rules PassionCode offers or the ledger names (a foreign rule is refused, exit 2; the
 person removes it in the file). `permissions mode <mode>` sets `permissions.defaultMode` to one of Claude Code's modes:
 `default`, `acceptEdits`, `plan`, `auto`, `dontAsk` or `bypassPermissions`; nothing else in the file changes.
+`bypassPermissions` lets Claude Code use every tool and run every command without asking, so it is set only on a
+person's yes in a terminal or with `--confirm-bypass`; without either it is refused (exit 2, nothing written), a no in
+the terminal leaves the mode and exits 1, and a mode already `bypassPermissions` is not asked about again (PC-133).
+A rule taken out with `remove` stays out: `setup`, its `--allow-tools` and `--allow-commands` and a yes to its
+questions included, does not add it back, and says so on one line; `permissions allow <rule>` adds it back (PC-133).
 `allow` and `mode` create `~/.claude/settings.json`, and its folder, when it is absent. `--by <who>` (1 to 80 characters of plain text, trimmed, with `allow`, `remove` or `mode` only) records who asked, for example `"Fabric (operator)"`; without it the
 ledger says `permissions command`. It is the caller's own words, not a proof of who asked. Each change is written the
 way setup writes (a link is written where it points, its permission bits kept) and each answers the view again.

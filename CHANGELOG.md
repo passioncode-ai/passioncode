@@ -69,6 +69,12 @@
 
 ### Fixed
 
+- **A rule you took out stays out, and bypassPermissions needs your yes** (PC-133): `setup` (with `--allow-tools`,
+  `--allow-commands`, or a yes to its questions) added back a rule taken out with `permissions remove`. It now leaves
+  such a rule out, says so on one line, and `permissions allow <rule>` adds it back; `--json` lists them as `keptOut`.
+  `permissions mode bypassPermissions` set the mode for whoever ran it; it now asks in a terminal, or takes
+  `--confirm-bypass`, and is refused otherwise (exit 2, nothing written).
+
 - **New installs go into the user's own `~/Applications`, so a second macOS user gets their own apps** (PC-145, PC-146, PC-147, SCN-017): `setup`
   installed only into `/Applications`, counted another user's copy there as installed, and replaced an outdated one by
   moving it into the running user's Trash; a standard user got a bare permission error. Each app now goes into the
