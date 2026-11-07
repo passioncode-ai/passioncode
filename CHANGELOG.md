@@ -61,7 +61,7 @@
   is no longer dropped on Windows, and the support-agent recipe is new (FAA-197); sessions Fabric starts find
   fabric-mcp in your own `~/Applications/Fabric.app` before `/Applications`, and another user's registered copy is
   flagged (FAA-229, the adapter's side of PC-145); an absolute `PASSIONCODE_APPLICATIONS` is the one place it looks when set (it skips another
-  user's copy there, which `setup` and `doctor` still use, PC-160), and a root-owned copy is named as an administrator's (FAA-237) (PC-141).
+  user's copy there, as `setup` and `doctor` now do, PC-160), and a root-owned copy is named as an administrator's (FAA-237) (PC-141).
   From `v0.74.0` its kit checks that a loopback listener belongs to your own OS account before it sends any credential
   (FAA-226, the contract's DEC-0154 HA-2): a service that refreshes its copy of the kit sends nothing to another
   account's process, and its probe fails such a port; `v0.75.0` adds the communication agent template (guidance only)
@@ -100,7 +100,9 @@
   that is theirs and that they may replace stays there and is updated there; the plan and the install question name the
   folder. Another user's copy, or one an administrator installed, is left byte for byte and `doctor` names it (for Fabric Dashboards, Fabric Inbox and Fabric it adds that macOS may open their links with it). No administrator password is needed, and a
   folder the user cannot write (or an app they cannot replace) is named in the plan, the steps and the `blocked` list
-  of every run, never asked about, and nothing is downloaded. `PASSIONCODE_APPLICATIONS` still names one folder for every app.
+  of every run, never asked about, and nothing is downloaded. `PASSIONCODE_APPLICATIONS` still names one folder for
+  every app, read as the Fabric Agent Adapter reads it (PC-160): only an absolute value counts, and another user's copy
+  in that folder is named, planned as a blocked install and never replaced or registered as an MCP server.
 
 - **The launcher's MCP entries follow your own copy** (PC-149): an entry an earlier `setup` registered from a copy you
   no longer use (another user's in `/Applications`) is pointed at your own copy by the next `setup` or update, while it
