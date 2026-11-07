@@ -304,14 +304,14 @@
 - **Steps:**
   1. Run `permissions`: PassionCode's rules, each with its state, what it allows, who declared it, and who installed it and when; the rules offered and not allowed yet; the declarations not offered as declared; every other allow rule; the default mode.
   2. Take a rule out with `permissions remove <rule>`, or allow an offered one with `permissions allow <rule>`.
-  3. Switch the default mode with `permissions mode <mode>`.
-- **Expected result:** Only rules PassionCode offers or installed change; every other key and rule of the settings file is kept; the ledger records who asked (`installedBy`, the words of `--by`, or `permissions command`) and when, and keeps a removed rule with `removedAt` and `removedBy`.
+  3. Switch the default mode with `permissions mode <mode>`; `bypassPermissions` asks first in a terminal, or takes `--confirm-bypass` (PC-133).
+- **Expected result:** Only rules PassionCode offers or installed change; every other key and rule of the settings file is kept; the ledger records who asked (`installedBy`, the words of `--by`, or `permissions command`) and when, and keeps a removed rule with `removedAt` and `removedBy`; setup does not add a removed rule back until it is named again with `permissions allow`, and says on one line which rules it left out (PC-133).
 - **Alt paths:** `--json` answers the same view for a program (intended for Fabric's screen, which does not read it yet; PC-134); in a Fabric Switchboard session the view and its changes are those of the person's own settings file, not the copy Switchboard rebuilds, and Switchboard's sessions see a change from their next launch (PC-129); a rule PassionCode does not offer is refused for `allow`, and one it neither offers nor has in its ledger for `remove` (exit 2, nothing written); a mode Claude Code does not have is refused (exit 2); rules of PassionCode's sets the settings name without a ledger entry (set before it, or by the person, a deny included) are listed as "not in the ledger"; a rule taken out is offered again, here and by the next `setup`, which adds it back on its question or with `--allow-tools` or `--allow-commands`; a settings file that is a link stays a link with its mode.
 - **UI elements:** The view's sections in text, the JSON view, exit code.
 - **States covered:** success, empty, error
 - **Errors & recovery:** `permissions` (and `--json`) with settings or a ledger it cannot read exits 1 and still prints the view on stdout, nothing on stderr, so a program reads the view on exit 1. For `permissions allow`, `remove` and `mode`: settings or a ledger that cannot be read, or a ledger that cannot be written, are named and exit 1 before the settings change; the person repairs the file and runs the command again.
 - **Status:** implemented
-- **Coverage:** `test/ledger.test.js` tests beginning `PC-125:`; `test/setup.test.js` tests beginning `PC-117:` and `PC-119:` (the ledger setup writes); `test/launcher.test.js` test beginning `PC-129: inside a Switchboard home` (the mode written to the person's folder, not the home's copy).
+- **Coverage:** `test/ledger.test.js` tests beginning `PC-125:` and `PC-133:`; `test/setup.test.js` tests beginning `PC-117:` and `PC-119:` (the ledger setup writes); `test/launcher.test.js` test beginning `PC-129: inside a Switchboard home` (the mode written to the person's folder, not the home's copy).
 - **Product:** unobserved
 
 ### SCN-016: Know about and turn off the anonymous usage counts

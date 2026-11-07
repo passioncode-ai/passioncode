@@ -79,6 +79,12 @@
   `~/Applications`, never replaceable by them. Both now stop with one line saying to run them as yourself (exit 2);
   plain `doctor` only reads and still runs.
 
+- **A rule you took out stays out, and bypassPermissions needs your yes** (PC-133): `setup` (with `--allow-tools`,
+  `--allow-commands`, or a yes to its questions) added back a rule taken out with `permissions remove`. It now leaves
+  such a rule out, says so on one line, and `permissions allow <rule>` adds it back; `--json` lists them as `keptOut`.
+  `permissions mode bypassPermissions` set the mode for whoever ran it; it now asks in a terminal, or takes
+  `--confirm-bypass`, and is refused otherwise (exit 2, nothing written).
+
 - **A dry run whose only asked step cannot run says so** (PC-121): `setup --dry-run --allow-tools` over Claude Code
   settings it cannot read headed the answer "Nothing to do." above "A run with --allow-tools fails until that is fixed."
   It now heads it "Nothing was changed: the step you asked for cannot run until Claude Code's settings are fixed."

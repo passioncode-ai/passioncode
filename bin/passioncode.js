@@ -32,7 +32,7 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
   npx @passioncode-ai/passioncode@latest restore [--json]                        put back what the last update moved aside
   npx @passioncode-ai/passioncode@latest config set update.auto on|off [--json]  background updates at session start
   npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
-  npx @passioncode-ai/passioncode@latest permissions [allow|remove <rule>...|mode <mode>] [--by who] [--json]
+  npx @passioncode-ai/passioncode@latest permissions [allow|remove <rule>...|mode <mode> [--confirm-bypass]] [--by who] [--json]
         Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules
   npx @passioncode-ai/passioncode@latest analytics [on|off|status] [--json]     anonymous usage and error counts (on by default)
 
@@ -118,13 +118,14 @@ async function setupOrDoctor(cmd, rest) {
 
 // PC-125: `permissions`, the ledger of Claude Code rules PassionCode installed (lib/ledger.js), for people and for
 // Fabric's permissions screen. Usage errors exit 2, a settings file or ledger that cannot be read or written 1.
-function permissionsCommand(rest) {
+async function permissionsCommand(rest) {
   const ledger = require('../lib/ledger');
   const json = rest.includes('--json');
+  const confirmBypass = rest.includes('--confirm-bypass');
   const args = [];
   let by = null;
   for (let n = 0; n < rest.length; n += 1) {
-    if (rest[n] === '--json') continue;
+    if (rest[n] === '--json' || rest[n] === '--confirm-bypass') continue;
     if (rest[n] === '--by') { by = rest[n + 1]; n += 1; if (!by || by.startsWith('--')) return usage('--by needs who asked, for example "Fabric (operator)"'); continue; }
     if (rest[n].startsWith('-')) return usage(`unknown option ${rest[n]}`);
     args.push(rest[n]);
@@ -132,6 +133,7 @@ function permissionsCommand(rest) {
   if (by !== null && ([...by].length > 80 || !by.trim() || require('../lib/permissions').CONTROL.test(by))) return usage('--by is 1 to 80 characters of plain text');
   const [verb, ...values] = args;
   if (by !== null && verb === undefined) return usage('--by goes with allow, remove or mode');
+  if (confirmBypass && !(verb === 'mode' && values[0] === 'bypassPermissions')) return usage('--confirm-bypass goes with mode bypassPermissions');
   if (by !== null) by = by.trim();
   const p = L.paths();
   const file = p.claudeSettings;
@@ -156,6 +158,18 @@ function permissionsCommand(rest) {
     }
     if (verb === 'mode') {
       if (values.length !== 1) return usage(`mode needs one of ${ledger.MODES.join(', ')}`);
+      // PC-133: bypassPermissions lets Claude Code act without asking, so it is set only on a person's yes in a
+      // terminal or with --confirm-bypass; a mode already set is not asked about again.
+      if (values[0] === 'bypassPermissions' && !confirmBypass) {
+        const current = require('../lib/permissions').load(file);
+        const already = !current.error && current.doc.permissions && current.doc.permissions.defaultMode === 'bypassPermissions';
+        if (!already) {
+          const ask = asker();
+          if (!ask) return usage('bypassPermissions lets Claude Code use every tool and run every command without asking you; set it in a terminal, or add --confirm-bypass');
+          const answer = await ask("bypassPermissions lets Claude Code use every tool and run every command without asking you. Set it as Claude Code's default mode? [y/N] ");
+          if (!/^y(es)?$/i.test(String(answer).trim())) { process.stderr.write("passioncode: the default mode was not changed.\n"); return 1; }
+        }
+      }
       const r = ledger.mode(p.home, file, p.state, values[0], { by });
       show({ ...r.view, changed: r.changed, from: r.from }, r.changed ? `Default mode: ${values[0]} (was ${r.from === null ? 'not set' : r.from}).` : `Default mode is already ${values[0]}.`);
       return 0;
@@ -219,7 +233,7 @@ function analyticsCommand(rest) {
 
 async function main(argv) {
   const [cmd = 'help', ...rest] = argv;
-  if (cmd === 'permissions') return permissionsCommand(rest);
+  if (cmd === 'permissions') return await permissionsCommand(rest);
   if (cmd === 'analytics') return analyticsCommand(rest);
   if (cmd === 'setup' || cmd === 'onboard' || cmd === 'doctor') {
     try { return await setupOrDoctor(cmd === 'onboard' ? 'setup' : cmd, rest); } catch (error) {
