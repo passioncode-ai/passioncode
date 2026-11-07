@@ -80,6 +80,11 @@
   kept: `doctor` warns that it runs from that copy, says the launcher did not set it and names the step (for Claude
   Code `claude mcp remove --scope user <name>`, then `doctor --fix`).
 
+- **A service waiting for its setup is not called degraded** (PC-164, the contract's DEC-0149): an agent started
+  without its instance answers `degraded` with every entry marked `setup: true`; `doctor` now says it «waits for
+  setup» and names the slots a person fills (and the service's own doctor command, when it declares one), where it
+  said «status degraded». A failure beside them still reads as a degradation, the failures named first.
+
 - **`doctor` checks who owns a service's port** (PC-152, the contract's HA-2, fabric-agent-contract DEC-0154,
   `v0.1.0+2026-11-07.1`): before it reads a family service's `/.well-known/fabric-service` on loopback, `doctor` checks
   that the listener on the port is a process of your own OS account (macOS `netstat` and `ps`, Linux `/proc/net/tcp`,
