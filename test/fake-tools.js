@@ -6,7 +6,8 @@
 //   TEAM                  the team identifier codesign reports (default KJ35UYYL22)
 //   RUNNING               pgrep finds a process running from it
 // netstat prints the file $FAKE_NETSTAT (a socket table in macOS's `netstat -anv -p tcp` form), or a table
-// with no listeners; ps answers `-o uid= -p <pid>` from $FAKE_PS_UIDS (`pid=uid,pid=uid`), else fails.
+// with no listeners; `{PEER}` in it is the client port the test's server saw last, read from $FAKE_NETSTAT.peer;
+// ps answers `-o uid= -p <pid>` from $FAKE_PS_UIDS and $FAKE_PS_UIDS_EXTRA (`pid=uid,pid=uid`), else fails.
 // A release "archive" is JSON { app, version, broken?, team? }; ditto and hdiutil unpack it into a
 // bundle whose MCP binary (catalog `mcp.bin`) is test/fake-mcp.js.
 const fs = require('fs');
@@ -65,14 +66,23 @@ switch (tool) {
   case 'supabase': out('2.0.0'); process.exit(0);
   case 'launchctl': case 'open': process.exit(0);
   case 'netstat': {
-    if (process.env.FAKE_NETSTAT) { process.stdout.write(fs.readFileSync(process.env.FAKE_NETSTAT, 'utf8')); process.exit(0); }
+    if (process.env.FAKE_NETSTAT) {
+      let text = fs.readFileSync(process.env.FAKE_NETSTAT, 'utf8');
+      if (text.includes('{PEER}')) {
+        const peerFile = `${process.env.FAKE_NETSTAT}.peer`;
+        const until = Date.now() + 3000;
+        while (!fs.existsSync(peerFile) && Date.now() < until) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+        text = text.split('{PEER}').join(fs.existsSync(peerFile) ? fs.readFileSync(peerFile, 'utf8').trim() : '0');
+      }
+      process.stdout.write(text); process.exit(0);
+    }
     out('Active Internet connections (including servers)');
     out('Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options');
     process.exit(0);
   }
   case 'ps': {
     const pid = args[args.indexOf('-p') + 1];
-    const hit = (process.env.FAKE_PS_UIDS || '').split(',').map((x) => x.split('=')).find(([p]) => p === pid);
+    const hit = [process.env.FAKE_PS_UIDS, process.env.FAKE_PS_UIDS_EXTRA].filter(Boolean).join(',').split(',').map((x) => x.split('=')).find(([p]) => p === pid);
     if (!hit) { err(`ps: process ${pid} not found`); process.exit(1); }
     out(`  ${hit[1]}`); process.exit(0);
   }

@@ -216,7 +216,7 @@ test('an existing broken setup: setup repairs, checks again and prints before â†
   assert.ok(JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers.fabric, 'fabric registered by the repair');
 });
 
-test('PC-152: doctor names a service whose port another OS account holds, and sends that listener nothing', { skip: MAC_SIM }, async (t) => {
+test('PC-152, PC-163: doctor names a service whose connection another OS account accepted, and sends it nothing', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   let reads = 0;
   const server = http.createServer((req, res) => { reads += 1; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ status: 'ok', service: { id: 'project-observatory', version: '9.9.9' } })); });
@@ -233,9 +233,13 @@ test('PC-152: doctor names a service whose port another OS account holds, and se
   const table = path.join(m.home, 'netstat.txt');
   fs.writeFileSync(table, 'Active Internet connections (including servers)\n'
     + 'Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options\n'
+    + `tcp4       0      0  127.0.0.1.${port}        127.0.0.1.{PEER}        ESTABLISHED            0            0  408300  146988   python3.12:4242  00102 00000100 0000000011712df7 00000081 04000900      2      0 000000\n`
     + `tcp4       0      0  127.0.0.1.${port}        *.*                    LISTEN                 0            0  131072  131072   python3.12:4242  00000 00000006 000000000ffc7886 00000000 00000800      1      0 000000\n`);
+  // The server end of doctor's own connection: the test's server tells the stand-in netstat the client's port.
+  server.on('connection', (sock) => fs.writeFileSync(`${table}.peer`, String(sock.remotePort)));
   const uid = process.getuid();
   const row = async (owner) => {
+    fs.rmSync(`${table}.peer`, { force: true });
     process.env.FAKE_NETSTAT = table;
     if (owner === null) delete process.env.FAKE_PS_UIDS; else process.env.FAKE_PS_UIDS = `4242=${owner}`;
     try { return (await cli(m, api, 'doctor', '--json')).json.checks.find((c) => c.id === 'service.project-observatory.default'); }
@@ -250,6 +254,26 @@ test('PC-152: doctor names a service whose port another OS account holds, and se
   assert.equal(untold.state, 'fail', JSON.stringify(untold));
   assert.match(untold.detail, new RegExp(`the owner of port ${port} cannot be told \\(the owner of process 4242 could not be read\\)`));
   assert.equal(reads, 0, 'nothing went to a listener whose owner is not this account');
+  // PC-163: a socket table this system cuts short (some macOS releases give an ad-hoc signed reader only its own
+  // sockets) tells no owner: never healthy, never another account, and never a kickstart.
+  const full = fs.readFileSync(table, 'utf8');
+  fs.writeFileSync(table, '');
+  const restricted = await row(uid);
+  fs.writeFileSync(table, full);
+  assert.equal(restricted.state, 'warn', JSON.stringify(restricted));
+  assert.match(restricted.detail, new RegExp(`the owner of port ${port} cannot be told \\(table-restricted`));
+  assert.match(restricted.fix, new RegExp(`shows doctor only its own sockets, so it cannot tell who answers on port ${port}; check the service in Fabric Dashboards`));
+  assert.equal(restricted.repair, null);
+  assert.equal(reads, 0, 'nothing went to a listener whose owner cannot be told');
+  // PC-163: the owner is the process that accepted doctor's connection, not the listener a table names beside it.
+  fs.writeFileSync(table, full.replace(/(ESTABLISHED\s+0\s+0\s+\d+\s+\d+\s+)python3\.12:4242/, '$1python3.12:4343'));
+  process.env.FAKE_PS_UIDS_EXTRA = `4343=${uid + 1}`;
+  const accepted = await row(uid);
+  delete process.env.FAKE_PS_UIDS_EXTRA;
+  fs.writeFileSync(table, full);
+  assert.equal(accepted.state, 'fail', JSON.stringify(accepted));
+  assert.match(accepted.detail, new RegExp(`port ${port} belongs to another OS account \\(uid ${uid + 1}\\)`));
+  assert.equal(reads, 0, 'nothing went to a connection another account accepted');
   const own = await row(uid);
   assert.equal(own.state, 'ok', JSON.stringify(own));
   assert.match(own.detail, /answers at http:\/\/127\.0\.0\.1:\d+ \(9\.9\.9\), status ok/);
@@ -274,9 +298,13 @@ test('PC-164: a service degraded only by slots waiting for setup reads "waits fo
   const table = path.join(m.home, 'netstat.txt');
   fs.writeFileSync(table, 'Active Internet connections (including servers)\n'
     + 'Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options\n'
+    + `tcp4       0      0  127.0.0.1.${port}        127.0.0.1.{PEER}        ESTABLISHED            0            0  408300  146988   python3.12:4242  00102 00000100 0000000011712df7 00000081 04000900      2      0 000000\n`
     + `tcp4       0      0  127.0.0.1.${port}        *.*                    LISTEN                 0            0  131072  131072   python3.12:4242  00000 00000006 000000000ffc7886 00000000 00000800      1      0 000000\n`);
+  // The server end of doctor's own connection: the test's server tells the stand-in netstat the client's port.
+  server.on('connection', (sock) => fs.writeFileSync(`${table}.peer`, String(sock.remotePort)));
   const row = async (doc) => {
     answer = doc;
+    fs.rmSync(`${table}.peer`, { force: true });
     process.env.FAKE_NETSTAT = table; process.env.FAKE_PS_UIDS = `4242=${process.getuid()}`;
     try { return (await cli(m, api, 'doctor', '--json')).json.checks.find((c) => c.id === 'service.project-observatory.default'); }
     finally { delete process.env.FAKE_NETSTAT; delete process.env.FAKE_PS_UIDS; }
