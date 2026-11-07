@@ -808,6 +808,43 @@ test('PC-160: another user\'s copy in the PASSIONCODE_APPLICATIONS folder is nam
   assert.deepEqual(step, { kind: 'mcp', detail: `${theirs} is another user's copy of Fabric Dashboards; fabric-dashboards was not registered from it`, outcome: 'skipped' });
 });
 
+test('PC-158: an entry running another user\'s copy, while this user has none, is not called a stale entry', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  m.perUser = true;
+  m.shared = path.join(m.home, 'shared-Applications');
+  const dash = catalog.byId('dashboards');
+  const theirBin = path.join(m.shared, dash.app, dash.mcp.bin);
+  fs.mkdirSync(path.dirname(theirBin), { recursive: true });
+  fs.writeFileSync(theirBin, '#!/bin/sh\n', { mode: 0o755 });
+  fs.chmodSync(m.shared, 0o555); // a standard user's /Applications: the copy there is not theirs to replace
+  t.after(() => fs.chmodSync(m.shared, 0o755));
+  fs.writeFileSync(path.join(m.home, '.claude.json'), JSON.stringify({ mcpServers: { 'fabric-dashboards': { command: theirBin, args: [] } } }));
+  const d = await cli(m, api, 'doctor', '--offline', '--json');
+  assert.ok(d.json, `doctor answered no JSON (exit ${d.status}): ${d.stdout}${d.stderr}`);
+  const row = d.json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  assert.ok(row && !/runs from/.test(row.detail), JSON.stringify(row));
+  assert.ok(d.json.checks.some((c) => c.id === 'app.dashboards.shared'), 'the other copy is still named');
+});
+
+test('PC-158: an installed app whose MCP binary is gone: the fix removes the entry, never installs it again', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });
+  const r = await cli(m, api, 'setup', '--yes', '--with', 'dashboards', '--json');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const dash = catalog.byId('dashboards');
+  const bin = path.join(m.apps, dash.app, dash.mcp.bin);
+  fs.mkdirSync(path.dirname(bin), { recursive: true });
+  const conf = JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8'));
+  const gone = path.join(m.apps, dash.app, 'Contents', 'Resources', 'gone-mcp');
+  conf.mcpServers['fabric-dashboards'] = { command: gone, args: [] };
+  fs.writeFileSync(path.join(m.home, '.claude.json'), JSON.stringify(conf));
+  const row = (await cli(m, api, 'doctor', '--offline', '--json')).json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
+  assert.equal(row.state, 'fail', JSON.stringify(row));
+  assert.equal(row.detail, `Claude Code: fabric-dashboards points at ${gone}, which does not exist`);
+  assert.equal(row.fix, 'remove that entry from Claude Code, then npx @passioncode-ai/passioncode@latest doctor --fix');
+});
+
 test('PC-147: a folder the user cannot write is named in the plan and nothing is downloaded', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
   const api = await releaseServer(t);
   const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });

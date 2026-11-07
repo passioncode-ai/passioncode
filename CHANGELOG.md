@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **`doctor` survives an MCP server that closes its input at once** (PC-170): the proving call's write to such a server
+  failed with `EPIPE`, an unhandled error that ended `doctor` itself (seen on Linux). Now it is that server's failed
+  probe, named by the stage: "the server closed its input during initialize".
+
 - **More programs that run other code are never offered a wildcard** (PC-122): the wrappers `gsudo`, `sshpass`,
   `chronic`, `ifne`, `xvfb-run` and `autossh`, and the runners `gemini`, `aider`, `opencode`, `goose`, `infisical`,
   `chamber`, `sops`, `summon`, `envchain`, `teller`, `pulumi` and `pre-commit`, join the lists a declared rule is
