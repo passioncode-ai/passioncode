@@ -17,7 +17,7 @@ sections 2 to 5.
 | Find a request nobody took (2 minutes of grace, at most 2 such sessions per machine and 1 per project) and watch the run | Fabric | the specification, §3.1, §3.3 and §3.6 |
 | Choose the agent: Switchboard's default agent, Claude Code when none is set | Fabric and Switchboard | the specification, §2 |
 | Start that agent with no person present (`claude -p`, or `codex exec` for Codex), on an account with room, and record the run, on macOS and Windows | Fabric Switchboard (`switchboard dispatch`, new in wave 1) | the specification, §3.5 and §4 |
-| Set the permission mode the session runs in | Fabric (`agentPermissions` in its settings) | the specification, §2 |
+| Set the permission mode the session runs in: permissions bypassed by default (Claude Code `--dangerously-skip-permissions`, Codex `--dangerously-bypass-approvals-and-sandbox`), the task's bounds decided when it is set (the operator, 2026-11-07, board `aa7c14a9`) | Fabric (`agentPermissions` in its settings) and Switchboard (SB-298) | the specification, §2 |
 | Install the apps, their MCP servers in each agent, the skill set and Claude Code's rules for PassionCode's tools and commands | the launcher (`setup`) | this page, below |
 | Take the request, do the work, report and end | Fabric Agent Adapter (`working-with-fabric`) | the specification, §4 |
 | Keep a readable record of the rules `setup` added, for Fabric's permissions screen | the launcher (`permissions`, from 0.2.75, PC-125) | the CLI contract of 0.2.75 |
