@@ -80,6 +80,13 @@
   kept: `doctor` warns that it runs from that copy, says the launcher did not set it and names the step (for Claude
   Code `claude mcp remove --scope user <name>`, then `doctor --fix`).
 
+- **`doctor` checks who owns a service's port** (PC-152, the contract's HA-2, fabric-agent-contract DEC-0154,
+  `v0.1.0+2026-11-07.1`): before it reads a family service's `/.well-known/fabric-service` on loopback, `doctor` checks
+  that the listener on the port is a process of your own OS account (macOS `netstat` and `ps`, Linux `/proc/net/tcp`,
+  Windows the listening process's owner). A port another account's program holds, or one whose owner cannot be told,
+  is a failed row that names the port; doctor sends that listener nothing, reads nothing from it and offers no
+  `kickstart`. Before, on a Mac with two users, another user's process on your service's port answered for it.
+
 - **Another user's app is not "in use"** (PC-151): `setup` and `doctor` asked `pgrep` about every user's processes and
   matched the bundle's path anywhere in a command line, so on a Mac with two users a copy in one user's
   `~/Applications` kept the same app in `/Applications` from being replaced. Now only this user's processes count,

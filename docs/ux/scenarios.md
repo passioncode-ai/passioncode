@@ -355,7 +355,7 @@
   or update points each one the launcher set, unchanged since, at this user's own copy, and `restore` puts the old one
   back (PC-149). An entry the person set or changed stays; `doctor` warns that it runs from that copy and that the
   launcher did not set it, with the step: for Claude Code `claude mcp remove --scope user <name>`, for the others remove
-  it from that agent, then `doctor --fix` registers this user's own. Sessions Fabric starts find this user's
+  it from that agent, then `doctor --fix` registers this user's own. `doctor` reads a family service's answer only when the listener on its port is this user's own process: a port another user's program holds, or one whose owner cannot be told, is a failed row that names the port, and doctor sends that listener nothing (PC-152, the contract's HA-2). Sessions Fabric starts find this user's
   `~/Applications/Fabric.app` first, flag another user's registered copy and name a root-owned one as an
   administrator's, from Fabric Agent Adapter v0.70.0, which this release pins (PC-141, FAA-229, FAA-237). A folder the user cannot write (or, for a reinstall, an app they cannot write) is named
   in the plan and among the steps, is never asked about, and nothing is downloaded (Fabric's note adds what else it
