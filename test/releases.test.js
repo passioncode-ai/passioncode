@@ -51,6 +51,9 @@ test('PC-151: pgrep is asked only about this user\'s processes', { skip: (proces
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'pc151-bin-'));
   const log = path.join(bin, 'args.log');
   fs.writeFileSync(path.join(bin, 'pgrep'), `#!/bin/sh\nprintf '%s\\n' "$@" > '${log}'\nexit 1\n`, { mode: 0o755 });
+  // PC-169: macOS checks a new executable on its first start, which under heavy load outlasts isRunning's 5 s timeout
+  // (a timeout reads as in use); one start beforehand keeps the check out of the call under test.
+  require('node:child_process').spawnSync(path.join(bin, 'pgrep'), ['--warm'], { timeout: 60000 });
   const saved = process.env.PATH;
   process.env.PATH = `${bin}${path.delimiter}${saved}`;
   try {

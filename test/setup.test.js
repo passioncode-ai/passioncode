@@ -774,6 +774,40 @@ test('PC-145, PC-146: a second user gets the apps in ~/Applications, made when a
   assert.equal(fixed.json.after.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards').state, 'ok', JSON.stringify(fixed.json.after.checks.filter((c) => c.area === 'mcp')));
 });
 
+test('PC-160: another user\'s copy in the PASSIONCODE_APPLICATIONS folder is named, never used, replaced or registered from', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root owns every copy') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  const dash = catalog.byId('dashboards');
+  const theirs = path.join(m.apps, dash.app);
+  fs.mkdirSync(path.dirname(path.join(theirs, dash.mcp.bin)), { recursive: true });
+  fs.writeFileSync(path.join(theirs, 'Contents', 'Info.plist'), JSON.stringify({ CFBundleShortVersionString: '0.0.1' }));
+  fs.writeFileSync(path.join(theirs, dash.mcp.bin), '#!/bin/sh\n', { mode: 0o755 });
+  const before = fs.readFileSync(path.join(theirs, 'Contents', 'Info.plist'));
+  // The bundle is this process's; under another uid it is another user's copy in the one folder the variable names.
+  const asOther = (...args) => new Promise((resolve) => {
+    const child = spawn(process.execPath, [BIN, ...args], { env: { ...cliEnv(m, api), PASSIONCODE_UID: String(process.getuid() + 1) }, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (c) => { stdout += c; });
+    child.stderr.on('data', (c) => { stderr += c; });
+    child.on('close', (status) => resolve({ status, stdout, stderr, json: (() => { try { return JSON.parse(stdout); } catch (_) { return null; } })() }));
+  });
+  const note = `${theirs} is another user's copy, left as it is, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or set it to a folder of your own`;
+  const d = await asOther('doctor', '--offline', '--json');
+  const row = (id) => d.json.checks.find((c) => c.id === id);
+  assert.equal(row('app.dashboards.shared').detail, `Fabric Dashboards: the copy in ${theirs} is another user's, left as it is; macOS may open fabric-dashboards:// links with it`);
+  assert.deepEqual([row('app.dashboards').state, row('app.dashboards').detail, row('app.dashboards').fix, row('app.dashboards').blocked], ['info', 'Fabric Dashboards: not installed', note, true]);
+  const r = await asOther('setup', '--yes', '--with', 'dashboards', '--json');
+  const item = r.json.plan.find((i) => i.kind === 'install' && i.product === 'dashboards');
+  assert.ok(item && item.blocked && !item.selected && item.note === note, JSON.stringify(r.json.plan));
+  assert.deepEqual(fs.readFileSync(path.join(theirs, 'Contents', 'Info.plist')), before, "the other user's copy is unchanged");
+  assert.deepEqual(fs.readdirSync(m.apps), [dash.app], 'nothing else installed');
+  const servers = JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers || {};
+  assert.equal(servers['fabric-dashboards'], undefined, 'no MCP server registered from another user\'s copy');
+  const u = await asOther('update', '--json');
+  const step = u.json.steps.find((x) => x.kind === 'mcp' && x.detail.includes('fabric-dashboards'));
+  assert.deepEqual(step, { kind: 'mcp', detail: `${theirs} is another user's copy of Fabric Dashboards; fabric-dashboards was not registered from it`, outcome: 'skipped' });
+});
+
 test('PC-147: a folder the user cannot write is named in the plan and nothing is downloaded', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
   const api = await releaseServer(t);
   const m = machine({ tools: TOOLS.filter((x) => x !== 'docker') });

@@ -22,8 +22,8 @@ const world = () => {
 };
 const me = typeof process.getuid === 'function' ? process.getuid() : null;
 const saved = process.env.PASSIONCODE_APPLICATIONS;
-test.beforeEach(() => { delete process.env.PASSIONCODE_APPLICATIONS; });
-test.after(() => { if (saved === undefined) delete process.env.PASSIONCODE_APPLICATIONS; else process.env.PASSIONCODE_APPLICATIONS = saved; });
+test.beforeEach(() => { delete process.env.PASSIONCODE_APPLICATIONS; delete process.env.PASSIONCODE_UID; });
+test.after(() => { delete process.env.PASSIONCODE_UID; if (saved === undefined) delete process.env.PASSIONCODE_APPLICATIONS; else process.env.PASSIONCODE_APPLICATIONS = saved; });
 
 test('PC-145: with no copy anywhere an app goes into ~/Applications', () => {
   const w = world();
@@ -139,4 +139,59 @@ test('PC-147: a folder of the user\'s own locked with Finder\'s Locked flag is b
   t.after(() => execFileSync('chflags', ['nouchg', own]));
   assert.equal(C.blockedFolder(path.join(own, fabric.app)), own);
   assert.match(C.blockedNote(own), /untick Locked/);
+});
+
+test('PC-160: only an absolute PASSIONCODE_APPLICATIONS counts; a relative one is read as unset, as the adapter reads it', () => {
+  const w = world();
+  process.env.PASSIONCODE_APPLICATIONS = 'Apps';
+  assert.equal(C.appsDir(), null);
+  assert.equal(C.appPath(fabric, { home: w.home, shared: w.shared, uid: me }), w.own);
+  process.env.PASSIONCODE_APPLICATIONS = path.join(w.base, 'only');
+  assert.equal(C.appsDir(), path.join(w.base, 'only'));
+});
+
+test('PC-160: another user\'s copy in the PASSIONCODE_APPLICATIONS folder is named, never this user\'s, never replaced', { skip: (me === null && 'POSIX owners') || (me === 0 && 'root owns every copy') }, () => {
+  const w = world();
+  const only = path.join(w.base, 'only');
+  const there = w.bundle(only);
+  process.env.PASSIONCODE_APPLICATIONS = only;
+  const other = me + 1; // the bundle belongs to someone else from this user's point of view
+  assert.equal(C.foreignBundle(there, other), true);
+  assert.equal(C.foreignBundle(there, me), false, 'this user\'s own copy');
+  assert.equal(C.foreignBundle(path.join(only, 'absent.app'), other), false, 'nothing there');
+  assert.equal(C.foreignBundle('/', me), false, 'a root-owned copy is an administrator\'s, not another user\'s');
+  assert.equal(C.foreignBundle(there, null), false, 'no uid: no owner to compare');
+  assert.deepEqual(C.sharedCopy(fabric, { home: w.home, shared: w.shared, uid: other }), { path: there, why: 'other-user' });
+  assert.equal(C.sharedCopy(fabric, { home: w.home, shared: w.shared, uid: me }), null, 'this user\'s copy there is theirs');
+  process.env.PASSIONCODE_UID = String(other);
+  assert.equal(C.blockedFolder(there), there, 'setup and doctor never plan to replace it');
+  assert.equal(C.blockedNote(there), `${there} is another user's copy, left as it is, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or set it to a folder of your own`);
+  delete process.env.PASSIONCODE_APPLICATIONS;
+  assert.equal(C.blockedNote(there), `${there} is another user's copy, left as it is, so nothing is downloaded: ask an administrator to move it`);
+});
+
+test('PC-160: an install never replaces another user\'s copy', { skip: (me === null && 'POSIX owners') || (me === 0 && 'root owns every copy') }, async () => {
+  const w = world();
+  const only = path.join(w.base, 'only');
+  const there = w.bundle(only);
+  process.env.PASSIONCODE_APPLICATIONS = only;
+  process.env.PASSIONCODE_UID = String(me + 1);
+  const R = require('../lib/releases');
+  await assert.rejects(R.installApp(fabric, { version: '1.0.0', assets: [] }, { work: path.join(w.base, 'work'), replace: true, home: w.home }), /is another user's copy; it is left as it is/);
+  assert.ok(fs.existsSync(there));
+});
+
+test('PC-160: setup plans another user\'s copy at this user\'s place as a blocked install', { skip: (me === null && 'POSIX owners') || (me === 0 && 'root owns every copy') }, () => {
+  const w = world();
+  const only = path.join(w.base, 'only');
+  const dash = C.byId('dashboards');
+  fs.mkdirSync(path.join(only, dash.app, 'Contents'), { recursive: true });
+  process.env.PASSIONCODE_APPLICATIONS = only;
+  process.env.PASSIONCODE_UID = String(me + 1);
+  const S = require('../lib/setup');
+  const item = S.plan([], { platform: 'darwin', withIds: ['dashboards'], home: w.home }).find((i) => i.product === 'dashboards');
+  assert.ok(item && item.kind === 'install' && item.blocked && !item.selected, JSON.stringify(item));
+  assert.match(item.note, /is another user's copy, left as it is/);
+  delete process.env.PASSIONCODE_UID;
+  assert.equal(S.plan([], { platform: 'darwin', withIds: ['dashboards'], home: w.home }).find((i) => i.product === 'dashboards'), undefined, 'this user\'s own copy there is installed');
 });
