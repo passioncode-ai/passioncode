@@ -1088,6 +1088,9 @@ test('PC-147: on a release train, an app behind its pin, in use, in a locked fol
   const odd = await cli(m, api, 'setup', '--yes', '--json', '--without', 'fabric');
   assert.equal(odd.json.blocked, undefined, JSON.stringify(odd.json.blocked));
   assert.ok(odd.json.humanSteps.every((x) => !/is not writable/.test(x) || /if its signature check fails too, setup cannot reinstall it/.test(x)), JSON.stringify(odd.json.humanSteps));
+  // PC-158: the row itself names the locked folder, never `setup` as the way to reinstall it.
+  const row = odd.json.after.checks.find((c) => c.id === 'app.switchboard');
+  assert.equal(row.fix, `Fabric Switchboard's version could not be read; if its signature check fails too, setup cannot reinstall it: ${m.apps} is not writable for you, so nothing is downloaded: unset PASSIONCODE_APPLICATIONS to use ~/Applications, or make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write)`);
 });
 
 test('PC-147: a blocked Fabric without Docker, with a stale MCP entry, is one step that says both', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {

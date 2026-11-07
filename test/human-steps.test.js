@@ -59,3 +59,12 @@ test('PC-158: a blocked reinstall never promises the Trash', { skip: (process.pl
   assert.equal(locked.detail, `reinstall ${dash.name} from its latest signed release`);
   assert.ok(locked.blocked && !locked.selected && locked.note.startsWith(`${apps} is not writable for you`), JSON.stringify(locked));
 });
+
+test('PC-158: a declined run with an app left at its default no and a blocked app names both', () => {
+  const summary = { ok: 1, info: 0, warn: 0, fail: 0 };
+  const base = { mode: 'existing', platform: 'darwin', before: { summary, checks: [] }, after: { summary, checks: [] }, plan: [], actions: [], humanSteps: [], planOnly: true, declined: true };
+  const both = S.render({ ...base, notTaken: ['Fabric'], blocked: ['Fabric Switchboard'] });
+  assert.match(both, /^You declined every other offer, and Fabric was not installed; nothing was changed\. Not asked about: Fabric Switchboard needs a folder you can write; the steps below say which\.$/m, both);
+  const blockedOnly = S.render({ ...base, blocked: ['Fabric Switchboard', 'Fabric Inbox'] });
+  assert.match(blockedOnly, /^You declined every offer; nothing was changed\. Not asked about: Fabric Switchboard and Fabric Inbox need a folder you can write; the steps below say which\.$/m, blockedOnly);
+});
