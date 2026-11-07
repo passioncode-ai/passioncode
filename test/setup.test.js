@@ -1773,8 +1773,11 @@ test('PC-117: setup offers the tool rules, adds them only on their own yes, and 
   assert.doesNotMatch(named.stdout, /still asks/, named.stdout); // --allow-tools cannot help while the file is unreadable
   const failsPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run', '--allow-tools');
   assert.match(failsPlan.stdout, /is not valid JSON[^\n]*\nA run with --allow-tools fails until that is fixed\.\n/, failsPlan.stdout);
+  // PC-121: the headline says the asked step cannot run, never "Nothing to do." above the failure.
+  assert.match(failsPlan.stdout, /\nNothing was changed: the step you asked for cannot run until Claude Code's settings are fixed\./, failsPlan.stdout);
+  assert.doesNotMatch(failsPlan.stdout, /Nothing to do\./, failsPlan.stdout);
   const brokenPlan = await cli(broken, api, 'setup', '--no-apps', '--offline', '--dry-run');
-  assert.doesNotMatch(brokenPlan.stdout, /fails until/, brokenPlan.stdout);
+  assert.doesNotMatch(brokenPlan.stdout, /fails until|cannot run until/, brokenPlan.stdout); // nothing asked, nothing fails
   assert.doesNotMatch(brokenPlan.stdout, /let Claude Code use|still asks/, brokenPlan.stdout);
   assert.match(brokenPlan.stdout, /\nClaude Code's settings were not changed: /, brokenPlan.stdout);
   const brokenRun = await cli(broken, api, 'setup', '--yes', '--no-apps', '--offline');

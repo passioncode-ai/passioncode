@@ -75,6 +75,14 @@
   `permissions mode bypassPermissions` set the mode for whoever ran it; it now asks in a terminal, or takes
   `--confirm-bypass`, and is refused otherwise (exit 2, nothing written).
 
+- **A dry run whose only asked step cannot run says so** (PC-121): `setup --dry-run --allow-tools` over Claude Code
+  settings it cannot read headed the answer "Nothing to do." above "A run with --allow-tools fails until that is fixed."
+  It now heads it "Nothing was changed: the step you asked for cannot run until Claude Code's settings are fixed."
+
+- **A settings file reached through links follows at most 32 of them** (PC-121), as macOS does (Linux allows 40), not
+  64: a longer chain to a missing file is refused as too many levels of links, as the system refuses it, and no file is
+  made at its end.
+
 - **New installs go into the user's own `~/Applications`, so a second macOS user gets their own apps** (PC-145, PC-146, PC-147, SCN-017): `setup`
   installed only into `/Applications`, counted another user's copy there as installed, and replaced an outdated one by
   moving it into the running user's Trash; a standard user got a bare permission error. Each app now goes into the
