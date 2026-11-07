@@ -438,6 +438,15 @@ test('PC-119: the programs added to the lists in this release are refused as the
   }
 });
 
+test('PC-122: the wrappers and runners named by the PC-119 readings are refused as their list says', () => {
+  for (const name of ['gsudo', 'sshpass', 'chronic', 'ifne', 'xvfb-run', 'autossh']) {
+    assert.match(P.refusal(`Bash(${name} x)`, CTX) || '', /runs another program/, name);
+  }
+  for (const name of ['gemini', 'aider', 'opencode', 'goose', 'infisical', 'chamber', 'sops', 'summon', 'envchain', 'teller', 'pulumi', 'pre-commit']) {
+    assert.match(P.refusal(`Bash(${name} run:*)`, CTX) || '', /could run any code/, name);
+  }
+});
+
 test('PC-119: a format character that reorders text is refused like a control character, and repeating the launcher rule changes nothing', () => {
   const dir = path.join(path.dirname(tmp()), 'rules.d');
   fs.mkdirSync(dir, { recursive: true });

@@ -69,6 +69,11 @@
 
 ### Fixed
 
+- **More programs that run other code are never offered a wildcard** (PC-122): the wrappers `gsudo`, `sshpass`,
+  `chronic`, `ifne`, `xvfb-run` and `autossh`, and the runners `gemini`, `aider`, `opencode`, `goose`, `infisical`,
+  `chamber`, `sops`, `summon`, `envchain`, `teller`, `pulumi` and `pre-commit`, join the lists a declared rule is
+  checked against.
+
 - **`setup` under sudo is refused** (PC-159): run as root, `setup` and `doctor --fix` compared owners with root's uid, so
   a copy in `/Applications` read as someone else's and an install could land root-owned in the person's
   `~/Applications`, never replaceable by them. Both now stop with one line saying to run them as yourself (exit 2);
