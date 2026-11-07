@@ -63,7 +63,11 @@ test('PC-163: on macOS the process that holds the server end of the connection d
   assert.match(lost.reason, /^table-restricted/, 'a table without the connection is cut short, even with this account\'s listener in it');
   const empty = at({}, { code: 0, out: '', err: '' });
   assert.equal(empty.state, 'foreign-user'); assert.match(empty.reason, /^table-restricted.*netstat printed no table/, 'an empty table (an ad-hoc signed reader on some macOS releases) is never another account');
-  assert.match(at({}, { code: 1, out: '', err: 'netstat: denied' }).reason, /netstat did not list the sockets \(netstat: denied\)/);
+  assert.match(at({}, { code: 1, out: '', err: 'netstat: denied' }).reason, /^table-restricted.*netstat did not list the sockets: netstat: denied\)/, 'DEC-0155 RT-1: a netstat that fails is a cut-short table');
+  assert.match(at({}, { code: 1, out: '', err: '' }).reason, /^table-restricted.*: exit 1\)/);
+  assert.match(at({}, { code: 0, out: HEADER, err: '' }).reason, /^table-restricted.*only its header/, 'a header with no rows is a cut-short table');
+  const bare = L.listenerOwner(8799, { platform: 'darwin', run: darwinRun(HEADER, {}), uid: 501 });
+  assert.equal(bare.state, 'foreign-user'); assert.match(bare.reason, /^table-restricted.*only its header/, 'without a connection too: a header alone never says nothing listens');
   const nameless = L.connectionOwner({ port: 8799, peerPort: 50123 }, { platform: 'darwin', run: darwinRun(HEADER + row('tcp4', '127.0.0.1.8799', '-', '127.0.0.1.50123', 'ESTABLISHED'), {}), uid: 501 });
   assert.match(nameless.reason, /netstat named no process for port 8799/);
 });
