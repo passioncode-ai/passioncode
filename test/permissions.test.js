@@ -252,6 +252,31 @@ test('PC-117: a loop of links met while walking to a missing end is named', { sk
   }
 });
 
+test('PC-121: a chain of links to a missing end is followed up to 32 links, as macOS follows them, and no further', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
+  const dir = path.dirname(tmp());
+  fs.mkdirSync(dir, { recursive: true });
+  // A chain of n links: settings-n.json -> settings-(n-1).json -> ... -> settings-1.json -> end-n.json (missing).
+  const chain = (n) => {
+    fs.symlinkSync(`end-${n}.json`, path.join(dir, `c${n}-1.json`));
+    for (let i = 2; i <= n; i += 1) fs.symlinkSync(`c${n}-${i - 1}.json`, path.join(dir, `c${n}-${i}.json`));
+    return path.join(dir, `c${n}-${n}.json`);
+  };
+  const end = (n) => path.join(fs.realpathSync(dir), `end-${n}.json`);
+  assert.equal(P.endOf(chain(3)), end(3), 'three links end at the missing target');
+  assert.equal(P.endOf(chain(32)), end(32), 'thirty-two links, the most macOS follows');
+  // macOS refuses the chain itself; on Linux (40 allowed) the walk refuses it: ELOOP either way, never a file made.
+  const long = chain(33);
+  assert.throws(() => P.endOf(long), (e) => e.code === 'ELOOP', 'one more is too many');
+  // The walk's own ceiling, where the system would follow the chain (Linux): it stops at 32 links too.
+  const realpath = fs.realpathSync;
+  fs.realpathSync = (p) => { if (p === long) throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' }); return realpath(p); };
+  try {
+    assert.throws(() => P.endOf(long), /too many levels of links/);
+  } finally {
+    fs.realpathSync = realpath;
+  }
+});
+
 test('PC-117: a link in a linked folder to a missing file that climbs with .. makes the file where the system says', { skip: process.platform === 'win32' && 'POSIX links' }, () => {
   const root = path.dirname(path.dirname(tmp()));
   fs.mkdirSync(path.join(root, 'dotfiles', 'claude-config'), { recursive: true });
