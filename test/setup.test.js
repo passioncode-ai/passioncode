@@ -821,6 +821,7 @@ test('PC-158: an entry running another user\'s copy, while this user has none, i
   t.after(() => fs.chmodSync(m.shared, 0o755));
   fs.writeFileSync(path.join(m.home, '.claude.json'), JSON.stringify({ mcpServers: { 'fabric-dashboards': { command: theirBin, args: [] } } }));
   const d = await cli(m, api, 'doctor', '--offline', '--json');
+  assert.ok(d.json, `doctor answered no JSON (exit ${d.status}): ${d.stdout}${d.stderr}`);
   const row = d.json.checks.find((c) => c.id === 'mcp.claude.fabric-dashboards');
   assert.ok(row && !/runs from/.test(row.detail), JSON.stringify(row));
   assert.ok(d.json.checks.some((c) => c.id === 'app.dashboards.shared'), 'the other copy is still named');
