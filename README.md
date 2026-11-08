@@ -151,7 +151,8 @@ On Windows, where npm is installed as `.cmd` files (the Node installer, nvm-wind
 earlier never updates itself (its hook could not start npm): run
 `npx --yes @passioncode-ai/passioncode@latest update` once, and it updates itself from 0.2.76 on (PC-135), when the Node
 that runs Claude Code's hooks (the first `node` on PATH) has npm beside it; otherwise a session line says how to fix
-that (PC-143).
+that (PC-143). It runs that npm, the one in Node's own folder, even when `npm i -g npm` has put a newer one in another
+prefix; the bundled one checks and updates the same way.
 `npx @passioncode-ai/passioncode@latest config set update.auto off` makes it only say so. `status` and `doctor` show
 when the switch is off (by `config set`, or by an uninstall by 0.2.75 or earlier), and `config set update.auto on` turns it
 back on.
