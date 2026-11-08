@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **Two background updates that overlap both keep their folders** (PC-143): only the newer update's folder was
+  recorded, so the older one could be swept while that update still ran; the last three are now kept
+  (`updateCaches` in `state.json`).
+
 - **A standing refusal names a missing npm** (PC-143): with no npm beside this Node, the session line about a refused
   version said the last check "could not tell" and offered an `npx` command, which cannot run without npm; it now says
   nothing is checked until there is npm beside this Node, and names the version to keep.

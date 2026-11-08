@@ -514,7 +514,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 
 | Location/variable | Role |
 |---|---|
-| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache-*` folders hold each update's own npm cache, removed at every session start once older than an hour, except the one the last update runs from (`updateCache` in `state.json`); uninstall leaves the folder, removing it is safe while no update runs): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
+| `~/.passioncode/run/` | Where the session hook runs its probe and the background update (`cache-*` folders hold each update's own npm cache, removed at every session start once older than an hour, except those the last updates run from (`updateCache`, and the last three in `updateCaches`, in `state.json`; PC-143); uninstall removes the folder unless an update recorded in the last hour may still run from it (LC-12)): a `package.json` with no dependencies, so npm never uses the session project's `node_modules` or `.npmrc` (PC-131) |
 | `~/.passioncode/{releases,current,state.json,quarantine,logs}` | Installed copies, active link, state, recovery records, background logs (`probe.log`, `update.log`, and `update-events.log`: the update events as codes, PC-131; each moves aside at 5 MB, five files kept, mode 0600; `logs/npm/` holds npm's own debug logs of the background update, five kept by npm in a 0700 folder) |
 | `~/.passioncode/permissions.json`, `~/.passioncode/rules.d/` | The permissions ledger (PC-125) and the rules agents declare (PC-119) |
 | `~/.passioncode/analytics.json` | The analytics switch and what was already counted (PC-123) |

@@ -179,7 +179,7 @@ test('PC-143 (LC-12): uninstall removes the session hook\'s update folders and t
   const cache = path.join(state, 'run', 'cache-abc');
   const seed = (extra) => {
     fs.mkdirSync(cache, { recursive: true });
-    fs.writeFileSync(stateFile, JSON.stringify({ ...JSON.parse(fs.readFileSync(stateFile, 'utf8')), updateCache: cache, ...extra }));
+    fs.writeFileSync(stateFile, JSON.stringify({ ...JSON.parse(fs.readFileSync(stateFile, 'utf8')), updateCache: cache, updateCaches: [cache], ...extra }));
   };
   // An update recorded a minute ago may still run from its folder: the folder stays, the record goes.
   seed({ updatingSince: new Date(Date.now() - 60 * 1000).toISOString() });
@@ -188,6 +188,7 @@ test('PC-143 (LC-12): uninstall removes the session hook\'s update folders and t
   assert.ok(fs.existsSync(cache), 'an update in flight keeps its folder');
   const after = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
   assert.equal(after.updateCache, undefined);
+  assert.equal(after.updateCaches, undefined);
   assert.equal(after.updatingSince, undefined);
   // No update in flight: the whole run folder goes, and the output names it.
   assert.equal(run(env, 'update', '--json').status, 0);

@@ -548,6 +548,26 @@ test('PC-143: a log folder that cannot be written is named, never PATH', { skip:
   }
 });
 
+test('PC-143: two updates that overlap both keep their folders through the sweep', async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  const run = path.join(sb.stateDir, 'run');
+  const first = path.join(run, 'cache-first'); // an update started over an hour ago that still runs
+  const stray = path.join(run, 'cache-stray');
+  for (const d of [first, stray]) fs.mkdirSync(d, { recursive: true });
+  const twoHours = (Date.now() - 2 * 60 * 60 * 1000) / 1000;
+  for (const d of [first, stray]) fs.utimesSync(d, twoHours, twoHours);
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0'), updateCache: first, updateCaches: [first] });
+  hook(sb); // a second session starts its own update
+  assert.equal((await npxCalls(sb, { expect: 1 })).length, 1);
+  const st = stateOf(sb);
+  assert.notEqual(st.updateCache, first, 'the newer update is the one recorded');
+  assert.deepEqual(st.updateCaches, [st.updateCache, first], 'both are kept on the list, newest first');
+  setState(sb, { ...stateOf(sb), installed: '0.2.0' }); // nothing more to install: this session only sweeps
+  hook(sb);
+  assert.ok(fs.existsSync(first), "the older update's folder stays while it is on the list");
+  assert.ok(!fs.existsSync(stray), 'a folder on no list is swept');
+});
+
 test('PC-131: every session start removes update cache folders older than an hour, except the running update\'s', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   const run = path.join(sb.stateDir, 'run');

@@ -98,14 +98,16 @@ async function main() {
   // A new, empty cache folder for each update, so npx downloads the verified version and npm checks it, instead of
   // reusing a copy an earlier `npx` cached under other settings (the global npm tree is still npm's own, PC-142).
   // Without one the update does not start. Every session start removes cache folders older than an hour except the
-  // one the last update recorded (`updateCache`): an update runs from its folder, npx keeps the package inside it.
+  // ones the last updates recorded (`updateCache` and the last three in `updateCaches`, PC-143: two updates that overlap
+  // both keep theirs): an update runs from its folder, npx keeps the package inside it.
   try {
     const run = path.join(DIR, 'run');
-    const keep = read(STATE, {}).updateCache;
+    const recorded = read(STATE, {});
+    const keep = new Set([recorded.updateCache, ...(Array.isArray(recorded.updateCaches) ? recorded.updateCaches : [])]);
     for (const name of fs.existsSync(run) ? fs.readdirSync(run) : []) {
       if (!/^cache(-|$)/.test(name)) continue;
       const folder = path.join(run, name);
-      if (folder === keep) continue;
+      if (keep.has(folder)) continue;
       try { if (now - fs.statSync(folder).mtimeMs > HOUR) fs.rmSync(folder, { recursive: true, force: true }); } catch (_) { /* in use or gone */ }
     }
   } catch (_) { /* the next session tries again */ }
@@ -136,7 +138,8 @@ async function main() {
       try {
         const current = read(STATE, {});
         earlierCache = current.updateCache;
-        const fresh = { ...current, updateCache: cacheDir };
+        const recent = Array.isArray(current.updateCaches) ? current.updateCaches.filter((x) => typeof x === 'string') : [];
+        const fresh = { ...current, updateCache: cacheDir, updateCaches: [cacheDir, ...recent.filter((x) => x !== cacheDir)].slice(0, 3) };
         const tmp = `${STATE}.${process.pid}.hook`;
         fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
         fs.renameSync(tmp, STATE);
@@ -150,6 +153,10 @@ async function main() {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;
+      if (Array.isArray(fresh.updateCaches)) {
+        fresh.updateCaches = fresh.updateCaches.filter((x) => x !== cacheDir);
+        if (!fresh.updateCaches.length) delete fresh.updateCaches;
+      }
       if (fresh.updateCache === cacheDir) {
         // Only a folder that is still there: another session's sweep may have removed it meanwhile (PC-143).
         if (typeof earlierCache === 'string' && fs.existsSync(earlierCache)) fresh.updateCache = earlierCache;
