@@ -38,17 +38,19 @@ function runDir() {
   return dir;
 }
 
+// Resolves null once the process started, else why it did not: `logs` when its log cannot be opened (PC-143: a log
+// folder this user cannot write is named, not PATH), `spawn` for any other failure.
 function detached(cmd, args, logName) {
   return new Promise((resolve) => {
     let out;
     try {
-      out = openLog(path.join(DIR, 'logs', logName)); // rotated at 5 MB, five files, 0600 (LC-12)
+      try { out = openLog(path.join(DIR, 'logs', logName)); } catch (_) { resolve('logs'); return; } // rotated at 5 MB, five files, 0600 (LC-12)
       const cwd = runDir();
       // PC-123: the background update sends no counts; PASSIONCODE_UPDATE_FROM lets it log its download as done (LC-16).
       const child = spawn(cmd, args, { cwd, detached: true, windowsHide: true, stdio: ['ignore', out, out], env: { ...process.env, PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_UPDATE_FROM: 'session-start' } });
-      child.once('error', () => resolve(false));
-      child.once('spawn', () => { child.unref(); resolve(true); });
-    } catch (_) { resolve(false); }
+      child.once('error', () => resolve('spawn'));
+      child.once('spawn', () => { child.unref(); resolve(null); });
+    } catch (_) { resolve('spawn'); }
     finally { if (out !== undefined) fs.closeSync(out); }
   });
 }
@@ -67,7 +69,7 @@ async function main() {
   const npmBack = state.checkError === NPM_MISSING && !npmMissing('npm', { platform });
   // The marker is claimed before the spawn: sessions restored together start one probe.
   if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state) || npmBack) && claimProbe(DIR, now)) {
-    if (!await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
+    if (await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
   const { lines, spawn: args, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)));
   // On Windows with no npm beside this Node nothing can start the update: no cache folder, no spawn, and no download
@@ -133,7 +135,9 @@ async function main() {
     }
   }
   const [npx, npxPre] = npmCommand('npx', { platform });
-  if (args && (!updateArgs || !await detached(npx, [...npxPre, ...updateArgs], 'update.log'))) {
+  const startFailure = args && updateArgs ? await detached(npx, [...npxPre, ...updateArgs], 'update.log') : null;
+  if (startFailure) failure = startFailure;
+  if (args && (!updateArgs || startFailure)) {
     const fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;
@@ -152,7 +156,9 @@ async function main() {
       ? `[passioncode] could not start the background update: its folder ${shown(path.join(DIR, 'run'))} cannot be written; make it writable (or remove it) and it is tried again next session.`
       : failure === 'npm'
         ? npmMissingLine(shown(path.dirname(process.execPath)), args.find((a) => a.startsWith(`${PACKAGE}@`)).slice(PACKAGE.length + 1))
-        : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
+        : failure === 'logs'
+          ? `[passioncode] could not start the background update: its log folder ${shown(path.join(DIR, 'logs'))} cannot be written; make it writable (or remove it) and it is tried again next session.`
+          : '[passioncode] could not start the background update; check that npx is on PATH and retry next session.');
   }
   // Claude Code passes the session's directory on stdin; the process cwd is the fallback.
   let cwd = process.cwd();
