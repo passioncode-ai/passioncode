@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **Printed commands keep to the version you have while the newest is refused** (PC-143): while the session hook refuses
+  the newest launcher, doctor's fixes, setup's closing line, the help and the analytics notice named
+  `npx @passioncode-ai/passioncode@latest`, which runs the refused version; they now name the installed one.
+
 - **Claude Code and MCP servers installed through npm start on Windows** (PC-143): Windows starts a `.cmd` file only
   through a shell, so Claude Code installed with `npm i -g` read as not installed, `update` skipped every plugin, and
   doctor's proving call failed for an MCP server registered as a `.cmd` shim. An npm shim now runs its JavaScript
