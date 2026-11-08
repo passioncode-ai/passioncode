@@ -142,7 +142,8 @@ async function main() {
     if (fresh.updatingSince === stateChanges.updatingSince) {
       delete fresh.updatingSince;
       if (fresh.updateCache === cacheDir) {
-        if (typeof earlierCache === 'string') fresh.updateCache = earlierCache;
+        // Only a folder that is still there: another session's sweep may have removed it meanwhile (PC-143).
+        if (typeof earlierCache === 'string' && fs.existsSync(earlierCache)) fresh.updateCache = earlierCache;
         else delete fresh.updateCache;
       }
       const tmp = `${STATE}.${process.pid}.hook`;
