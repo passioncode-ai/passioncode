@@ -54,6 +54,7 @@ in [launcher tests](../../test/launcher.test.js).
 | `package` | Version of the payload beside the invoked CLI, which an update would install |
 | `source` | Where member descriptions came from: `installed`, `package`, or null |
 | `latest`, `checkedAt` | Raw saved npm observation and check timestamp, or null; no live npm probe |
+| `npmMissing` | `true` when the last check found no npm beside this Node, so nothing is checked until there is one (PC-143); the text line says "not checked (no npm beside this Node)" |
 | `refused`, `refusedVersion` | The session hook's standing refusal while the refused version is newer than installed: its reason (`registry_signature`, `provenance`, `untrusted_publisher`, `unreadable_publisher`) and version, or null; it stands also when the last check failed (PC-131) |
 | `auto` | Saved automatic-update preference; defaults to true |
 | `members` | Declared member versions, plugin presence, legacy entries, hub link targets and shadowing files |

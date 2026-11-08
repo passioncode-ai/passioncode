@@ -6,9 +6,12 @@ const VERSION = require('../package.json').version;
 // The session hook's refusal codes (PC-131) as a person reads them.
 const REFUSED = { registry_signature: 'its signature does not verify', provenance: 'no build provenance', untrusted_publisher: 'its publisher is not trusted', unreadable_publisher: 'its publisher could not be read' };
 
-function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion }) {
+function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion, npmMissing }) {
+  // PC-143: a check that found no npm beside this Node names that cause rather than "not checked" alone.
+  const cause = npmMissing ? 'no npm beside this Node' : 'last check failed';
+  if (!latest && !refused && npmMissing) return `npm latest: not checked (${cause})`;
   if (!latest && !refused) return 'npm latest: not checked';
-  if (!latest) return `npm latest: not checked (last check failed; ${refusedVersion} not installed automatically: ${REFUSED[refused] || 'refused'})`;
+  if (!latest) return `npm latest: not checked (${cause}; ${refusedVersion} not installed automatically: ${REFUSED[refused] || 'refused'})`;
   const checked = typeof checkedAt === 'string' && Number.isFinite(Date.parse(checkedAt))
     ? `checked ${checkedAt}` : 'check time unknown';
   let stale = false;
