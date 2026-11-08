@@ -171,6 +171,38 @@ test('PC-129: an entry claude mcp remove answers for but leaves is named in the 
   assert.match(un.stdout + un.stderr, /is still there after claude mcp remove/, un.stdout + un.stderr);
 });
 
+test('PC-143 (LC-12): uninstall removes the session hook\'s update folders and their record, unless an update may still run', () => {
+  const env = setup();
+  assert.equal(run(env, 'update', '--json').status, 0);
+  const state = path.join(env.home, '.passioncode');
+  const stateFile = path.join(state, 'state.json');
+  const cache = path.join(state, 'run', 'cache-abc');
+  const seed = (extra) => {
+    fs.mkdirSync(cache, { recursive: true });
+    fs.writeFileSync(stateFile, JSON.stringify({ ...JSON.parse(fs.readFileSync(stateFile, 'utf8')), updateCache: cache, ...extra }));
+  };
+  // An update recorded a minute ago may still run from its folder: the folder stays, the record goes.
+  seed({ updatingSince: new Date(Date.now() - 60 * 1000).toISOString() });
+  const busy = run(env, 'uninstall', '--json');
+  assert.equal(busy.status, 0, busy.stderr + busy.stdout);
+  assert.ok(fs.existsSync(cache), 'an update in flight keeps its folder');
+  const after = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  assert.equal(after.updateCache, undefined);
+  assert.equal(after.updatingSince, undefined);
+  // No update in flight: the whole run folder goes, and the output names it.
+  assert.equal(run(env, 'update', '--json').status, 0);
+  seed({});
+  const done = run(env, 'uninstall', '--json');
+  assert.equal(done.status, 0, done.stderr + done.stdout);
+  assert.equal(fs.existsSync(path.join(state, 'run')), false);
+  assert.ok(JSON.parse(done.stdout).includes(path.join(state, 'run')), done.stdout);
+  // A stale record (over an hour old) is not an update in flight.
+  assert.equal(run(env, 'update', '--json').status, 0);
+  seed({ updatingSince: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() });
+  assert.equal(run(env, 'uninstall', '--json').status, 0);
+  assert.equal(fs.existsSync(path.join(state, 'run')), false);
+});
+
 test('PC-129: paths() puts every Claude Code file under CLAUDE_CONFIG_DIR when it is set, and an empty one counts as unset', () => {
   const L = require('../lib/launcher');
   const saved = process.env.CLAUDE_CONFIG_DIR;

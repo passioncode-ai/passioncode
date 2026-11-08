@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **`uninstall` leaves no update folders behind** (PC-143, LC-12): the session hook's update folders
+  (`~/.passioncode/run/`) and their record go with the rest of the launcher's state, unless an update recorded in the
+  last hour may still run from one; then the hook's own sweep removes them later.
+
 - **`doctor` survives an MCP server that closes its input at once** (PC-170): the proving call's write to such a server
   failed with `EPIPE`, an unhandled error that ended `doctor` itself (seen on Linux). Now it is that server's failed
   probe, named by the stage: "the server closed its input during initialize".
