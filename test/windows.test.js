@@ -27,6 +27,16 @@ function tree() {
   return { state, current: path.join(state, 'current'), release };
 }
 const leftovers = (state) => fs.readdirSync(state).filter((n) => /^current\..+\.lnk$/.test(n));
+// A stand-in for `reg` that runs on every system (PASSIONCODE_REG, PC-143): HKCU answers `answer` when one is given;
+// every other hive, and HKCU without an answer, is missing as on a machine without that key.
+function standInReg(home, answer) {
+  const file = path.join(home, 'reg.js');
+  fs.writeFileSync(file, `const hive = process.argv[3] || '';
+if (${JSON.stringify(answer !== undefined)} && hive.startsWith('HKCU')) process.stdout.write(${JSON.stringify(answer || '')});
+else { process.stderr.write('ERROR: The system was unable to find the specified registry key or value.\\n'); process.exit(1); }
+`);
+  return file;
+}
 
 test('PC-85: on Windows a second update moves `current` to the new release and leaves no link behind', () => {
   const t = tree();
@@ -153,18 +163,17 @@ test('PC-86: without an uninstall entry the per-user folder still shows the app,
 
 // The whole command on a Windows machine, as the tester ran it: `doctor` reads each app, offline.
 // A stand-in `reg` answers the per-user hive; it is a shell script, so this one runs off Windows.
-test('PC-86: doctor on Windows names the installed apps and their versions instead of "run on macOS"', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+test('PC-86: doctor on Windows names the installed apps and their versions instead of "run on macOS"', () => {
   const { spawnSync } = require('node:child_process');
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-doctor-'));
   const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(home, 'reg.txt'), REG);
-  fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
+  const reg = standInReg(home, REG);
   const local = path.join(home, 'AppData', 'Local');
   fs.mkdirSync(path.join(local, 'Programs', 'Fabric Inbox'), { recursive: true });
   fs.writeFileSync(path.join(local, 'Programs', 'Fabric Inbox', 'Fabric Inbox.exe'), '');
   const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: local, PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: local, PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_REG: reg, PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
   const checks = JSON.parse(r.stdout).checks;
   const app = (id) => checks.find((c) => c.id === `app.${id}`);
@@ -178,15 +187,14 @@ test('PC-86: doctor on Windows names the installed apps and their versions inste
 
 // The seam reading of 2026-10-28: setup decided "new or existing" with a macOS-only rule, so a Windows
 // machine with apps but no skill set was "a new setup" while its own apps rows showed them installed.
-test('PC-86: setup on Windows calls a machine with an installed app an existing setup', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+test('PC-86: setup on Windows calls a machine with an installed app an existing setup', () => {
   const { spawnSync } = require('node:child_process');
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-setup-'));
   const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(home, 'reg.txt'), REG);
-  fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
+  const reg = standInReg(home, REG);
   const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'setup', '--dry-run', '--offline', '--json'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'), PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+    env: { ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'), PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_REG: reg, PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
   const out = JSON.parse(r.stdout);
   assert.equal(out.mode, 'existing', r.stderr);
@@ -205,15 +213,15 @@ test('PC-86: the real reg.exe output parses and the per-user and machine hives a
 
 // PC-88: on Windows `setup --with` installs no app, so a stale MCP entry of an app that is not installed
 // is fixed from its download page, never by a command that plans nothing.
-test('PC-88: doctor on Windows sends a stale MCP entry of a missing app to its download page', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+test('PC-88: doctor on Windows sends a stale MCP entry of a missing app to its download page', () => {
   const { spawnSync } = require('node:child_process');
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-mcp-'));
   const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(bin, 'reg'), '#!/bin/sh\necho "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1\n', { mode: 0o755 });
+  const reg = standInReg(home);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: { observatory: { command: path.join(home, 'gone', 'project-observatory.exe'), args: ['mcp'] } } }));
   const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_REG: reg, PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
   const row = JSON.parse(r.stdout).checks.find((c) => c.id === 'mcp.claude.observatory');
   assert.ok(row, r.stderr);
@@ -262,19 +270,18 @@ test('PC-87: a real junction on Windows reads back as the path it was made to', 
 
 // PC-89 on Windows: the train is compared from the installer's records; behind is the person's
 // install from the download page, never a command that plans nothing there.
-test('PC-89: doctor on Windows compares each app with the release train and names the download for one behind', { skip: onWindows && 'the stand-in reg is a shell script' }, () => {
+test('PC-89: doctor on Windows compares each app with the release train and names the download for one behind', () => {
   const { spawnSync } = require('node:child_process');
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-train-'));
   const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(home, 'reg.txt'), REG);
-  fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
+  const reg = standInReg(home, REG);
   const trainsDir = path.join(home, 'trains'); fs.mkdirSync(trainsDir);
   fs.writeFileSync(path.join(trainsDir, 'org-test.json'), JSON.stringify({ train: 'org-test', title: 'Org Test', apps: { dashboards: '0.8.15', switchboard: '0.6.83' } }));
   fs.mkdirSync(path.join(home, '.passioncode'));
   fs.writeFileSync(path.join(home, '.passioncode', 'state.json'), JSON.stringify({ train: 'org-test' }));
   const doctor = () => spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_TRAINS: trainsDir, PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+    env: { ...process.env, HOME: home, USERPROFILE: home, PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_REG: reg, PASSIONCODE_HOME: '', PASSIONCODE_TRAINS: trainsDir, PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
   const r = doctor();
   const checks = JSON.parse(r.stdout).checks;
@@ -295,20 +302,19 @@ test('PC-89: doctor on Windows compares each app with the release train and name
 });
 
 // PC-108: a terminal run on Windows that answers no to its repairs changes nothing, says so, and keeps
-// `setup` among the person's steps. The real reg.exe answers on Windows; elsewhere the stand-in does.
+// `setup` among the person's steps. The stand-in reg answers on every system (PC-143).
 test('PC-108: on Windows a declined run changes nothing and keeps setup among the steps', () => {
   const { spawnSync } = require('node:child_process');
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-win-declined-'));
   const bin = path.join(home, 'bin'); fs.mkdirSync(bin);
-  fs.writeFileSync(path.join(home, 'reg.txt'), REG);
-  fs.writeFileSync(path.join(bin, 'reg'), `#!/bin/sh\ncase "$2" in HKCU*) cat "${path.join(home, 'reg.txt')}";; *) echo "ERROR: The system was unable to find the specified registry key or value." >&2; exit 1;; esac\n`, { mode: 0o755 });
+  const reg = standInReg(home, REG);
   const script = `const S = require(${JSON.stringify(path.join(__dirname, '..', 'lib', 'setup'))});
     const asked = [];
     S.setup({ online: false, ask: async (q) => { asked.push(q); return 'n'; } })
       .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, actions: r.actions, steps: r.humanSteps, exit: S.exitCode(r), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
   const r = spawnSync(process.execPath, ['-e', script], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'), PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
+    env: { ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'), PATH: `${bin}${path.delimiter}${process.env.PATH}`, LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_REG: reg, PASSIONCODE_HOME: '', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js'), PASSIONCODE_SERVICES_DIR: path.join(home, 'services'), KIMI_CODE_HOME: path.join(home, '.kimi-code') },
   });
   assert.equal(r.status, 0, r.stderr);
   const out = JSON.parse(r.stdout);
