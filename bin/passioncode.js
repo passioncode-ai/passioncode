@@ -2,6 +2,8 @@
 'use strict';
 const L = require('../lib/launcher');
 const VERSION = require('../package.json').version;
+// `@latest`, or the installed version while the session hook refuses the newest (PC-143).
+const NPX = L.npxCommand();
 
 // The session hook's refusal codes (PC-131) as a person reads them.
 const REFUSED = { registry_signature: 'its signature does not verify', provenance: 'no build provenance', untrusted_publisher: 'its publisher is not trusted', unreadable_publisher: 'its publisher could not be read' };
@@ -27,17 +29,17 @@ function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion
 
 const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
 
-  npx @passioncode-ai/passioncode@latest setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
+  ${NPX} setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
-  npx @passioncode-ai/passioncode@latest doctor [--fix] [--offline] [--json]     check everything (changes nothing but the anonymous counts); --fix repairs as setup does
-  npx @passioncode-ai/passioncode@latest update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
-  npx @passioncode-ai/passioncode@latest status [--json]                         what is installed where
-  npx @passioncode-ai/passioncode@latest restore [--json]                        put back what the last update moved aside
-  npx @passioncode-ai/passioncode@latest config set update.auto on|off [--json]  background updates at session start
-  npx @passioncode-ai/passioncode@latest uninstall [--json]                      remove the set (quarantined items stay restorable)
-  npx @passioncode-ai/passioncode@latest permissions [allow|remove <rule>...|mode <mode> [--confirm-bypass]] [--by who] [--json]
+  ${NPX} doctor [--fix] [--offline] [--json]     check everything (changes nothing but the anonymous counts); --fix repairs as setup does
+  ${NPX} update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
+  ${NPX} status [--json]                         what is installed where
+  ${NPX} restore [--json]                        put back what the last update moved aside
+  ${NPX} config set update.auto on|off [--json]  background updates at session start
+  ${NPX} uninstall [--json]                      remove the set (quarantined items stay restorable)
+  ${NPX} permissions [allow|remove <rule>...|mode <mode> [--confirm-bypass]] [--by who] [--json]
         Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules
-  npx @passioncode-ai/passioncode@latest analytics [on|off|status] [--json]     anonymous usage and error counts (on by default)
+  ${NPX} analytics [on|off|status] [--json]     anonymous usage and error counts (on by default)
 
 onboard is another name for setup, install for update. --offline skips the check for newer app
 releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use

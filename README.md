@@ -164,6 +164,8 @@ with the reason (PC-131). A newer or equal cached version is still a saved
 observation, not a live registry check. With no saved version it says
 `npm latest: not checked`, and after a failed check while a refusal stands it adds the refused version and the
 reason; `--json` retains the raw `latest` and `checkedAt` fields.
+While that refusal stands, every command the launcher prints (doctor's fixes, setup's closing line, the help, the
+analytics notice) names the installed version instead of `@latest`, which would run the refused one (PC-143).
 
 ```bash
 npx @passioncode-ai/passioncode@latest status   # the installed release: its members, their channels, shadows

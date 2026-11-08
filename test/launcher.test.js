@@ -1842,3 +1842,32 @@ test('a key of the same name in another TOML table does not keep the launcher\'s
   assert.doesNotMatch(text, /\["mcp_servers"\."switchboard"\]/, 'removed');
   assert.match(text, /\[profiles\.work\]\nswitchboard = true/, 'the other table is untouched');
 });
+
+test('PC-143: while the hook refuses the newest version, the printed commands name the installed one, not @latest', () => {
+  const run = (state) => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc143-npx-'));
+    try {
+      if (state !== undefined) {
+        fs.mkdirSync(path.join(home, '.passioncode'), { recursive: true });
+        fs.writeFileSync(path.join(home, '.passioncode', 'state.json'), state);
+      }
+      const env = { ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_HOME: '' };
+      const help = spawnSync(process.execPath, [BIN, '--help'], { env, encoding: 'utf8' }).stdout;
+      const named = spawnSync(process.execPath, ['-e', "process.stdout.write(JSON.stringify([require('./lib/doctor').NPX, require('./lib/analytics').NOTICE]))"], { cwd: ROOT, env, encoding: 'utf8' }).stdout;
+      return { help, named: JSON.parse(named) };
+    } finally {
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  };
+  const refused = run(JSON.stringify({ installed: '0.2.75', latest: '0.9.9', refusalLogged: '0.9.9 registry_signature' }));
+  assert.match(refused.help, /^ {2}npx @passioncode-ai\/passioncode@0\.2\.75 setup /m, refused.help);
+  assert.doesNotMatch(refused.help, /@latest/);
+  assert.equal(refused.named[0], 'npx @passioncode-ai/passioncode@0.2.75');
+  assert.match(refused.named[1], /launcher: npx @passioncode-ai\/passioncode@0\.2\.75 analytics off/);
+  // No refusal, one the person has since installed past, an unreadable state or none: `@latest`.
+  for (const state of [JSON.stringify({ installed: '0.2.75', latest: '0.9.9' }), JSON.stringify({ installed: '0.9.9', latest: '0.9.9', refusalLogged: '0.9.9 provenance' }), '{not json', undefined]) {
+    const r = run(state);
+    assert.match(r.help, /^ {2}npx @passioncode-ai\/passioncode@latest setup /m, String(state));
+    assert.equal(r.named[0], 'npx @passioncode-ai/passioncode@latest', String(state));
+  }
+});
