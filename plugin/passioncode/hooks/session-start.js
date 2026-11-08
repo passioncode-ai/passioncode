@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand, npmMissing, npmMissingLine, NPM_MISSING, PACKAGE } = require('./update-check');
+const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand, npmMissing, npmMissingLine, NPM_MISSING, PACKAGE, recordProbe } = require('./update-check');
 const { rulesLine } = require('./repo-rules');
 const { openLog, logEvent } = require('./update-log');
 
@@ -150,8 +150,11 @@ async function main() {
   const startFailure = args && updateArgs ? await detached(npx, [...npxPre, ...updateArgs], 'update.log') : null;
   if (startFailure) failure = startFailure;
   if (args && (!updateArgs || startFailure)) {
-    const fresh = read(STATE, {});
+    let fresh = read(STATE, {});
     if (fresh.updatingSince === stateChanges.updatingSince) {
+      // PC-143: no npm beside this Node is recorded as the check would record it, and as already said, so the line with
+      // the pinned command below is printed once, not at every session until the daily check finds the same.
+      if (failure === 'npm') fresh = { ...recordProbe(fresh, { checkError: NPM_MISSING }), checkErrorShown: NPM_MISSING };
       delete fresh.updatingSince;
       if (Array.isArray(fresh.updateCaches)) {
         fresh.updateCaches = fresh.updateCaches.filter((x) => x !== cacheDir);

@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **The pinned update line is printed once when npm is missing** (PC-143): on Windows with no npm beside Node and a
+  verified version recorded, every session start printed the missing-npm line with the pinned command until the daily
+  check ran; the hook now records what it found as the check would, and says it once.
+
 - **The setup skill and the README prompt relay the missing-npm line** (PC-143): an agent setting up was told what to do
   with a refused version but not with the line that says there is no npm beside Node; both now give that line to the
   person word for word, and the skill's evals cover both lines.
