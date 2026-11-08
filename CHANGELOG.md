@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **A log folder the background update cannot write is named** (PC-143): when `~/.passioncode/logs` cannot be written,
+  the session hook said to check that npx is on PATH, which fixes nothing; it now names the log folder and asks to make
+  it writable.
+
 - **`uninstall` leaves no update folders behind** (PC-143, LC-12): the session hook's update folders
   (`~/.passioncode/run/`) and their record go with the rest of the launcher's state, unless an update recorded in the
   last hour may still run from one; then the hook's own sweep removes them later.

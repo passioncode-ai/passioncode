@@ -497,6 +497,23 @@ test('PC-131: without a cache folder of its own the update does not start', { sk
   }
 });
 
+test('PC-143: a log folder that cannot be written is named, never PATH', { skip: (process.platform === 'win32' && 'POSIX modes') || (process.getuid?.() === 0 && 'root writes anyway') }, async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0') });
+  const logs = path.join(sb.stateDir, 'logs');
+  fs.mkdirSync(logs, { recursive: true });
+  fs.chmodSync(logs, 0o555);
+  try {
+    const out = hook(sb);
+    assert.match(out, /could not start the background update: its log folder ~\/\.passioncode\/logs cannot be written; make it writable \(or remove it\)/, out);
+    assert.doesNotMatch(out, /npx is on PATH/);
+    assert.deepEqual(await npxCalls(sb), [], 'nothing started without its log');
+    assert.equal(stateOf(sb).updatingSince, undefined);
+  } finally {
+    fs.chmodSync(logs, 0o755);
+  }
+});
+
 test('PC-131: every session start removes update cache folders older than an hour, except the running update\'s', async () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   const run = path.join(sb.stateDir, 'run');
