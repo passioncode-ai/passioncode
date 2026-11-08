@@ -219,6 +219,20 @@ test('PC-143: a failed start never records an earlier folder another session alr
   assert.equal(stateOf(sb).updateCache, undefined, 'no record of a folder that is gone');
 });
 
+test('PC-143: a state.json that cannot be written starts no update and says so in one line', { skip: (process.platform === 'win32' && 'POSIX modes') || (process.getuid?.() === 0 && 'root writes anyway') }, async () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });
+  fs.chmodSync(sb.stateDir, 0o555); // neither state.json nor its temporary file can be written
+  try {
+    const out = hook(sb);
+    assert.match(out, /~\/\.passioncode\/state\.json cannot be written, so no background update starts; make it and its folder writable and it is tried again next session\./, out);
+    assert.doesNotMatch(out, /updating in the background/);
+    assert.deepEqual(await npxCalls(sb), [], 'nothing started');
+  } finally {
+    fs.chmodSync(sb.stateDir, 0o755);
+  }
+});
+
 test('hook: an empty trust list never spawns', async () => {
   const sb = sandbox({ trust: [] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });

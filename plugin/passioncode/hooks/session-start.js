@@ -71,18 +71,27 @@ async function main() {
   if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state) || npmBack) && claimProbe(DIR, now)) {
     if (await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
-  const { lines, spawn: args, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)));
+  const { lines, spawn: decided, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)));
   // On Windows with no npm beside this Node nothing can start the update: no cache folder, no spawn, and no download
   // logged as started (PC-143).
   const noNpm = npmMissing('npx', { platform });
   for (const e of events) if (!(noNpm && e.event === 'update_download')) logEvent(DIR, e.event, e.outcome, e.reason);
+  let args = decided;
   if (Object.keys(stateChanges).length) {
     // Re-read: the probe may have written meanwhile; only our own keys change.
-    const fresh = { ...read(STATE, {}), ...stateChanges };
-    fs.mkdirSync(DIR, { recursive: true });
-    const tmp = `${STATE}.${process.pid}.hook`;
-    fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
-    fs.renameSync(tmp, STATE);
+    try {
+      const fresh = { ...read(STATE, {}), ...stateChanges };
+      fs.mkdirSync(DIR, { recursive: true });
+      const tmp = `${STATE}.${process.pid}.hook`;
+      fs.writeFileSync(tmp, JSON.stringify(fresh, null, 2));
+      fs.renameSync(tmp, STATE);
+    } catch (_) {
+      // PC-143: an update whose start cannot be recorded is not started (another session would start a second), and the
+      // session says why instead of printing nothing.
+      if (args) lines.pop(); // decide appends the update-start notice last when it returns args
+      args = null;
+      lines.push(`[passioncode] ${shown(STATE)} cannot be written, so no background update starts; make it and its folder writable and it is tried again next session.`);
+    }
   }
   // Record the attempt before spawning: a fast update must not finish and then
   // have this hook put the old "running" marker back.
@@ -123,7 +132,7 @@ async function main() {
       } catch (_) { /* default npm logs */ }
       // The folder the update runs from: kept by later sweeps until another update records its own.
       // A write that fails moments after the one above succeeded (a full disk, a race) does not stop the update; its
-      // folder is then kept by its age alone. An unwritable state.json already stopped the hook above (PC-143).
+      // folder is then kept by its age alone. An unwritable state.json already stopped the update above (PC-143).
       try {
         const current = read(STATE, {});
         earlierCache = current.updateCache;

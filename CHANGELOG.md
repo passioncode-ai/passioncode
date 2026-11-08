@@ -69,6 +69,9 @@
 
 ### Fixed
 
+- **A `state.json` that cannot be written is named** (PC-143): the session hook stopped without a word, with no update,
+  refusal or setup line; now it starts no update (its start could not be recorded) and says the file cannot be written.
+
 - **A failed background start records no folder that is gone** (PC-143): when an update could not start, the hook put
   back the folder of the update before it even if another session's sweep had removed it; now only one still there.
 
