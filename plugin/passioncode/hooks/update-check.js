@@ -114,6 +114,8 @@ function recordProbe(state, result, now = new Date()) {
   for (const key of ['published', 'latest', 'maintainers', 'publisher', 'verify', 'checkError']) delete next[key];
   if (result.checkError) {
     next.checkError = result.checkError.slice(0, 200);
+    // PC-143: no npm beside this Node is said again after each daily check, so a fix that did not work is not silent.
+    if (result.checkError === NPM_MISSING) delete next.checkErrorShown;
     return next;
   }
   delete next.checkErrorShown; // a later failure is news again

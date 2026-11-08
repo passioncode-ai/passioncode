@@ -459,6 +459,17 @@ test('PC-143: in the session that checks again because npm is back, no line says
   assert.match(u.decide(unshown, ['passioncode-ai'], Date.now(), [TEST_KEY], '/node/bin').lines.join('\n'), /there is no npm beside the Node in \/node\/bin/);
 });
 
+test('PC-143: no npm beside Node is said again after each daily check; another failure once until it changes', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const shown = { installed: '0.1.0', checkError: u.NPM_MISSING, checkErrorShown: u.NPM_MISSING };
+  const again = u.recordProbe(shown, { checkError: u.NPM_MISSING });
+  assert.equal(again.checkErrorShown, undefined);
+  assert.match(u.decide(again, ['passioncode-ai'], Date.now(), [TEST_KEY], '/node/bin').lines.join('\n'), /there is no npm beside the Node in \/node\/bin/);
+  const other = u.recordProbe({ installed: '0.1.0', checkError: 'E', checkErrorShown: 'E' }, { checkError: 'E' });
+  assert.equal(other.checkErrorShown, 'E');
+  assert.deepEqual(u.decide(other, ['passioncode-ai'], Date.now(), [TEST_KEY], '/node/bin').lines, []);
+});
+
 test('PC-143: with npm still missing, a session after the recorded check starts no new check', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, () => {
   const sb = sandbox();
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), checkError: 'npm-missing', checkErrorShown: 'npm-missing' });
