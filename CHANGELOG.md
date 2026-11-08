@@ -69,6 +69,9 @@
 
 ### Fixed
 
+- **A fix for the missing npm that did not work is named again** (PC-143): the line that names no npm beside Node was
+  shown once, so a person whose fix did not take saw nothing more; it now comes back once after each daily check.
+
 - **The session that finds npm back stops saying it is missing** (PC-143): on Windows, the first session after npm was
   put back beside Node started the check again but could still say npm was missing; it now says the check runs again.
 
