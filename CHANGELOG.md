@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **The setup skill and the README prompt relay the missing-npm line** (PC-143): an agent setting up was told what to do
+  with a refused version but not with the line that says there is no npm beside Node; both now give that line to the
+  person word for word, and the skill's evals cover both lines.
+
 - **A fix for the missing npm that did not work is named again** (PC-143): the line that names no npm beside Node was
   shown once, so a person whose fix did not take saw nothing more; it now comes back once after each daily check.
 
