@@ -32,6 +32,12 @@ hook ran), check `~/.passioncode/state.json` before the first command: a `refusa
 `<version> <reason>` with a version newer than `installed` is the same refusal, and the same rule
 applies with `@<installed>`.
 
+**When the session says there is no npm beside Node.** A `[passioncode]` line that says there is no
+npm beside the Node in a folder means automatic updates can neither be checked nor installed on this
+Windows machine. Give that line to the person word for word: its fix (reinstall that Node.js with
+npm, or put one that has npm first on `PATH`, then restart the agent) is theirs, not a command to run
+for them. Setup and doctor still run if `npx` works in your shell.
+
 ## 1. Set up, or check and repair
 
 ```bash
