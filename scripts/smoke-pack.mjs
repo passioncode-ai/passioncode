@@ -6,16 +6,20 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'passioncode-pack-'));
+// npm through this Node's own npm-cli.js on Windows, where the name alone cannot start npm's .cmd file (PC-143).
+const { npmCommand } = createRequire(import.meta.url)('../plugin/passioncode/hooks/update-check.js');
+const [npm, npmPre] = npmCommand('npm');
 try {
   assert.ok(fs.existsSync(path.join(root, 'payload/manifest.json')), 'run npm run vendor:release first');
-  const pack = readSinglePack(execFileSync('npm', ['pack', '--json', '--pack-destination', temp], { cwd: root, encoding: 'utf8' }));
+  const pack = readSinglePack(execFileSync(npm, [...npmPre, 'pack', '--json', '--pack-destination', temp], { cwd: root, encoding: 'utf8' }));
   execFileSync('tar', ['-xzf', path.join(temp, pack.filename), '-C', temp]);
   const home = path.join(temp, 'home');
   fs.mkdirSync(path.join(home, '.codex/skills'), { recursive: true });
-  const env = { ...process.env, CLAUDE_CONFIG_DIR: '', SWITCHBOARD_CLAUDE_SOURCE_DIR: '', HOME: home, USERPROFILE: home, PASSIONCODE_HOME: '', PASSIONCODE_PAYLOAD: '', PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'),
+  const env = { ...process.env, CLAUDE_CONFIG_DIR: '', SWITCHBOARD_CLAUDE_SOURCE_DIR: '', HOME: home, USERPROFILE: home, APPDATA: path.join(home, 'AppData', 'Roaming'), LOCALAPPDATA: path.join(home, 'AppData', 'Local'), PASSIONCODE_HOME: '', PASSIONCODE_PAYLOAD: '', PASSIONCODE_APPLICATIONS: path.join(home, 'Applications'),
     PASSIONCODE_CLAUDE: path.join(root, 'test/fake-claude.js'),
     PATH: `${path.dirname(process.execPath)}${path.delimiter}${process.env.PATH}` };
   const cli = (args, expected = 0) => {
