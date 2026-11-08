@@ -315,10 +315,12 @@ test('PC-164: a service degraded only by slots waiting for setup reads "waits fo
   assert.doesNotMatch(setup.detail, /status degraded/);
   assert.equal(setup.fix, 'finish its setup: a person fills OPENROUTER_KEY, workspace; project-observatory doctor names the steps');
   assert.equal(setup.repair, null);
+  assert.equal(setup.gate, 'secret', 'PC-171: a slot waiting for setup is a person\'s key to type');
   // A failure beside a setup entry is a degradation: the failure first, the setup named after it.
   const mixed = await row({ status: 'degraded', degraded: [{ source: 'store', reason: 'cannot write' }, { source: 'OPENROUTER_KEY', setup: true }] });
   assert.match(mixed.detail, /status degraded; degraded: store; waits for setup: OPENROUTER_KEY$/);
   assert.equal(mixed.fix, 'project-observatory doctor');
+  assert.equal(mixed.gate, null, 'PC-171: a failure beside the slot is the agent\'s to diagnose first');
   const failing = await row({ status: 'degraded', degraded: [{ source: 'upstream' }, 'odd entry'] });
   assert.match(failing.detail, /status degraded; degraded: upstream, unnamed$/);
   // «waits for setup» needs a degraded answer whose every entry waits for setup: not an empty list, not another status.
@@ -343,6 +345,7 @@ test('PC-131: doctor says, as information, when automatic updates are off, and h
   assert.equal(row.state, 'info', 'information, never a failure or a repair');
   assert.equal(row.fix, 'npx @passioncode-ai/passioncode@latest config set update.auto on');
   assert.ok(!row.repair, 'no repair: doctor --fix leaves the switch alone');
+  assert.equal(row.gate, 'consent', 'PC-171: turning updates on is the person\'s choice');
   const saved = JSON.parse(fs.readFileSync(path.join(off.home, '.passioncode', 'doctor.json'), 'utf8'));
   assert.ok(!saved.failed.includes('skills.auto-update'), 'the saved check never counts it as a failure');
   const fixed = await cli(off, api, 'doctor', '--fix', '--json');
@@ -620,6 +623,13 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', {
   assert.equal(on.state, 'warn');
   assert.match(on.detail, /missing Fabric Switchboard \(it starts the session\)$/);
   assert.equal(on.fix, 'npx @passioncode-ai/passioncode@latest setup --with switchboard', 'each part names what repairs it');
+  assert.equal(on.gate, null, 'PC-171: setup installs Switchboard without a person');
+  // PC-171: every check carries the field; only a fix a person must carry out names a gate.
+  for (const c of r.json.checks) {
+    assert.ok('gate' in c, c.id);
+    assert.ok([null, 'sign-in', 'code', 'consent', 'payment', 'secret'].includes(c.gate), `${c.id}: ${c.gate}`);
+    if (!c.fix) assert.equal(c.gate, null, `${c.id}: no fix, no gate`);
+  }
   installApp(m, catalog.byId('switchboard'));
   assert.equal((await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand').state, 'ok');
   // Claude Code's tool rules taken out: the row says so and names --allow-tools.
@@ -630,6 +640,7 @@ test('doctor never starts Fabric\'s MCP server: starting it enrols a session', {
   const noRules = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'sessions.on-demand');
   assert.deepEqual([noRules.state, noRules.fix], ['info', 'npx @passioncode-ai/passioncode@latest setup --allow-tools'], 'declined rules alone are the person\'s choice: information');
   assert.match(noRules.detail, /missing Claude Code's rules for PassionCode's own tools$/);
+  assert.equal(noRules.gate, 'consent', 'PC-171: the tool rules are the person\'s yes');
   // A Fabric entry Claude Code has but cannot use: the row reuses that entry's own repair (setup leaves it alone).
   const cj = path.join(m.home, '.claude.json'); const keep = fs.readFileSync(cj, 'utf8');
   const cdoc = JSON.parse(keep); cdoc.mcpServers = { ...(cdoc.mcpServers || {}), fabric: { command: '/bin/echo', args: [] } }; fs.writeFileSync(cj, JSON.stringify(cdoc));

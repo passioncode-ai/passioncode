@@ -4,6 +4,10 @@
 
 ### Added
 
+- **`doctor --json` says which fixes need a person** (PC-171, asked by Fabric Dashboards on the board, request
+  `452c6b7d`): every check carries `gate`, the first of a person's own acts its `fix` needs (`sign-in`, `code`,
+  `consent`, `payment` or `secret`), or null when an agent can carry the fix out. Dashboards shows such a step as
+  "needs you". The text output is unchanged.
 - **Anonymous usage and error counts, on by default** (PC-123): when a command ends, the launcher sends a few anonymous
   counts to PassionCode's analytics host (which command, how it ended, a coarse duration, once a day that it was used),
   with fixed words, the previous version after an update and the installation id every PassionCode app on the machine

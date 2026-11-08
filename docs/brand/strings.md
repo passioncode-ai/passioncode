@@ -41,7 +41,7 @@ Contract: brand-contract v1
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:77 | SCN-008, SCN-014 | proposed | copy |
 | setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:408 | SCN-009, SCN-014 | proposed | copy |
 | setup.install-note.train | ${setupStep} --with | lib/setup.js:407 | SCN-014 | proposed | copy |
-| doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:247 | SCN-009, SCN-010 | proposed | layout |
+| doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:249 | SCN-009, SCN-010 | proposed | layout |
 | setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:443 | SCN-009 | proposed | copy |
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:444 | SCN-009 | proposed | copy |
 | setup.declined | You declined every offer; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:440 | SCN-008, SCN-009 | proposed | copy |
@@ -142,24 +142,24 @@ Contract: brand-contract v1
 | perm.allow-hint | To allow them: ${require('../lib/doctor').NPX} permissions allow <rule> | bin/passioncode.js:215 | SCN-015 | proposed | copy |
 | perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:217 | SCN-015 | proposed | copy |
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:218 | SCN-015 | proposed | copy |
-| doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:234 | SCN-010 | proposed | copy |
-| doctor.skills-shadowed | shadowed by ${path.join(skillsDir, m.shadows.join(', '))} | lib/doctor.js:227 | SCN-010 | proposed | copy |
-| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:477 | SCN-010 | proposed | copy |
-| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:479 | SCN-010 | proposed | copy |
-| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:509 | SCN-010 | proposed | copy |
-| doctor.app-shared | ${label}: the copy in ${copy.path} is ${whose}, left as it is${links} | lib/catalog.js:169 | SCN-017 | proposed | layout |
-| doctor.mcp-shared | ${agent.name}: ${m.name} runs from ${other.path}, not from your copy in ${path.dirname(at)} | lib/doctor.js:372 | SCN-017 | proposed | layout |
-| doctor.mcp-shared-launcher | ${runs}; setup points it at yours | lib/doctor.js:373 | SCN-017 | proposed | layout |
-| doctor.mcp-shared-person | ${runs}; the launcher did not set this entry | lib/doctor.js:376 | SCN-017 | proposed | layout |
-| doctor.mcp-shared-remove | claude mcp remove --scope user ${m.name} | lib/doctor.js:375 | SCN-017 | proposed | copy |
+| doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:236 | SCN-010 | proposed | copy |
+| doctor.skills-shadowed | shadowed by ${path.join(skillsDir, m.shadows.join(', '))} | lib/doctor.js:229 | SCN-010 | proposed | copy |
+| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:482 | SCN-010 | proposed | copy |
+| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:484 | SCN-010 | proposed | copy |
+| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:516 | SCN-010 | proposed | copy |
+| doctor.app-shared | ${label}: the copy in ${copy.path} is ${whose}, left as it is${links} | lib/catalog.js:172 | SCN-017 | proposed | layout |
+| doctor.mcp-shared | ${agent.name}: ${m.name} runs from ${other.path}, not from your copy in ${path.dirname(at)} | lib/doctor.js:374 | SCN-017 | proposed | layout |
+| doctor.mcp-shared-launcher | ${runs}; setup points it at yours | lib/doctor.js:375 | SCN-017 | proposed | layout |
+| doctor.mcp-shared-person | ${runs}; the launcher did not set this entry | lib/doctor.js:378 | SCN-017 | proposed | layout |
+| doctor.mcp-shared-remove | claude mcp remove --scope user ${m.name} | lib/doctor.js:377 | SCN-017 | proposed | copy |
 | doctor.service-foreign-user | port ${port} belongs to another OS account (${owner.owner}); doctor sent it nothing and did not read its answer | lib/doctor.js:129 | SCN-017 | proposed | copy |
 | doctor.service-owner-untold | the owner of port ${port} cannot be told (${owner.reason || 'no owner in the socket table'}); doctor sent it nothing and did not read its answer | lib/doctor.js:129 | SCN-017 | proposed | copy |
 | doctor.service-down | nothing listens on port ${port} | lib/doctor.js:124 | SCN-017 | proposed | copy |
-| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:464 | SCN-017 | proposed | copy |
-| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:464 | SCN-017 | proposed | copy |
-| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:464 | SCN-017 | proposed | copy |
-| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:457 | SCN-009 | proposed | copy |
-| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:464 | SCN-009 | proposed | copy |
+| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:466 | SCN-017 | proposed | copy |
+| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:466 | SCN-017 | proposed | copy |
+| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:466 | SCN-017 | proposed | copy |
+| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:459 | SCN-009 | proposed | copy |
+| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:466 | SCN-009 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: ${require('./launcher').npxCommand()} analytics off (each PassionCode app has its own switch). | lib/analytics.js:31 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:235 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:233 | SCN-016 | proposed | copy |
@@ -196,12 +196,12 @@ Contract: brand-contract v1
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:462 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:232 | SCN-011 | proposed | layout |
-| setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}${how} | lib/catalog.js:181 | SCN-017 | proposed | layout |
-| setup.blocked-folder.how | make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write) | lib/catalog.js:180 | SCN-017 | proposed | copy |
-| setup.blocked-folder.how-admin | ask an administrator to let you write it | lib/catalog.js:180 | SCN-017 | proposed | copy |
-| setup.blocked-foreign | ${where} is another user's copy, left as it is, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or set it to a folder of your own' : 'ask an administrator to move it'} | lib/catalog.js:177 | SCN-017 | proposed | layout |
+| setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}${how} | lib/catalog.js:184 | SCN-017 | proposed | layout |
+| setup.blocked-folder.how | make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write) | lib/catalog.js:183 | SCN-017 | proposed | copy |
+| setup.blocked-folder.how-admin | ask an administrator to let you write it | lib/catalog.js:183 | SCN-017 | proposed | copy |
+| setup.blocked-foreign | ${where} is another user's copy, left as it is, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or set it to a folder of your own' : 'ask an administrator to move it'} | lib/catalog.js:180 | SCN-017 | proposed | layout |
 | setup.install-note.blocked-needs | ; it also needs ${missing.join(' and ')} | lib/setup.js:76 | SCN-017 | proposed | copy |
-| doctor.app-version-unknown.blocked | if its signature check fails too, setup cannot reinstall it: | lib/doctor.js:302 | SCN-017 | proposed | copy |
+| doctor.app-version-unknown.blocked | if its signature check fails too, setup cannot reinstall it: | lib/doctor.js:304 | SCN-017 | proposed | copy |
 | setup.blocked | Nothing was changed: ${need(result.blocked)} a folder you can write; the steps below say which.${stand(a)} | lib/setup.js:520 | SCN-017 | proposed | layout |
 | setup.would-block | Nothing would change: ${need(names)} a folder you can write (see the plan below).${stand(a)} | lib/setup.js:453 | SCN-017 | proposed | layout |
 | setup.left-blocked | Not installed or replaced: ${need(names)} a folder you can write; the steps below say which. | lib/setup.js:454 | SCN-017 | proposed | layout |
