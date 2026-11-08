@@ -487,7 +487,10 @@ invalid, future or older check timestamps trigger a detached probe. Before it
 spawns, the hook claims `~/.passioncode/probe.pending` with an exclusive create, so
 sessions started together run one `npm view`; the probe removes the marker once it
 has recorded, and a marker older than five minutes is taken over. A probe is
-consumed by a later hook invocation.
+consumed by a later hook invocation. On Windows with no npm beside the Node that runs the hooks, the probe records
+`npm-missing` and one session line names the fix; no new check starts while npm is still missing, and the first
+session that finds npm beside that Node again starts one at once, without waiting a day, and says no more that npm is
+missing (PC-143).
 
 Only a successful npm response with readable maintainers and publisher, with a
 release installed, can authorize an automatic update; every identity must be trusted, one of npm's

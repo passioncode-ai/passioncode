@@ -445,6 +445,32 @@ test('PC-143: a standing refusal with no npm beside Node names that cause and of
   assert.doesNotMatch(out, /could not tell|npx /, out);
 });
 
+test('PC-143: in the session that checks again because npm is back, no line says npm is missing', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const refused = { installed: '0.1.0', checkedAt: fresh(), checkError: u.NPM_MISSING, checkErrorShown: u.NPM_MISSING, refusalLogged: '0.2.0 provenance' };
+  const back = u.decide(refused, ['passioncode-ai'], Date.now(), [TEST_KEY], '/node/bin', { npmBack: true }).lines.join('\n');
+  assert.match(back, /@passioncode-ai\/passioncode@0\.2\.0 was not installed \(no build provenance\); npm is beside this Node again and the check runs now; keep using 0\.1\.0 \(npx @passioncode-ai\/passioncode@0\.1\.0, not @latest\)/, back);
+  assert.doesNotMatch(back, /nothing is checked until|no npm beside/, back);
+  // The first session after the check found no npm, when npm is already back: no missing-npm line, and it stays unshown.
+  const unshown = { installed: '0.1.0', checkedAt: fresh(), checkError: u.NPM_MISSING };
+  const first = u.decide(unshown, ['passioncode-ai'], Date.now(), [TEST_KEY], '/node/bin', { npmBack: true });
+  assert.deepEqual([first.lines, first.stateChanges.checkErrorShown], [[], undefined]);
+  // Without npm back, the same state still names the missing npm.
+  assert.match(u.decide(unshown, ['passioncode-ai'], Date.now(), [TEST_KEY], '/node/bin').lines.join('\n'), /there is no npm beside the Node in \/node\/bin/);
+});
+
+test('PC-143: with npm still missing, a session after the recorded check starts no new check', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, () => {
+  const sb = sandbox();
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), checkError: 'npm-missing', checkErrorShown: 'npm-missing' });
+  const out = hook(sb, { PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPM: '', PASSIONCODE_NPX: '' });
+  assert.equal(out, '');
+  // A probe started now would log its own failed check; give one the time it takes to start and write.
+  const until = Date.now() + 1500;
+  while (Date.now() < until) spawnSync(process.execPath, ['-e', 'setTimeout(() => {}, 100)']);
+  assert.deepEqual(eventsOf(sb), [], 'no probe ran');
+  assert.equal(fs.existsSync(path.join(sb.stateDir, 'probe.pending')), false, 'no probe claimed');
+});
+
 test('PC-131: a failed check keeps a standing refusal: logged once, and the reminder still names the installed version', () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0', { provenance: null }) });

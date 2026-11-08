@@ -74,7 +74,9 @@ so it rises only where setup now installs and opens an app for a user who had ne
 another user's copy is not counted again. A run whose target folder is not writable (their own `~/Applications`, a
 `PASSIONCODE_APPLICATIONS` folder, or a locked bundle there) also ends `ok`, with the apps in `blocked`, unless a check still fails. And `doctor`
 no longer counts another user's copy in `/Applications` as this user's problem (it is an information row), so its
-check-failed share on Macs with several users may fall.
+check-failed share on Macs with several users may fall. On Windows an installation from 0.2.75 or earlier never updated
+itself (its session hook could not start npm, PC-135), so `app_updated` from Windows starts with the first update an
+installation of 0.2.76 or later runs: a step in the Windows update count at that release, not a jump in updates (PC-143).
 
 The host sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing
 it; events are kept two years and the installation id is removed from them after 400 days

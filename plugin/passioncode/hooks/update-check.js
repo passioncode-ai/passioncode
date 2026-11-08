@@ -210,9 +210,10 @@ function oneLine(text) { return String(text).replace(/\s+/g, ' ').trim().slice(0
 
 /**
  * What the session-start hook does with the recorded state. Returns
- * `{ lines, spawn, stateChanges }`: `spawn` is the exact argv for `npx` or null.
+ * `{ lines, spawn, stateChanges }`: `spawn` is the exact argv for `npx` or null. `npmBack`: the last check found no npm
+ * beside this Node, there is one now, and this session starts the check again (PC-143), so no line says npm is missing.
  */
-function decide(state, trust, now = Date.now(), keys = [], nodeDir = path.dirname(process.execPath)) {
+function decide(state, trust, now = Date.now(), keys = [], nodeDir = path.dirname(process.execPath), { npmBack = false } = {}) {
   const lines = [];
   const stateChanges = {};
   const events = [];
@@ -231,7 +232,8 @@ function decide(state, trust, now = Date.now(), keys = [], nodeDir = path.dirnam
     events.push({ event: 'update_check', outcome: 'signature_failed', reason });
   };
 
-  if (state.checkError && state.checkError !== state.checkErrorShown) {
+  const missing = state.checkError === NPM_MISSING && !npmBack;
+  if (state.checkError && state.checkError !== state.checkErrorShown && (missing || state.checkError !== NPM_MISSING)) {
     lines.push(state.checkError === NPM_MISSING ? npmMissingLine(nodeDir)
       : `[passioncode] the daily update check failed: ${oneLine(state.checkError)} (log: ~/.passioncode/logs/probe.log).`);
     stateChanges.checkErrorShown = state.checkError;
@@ -243,9 +245,11 @@ function decide(state, trust, now = Date.now(), keys = [], nodeDir = path.dirnam
   if (!latest && state.checkError && standing.length === 2 && VERSION.test(standing[0]) && state.installed && newer(standing[0], state.installed)) {
     refused = true;
     // PC-143: with no npm beside this Node no check runs at all, and npx (npm's) cannot run either: no npx command.
-    if (state.checkError === NPM_MISSING) {
+    if (missing) {
       const kept = typeof state.installed === 'string' && VERSION.test(state.installed) ? `keep using ${state.installed} and see ${SECURITY_URL}.` : `see ${SECURITY_URL}.`;
       lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}), and nothing is checked until there is npm beside this Node; ${kept}`);
+    } else if (state.checkError === NPM_MISSING) {
+      lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}); npm is beside this Node again and the check runs now; ${keep()}`);
     } else {
       lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()}`);
     }
