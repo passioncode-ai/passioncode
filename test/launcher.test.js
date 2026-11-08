@@ -782,6 +782,9 @@ test('status labels cached npm observations without changing state or probing np
     { latest: undefined, refusalLogged: '0.1.15 provenance', expected: 'npm latest: not checked', note: 'an unpublished name answered: not a failed check' },
     { latest: undefined, checkError: 'ETIMEDOUT', refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: 'npm latest: not checked (last check failed; 0.1.15 not installed automatically: no build provenance)' },
     { latest: '0.1.15', checkedAt, refusalLogged: '0.1.10 provenance', expected: `npm latest (cached) 0.1.15 (checked ${checkedAt})` },
+    // PC-143: a check that found no npm beside this Node names that cause.
+    { latest: undefined, checkError: 'npm-missing', expected: 'npm latest: not checked (no npm beside this Node)' },
+    { latest: undefined, checkError: 'npm-missing', refusalLogged: '0.1.15 provenance', refused: 'provenance', expected: 'npm latest: not checked (no npm beside this Node; 0.1.15 not installed automatically: no build provenance)' },
   ];
   for (const c of cases) {
     const state = { installed: '0.1.14', latest: c.latest, checkedAt: c.checkedAt, config: { auto: false }, ...(c.refusalLogged ? { refusalLogged: c.refusalLogged } : {}), ...(c.checkError ? { checkError: c.checkError } : {}) };
@@ -796,6 +799,7 @@ test('status labels cached npm observations without changing state or probing np
     assert.equal(parsed.latest, c.latest === undefined ? null : c.latest);
     assert.equal(parsed.checkedAt, c.checkedAt || null);
     assert.equal(parsed.refused, c.refused || null);
+    assert.equal(parsed.npmMissing, c.checkError === 'npm-missing');
     assert.equal(fs.readFileSync(stateFile, 'utf8'), bytes, 'both status formats leave saved state untouched');
     assert.equal(fs.existsSync(path.join(env.home, 'npm-called')), false, 'status must not run an npm probe');
   }

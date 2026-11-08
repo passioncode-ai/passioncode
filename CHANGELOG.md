@@ -69,6 +69,9 @@
 
 ### Fixed
 
+- **`status` names a missing npm** (PC-143): after the daily check found no npm beside this Node, `status` said only "npm
+  latest: not checked"; it now says "not checked (no npm beside this Node)", and `status --json` carries `npmMissing`.
+
 - **A `state.json` that cannot be written is named** (PC-143): the session hook stopped without a word, with no update,
   refusal or setup line; now it starts no update (its start could not be recorded) and says the file cannot be written.
 
