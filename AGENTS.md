@@ -110,6 +110,20 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   reserved yet; a register that gains one is declared under `idRegisters` and taken with
   `agent_sync.py reserve <REG>`.
 
+## Platforms
+
+The organization's rule is every product on Mac, Windows and Linux
+([knowledge/platforms.md](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/platforms.md)). This
+repository meets it with these departures, for these reasons:
+
+- It ships as an npm package (`@passioncode-ai/passioncode`, published with provenance), not an installer: there is no
+  installer to sign or notarise on any system, and updates run through npm itself (the session hook's background
+  update, README "Staying current").
+- CI (`.github/workflows/validate.yml`) runs the whole gate on `ubuntu-latest`, `macos-latest` and `windows-latest`
+  only, one Windows version, with Node 22.
+- That workflow runs on every push and pull request, not only nightly: its three jobs take a few minutes, and a pull
+  request is merged on their green result.
+
 ## Lifecycle
 
 The org contract is [knowledge/lifecycle.md](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/lifecycle.md).

@@ -188,7 +188,8 @@ the check fail instead ("the daily update check failed" once per new error), and
 by hand. Any other refusal, a signature that does not verify with no new key listed above all, may
 mean tampering: report it to
 contact@passioncode.ai with the line, `~/.passioncode/logs/update-events.log` and, if an update ran,
-`~/.passioncode/logs/update.log` and `~/.passioncode/logs/npm/` (if it exists). The line is printed
+`~/.passioncode/logs/update.log` and `~/.passioncode/logs/npm/` (if it exists; when that folder could not be made, npm's
+logs are in `_logs` inside the newest `~/.passioncode/run/cache-*` folder, which an hour later is swept). The line is printed
 at the start of a Claude Code session, into the agent's context; the setup skill and the README's prompt
 tell the agent to pass it on when it sets up or checks PassionCode. When the last check failed while a
 refusal stands, the hook says so at every session start and still names the version to keep, and
