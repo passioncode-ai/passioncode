@@ -69,6 +69,9 @@
 
 ### Fixed
 
+- **The session that finds npm back stops saying it is missing** (PC-143): on Windows, the first session after npm was
+  put back beside Node started the check again but could still say npm was missing; it now says the check runs again.
+
 - **Printed commands keep to the version you have while the newest is refused** (PC-143): while the session hook refuses
   the newest launcher, doctor's fixes, setup's closing line, the help and the analytics notice named
   `npx @passioncode-ai/passioncode@latest`, which runs the refused version; they now name the installed one.

@@ -71,7 +71,7 @@ async function main() {
   if ((!Number.isFinite(age) || age < 0 || age > DAY || needsProbe(state) || npmBack) && claimProbe(DIR, now)) {
     if (await detached(process.execPath, [path.join(__dirname, 'probe.js')], 'probe.log')) releaseProbe(DIR);
   }
-  const { lines, spawn: decided, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)));
+  const { lines, spawn: decided, stateChanges, events, refused } = decide(state, loadTrust(), now, loadRegistryKeys(), shown(path.dirname(process.execPath)), { npmBack });
   // On Windows with no npm beside this Node nothing can start the update: no cache folder, no spawn, and no download
   // logged as started (PC-143).
   const noNpm = npmMissing('npx', { platform });
