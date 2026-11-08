@@ -69,6 +69,10 @@
 
 ### Fixed
 
+- **A standing refusal names a missing npm** (PC-143): with no npm beside this Node, the session line about a refused
+  version said the last check "could not tell" and offered an `npx` command, which cannot run without npm; it now says
+  nothing is checked until there is npm beside this Node, and names the version to keep.
+
 - **`status` names a missing npm** (PC-143): after the daily check found no npm beside this Node, `status` said only "npm
   latest: not checked"; it now says "not checked (no npm beside this Node)", and `status --json` carries `npmMissing`.
 
