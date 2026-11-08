@@ -437,6 +437,14 @@ test('PC-131: an offered or caught-up version forgets its refusal, and an unchec
   assert.doesNotMatch(out, /@latest setup/);
 });
 
+test('PC-143: a standing refusal with no npm beside Node names that cause and offers no npx command', () => {
+  const u = require(path.join(PLUGIN, 'hooks/update-check'));
+  const state = { installed: '0.1.0', checkedAt: fresh(), checkError: u.NPM_MISSING, checkErrorShown: u.NPM_MISSING, refusalLogged: '0.2.0 provenance' };
+  const out = u.decide(state, ['passioncode-ai'], Date.now(), [TEST_KEY], '/node/bin').lines.join('\n');
+  assert.match(out, /@passioncode-ai\/passioncode@0\.2\.0 was not installed \(no build provenance\), and nothing is checked until there is npm beside this Node; keep using 0\.1\.0 and see /, out);
+  assert.doesNotMatch(out, /could not tell|npx /, out);
+});
+
 test('PC-131: a failed check keeps a standing refusal: logged once, and the reminder still names the installed version', () => {
   const sb = sandbox({ trust: ['passioncode-ai'] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', verify: verified('0.2.0', { provenance: null }) });

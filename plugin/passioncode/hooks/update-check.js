@@ -242,7 +242,13 @@ function decide(state, trust, now = Date.now(), keys = [], nodeDir = path.dirnam
   const standing = typeof state.refusalLogged === 'string' ? state.refusalLogged.split(' ') : [];
   if (!latest && state.checkError && standing.length === 2 && VERSION.test(standing[0]) && state.installed && newer(standing[0], state.installed)) {
     refused = true;
-    lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()}`);
+    // PC-143: with no npm beside this Node no check runs at all, and npx (npm's) cannot run either: no npx command.
+    if (state.checkError === NPM_MISSING) {
+      const kept = typeof state.installed === 'string' && VERSION.test(state.installed) ? `keep using ${state.installed} and see ${SECURITY_URL}.` : `see ${SECURITY_URL}.`;
+      lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}), and nothing is checked until there is npm beside this Node; ${kept}`);
+    } else {
+      lines.push(`[passioncode] ${PACKAGE}@${standing[0]} was not installed (${REFUSED[standing[1]] || 'refused'}) and the last check could not tell whether that changed; ${keep()}`);
+    }
   }
   if (state.published !== false && latest && state.installed && newer(latest, state.installed)) {
     const maintainers = Array.isArray(state.maintainers) ? state.maintainers : [];
