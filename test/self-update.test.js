@@ -207,6 +207,18 @@ test('hook: missing npx does not fail the session or leave an update running', (
   if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(sb.stateDir, 'logs', 'npm')).mode & 0o777, 0o700);
 });
 
+test('PC-143: a failed start never records an earlier folder another session already removed', () => {
+  const sb = sandbox({ trust: ['passioncode-ai'] });
+  const gone = path.join(sb.stateDir, 'run', 'cache-swept'); // recorded, then removed by another session's sweep
+  setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', verify: verified('0.2.0'), maintainers: ['passioncode-ai'], publisher: 'passioncode-ai', updateCache: gone });
+  const emptyPath = path.join(sb.base, 'empty-bin');
+  fs.mkdirSync(emptyPath);
+  const r = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PATH: emptyPath, ...(process.platform === 'win32' ? { PASSIONCODE_NPX: path.join(emptyPath, 'npx') } : {}) }), cwd: os.tmpdir(), input: '' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /could not start the background update/);
+  assert.equal(stateOf(sb).updateCache, undefined, 'no record of a folder that is gone');
+});
+
 test('hook: an empty trust list never spawns', async () => {
   const sb = sandbox({ trust: [] });
   setState(sb, { installed: '0.1.0', checkedAt: fresh(), published: true, latest: '0.2.0', maintainers: ['passioncode-ai'], publisher: 'passioncode-ai' });

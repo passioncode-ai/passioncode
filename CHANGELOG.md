@@ -69,6 +69,9 @@
 
 ### Fixed
 
+- **A failed background start records no folder that is gone** (PC-143): when an update could not start, the hook put
+  back the folder of the update before it even if another session's sweep had removed it; now only one still there.
+
 - **A log folder the background update cannot write is named** (PC-143): when `~/.passioncode/logs` cannot be written,
   the session hook said to check that npx is on PATH, which fixes nothing; it now names the log folder and asks to make
   it writable.
