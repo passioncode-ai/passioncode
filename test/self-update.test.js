@@ -981,6 +981,11 @@ test('PC-143: on Windows with no npm beside Node the hook says so, not to fix PA
   assert.deepEqual(await npxCalls(sb), [], 'nothing started');
   assert.equal(fs.existsSync(path.join(sb.stateDir, 'logs', 'update.log')), false);
   assert.equal(stateOf(sb).updateCache, '/x/earlier', 'the earlier update folder stays recorded');
+  // Recorded as the check would record it and as already said: the next session prints nothing and starts nothing.
+  assert.deepEqual([stateOf(sb).checkError, stateOf(sb).checkErrorShown, stateOf(sb).latest], ['npm-missing', 'npm-missing', undefined]);
+  const again = spawnSync(process.execPath, [path.join(sb.plugin, 'hooks/session-start.js')], { encoding: 'utf8', env: sb.env({ PASSIONCODE_PLATFORM: 'win32', PASSIONCODE_NPX: '', PASSIONCODE_NPM: '' }), cwd: os.tmpdir(), input: '' });
+  assert.equal(again.stdout, '', 'the pinned line is printed once');
+  assert.deepEqual(eventsOf(sb), ['update_install failed npm']);
 });
 
 test('PC-143: on Windows with no npm beside Node the probe records it, and the session line names the fix, not spawn npm ENOENT', { skip: process.platform === 'win32' && 'needs a Node without npm beside it' }, () => {
