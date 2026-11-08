@@ -75,10 +75,18 @@ values still do not prove registry freshness. Sources: `status()` in
 ## Setup and doctor
 
 `doctor` returns `{ version, platform, at, checks, summary, ok }`. Each check is
-`{ id, area, product, state, detail, fix, repair }`: `area` is `prerequisites`,
+`{ id, area, product, state, detail, fix, repair, gate }`: `area` is `prerequisites`,
 `skills`, `apps`, `mcp` or `services`; `state` is `ok`, `warn`, `fail` or `info`;
 `fix` is the command or step that resolves it; `repair` names what `setup` may do
-about it (`update`, `replace`, `kickstart`) or is null. `ok` is false when any
+about it (`update`, `replace`, `kickstart`) or is null. `gate` (PC-171) says which of a person's own acts
+the `fix` needs, the first one they meet: `sign-in`, `code` (a one-time code), `consent`, `payment` or `secret` (a
+value only a person types, an administrator's password included); null when an agent can carry the fix out, and always
+null on a check without a fix. Today: `consent` for `skills.auto-update`, for a `sessions.on-demand` row that lacks
+Claude Code's tool rules and for a service port another OS account holds; `secret` for a service that waits for setup
+(DEC-0044 says only that a key is not entered or a model not chosen, so the key names it), for a missing
+`observatory` or `fabric-inbox` MCP server or service descriptor (their onboarding asks for a key first) and for a
+`blocked` row whose folder an administrator must open; `sign-in` for Fabric Switchboard's onboarding. Readers that do
+not know the field ignore it. `ok` is false when any
 check fails. The summary and the failed ids are saved to
 `~/.passioncode/doctor.json` (with `blocked`, the failed ids whose app folder this user cannot write, PC-147), which the
 SessionStart hook repeats while it has failures (naming `doctor` instead of `setup` when every one is blocked), and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and

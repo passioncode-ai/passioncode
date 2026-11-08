@@ -195,3 +195,25 @@ test('PC-160: setup plans another user\'s copy at this user\'s place as a blocke
   delete process.env.PASSIONCODE_UID;
   assert.equal(S.plan([], { platform: 'darwin', withIds: ['dashboards'], home: w.home }).find((i) => i.product === 'dashboards'), undefined, 'this user\'s own copy there is installed');
 });
+
+test('PC-171: blockedGate names a person only where an agent cannot carry the blocked note out', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc171-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const keep = process.env.PASSIONCODE_APPLICATIONS;
+  t.after(() => { if (keep === undefined) delete process.env.PASSIONCODE_APPLICATIONS; else process.env.PASSIONCODE_APPLICATIONS = keep; });
+  delete process.env.PASSIONCODE_APPLICATIONS;
+  // A folder this user owns: the agent unlocks it (the note's own steps), no person needed.
+  assert.equal(C.blockedGate(dir), null);
+  // A place this user does not own: an administrator's password or hand.
+  if (typeof process.getuid === 'function' && process.getuid() !== 0) assert.equal(C.blockedGate('/'), 'secret');
+  // With PASSIONCODE_APPLICATIONS set, the note's first route is the agent's: unset or change it.
+  process.env.PASSIONCODE_APPLICATIONS = dir;
+  assert.equal(C.blockedGate('/'), null);
+});
+
+test('PC-171: a product whose guide needs a person names the first gate it meets', () => {
+  assert.equal(C.byId('switchboard').guideGate, 'sign-in');
+  assert.equal(C.byId('observatory').guideGate, 'secret');
+  assert.equal(C.byId('inbox').guideGate, 'secret');
+  assert.equal(C.byId('dashboards').guideGate, undefined);
+});
