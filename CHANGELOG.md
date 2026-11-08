@@ -69,6 +69,11 @@
 
 ### Fixed
 
+- **Claude Code and MCP servers installed through npm start on Windows** (PC-143): Windows starts a `.cmd` file only
+  through a shell, so Claude Code installed with `npm i -g` read as not installed, `update` skipped every plugin, and
+  doctor's proving call failed for an MCP server registered as a `.cmd` shim. An npm shim now runs its JavaScript
+  target through this Node; any other batch file is named in doctor's line and never handed to `cmd.exe`.
+
 - **Two background updates that overlap both keep their folders** (PC-143): only the newer update's folder was
   recorded, so the older one could be swept while that update still ran; the last three are now kept
   (`updateCaches` in `state.json`).
