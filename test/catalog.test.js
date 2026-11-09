@@ -202,8 +202,10 @@ test('PC-171: blockedGate names a person only where an agent cannot carry the bl
   const keep = process.env.PASSIONCODE_APPLICATIONS;
   t.after(() => { if (keep === undefined) delete process.env.PASSIONCODE_APPLICATIONS; else process.env.PASSIONCODE_APPLICATIONS = keep; });
   delete process.env.PASSIONCODE_APPLICATIONS;
-  // A folder this user owns: the agent unlocks it (the note's own steps), no person needed.
-  assert.equal(C.blockedGate(dir), null);
+  // A folder this user owns: the agent unlocks it (the note's own steps), no person needed. Ownership is read by uid,
+  // which Windows does not have: there the note asks an administrator, and the gate says so (`secret`), as blockedNote.
+  if (typeof process.getuid === 'function') assert.equal(C.blockedGate(dir), null);
+  else assert.equal(C.blockedGate(dir), 'secret');
   // A place this user does not own: an administrator's password or hand.
   if (typeof process.getuid === 'function' && process.getuid() !== 0) assert.equal(C.blockedGate('/'), 'secret');
   // With PASSIONCODE_APPLICATIONS set, the note's first route is the agent's: unset or change it.
