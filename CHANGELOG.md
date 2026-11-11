@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Shorter skill descriptions** (PC-173, sshlg-skills' board request `3b81fa6f`, 2026-11-11): Claude Code lists every
+  installed skill within a 30,000-character budget and drops the descriptions of the least used ones beyond it (measured
+  on the operator's machine: 105 skills, 35,962 characters). `setting-up-passioncode` now takes 333 characters and
+  `working-in-passioncode` 348 (from 827 and 945): when to use, two English and two Russian triggers, and the NOT-for
+  boundary with its neighbour. The full English trigger list moved to a "When this skill applies" section in each body.
+  `test/skill.test.js` holds each description to 350 characters and the two together to 700.
+
 ## 0.2.76 - 2026-11-09
 
 ### Added

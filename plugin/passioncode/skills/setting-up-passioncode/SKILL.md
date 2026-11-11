@@ -1,15 +1,10 @@
 ---
 name: setting-up-passioncode
 description: >-
-  Use when a person asks their coding agent to install, set up, check, repair or update the
-  PassionCode.ai tools on this computer (Fabric, Fabric Switchboard, Fabric Dashboards, Fabric
-  Inbox, Project Observatory, their MCP servers and the PassionCode.ai skills): "set me up with
-  PassionCode", "install Fabric", "check my setup", "is my Fabric setup OK", "run the doctor",
-  "the fabric-dashboards MCP is not working", «установи PassionCode», «настрой мне Fabric»,
-  «проверь мою установку», «запусти доктор», «почини настройку». Runs the launcher's one
-  command for a new or an existing setup, reads its JSON, and hands the person only the steps an
-  agent may not take. NOT for contributing to a passioncode-ai repository (working-in-passioncode),
-  building a Fabric agent or service (the fabric-agent-adapter skills), or product UX.
+  Use when a person asks to install, set up, check, repair or update the PassionCode.ai tools on
+  this computer (Fabric and its apps, Observatory, their MCP servers, the skills): "install
+  Fabric", "check my setup", «установи PassionCode», «проверь мою установку». NOT for working in
+  a passioncode-ai repository (working-in-passioncode).
 license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
 compatibility: Needs Node 18+ and network access to npm and GitHub; it reaches analytics.passioncode.ai when it can (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills and MCP servers and names each app's download page.
 metadata:
@@ -37,6 +32,16 @@ npm beside the Node in a folder means automatic updates can neither be checked n
 Windows machine. Give that line to the person word for word: its fix (reinstall that Node.js with
 npm, or put one that has npm first on `PATH`, then restart the agent) is theirs, not a command to run
 for them. Setup and doctor still run if `npx` works in your shell.
+
+## When this skill applies
+
+The person wants the PassionCode.ai tools on this computer (Fabric, Fabric Switchboard, Fabric
+Dashboards, Fabric Inbox, Project Observatory, their MCP servers and the PassionCode.ai skills)
+installed, checked, repaired or updated: "set me up with PassionCode", "install Fabric", "check my
+setup", "is my Fabric setup OK", "run the doctor", "the fabric-dashboards MCP is not working", "fix
+my setup", in any language. Not this skill: contributing to a passioncode-ai repository
+(working-in-passioncode), building a Fabric agent or service (the fabric-agent-adapter skills), or
+product UX.
 
 ## 1. Set up, or check and repair
 
