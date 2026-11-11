@@ -101,6 +101,11 @@ test('setting-up-passioncode drives the launcher, never a hand-made install', ()
   assert.doesNotMatch(text, /curl [^`]*\| *(ba)?sh/, 'no pipe-to-shell install');
 });
 
+test('the plugin\'s skill descriptions together stay within 700 characters (skill-listing budget)', () => {
+  const total = skills().reduce((sum, name) => sum + parseFrontMatter(fs.readFileSync(path.join(SKILLS, name, 'SKILL.md'), 'utf8')).doc.description.length, 0);
+  assert.ok(total <= 700, `descriptions total ${total} characters`);
+});
+
 for (const name of fs.existsSync(SKILLS) ? skills() : []) {
   const dir = path.join(SKILLS, name);
   const text = fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8');
@@ -113,7 +118,8 @@ for (const name of fs.existsSync(SKILLS) ? skills() : []) {
     assert.doesNotMatch(doc.name, /anthropic|claude/, 'reserved substrings are rejected on upload');
     assert.ok(doc.description.startsWith('Use when '), 'description says WHEN');
     assert.ok(doc.description.includes('NOT for'), 'description names what it is not for');
-    assert.ok(doc.description.length <= 970, `description ${doc.description.length} chars holds 5% headroom under 1024`);
+    assert.ok(doc.description.length <= 350, `description ${doc.description.length} chars: about 350 per skill keeps the plugin's share of Claude Code's skill-listing budget (sshlg-skills' board request 3b81fa6f); the full trigger list lives in the body`);
+    assert.ok(!doc.when_to_use, 'when_to_use counts against the same listing budget; triggers live in the body');
     assert.doesNotMatch(doc.description, /[<>]/, 'no angle brackets in a description');
     assert.equal(doc.license, SPDX);
     assert.equal(doc.license, JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).license, 'the skill and the package carry one license');

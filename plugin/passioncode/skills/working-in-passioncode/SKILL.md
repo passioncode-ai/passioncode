@@ -1,17 +1,10 @@
 ---
 name: working-in-passioncode
 description: >-
-  Use when working in any passioncode-ai repository: "work on a PassionCode repo", "open a PR
-  in passioncode-ai", "release", "tag a version", "which repo owns this", "bump the contract
-  pin", "publish this to the public repo", "what license do we use", «работаю в репозитории
-  PassionCode», «как тут принято», «где записать решение», «как выпустить релиз». Covers the org
-  map, landing (protected and unprotected main, fast-forward, never force-push shared work,
-  never touch another session's work), nightly CI and why a blocked run is not green,
-  handoffs, decisions, ids and leases, secrets, licensing (AGPL-3.0 or commercial, CLA), the
-  repository standard, the privacy gate, and releases, versions and pins; the knowledge base
-  stays the source of truth. NOT for product UX, visual design or copy (super-ux,
-  sheleg-design, copywriting), building Fabric agents or services (the fabric-agent-adapter
-  skills), or repositories outside passioncode-ai.
+  Use when working in any passioncode-ai repository: landing a PR, releases, tags and pins,
+  which repo owns what, handoffs, decisions, secrets, licensing: "open a PR in passioncode-ai",
+  "tag a version", «работаю в репозитории PassionCode», «как выпустить релиз». NOT for product
+  UX or copy (super-ux) or building Fabric agents (fabric-agent-adapter).
 license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
 compatibility: Any agent that can read files and run git. The gh CLI and a clone of passioncode-ai/org-index make the checks exact; without them follow the fallbacks in the body.
 metadata:
@@ -30,6 +23,19 @@ every member can read it) keeps the map (`repositories.json`), `ONBOARDING.md` a
 those rules reach you while you work. It summarises; it does not replace. Where it and the
 knowledge base disagree, **the knowledge base wins**; where a repository's own `AGENTS.md` is
 stricter, **that file wins**.
+
+## When this skill applies
+
+Any work in a passioncode-ai repository: "work on a PassionCode repo", "open a PR in
+passioncode-ai", "release", "tag a version", "which repo owns this", "bump the contract pin",
+"publish this to the public repo", "what license do we use", "how is it done here", "where do I
+record a decision", in any language. It covers the org map, landing (protected and unprotected
+main, fast-forward, never force-push shared work, never touch another session's work), nightly CI
+and why a blocked run is not green, handoffs, decisions, ids and leases, secrets, licensing
+(AGPL-3.0 or commercial, CLA), the repository standard, the privacy gate, and releases, versions
+and pins. Not this skill: product UX, visual design or copy (super-ux, sheleg-design,
+copywriting), building Fabric agents or services (the fabric-agent-adapter skills), or
+repositories outside passioncode-ai.
 
 ## 0. The protocol: before and after every piece of work
 
