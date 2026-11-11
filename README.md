@@ -57,7 +57,7 @@ an administrator), and restarting your agent.
 2. **Configure:** nothing to set, no account and no key. Background updates are on by default;
    `npx @passioncode-ai/passioncode@latest config set update.auto off` turns them off. The launcher's anonymous
    usage and error counts are on by default too ([what is sent](docs/analytics-events.md));
-   `npx @passioncode-ai/passioncode@latest analytics off` turns them off for the launcher (each PassionCode app has its
+   `npx @passioncode-ai/passioncode@latest analytics off` turns them off for the launcher (each PassionCode.ai app has its
    own switch in its settings). Each app's
    own onboarding (sign-ins, Fabric Inbox's server, Observatory's projects) is listed by `setup`.
 3. **MCP:** the launcher serves no MCP server of its own. It registers the apps' servers
