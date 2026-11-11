@@ -4,6 +4,9 @@
 
 ### Changed
 
+- **Observatory Log 0.35.12** (PC-176, project-observatory's board request `7809e7a1`, 2026-11-11): the set pins
+  Observatory's tag `v0.35.12` instead of `v0.26.0`. Its three skills' descriptions take 1,046 characters (from
+  2,243), within Claude Code's skill-listing budget, and every Observatory Log change since 0.26.0 comes with it.
 - **Shorter skill descriptions** (PC-173, sshlg-skills' board request `3b81fa6f`, 2026-11-11): Claude Code lists every
   installed skill within a 30,000-character budget and drops the descriptions of the least used ones beyond it (measured
   on the operator's machine: 105 skills, 35,962 characters). `setting-up-passioncode` now takes 333 characters and
