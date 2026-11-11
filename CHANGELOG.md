@@ -10,6 +10,9 @@
   `working-in-passioncode` 348 (from 827 and 945): when to use, two English and two Russian triggers, and the NOT-for
   boundary with its neighbour. The full English trigger list moved to a "When this skill applies" section in each body.
   `test/skill.test.js` holds each description to 350 characters and the two together to 700.
+- **"PassionCode.ai app" in the README and SECURITY.md** (PC-174, org-index's board request `7f42f2d5`, 2026-11-11):
+  the retired framing "PassionCode app" (org-index naming rule N1) is gone from the living documents. The launcher's
+  own `analytics` output keeps its wording until PC-175.
 
 ## 0.2.76 - 2026-11-09
 
