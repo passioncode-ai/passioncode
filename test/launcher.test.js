@@ -1117,6 +1117,9 @@ test('PC-178: an agent folder that holds only skill folders is not that agent, s
   assert.equal(L.agentFolder(path.join(env.home, '.codex')), true, 'a folder with more than skills is the agent');
   fs.mkdirSync(path.join(env.home, '.empty-agent'));
   assert.equal(L.agentFolder(path.join(env.home, '.empty-agent')), true, 'an empty folder still counts');
+  // Skill channels follow the skills folders that exist (ADR-0006 Consequences): the member skills are linked into
+  // the folders obsidian-wiki's setup made, though no MCP server is registered for those agents.
+  assert.ok(fs.readdirSync(path.join(env.home, '.gemini', 'skills')).length > 0, 'member skills linked into ~/.gemini/skills');
 });
 
 test('restore removes the MCP registrations the last update added', () => {

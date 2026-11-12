@@ -227,3 +227,53 @@ test('PC-178: a clash is any entry of a bundled skill name in obsidian-wiki\'s g
   const withBin = M.clashes(s.home, bin).sort();
   assert.deepEqual(M.clashes(s.home, null).sort(), [...withBin, path.join(agents, 'wiki-update')].sort());
 });
+
+// Round 7.
+const RECEIPT_ONE = '[tool]\nrequirements = [{ name = "obsidian-wiki", specifier = "==2026.10.2" }]\nentrypoints = [\n    { name = "obsidian-wiki", install-path = "/x/obsidian-wiki", from = "obsidian-wiki" },\n]\n';
+function receipt(s, text) {
+  const at = path.join(s.state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml');
+  fs.mkdirSync(path.dirname(at), { recursive: true });
+  fs.writeFileSync(at, text);
+}
+test('PC-178: uv\'s receipt is read whatever its layout: one line, extras, several lines, the Python; constraints stop it', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const uvBin = path.join(s.bin, 'uv');
+  assert.deepEqual(M.receiptSpec(uvBin), { requirement: `obsidian-wiki==${M.PIN}`, with: [], python: null }, 'no receipt');
+  receipt(s, RECEIPT_ONE);
+  assert.deepEqual(M.receiptSpec(uvBin), { requirement: `obsidian-wiki==${M.PIN}`, with: [], python: null });
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki", extras = ["ast"] }]\npython = "3.12"\n');
+  assert.deepEqual(M.receiptSpec(uvBin), { requirement: `obsidian-wiki[ast]==${M.PIN}`, with: [], python: '3.12' });
+  receipt(s, '[tool]\nrequirements = [\n    { name = "obsidian-wiki", extras = ["ast", "graph"] },\n    { name = "tree-sitter", specifier = "<0.22" },\n]\npython = "3.12"\n');
+  assert.deepEqual(M.receiptSpec(uvBin), { requirement: `obsidian-wiki[ast,graph]==${M.PIN}`, with: ['tree-sitter<0.22'], python: '3.12' });
+  for (const key of ['constraints', 'overrides', 'build-constraints']) {
+    receipt(s, `[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n${key} = [{ name = "numpy", specifier = "<2" }]\n`);
+    assert.throws(() => M.receiptSpec(uvBin), new RegExp(key), key);
+  }
+});
+
+test('PC-178: the hook entry is merged into the settings file as it is after obsidian-wiki ran, never into a copy read before', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: [] });
+  process.env.TMPDIR = path.join(s.home, 'tmp');
+  fs.mkdirSync(process.env.TMPDIR);
+  process.env.FAKE_WIKI_HOOKS_INSTALL_TOUCH = s.settings; // the fake adds a key to the real file while it runs
+  M.hook({ home: s.home, bin: path.join(s.bin, 'obsidian-wiki') });
+  const doc = JSON.parse(fs.readFileSync(s.settings, 'utf8'));
+  assert.equal(doc.touched, true, 'the key written during the install is kept');
+  assert.ok(JSON.stringify(doc.hooks.SessionStart).includes('wiki-session-recap.sh'));
+});
+
+test('PC-178: a clash that appears after git init stops the vault step before obsidian-wiki setup, and the step is undone', { skip: SH }, (t) => {
+  const s = sandbox(t, { vault: false });
+  // git that, as it runs, leaves a skill of the person's with a bundled name (a sync tool, another agent).
+  fs.writeFileSync(path.join(s.bin, 'git'), `#!/bin/sh\n/usr/bin/git "$@" || exit $?\nmkdir -p "$HOME/.agents/skills/skill-creator" && echo mine > "$HOME/.agents/skills/skill-creator/SKILL.md"\n`, { mode: 0o755 });
+  process.env.FAKE_TOOLS_QUIET = '';
+  delete process.env.FAKE_TOOLS_QUIET;
+  const vault = path.join(s.home, 'Wiki');
+  assert.throws(() => M.install({ home: s.home, vault, claude: { here: false } }), /skill-creator/);
+  assert.ok(!fs.existsSync(vault), 'the vault folder it made is gone');
+  assert.equal(M.configOf(s.home), null);
+  let log = '';
+  try { log = fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { /* none */ }
+  assert.ok(!/obsidian-wiki setup/.test(log), log);
+  assert.equal(fs.readFileSync(path.join(s.home, '.agents', 'skills', 'skill-creator', 'SKILL.md'), 'utf8'), 'mine\n');
+});

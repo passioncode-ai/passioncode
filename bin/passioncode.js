@@ -330,7 +330,9 @@ async function main(argv) {
       let stays = '';
       if (!json) {
         const here = require('../lib/memory').present(require('os').homedir());
-        const parts = [here.wiki ? 'obsidian-wiki, its vault and SessionStart hook' : null, here.obsidian ? 'Obsidian' : null].filter(Boolean);
+        // The vault only where obsidian-wiki has a config, the hook only where its entry is registered (round 7, P2).
+        const wiki = here.vault && here.hook ? 'obsidian-wiki, its vault and SessionStart hook' : here.vault ? 'obsidian-wiki and its vault' : here.hook ? 'obsidian-wiki and its SessionStart hook' : 'obsidian-wiki';
+        const parts = [here.wiki ? wiki : null, here.obsidian ? 'Obsidian' : null].filter(Boolean);
         if (parts.length) stays = `\nThe agents' wiki memory stays: ${parts.join(', and ')}.`;
       }
       out(r, `${r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.'}${stays}`);

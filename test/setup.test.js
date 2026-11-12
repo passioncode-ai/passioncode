@@ -3163,9 +3163,10 @@ test('PC-178: help names the wiki memory, and uninstall says the memory stays', 
   // Nothing of the memory here: uninstall says nothing about it.
   const none = await cli(m, api, 'uninstall');
   assert.doesNotMatch(none.stdout + none.stderr, /wiki memory/);
-  giveWiki(m, PIN);
+  giveWiki(m, PIN); // the tool alone: no config, no hook
   const un = await cli(m, api, 'uninstall');
-  assert.match(un.stdout + un.stderr, /The agents' wiki memory stays: obsidian-wiki, its vault and SessionStart hook\.\n/);
+  assert.match(un.stdout + un.stderr, /The agents' wiki memory stays: obsidian-wiki\.\n/);
+  assert.doesNotMatch(un.stdout, /its vault|SessionStart hook/);
   // Obsidian alone: only Obsidian is named.
   const o = withMemory();
   fs.mkdirSync(path.join(o.apps, OB.app, 'Contents'), { recursive: true });
@@ -3348,7 +3349,7 @@ test('PC-178: the upgrade keeps the extras and requirements uv recorded for obsi
   fs.writeFileSync(receipt, '[tool]\nrequirements = [\n    { name = "obsidian-wiki", extras = ["ast", "graph"] },\n    { name = "tree-sitter", specifier = "<0.22" },\n]\npython = "3.12"\n');
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   assert.equal(r.json.actions.find((x) => x.kind === 'tool').outcome, 'done', JSON.stringify(r.json.actions));
-  assert.ok(toolLog(m).includes(`uv tool install --force obsidian-wiki[ast,graph]==${PIN} --with tree-sitter<0.22`), toolLog(m).join('\n'));
+  assert.ok(toolLog(m).includes(`uv tool install --force obsidian-wiki[ast,graph]==${PIN} --with tree-sitter<0.22 --python 3.12`), toolLog(m).join('\n'));
   // A requirement the launcher cannot carry (a URL, a path) stops the upgrade, named.
   const n = withMemory();
   giveWiki(n, '2026.10.2', { vault: path.join(n.home, 'Wiki') });
@@ -3399,4 +3400,64 @@ test('PC-178: a part the run left out does not mark the session line: doctor.jso
   // A plain doctor still counts it.
   await cli(m, api, 'doctor', '--json', '--offline');
   assert.ok(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode', 'doctor.json'), 'utf8')).failed.includes('memory.vault'));
+});
+
+// Round 7 (PC-178).
+test('PC-178: the clash check of the upgrade also takes the pinned names an older obsidian-wiki does not bundle', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, '2026.10.2', { vault: path.join(m.home, 'Wiki') });
+  m.env = { FAKE_WIKI_PKG_DROP: 'skill-creator' }; // the older package has no skill-creator; the pin's has
+  const snapshot = giveOwnSkill(m);
+  const before = snapshot();
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.ok(!r.json.plan.some((i) => i.kind === 'tool'), JSON.stringify(r.json.plan));
+  assert.equal(snapshot(), before);
+  assert.ok(!toolLog(m).some((l) => /^uv tool install/.test(l)));
+});
+
+test('PC-178: the recorded version is the line that sets it, not a comment that names an older one', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, '2026.10.2', { vault: path.join(m.home, 'Wiki') });
+  fs.writeFileSync(wikiConfig(m), `# OBSIDIAN_WIKI_VERSION="2026.09.1" (before the last upgrade)\n${fs.readFileSync(wikiConfig(m), 'utf8')}`);
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.equal(r.json.actions.find((x) => x.kind === 'tool').outcome, 'done', JSON.stringify(r.json.actions));
+});
+
+test('PC-178: a vault step that fails after obsidian-wiki linked its skills removes exactly those links', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  const mine = path.join(m.home, '.agents', 'skills', 'my-own');
+  fs.mkdirSync(mine, { recursive: true });
+  fs.writeFileSync(path.join(mine, 'SKILL.md'), 'mine');
+  m.env = { FAKE_WIKI_SETUP_FAIL: 'after-skills' };
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.equal(r.status, 1);
+  const a = r.json.actions.find((x) => x.kind === 'memory');
+  assert.match(a.error, /skill links obsidian-wiki's setup made/);
+  for (const rel of catalog.WIKI.skillDirs) {
+    const dir = path.join(m.home, rel);
+    for (const n of fs.existsSync(dir) ? fs.readdirSync(dir) : []) assert.ok(!catalog.WIKI.skills.includes(n), `${rel}/${n} left`);
+  }
+  assert.equal(fs.readFileSync(path.join(mine, 'SKILL.md'), 'utf8'), 'mine');
+});
+
+test('PC-178: uninstall names obsidian-wiki\'s vault and hook only where they are', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, PIN, { vault: path.join(m.home, 'Wiki') });
+  assert.match((await cli(m, api, 'uninstall')).stdout, /The agents' wiki memory stays: obsidian-wiki and its vault\.\n/);
+  setWikiHooks(m, ['SessionStart']);
+  assert.match((await cli(m, api, 'uninstall')).stdout, /The agents' wiki memory stays: obsidian-wiki, its vault and SessionStart hook\.\n/);
+});
+
+test('PC-178: the refresh step is offered only at or above the pin; below it the upgrade comes first', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, '2026.10.2', { vault: path.join(m.home, 'Wiki') });
+  fs.writeFileSync(wikiConfig(m), fs.readFileSync(wikiConfig(m), 'utf8').replace('OBSIDIAN_WIKI_VERSION="2026.10.2"', 'OBSIDIAN_WIKI_VERSION="2026.09.1"'));
+  const v = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.vault');
+  assert.ok(!/obsidian-wiki list/.test(v.fix), v.fix);
+  assert.match(v.fix, /memory\.wiki/);
 });
