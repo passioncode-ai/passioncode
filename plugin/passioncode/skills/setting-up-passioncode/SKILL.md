@@ -57,8 +57,9 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 - A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe. A
   machine without uv or git, with XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs
   in), with a skill of the person's that shares a name with one of obsidian-wiki's, or with a `~/Documents/Wiki` that
-  holds files, reports `skipped: ["the wiki memory"]` until the person installs uv or git, sets XDG_CONFIG_HOME to an
-  absolute folder (or unsets it), moves that skill or names another folder: healthy otherwise, and say so.
+  holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
+  (or unsets it), moves that skill or names another folder: on a run that changes nothing else, `skipped` names the
+  wiki memory; in any run, `humanSteps` carries the reason. Healthy otherwise, and say so.
 - Exit 0: nothing failed in what the run covered; 1: a step or a check failed; 2: bad arguments. The `memory.*`
   rows of a part named in `leftOut` (the wiki memory left out with `--without`, or by `--no-apps`) do not count,
   except a failing Obsidian signature, which always does: report those rows from `after.checks` all the same. A plan
