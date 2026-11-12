@@ -33,7 +33,7 @@
   the same name as one of theirs in every agent's global skills folder (it deleted a `skill-creator` on a real Mac), so
   neither runs while a skill of yours shares a name: setup names each one for you to move or rename, and `doctor` shows
   it. obsidian-wiki never writes Claude Code's settings file (its writer made it world-readable): the launcher adds the
-  SessionStart entry, keeping the file private. The upgrade keeps the extras and requirements uv recorded.
+  SessionStart entry, keeping the file private. The upgrade keeps the extras, requirements and Python uv recorded.
   `uninstall` says which parts of the memory stay, where any of it is installed. `--with` and `--without` take `obsidian`, `wiki` and
   `memory`; `--no-apps` leaves the memory out, its upgrade included. obsidian-wiki's setup creates skills folders for
   agents that are not installed (`~/.codex/skills`, `~/.gemini/skills` and more), and the set's member skills are then

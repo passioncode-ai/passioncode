@@ -131,7 +131,8 @@ project, after every turn, to write into the vault. On the operator's machine th
 
 ## Consequences
 
-- One `setup` gives a new machine a working wiki memory: the tool, its skills in each agent's own folder (written by
+- One `setup` gives a new machine a working wiki memory, where uv and git are there and no skill of the person's
+  shares a name with one of obsidian-wiki's: the tool, its skills in each agent's own folder (written by
   obsidian-wiki's setup, its own channel, never by the launcher), a vault that is a Git repository, the session-start
   recap in Claude Code, and Obsidian to read it.
 - The launcher now has three trust roots. PassionCode.ai apps: the release key's signed `SHA256SUMS`, team
@@ -142,7 +143,8 @@ project, after every turn, to write into the vault. On the operator's machine th
   `~/.hermes/skills` and more). The launcher links the set's member skills into every such channel folder it finds
   (`lib/launcher.js` `CHANNELS`), so after the memory is set up the member skills are linked there too. This is kept on
   purpose: changing which folders count as channels would stop link updates on machines that rely on them. Only the MCP
-  registration and `doctor`'s agent list ignore a folder that holds nothing but skills (decision 7).
+  registration and `doctor`'s agent list ignore a folder that holds nothing but skills (decision 7). Asserted in
+  `test/launcher.test.js` `PC-178: an agent folder` (round 7).
 - `setup` runs `uv`, `git` (after `xcode-select -p` on macOS) and `obsidian-wiki` (each with no terminal, each capped in
   time); `doctor` runs `obsidian-wiki --version`, `doctor --json` and `hooks status --json`, which read only.
 - `uninstall` and `restore` leave the memory alone: the tool, the vault and its hook are the person's once made.
