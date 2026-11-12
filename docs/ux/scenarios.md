@@ -265,7 +265,8 @@
 - **Persona:** Operator
 - **Feature:** session start
 - **Entry point:** SessionStart hook
-- **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run.
+- **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run (setup saves the rows of what it
+  covered, so a part it left out marks no line; a plain `doctor` saves them all until PC-187).
 - **Steps:**
   1. Start a session.
 - **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), or one no setup run repairs (`manual`, SCN-018), the line names `doctor`, which shows that folder, or the checks no setup run repairs, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
@@ -380,8 +381,8 @@
 - **Feature:** setup, doctor
 - **Entry point:** `npx @passioncode-ai/passioncode@latest setup` in a terminal or through the person's coding agent
 - **Preconditions:** uv is installed (https://docs.astral.sh/uv/getting-started/installation/); for the newcomer, no
-  obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`) and no folder `~/Documents/Wiki`
-  that holds files.
+  obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`), no folder `~/Documents/Wiki`
+  that holds files, and no skill of their own with a name obsidian-wiki bundles in an agent's global skills folder.
 - **Steps:**
   1. Run `setup` (or `setup --yes`). In a terminal, answer the question about the agents' wiki memory and the one about
      Obsidian (both default yes).

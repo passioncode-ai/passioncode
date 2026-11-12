@@ -47,7 +47,8 @@ Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
 secret into a product's own hidden prompt, starting Docker for Fabric, unlocking a folder setup cannot write (or asking
 an administrator), installing uv with its own installer where Homebrew is not yours (setup names the page), installing
-Apple's command line tools when setup asks for git, opening the wiki vault in Obsidian once, and restarting your agent.
+Apple's command line tools when setup asks for git, moving or renaming a skill of yours that shares a name with one of
+obsidian-wiki's when setup names it, opening the wiki vault in Obsidian once, and restarting your agent.
 
 ## Quick start for a new teammate
 
@@ -138,7 +139,8 @@ checksums, so its image must match GitHub's digest and the app must carry Obsidi
 its notarization ticket and Gatekeeper's yes. Obsidian updates itself inside the app, so setup never replaces a working
 copy for its version, only a damaged one of yours; a copy in `/Applications` that root owns (a package or MDM install) counts as yours, while one another user dragged in stays theirs and you get your own. When you have no
 obsidian-wiki config yet, setup makes a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names; never one
-that already holds files), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` and registers only the
+that already holds files, and never while a skill of yours shares a name with one of obsidian-wiki's, since its setup
+would replace it: setup names each one for you to move or rename), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` and registers only the
 SessionStart recap for Claude Code (only where Claude Code reads `~/.claude`; obsidian-wiki writes nowhere else). The run
 ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records after an upgrade, every other key kept), and the Stop hook (which asks
 every session in every project to write into the vault after every turn) is never registered; `doctor` names it if

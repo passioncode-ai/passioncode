@@ -95,7 +95,9 @@ account holds; `secret` for a service that waits for setup
 not know the field ignore it. `ok` is false when any
 check fails. The summary and the failed ids are saved to
 `~/.passioncode/doctor.json` (with `blocked`, the failed ids whose app folder this user cannot write, PC-147, and `manual`, the
-failed ids no setup run repairs, such as a failing wiki vault, PC-178), which the
+failed ids no setup run repairs, such as a failing wiki vault, PC-178; `setup` saves only the rows of what it covered, so
+the `memory.*` rows of a part named in `leftOut` are not among them, while a plain `doctor` saves them all until
+PC-187), which the
 SessionStart hook repeats while it has failures (naming `doctor` instead of `setup` when every one is blocked or manual), and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
 starts, stops or opens nothing, apart from the anonymous counts every command
 sends when they are on ([Anonymous usage counts](#anonymous-usage-counts): `~/.passioncode/analytics.json`, its notice
@@ -128,7 +130,7 @@ saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set 
 app) or `existing`. `plan` items are `install` (an absent app, Obsidian included on macOS; `selected` false
 for Fabric without its prerequisites unless `--with fabric`), `memory` (PC-178: obsidian-wiki to install at the pin with
 uv and, for a user with no obsidian-wiki config, a vault to make, named in `vault`; `selected` false and `unavailable`
-true, never asked, with the reason in `note`, when uv or git is missing or the vault folder already holds files), `tool` (an
+true, never asked, with the reason in `note`, when uv or git is missing, the vault folder already holds files, or a skill of the person's shares a name with one of obsidian-wiki's), `tool` (an
 older obsidian-wiki uv lists, brought up to the pin with `uv tool install --force` and then `obsidian-wiki list`),
 `hook` (the SessionStart recap of the vault the launcher made, registered again), `update`,
 `replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; only this user's processes count, matched on the bundle's whole path, PC-151; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
@@ -192,7 +194,7 @@ installed is brought up to the pin before a vault is made. A vault folder that h
 plan names it and `--wiki-vault`. An existing config, vault or hook is never changed (apart from the version keys obsidian-wiki's own refresh records after an upgrade, every other key kept), and obsidian-wiki's Stop hook is
 never registered or removed. Without uv the note names `brew install uv` where Homebrew is, else a person's step with
 uv's installer; without git (on macOS `xcode-select -p` answers first) it names Apple's command line tools or git's page.
-A run that leaves the memory out because uv or git is missing or the folder holds files names it
+A run that leaves the memory out because uv or git is missing, the folder holds files or a skill of the person's shares a name with one of obsidian-wiki's names it
 among `humanSteps` ("The wiki memory: ...") and in `skipped` or `notTaken` as "the wiki memory"; a `memory` action
 that ran adds the restart step. `--wiki-vault` without a value is exit 2 with the usage line; a relative one is exit 2
 with "passioncode: --wiki-vault takes an absolute folder, or one that starts with ~/ (not <value>)."
