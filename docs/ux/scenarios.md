@@ -430,14 +430,19 @@
   yours to move, in `memory.wiki.clash`, and counts as a clash: no install, vault step or upgrade runs over it. An obsidian-wiki uv holds that does not run (its Python gone,
   or its command not on this PATH) is never installed over or uninstalled: `memory.wiki` warns "installed by uv but does
   not run" with the person's reinstall, using what uv recorded (its own version specifier, never the pin, each value
-  single-quoted). A config that writes `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` or `OBSIDIAN_WIKI_VERSION` with spaces
-  around `=` stops every `obsidian-wiki list` (the upgrade, the install over a config), since its version refresh would
-  empty that key: `memory.vault.spaced` names it, and the config is left byte for byte. A memory check that fails in a way nobody foresaw is one
+  single-quoted). A config line obsidian-wiki's version refresh would rewrite (a spaced, single-quoted, exported, commented or
+  repeated `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` or `OBSIDIAN_WIKI_VERSION`, or an `OBSIDIAN_WIKI_REPO` outside
+  obsidian-wiki's package) stops every `obsidian-wiki list` (the upgrade, the install over a config):
+  `memory.vault.config-form` names the key and its form, and the config is left byte for byte. An older
+  `~/.obsidian-wiki` beside the XDG folder obsidian-wiki's commands read: the vault is made, but no SessionStart recap is
+  registered (its script would read the older folder and recap another vault), and `memory.hooks` warns until the person
+  removes or merges it. An upgrade whose refresh refuses after the reinstall puts the previous version back. A memory check that fails in a way nobody foresaw is one
   `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
   vault the launcher made is registered again by the next `setup` or `doctor --fix`, while the config still names that
-  vault; any other vault's missing hook is the person's choice. A folder a failed vault step cannot remove is named with
+  vault; any other vault's missing hook is the person's choice. The restart step follows a memory action that ran, a
+  hook repair and a tool upgrade. A folder a failed vault step cannot remove is named with
   what to do. Memory rows of a part the run left out (`--without`, `--no-apps`) do not fail the run (a failing Obsidian
   signature always fails it; the JSON names the parts in `leftOut`). A `~/Documents/Wiki` that holds files is never written: the steps name
   `--wiki-vault`. An Obsidian image that differs from GitHub's digest, carries another team (PassionCode.ai's own

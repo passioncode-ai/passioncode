@@ -51,7 +51,7 @@ its notice marker, the shared `PassionCode/installation.json` created once if ab
 `https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
 it reads Obsidian's `Info.plist` and signature like an app's and the names of the `obsidian-<version>.asar` files in
 `~/Library/Application Support/obsidian` (the version Obsidian updated itself to) and obsidian-wiki's config file (only
-its vault path), runs `uv --version`, `uv tool list` (a copy counts as uv's only when uv lists it), and, when uv holds an obsidian-wiki
+its managed keys, `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` and `OBSIDIAN_WIKI_VERSION`, and how each is written; a finding names only the key), runs `uv --version`, `uv tool list` (a copy counts as uv's only when uv lists it), and, when uv holds an obsidian-wiki
 that does not run, `uv tool dir` and reads its `uv-receipt.toml` and `pyvenv.cfg` (to name the person's reinstall),
 and `brew --prefix`
 (Homebrew counts only where this user can write its `bin`), and runs `obsidian-wiki --version`, `obsidian-wiki doctor
@@ -101,7 +101,7 @@ registered and `doctor` says so). obsidian-wiki never writes that file: `obsidia
 runs with a throwaway home, and the launcher adds the entry it wrote with its own writer, which follows a link, keeps
 the file's permission bits and makes a new file private (obsidian-wiki's own writer would make it `0644` and replace a
 link). The upgrade carries the extras, `--with` requirements and Python uv recorded for obsidian-wiki (`uv tool dir`,
-`uv-receipt.toml`) and stops, naming it, on anything else the receipt holds (a requirement given as a URL, path, Git
+`uv-receipt.toml`, and `pyvenv.cfg` for the Python when the record names none) and stops, naming it, on anything else the receipt holds (a requirement given as a URL, path, Git
 source or editable; an unknown key or table). A vault step that fails removes what it made (the folder, its `.git`, and what the
 step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the folder when the step made it), and when the same run installed obsidian-wiki a
 step that fails before the vault stands uninstalls it again (`uv tool uninstall obsidian-wiki`); a failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry. An older

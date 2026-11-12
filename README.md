@@ -7,9 +7,8 @@ the PassionCode.ai skills listed in [`family.json`](family.json), and the agents
 (the open-source [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) with a vault of its own, and
 Obsidian to read it in). Run the same command on a
 computer that is already set up, and it checks everything, repairs what is wrong and tells you
-what changed; a computer set up before the wiki memory came gets it on its next `setup`, where uv and git are, XDG_CONFIG_HOME
-is not a relative path (obsidian-wiki reads it from the folder it runs in) and no skill of yours shares a name with one
-of obsidian-wiki's (see the wiki memory below).
+what changed; a computer set up before the wiki memory came gets it on its next `setup`, unless something setup names holds it
+back (the reasons are listed in [the CLI reference](docs/reference/cli.md#setup-and-doctor); see the wiki memory below).
 
 ```bash
 npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
@@ -48,9 +47,9 @@ Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
 secret into a product's own hidden prompt, starting Docker for Fabric, unlocking a folder setup cannot write (or asking
 an administrator), installing uv with its own installer where Homebrew is not yours (setup names the page), installing
-Apple's command line tools when setup asks for git, moving or renaming a skill of yours that shares a name with one of
-obsidian-wiki's when setup names it, setting XDG_CONFIG_HOME to an absolute folder (or unsetting it) when setup
-names it, opening the wiki vault in Obsidian once, and restarting your agent.
+Apple's command line tools when setup asks for git, the steps setup names when it leaves the wiki memory out (moving or
+renaming a skill of yours, rewriting a config line, setting XDG_CONFIG_HOME; the full list is in
+[the CLI reference](docs/reference/cli.md#setup-and-doctor)), opening the wiki vault in Obsidian once, and restarting your agent.
 
 ## Quick start for a new teammate
 
