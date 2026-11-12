@@ -55,7 +55,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   repairs what is wrong (skills, MCP registrations, an outdated or damaged app that is not
   running, a stopped service its supervisor owns), checks again and returns JSON.
 - A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe. A
-  machine without uv reports `skipped: ["the wiki memory"]` until the person installs uv: healthy otherwise, and say so.
+  machine without uv, or with a skill of the person's that shares a name with one of obsidian-wiki's, reports
+  `skipped: ["the wiki memory"]` until the person installs uv or moves that skill: healthy otherwise, and say so.
 - Exit 0: nothing failed in what the run covered; 1: a step or a check failed; 2: bad arguments. The `memory.*`
   rows of a part named in `leftOut` (the wiki memory left out with `--without`, or by `--no-apps`) do not count,
   except a failing Obsidian signature, which always does: report those rows from `after.checks` all the same. A plan
@@ -77,7 +78,7 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   the SessionStart entry itself and a Stop entry is the person's hand edit. A `memory` item unavailable because a skill
   of the person's shares a name with one of obsidian-wiki's: pass the note on; never move or delete those skills
   yourself (obsidian-wiki's setup would delete them). Setup registers only the
-  SessionStart recap and leaves an existing config or vault as it is. A `memory` plan item that is `unavailable` names
+  SessionStart recap and leaves an existing vault as it is, and the config's keys other than the version. A `memory` plan item that is `unavailable` names
   why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
   person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
   note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files: ask the
@@ -112,7 +113,7 @@ reference names the format); never write one there for them.
   steps that need them in person (sign-ins, consents, secrets in hidden prompts). It is never empty after a
   first install: sign-ins and consents always remain.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
-  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing; each one's reason is in `humanSteps`. Tell the person, never call the
+  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing or a skill of the person's shares a name with one of obsidian-wiki's; each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its
