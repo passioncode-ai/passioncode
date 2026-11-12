@@ -196,8 +196,10 @@ async function main() {
     const when = typeof last.at === 'string' ? last.at.slice(0, 10) : 'an earlier session';
     // A release train this launcher cannot use is not repaired by plain setup (PC-89).
     // PC-147: failures setup cannot repair (an app whose folder this user cannot write) are shown by doctor alone.
-    const onlyBlocked = Array.isArray(last.failed) && Array.isArray(last.blocked) && last.failed.length > 0 && last.failed.every((x) => last.blocked.includes(x));
-    const someBlocked = Array.isArray(last.failed) && Array.isArray(last.blocked) && last.failed.some((x) => last.blocked.includes(x));
+    // PC-178: and failures no setup run repairs (`manual`: a failing wiki vault, an administrator's damaged Obsidian).
+    const stuck = [...(Array.isArray(last.blocked) ? last.blocked : []), ...(Array.isArray(last.manual) ? last.manual : [])];
+    const onlyBlocked = Array.isArray(last.failed) && last.failed.length > 0 && last.failed.every((x) => stuck.includes(x));
+    const someBlocked = Array.isArray(last.failed) && last.failed.some((x) => stuck.includes(x));
     const how = Array.isArray(last.failed) && last.failed.includes('train') ? 'setup --yes --no-apps --train none` (or a train this launcher ships) clears the unusable release train, `doctor'
       : onlyBlocked ? 'doctor' : someBlocked ? 'setup` repairs what it can, `doctor' : 'setup` repairs them, `doctor';
     // While the latest version is refused, or not yet checked, `@latest` would run it: name the installed one instead.
