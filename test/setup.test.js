@@ -3572,6 +3572,35 @@ test('PC-178: a state file that cannot be read does not stop the hook step; the 
   assert.deepEqual(wikiHooks(m), ['SessionStart']);
 });
 
+// Round 10 (PC-178): a relative XDG_CONFIG_HOME leaves the whole memory out, the install over a config and the repairs too
+// (ADR-0006 decision 12), not only the vault step: obsidian-wiki would read another config than the one the launcher found.
+test('PC-178: with a relative XDG_CONFIG_HOME setup installs and upgrades nothing of the memory, also over an existing config', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const legacy = (m) => {
+    fs.mkdirSync(path.join(m.home, '.obsidian-wiki'), { recursive: true });
+    fs.mkdirSync(path.join(m.home, 'Notes'), { recursive: true });
+    fs.writeFileSync(path.join(m.home, '.obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Notes')}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`);
+  };
+  // obsidian-wiki absent, a config present: no install.
+  const m = withMemory();
+  legacy(m);
+  m.env = { XDG_CONFIG_HOME: 'relative/config' };
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  const item = r.json.plan.find((i) => i.kind === 'memory');
+  assert.ok(!item || (item.unavailable && /XDG_CONFIG_HOME/.test(item.note)), JSON.stringify(item));
+  assert.ok(!toolLog(m).some((l) => /^uv tool install/.test(l)), toolLog(m).join('\n'));
+  // An older copy uv lists: no upgrade, no hook repair.
+  const n = machine({ tools: [...TOOLS, 'uv', 'obsidian-wiki'], memory: true });
+  giveWiki(n, '2026.10.2');
+  legacy(n);
+  n.env = { XDG_CONFIG_HOME: 'relative/config' };
+  const doc = await cli(n, api, 'doctor', '--json', '--offline');
+  assert.equal(row(doc, 'memory.wiki').repair, null);
+  const r2 = await cli(n, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.ok(!r2.json.plan.some((i) => i.kind === 'tool' || i.kind === 'hook'), JSON.stringify(r2.json.plan));
+  assert.ok(!toolLog(n).some((l) => /^uv tool install|^obsidian-wiki (list|setup)/.test(l)), toolLog(n).join('\n'));
+});
+
 test('PC-178: doctor names a relative XDG_CONFIG_HOME in its own memory row', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = withMemory();
