@@ -65,3 +65,24 @@ test('every strings.md row points at the line that holds its text', () => {
   assert.ok(checked > 10, 'rows with a file:line location were checked');
   assert.deepEqual(wrong, []);
 });
+
+// PC-178 round 15: every literal lib/memory.js prints (thrown, a failure, a receipt refusal, a row's detail or fix) has a
+// strings.md row covering its line, so an unregistered memory string fails here instead of in a reading.
+test('every printed string in lib/memory.js has a strings.md row', () => {
+  const rows = fs.readFileSync(path.join(ROOT, 'docs/brand/strings.md'), 'utf8').split(/\r?\n/)
+    .filter((l) => /^\| [a-z][\w.-]* \|/.test(l)).map((row) => {
+      const cells = row.split(' | ');
+      return { text: collapse(cells[1].replace(/\\\|/g, '|')), loc: cells[2] };
+    }).filter((r) => r.loc.startsWith('lib/memory.js:'));
+  const lines = fs.readFileSync(path.join(ROOT, 'lib/memory.js'), 'utf8').split(/\r?\n/);
+  const covered = new Set();
+  for (const r of rows) {
+    const from = Number(r.loc.split(':')[1]);
+    let end = from;
+    while (end < from + 19 && !collapse(lines.slice(from - 1, end).join('\n')).includes(r.text)) end += 1;
+    for (let n = from; n <= end; n++) covered.add(n);
+  }
+  const site = /(new Error\(|\bfail\(|\brefuse\(|\bdetail: |\bfix: )\s*[`'"]/;
+  const missing = lines.map((l, i) => (site.test(l) && !/^\s*(\/\/|\*)/.test(l) && !covered.has(i + 1) ? `lib/memory.js:${i + 1}: ${l.trim().slice(0, 90)}` : null)).filter(Boolean);
+  assert.deepEqual(missing, []);
+});

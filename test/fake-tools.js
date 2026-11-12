@@ -142,7 +142,7 @@ switch (tool) {
     const legacyDir = path.join(home, '.obsidian-wiki');
     const config = path.join((() => { try { return fs.statSync(legacyDir).isDirectory(); } catch (_) { return false; } })() && !fs.existsSync(xdgDir) ? legacyDir : xdgDir, 'config');
     // The installed package (as obsidian_wiki/_data): its bundled skills and hooks, made on first use.
-    const pkg = path.join(state, 'pkg', '_data');
+    const pkg = path.join(state, 'pkg', 'obsidian_wiki', '_data');
     // $FAKE_WIKI_PKG_DROP: a name the package does not bundle (an older release).
     const NAMES = catalog.WIKI.skills.filter((n) => n !== process.env.FAKE_WIKI_PKG_DROP);
     if (!fs.existsSync(pkg)) {
@@ -213,7 +213,8 @@ switch (tool) {
       if (process.env.FAKE_WIKI_LOCK_PARENT) fs.chmodSync(path.dirname(vault), 0o555);
       if (process.env.FAKE_WIKI_SETUP_FAIL && !['late', 'after-skills'].includes(process.env.FAKE_WIKI_SETUP_FAIL)) { err('error: setup failed'); process.exit(1); }
       fs.mkdirSync(path.dirname(config), { recursive: true });
-      fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
+      // As the real write_config: the package's _data folder too (round 15, R14).
+      fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_REPO="${pkg}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
       fs.writeFileSync(path.join(path.dirname(config), 'WRITING.md'), '# Writing profile\n'); // ensure_global_writing_profile
       // $FAKE_WIKI_LOCK_CONFIG: the config folder turns unlistable before the failure (round 13, R8).
       if (process.env.FAKE_WIKI_LOCK_CONFIG) fs.chmodSync(path.dirname(config), 0o300);

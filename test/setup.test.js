@@ -2508,7 +2508,7 @@ test('PC-178: setup --yes installs Obsidian, checked by its own chain, and the w
   assert.match(row(r, 'memory.obsidian.signature').detail, new RegExp(`its Developer ID team is ${OB.team}`));
   assert.equal(row(r, 'memory.hooks.stop'), undefined);
   // The vault it made is named to open in Obsidian; Obsidian's general guide gives way to it.
-  assert.ok(r.json.humanSteps.includes(`Open the wiki vault ${vault} in Obsidian once (Open folder as vault) to read what your agents remember.`), JSON.stringify(r.json.humanSteps));
+  assert.ok(r.json.humanSteps.includes(`Open the wiki vault ${vault} in Obsidian once to read what your agents remember: choose Open folder as vault, press Cmd+Shift+G and paste ${vault}.`), JSON.stringify(r.json.humanSteps));
   assert.ok(!r.json.humanSteps.includes(OB.guide), JSON.stringify(r.json.humanSteps));
   assert.ok(r.json.humanSteps.some((s) => /^Restart your coding agents/.test(s)), JSON.stringify(r.json.humanSteps));
   // obsidian-wiki's setup made ~/.gemini/skills: a folder of skills only is not Gemini CLI, so nothing is registered there.
@@ -2819,7 +2819,7 @@ test('PC-178: a run that made a vault names it to open in Obsidian, also when Ob
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'memory');
   assert.equal(r.status, 0, r.stdout);
   assert.ok(!r.json.actions.some((a) => a.product === 'obsidian'), 'Obsidian was there');
-  assert.ok(r.json.humanSteps.includes(`Open the wiki vault ${vaultOf(m)} in Obsidian once (Open folder as vault) to read what your agents remember.`), JSON.stringify(r.json.humanSteps));
+  assert.ok(r.json.humanSteps.includes(`Open the wiki vault ${vaultOf(m)} in Obsidian once to read what your agents remember: choose Open folder as vault, press Cmd+Shift+G and paste ${vaultOf(m)}.`), JSON.stringify(r.json.humanSteps));
 });
 
 test('PC-178: Obsidian\'s version is the newer of its bundle and the app it updated itself to; an outdated one is information, never replaced', { skip: MAC_SIM }, async (t) => {

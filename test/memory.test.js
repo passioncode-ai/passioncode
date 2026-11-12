@@ -82,7 +82,7 @@ function sandbox(t, { version = M.PIN, vault = true, hooks = ['SessionStart'], e
   fs.mkdirSync(path.dirname(settings), { recursive: true });
   const doc = { hooks: {} };
   // The fake's package holds the scripts (made on its first call); the command names them where they are.
-  for (const ev of hooks) doc.hooks[ev] = [{ matcher: '', hooks: [{ type: 'command', command: `bash "${path.join(state, 'pkg', '_data', 'hooks', SCRIPTS[ev])}"` }] }];
+  for (const ev of hooks) doc.hooks[ev] = [{ matcher: '', hooks: [{ type: 'command', command: `bash "${path.join(state, 'pkg', 'obsidian_wiki', '_data', 'hooks', SCRIPTS[ev])}"` }] }];
   fs.writeFileSync(settings, JSON.stringify(doc));
   const vaultDir = path.join(home, 'Wiki');
   if (vault) {
@@ -211,7 +211,7 @@ test('PC-178: a clash is any entry of a bundled skill name in obsidian-wiki\'s g
   const s = sandbox(t);
   const bin = path.join(s.bin, 'obsidian-wiki');
   M.hookState(bin); // the fake makes its package on first use
-  const pkgSkills = path.join(s.state, 'pkg', '_data', 'skills');
+  const pkgSkills = path.join(s.state, 'pkg', 'obsidian_wiki', '_data', 'skills');
   const agents = path.join(s.home, '.agents', 'skills');
   fs.mkdirSync(path.join(agents, 'skill-creator'), { recursive: true });
   fs.writeFileSync(path.join(agents, 'skill-creator', 'SKILL.md'), 'mine');
@@ -226,7 +226,8 @@ test('PC-178: a clash is any entry of a bundled skill name in obsidian-wiki\'s g
   assert.deepEqual(M.clashes(s.home, bin).sort(), [path.join(agents, 'llm-wiki'), path.join(agents, 'skill-creator'), path.join(agents, 'wiki-lint'), path.join(s.home, '.codex', 'skills', 'wiki-lint')].sort());
   // Before obsidian-wiki is installed, the pinned list stands in (and only a link into an obsidian_wiki package is its own).
   const withBin = M.clashes(s.home, bin).sort();
-  assert.deepEqual(M.clashes(s.home, null).sort(), [...withBin, path.join(agents, 'wiki-update')].sort());
+  // The fake package sits in an obsidian_wiki/_data folder as the real one does (round 15, R14): the link into it is its own.
+  assert.deepEqual(M.clashes(s.home, null).sort(), withBin);
 });
 
 // Round 7.
@@ -421,7 +422,7 @@ test('PC-178: uv\'s receipt refuses a quoted key even when the launcher knows it
 
 test('PC-178: an entry without type "command" is not a registered SessionStart hook', { skip: SH }, (t) => {
   const s = sandbox(t, { hooks: [] });
-  const cmd = `bash "${path.join(s.state, 'pkg', '_data', 'hooks', 'wiki-session-recap.sh')}"`;
+  const cmd = `bash "${path.join(s.state, 'pkg', 'obsidian_wiki', '_data', 'hooks', 'wiki-session-recap.sh')}"`;
   fs.writeFileSync(s.settings, JSON.stringify({ hooks: { SessionStart: [{ matcher: '', hooks: [{ command: cmd }] }] } }));
   assert.equal(M.present(s.home).hook, false);
   M.hook({ home: s.home });
@@ -594,12 +595,16 @@ test('PC-178: a config with a line break obsidian-wiki reads differently, or a b
   delete process.env.FAKE_TOOLS_QUIET;
   const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
   const v = s.vaultDir;
-  const breaks = /with Windows line endings or a line break obsidian-wiki reads differently/;
+  const breaks = /with Windows line endings, a control character or a line break obsidian-wiki reads differently/;
   for (const [text, form] of [
     [`# a\rOBSIDIAN_VAULT_PATH = "${v}"\r`, breaks],
     [`OBSIDIAN_VAULT_PATH="${v}"\r\nOBSIDIAN_WIKI_VERSION="2026.10.2"\r\n`, breaks],
     [`OBSIDIAN_VAULT_PATH="${v} x"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, breaks],
     ...['\v', '\f', '\x1c', '\x1d', '\x1e', '\x85', ' '].map((c) => [`OBSIDIAN_VAULT_PATH="${v}"\n#${c}\n`, breaks]),
+    // Round 15: \x1f, which Python's strip() takes for whitespace, before a key or before its =; any other C0 control.
+    [`\x1fOBSIDIAN_VAULT_PATH="${v}"\n`, breaks],
+    [`OBSIDIAN_VAULT_PATH\x1f="${v}"\n`, breaks],
+    [`OBSIDIAN_VAULT_PATH="${v}"\n#\x00\x07\x1b\n`, breaks],
     [`﻿OBSIDIAN_VAULT_PATH="${v}"\n`, /starts with a byte order mark: save it without one/],
   ]) {
     fs.writeFileSync(config, text);
@@ -661,4 +666,75 @@ test('PC-178: doctor --json keeps every clashing entry while the detail names fi
   const c = s.rows().find((r) => r.id === 'memory.wiki.clash');
   assert.equal(c.entries.length, 8);
   assert.ok(/, and 3 more$/.test(c.detail), c.detail);
+});
+
+// Round 15 (PC-178).
+test('PC-178: with uv absent, a package in uv\'s own tool folder or beside uv\'s record is uv\'s, not the person\'s', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const tools = path.join(s.home, '.local', 'share', 'uv', 'tools');
+  const inUv = path.join(tools, 'obsidian-wiki', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+  fs.mkdirSync(inUv, { recursive: true });
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="${inUv}"\n`);
+  assert.equal(M.personalCopy(s.home, null), null);
+  // Elsewhere, but its tool folder holds uv's record: uv's too.
+  const other = path.join(s.home, 'tools', 'obsidian-wiki');
+  const pkg = path.join(other, 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+  fs.mkdirSync(pkg, { recursive: true });
+  fs.writeFileSync(path.join(other, 'uv-receipt.toml'), '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="${pkg}"\n`);
+  assert.equal(M.personalCopy(s.home, null), null);
+});
+
+test('PC-178: the person\'s package path may start with ~ or end with /; a relative one is a config form', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const pkg = path.join(s.home, 'venv', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+  fs.mkdirSync(pkg, { recursive: true });
+  for (const repo of ['~/venv/lib/python3.12/site-packages/obsidian_wiki/_data', `${pkg}/`]) {
+    fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="${repo}"\n`);
+    assert.equal(M.configForm(s.home), null, repo);
+    assert.equal(M.personalCopy(s.home, null), fs.realpathSync(pkg), repo);
+  }
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="venv/lib/python3.12/site-packages/obsidian_wiki/_data"\n`);
+  assert.equal((M.configForm(s.home) || {}).form, 'as a relative path');
+  assert.equal(M.personalCopy(s.home, null), null);
+});
+
+test('PC-178: uv\'s record beside the person\'s own package gives the same step in doctor, the plan and the install', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  fs.rmSync(path.join(s.state, 'version'));
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+  const pkg = path.join(s.home, 'venv', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+  fs.mkdirSync(pkg, { recursive: true });
+  fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="${pkg}"\n`);
+  assert.ok(/installed by uv but does not run/.test(s.rows().find((r) => r.id === 'memory.wiki').detail));
+  assert.ok(/installed by uv but does not run/.test(M.needs(s.home, path.join(s.home, 'New'), 'linux').note || ''));
+  assert.throws(() => M.install({ home: s.home, vault: path.join(s.home, 'New'), claude: { here: false }, NPX }), /installed by uv but does not run/);
+});
+
+test('PC-178: while a config line would be rewritten, every hooks row asks for it first, whoever made the vault', { skip: SH }, (t) => {
+  const plainFix = (f) => f.replace(`${M.NEVER}; `, '');
+  // A vault the launcher did not make.
+  const s = sandbox(t, { hooks: [] });
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`);
+  const h = s.rows().find((r) => r.id === 'memory.hooks');
+  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line memory\.vault\.config-form names; then /.test(plainFix(h.fix)), h.fix);
+  // A spaced vault line that names the launcher's vault.
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH = "${s.vaultDir}"\n`);
+  const k = s.rows(s.vaultDir).find((r) => r.id === 'memory.hooks');
+  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line/.test(plainFix(k.fix)) && k.repair === null, JSON.stringify(k));
+});
+
+test('PC-178: doctor --json lists each clash entry with its problem; the refresh step names the package path', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const name = require('../lib/catalog').WIKI.skills[0];
+  fs.mkdirSync(path.join(s.home, '.agents', 'skills', name), { recursive: true });
+  fs.writeFileSync(path.join(s.home, '.agents', 'skills', name, 'SKILL.md'), 'mine');
+  fs.symlinkSync(path.join(s.home, '.codex'), path.join(s.home, '.codex'));
+  const c = s.rows().find((r) => r.id === 'memory.wiki.clash');
+  assert.ok(c.entries.some((e) => e.problem === 'clash' && e.path.endsWith(name)), JSON.stringify(c.entries));
+  assert.ok(c.entries.some((e) => e.problem === 'unreadable' && e.code === 'ELOOP' && /\.codex/.test(e.path)), JSON.stringify(c.entries));
+  assert.match(M.REFRESH, /records the installed version and package path/);
 });
