@@ -69,8 +69,10 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   new vault in `~/Documents/Wiki` (or `--wiki-vault <dir>`) when the person has no obsidian-wiki config, and Obsidian on
   a Mac. Never run `obsidian-wiki setup` or `obsidian-wiki hooks install` yourself: setup registers only the
   SessionStart recap and leaves an existing config or vault as it is. A `memory` plan item that is `unavailable` names
-  why in `note` (no uv: install it from the page the note names, then run setup again; a folder that holds files: ask
-  the person for another and pass `--wiki-vault`). A `memory.hooks.stop` row is the person's choice: report it, never
+  why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
+  person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
+  note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files: ask the
+  person for another and pass `--wiki-vault`. A `memory.hooks.stop` row is the person's choice: report it, never
   remove it without their word.
 - Only checking? `npx --yes @passioncode-ai/passioncode@latest doctor --json` changes nothing (apart from the launcher's
   anonymous counts).
@@ -132,8 +134,9 @@ Then run `doctor --json` again and report the change.
 - Never stop, kill or restart an app or a service by hand. Apps start when opened; a service's
   supervisor (launchd, or this machine's app supervisor if it has one) owns it. A command or a
   machine rule that says how apps start wins over `open`.
-- Never download an app another way, and never pipe a downloaded script into a shell. The command verifies the signed
-  checksums, the Developer ID team and Apple's notarization; a hand download skips all three.
+- Never download an app another way, and never pipe a downloaded script into a shell. For PassionCode.ai apps the
+  command verifies the signed checksums, the Developer ID team and Apple's notarization; for Obsidian, GitHub's digest,
+  Obsidian's own Developer ID team and Apple's notarization. A hand download skips them.
 - Never run setup with sudo and never ask for an administrator's password: apps go into the person's own
   `~/Applications`; a folder they cannot write is named in `blocked`, and you pass its note on.
 - Never replace an app the person is running. The result says "quit X, then run setup"; pass that on.

@@ -29,36 +29,54 @@ project, after every turn, to write into the vault. On the operator's machine th
    `xcrun stapler validate`, and pass `spctl --assess --type execute` with `source=Notarized Developer ID`. A failure
    installs nothing. Trust rests on Apple's notarization and the pinned team; GitHub's digest protects the transfer
    only, since whoever can publish the release sets it. A release train pins PassionCode.ai apps only, so Obsidian
-   follows its latest release (it also updates itself inside the app). Other systems: `doctor` names
-   https://obsidian.md/download, and setup installs no Obsidian.
+   follows its latest release. Obsidian updates itself inside the app (a newer `obsidian-<x.y.z>.asar` in
+   `~/Library/Application Support/obsidian`) and keeps its bundle's version as the installer's, so its version is the
+   newer of the two, and an older one is information only: the launcher never replaces a person's working Obsidian for
+   a version. It reinstalls only a copy of this user's own whose signature or team fails. A copy an administrator
+   installed in `/Applications` (owned by root) is this user's Obsidian too: no second copy is installed. Other
+   systems: `doctor` names https://obsidian.md/download, and setup installs no Obsidian.
 2. **obsidian-wiki is a tool pinned by the launcher release**, like the skills (`family.json`), not by a train:
    `catalog.WIKI.pin`, `2026.11.4` at this decision. It is installed with `uv tool install obsidian-wiki==<pin>`, and an
    older one is brought up with `uv tool install --force obsidian-wiki==<pin>` only when `uv tool list` shows uv
-   installed it (a copy another tool installed is named, not replaced). A newer one is left alone. Without `uv` on
-   PATH (or where uv's installer puts it), setup names a step: install uv from its documented page
-   (https://docs.astral.sh/uv/getting-started/installation/); the launcher never runs `curl | sh`.
+   installed it, that is when the copy found first on PATH is the one in uv's tool folder (a copy pip or pipx put first
+   on PATH is named, `memory.wiki.shadow`, never replaced under it). Right after that upgrade setup runs
+   `obsidian-wiki list`: any ordinary command runs obsidian-wiki's stale refresh, which records the new version in the
+   config and refreshes the skills it linked, keeping every other key (2026.11.4 `_check_stale`), so the setup-version
+   warning never follows the launcher's own upgrade. A newer one is left alone. Without uv, setup names a step: with
+   Homebrew, `brew install uv` (an agent runs it; the launcher does not); without, a person runs the installer uv's page
+   names (https://docs.astral.sh/uv/getting-started/installation/), never piped into a shell by an agent. Without git
+   (on macOS `xcode-select -p` is asked first, so no install dialog opens), the vault is not offered either.
 3. **A vault only for a user who has none.** When neither `~/.obsidian-wiki/config` nor
    `$XDG_CONFIG_HOME/obsidian-wiki/config` (default `~/.config/obsidian-wiki/config`, where 2026.11 writes) exists,
    setup makes the vault: `~/Documents/Wiki`, or the folder `--wiki-vault` names (absolute); `git init -b main` in it
    when it has no `.git`; `obsidian-wiki setup --no-hooks --vault <dir>` with no terminal (its own questions are skipped);
-   then, where Claude Code is (`~/.claude`), `obsidian-wiki hooks install --only SessionStart`: the read-only recap of the
-   vault at session start. A folder that already holds files is never made a vault: the plan names it and asks for
-   `--wiki-vault`. An existing config or vault is left exactly as it is: the launcher never runs `obsidian-wiki setup`
-   over a config (the operator's decision records that it rewrote a person's custom keys).
+   then, where Claude Code is installed (its CLI answers, as `doctor` finds it) and reads `~/.claude/settings.json`,
+   `obsidian-wiki hooks install --only SessionStart`: the read-only recap of the vault at session start. obsidian-wiki
+   writes its hooks only to that literal file; where `CLAUDE_CONFIG_DIR` names another folder no hook is registered and
+   `doctor` says so as information. A vault step that fails removes what the launcher made (a folder it made, the `.git`
+   it made, a config the failed step wrote; a folder that was there, empty, stays as it was), so the next run starts
+   again. The vault the launcher made is remembered in `~/.passioncode/state.json` (`wiki`), and only for it does setup
+   register a missing SessionStart hook again. A folder that already holds files is never made a vault: the plan names
+   it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is: the launcher never runs
+   `obsidian-wiki setup` over a config, which rewrites the config.
 4. **The Stop hook is never the launcher's.** Setup never registers it and never removes one someone registered;
    `doctor` names it as information (`memory.hooks.stop`), with its machine-wide effect and the person's choice
    (`gate: consent`) to remove it with `obsidian-wiki hooks uninstall --only Stop`. Hints `doctor` passes on from
-   `obsidian-wiki doctor` are made safe the same way: `obsidian-wiki setup` gains `--no-hooks`, `hooks install` gains
-   `--only SessionStart`.
+   `obsidian-wiki doctor` are made safe: a hint that runs `obsidian-wiki setup` is never passed on over a config (the
+   setup-version one becomes `obsidian-wiki list`, the stale refresh; "X or re-run setup" keeps X), and `hooks install`
+   gains `--only SessionStart`.
 5. **`doctor` reads the memory** (area `memory`): Obsidian (installed, version against its latest, signature and team,
    a copy in `/Applications` left as it is), obsidian-wiki (found by name on PATH or where uv puts it, version against
    the pin, a warning when it is not on PATH), the config and vault (`obsidian-wiki doctor --json`: its `fail` is a
    failure, its `warn` a warning, with the names of the checks that fail), and the hooks (SessionStart registered or
-   not, Stop as above). Each fix carries `gate` per PC-171: null wherever an agent can do it.
+   not, Stop as above). Each fix carries `gate` per PC-171: null wherever an agent can do it. A failure no setup run
+   repairs (obsidian-wiki's own `fail`, an administrator's damaged Obsidian) stays a failure and is listed in
+   `doctor.json` `manual`, so the session-start line sends the person to `doctor`, not to `setup`.
 6. **Selection.** The memory is offered by default with the apps (`--yes` takes it); `--with` and `--without` take
    `obsidian`, `wiki`, and `memory` for both; `--no-apps` leaves the memory out too, and so does a saved release train
-   this launcher cannot use (setup installs nothing new until the train is usable). `doctor --fix` never makes a vault
-   or installs obsidian-wiki; it brings an older one up to the pin.
+   this launcher cannot use (setup installs nothing new until the train is usable): under them setup runs no memory
+   action at all, the upgrade and the hook included. `doctor --fix` never makes a vault or installs obsidian-wiki; it
+   brings an older one up to the pin and registers a missing hook of the vault the launcher made.
 7. **An agent folder that holds only skill folders is not that agent.** `obsidian-wiki setup` makes `skills` folders for
    every agent it knows (`~/.codex/skills`, `~/.gemini/skills`, and more), so the launcher no longer counts a folder that
    holds nothing but `skills` (and Gemini's `antigravity`) as Codex, Gemini or Kimi being installed, and registers no MCP
@@ -69,8 +87,15 @@ project, after every turn, to write into the vault. On the operator's machine th
 - One `setup` gives a new machine a working wiki memory: the tool, its skills in each agent's own folder (written by
   obsidian-wiki's setup, its own channel, never by the launcher), a vault that is a Git repository, the session-start
   recap in Claude Code, and Obsidian to read it.
-- The launcher now trusts one vendor beyond PassionCode.ai: Dynalist Inc.'s Developer ID and Apple's notarization for
-  Obsidian, and PyPI (through uv) for obsidian-wiki at a pinned version. A new pin is a launcher release.
-- `setup` runs `uv`, `git` and `obsidian-wiki` (each with no terminal, each capped in time); `doctor` runs
-  `obsidian-wiki --version`, `doctor --json` and `hooks status --json`, which read only.
+- The launcher now has three trust roots. PassionCode.ai apps: the release key's signed `SHA256SUMS`, team
+  `KJ35UYYL22` and notarization (ADR-0004). Obsidian: Dynalist Inc.'s Developer ID team `6JSW4SJWN9` and Apple's
+  notarization, with GitHub's asset digest guarding only the transfer. obsidian-wiki: PyPI through uv, pinned by
+  version, not by hash (uv may fetch a Python to run it). A new pin is a launcher release.
+- obsidian-wiki's setup creates skills folders for agents that are not installed (`~/.codex/skills`, `~/.gemini/skills`,
+  `~/.hermes/skills` and more). The launcher links the set's member skills into every such channel folder it finds
+  (`lib/launcher.js` `CHANNELS`), so after the memory is set up the member skills are linked there too. This is kept on
+  purpose: changing which folders count as channels would stop link updates on machines that rely on them. Only the MCP
+  registration and `doctor`'s agent list ignore a folder that holds nothing but skills (decision 7).
+- `setup` runs `uv`, `git` (after `xcode-select -p` on macOS) and `obsidian-wiki` (each with no terminal, each capped in
+  time); `doctor` runs `obsidian-wiki --version`, `doctor --json` and `hooks status --json`, which read only.
 - `uninstall` and `restore` leave the memory alone: the tool, the vault and its hook are the person's once made.

@@ -287,7 +287,7 @@
   1. Run setup with the train. The plan names each app's pinned release instead of its latest.
   2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
   3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
-- **Expected result:** Every installed app the train pins is at its pinned version, unless its folder or the app itself is not this user's to replace (SCN-017: the run names it in `blocked`, "Not installed or replaced: ..."); `doctor` says how many are.
+- **Expected result:** Every installed app the train pins is at its pinned version (a train pins PassionCode.ai apps only: Obsidian follows its latest release and obsidian-wiki the launcher's own pin, SCN-018), unless its folder or the app itself is not this user's to replace (SCN-017: the run names it in `blocked`, "Not installed or replaced: ..."); `doctor` says how many are.
 - **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (when it names a train other than the saved one, its last item is "save release train <name>", followed only by Claude Code's tool rules while they are offered, PC-117) and saves nothing; without a terminal and without `--yes`, a plan whose only item is the train closes with "Run it with --yes, or in a terminal, to apply.", since a terminal then asks nothing and saves the train at once (while Claude Code's tool rules are offered a terminal asks about them, so it closes with the questions footer, PC-117); a yes to the tool rules alone is a run the person agreed to, so it saves a named train with them; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), the report lists no plan under its headline, and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup` (and `setup --train <name> --with fabric` for Fabric without its prerequisites); `--train none` in a terminal is saved on any answer, and when the repairs are answered no, the steps name `setup` where a failing or warning check's own fix names it.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
@@ -390,21 +390,34 @@
 - **Expected result:** obsidian-wiki 2026.11.4 is installed with uv; `~/Documents/Wiki` is a new vault and a Git
   repository; Claude Code starts the next session with the vault's recap (obsidian-wiki's SessionStart hook) and no
   Stop hook; on a Mac, Obsidian is in this user's `~/Applications`, its image matched GitHub's digest and the app carries
-  team `6JSW4SJWN9`, its ticket and Gatekeeper's yes; the steps name the restart and the vault to open. `doctor`'s
-  `memory` rows read ok.
+  team `6JSW4SJWN9`, its ticket and Gatekeeper's yes; the steps name the restart and the vault to open in Obsidian
+  ("Open the wiki vault <dir> in Obsidian once (Open folder as vault) ..."), also when Obsidian was installed before.
+  `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
   are; an older obsidian-wiki that uv installed is brought up to the pin with `uv tool install --force` (also by
   `doctor --fix`), never with `obsidian-wiki setup`. `--wiki-vault <dir>` puts a new vault elsewhere; `--without memory`
-  (or `obsidian`, `wiki`) and `--no-apps` leave it out. On Linux and Windows setup installs no Obsidian and `doctor`
-  names its download page; obsidian-wiki is still installed where uv is.
+  (or `obsidian`, `wiki`) and `--no-apps` leave it out, the upgrade included. On Linux and Windows setup installs no
+  Obsidian and `doctor` names its download page; obsidian-wiki is still installed where uv is. Obsidian updates itself
+  inside the app: an older version is information, and setup never replaces a working copy for it (only a damaged copy
+  of this user's own); a copy an administrator installed in `/Applications` is used as this user's, with no second copy.
+  Where Claude Code reads another folder (`CLAUDE_CONFIG_DIR`), no hook is registered (obsidian-wiki writes only
+  `~/.claude/settings.json`) and `doctor` says so; where Claude Code is not installed, no hook is offered.
 - **UI elements:** the plan's `memory` and Obsidian `install` lines, the memory question, `doctor`'s `memory` section
 - **States covered:** empty, success, partial, error
-- **Errors & recovery:** No uv: the memory is not offered and the steps name uv's page ("The wiki memory: needs uv:
-  ..."); everything else is set up. A `~/Documents/Wiki` that holds files is never written: the steps name
+- **Errors & recovery:** No uv: the memory is not offered and the steps name how to get it ("The wiki memory: needs uv:
+  brew install uv, ..." where Homebrew is, else "a person installs it with the installer its page names"); no git: the
+  same, naming Apple's command line tools on a Mac (`xcode-select -p` is asked first, so no install dialog opens);
+  everything else is set up. A vault step that fails (uv, git or obsidian-wiki's own setup) fails the run and leaves
+  nothing the launcher made, so the next `setup` starts again. On a new Mac uv's `~/.local/bin` may not be on the
+  shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
+  `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
+  vault the launcher made is registered again by the next `setup` or `doctor --fix`. A `~/Documents/Wiki` that holds files is never written: the steps name
   `--wiki-vault`. An Obsidian image that differs from GitHub's digest, carries another team (PassionCode.ai's own
   included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
-  failure with its check names; a Stop hook someone registered is an information row naming its effect on every session,
-  removed only by the person (`obsidian-wiki hooks uninstall --only Stop`).
+  failure with its check names, and the session-start line then names `doctor`, not `setup`, which cannot repair it; a
+  Stop hook someone registered is an information row naming its effect on every session, removed only by the person
+  (`obsidian-wiki hooks uninstall --only Stop`). No fix ever names `obsidian-wiki setup` over a config: after an upgrade
+  the version setup recorded is refreshed by `obsidian-wiki list`, keeping every other key.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`.
+- **Coverage:** `test/setup.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`, `test/catalog.test.js` test beginning `PC-178: an administrator`, `test/self-update.test.js` test beginning `session start names the failures`.
 - **Product:** unobserved

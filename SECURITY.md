@@ -49,7 +49,9 @@ server for one proving call and stops it (never Fabric's, which enrols a session
 release cache, apart from the anonymous counts below that every command sends while they are on (`~/.passioncode/analytics.json`,
 its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to
 `https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
-it reads Obsidian's `Info.plist` and signature like an app's, runs `uv --version` and `uv tool list`, and runs
+it reads Obsidian's `Info.plist` and signature like an app's and the names of the `obsidian-<version>.asar` files in
+`~/Library/Application Support/obsidian` (the version Obsidian updated itself to), runs `uv --version` and
+`brew --version`, and runs
 `obsidian-wiki --version`, `obsidian-wiki doctor --json` and `obsidian-wiki hooks status --json`, which read the
 person's obsidian-wiki config, vault and Claude Code hooks and change nothing; doctor prints only check names, states,
 details and hints, never a page of the vault.
@@ -80,15 +82,24 @@ ID team `6JSW4SJWN9`, the stapled ticket and Gatekeeper: Obsidian publishes no s
 package from PyPI; and, for a user with no obsidian-wiki config, makes the vault folder (`~/Documents/Wiki` or
 `--wiki-vault`, never one that holds files), runs `git init -b main` in it, `obsidian-wiki setup --no-hooks --vault <dir>`
 with no terminal (which writes `~/.config/obsidian-wiki/config` and links obsidian-wiki's own skills into each agent's
-skills folder) and, where `~/.claude` exists, `obsidian-wiki hooks install --only SessionStart` (one entry in
-`~/.claude/settings.json`). It never registers or removes obsidian-wiki's Stop hook, never runs `obsidian-wiki setup` over
-an existing config, and never runs an installer script from the network (no uv on the machine is a step for the person
-or their agent). `uninstall` and `restore` leave the memory as it is. It never
+skills folder, creating that folder for agents that are not installed too, where the set's own skills are then linked
+like any agent's skills folder) and, where Claude Code is installed, `obsidian-wiki hooks install --only SessionStart` (one
+entry in the literal `~/.claude/settings.json`, whatever `CLAUDE_CONFIG_DIR` names: where Claude Code reads another folder
+the hook is not registered and `doctor` says so). A vault step that fails removes what it made (the folder, its `.git`,
+the config). An older obsidian-wiki is brought up with `uv tool install --force` and then `obsidian-wiki list`, whose stale
+refresh records the new version and keeps every other key of the config. It never registers or removes obsidian-wiki's
+Stop hook, never runs `obsidian-wiki setup` over an existing config (setup rewrites the config), never replaces a working
+Obsidian for its version, and never runs an installer script from the network (a missing uv is `brew install uv` where
+Homebrew is, else a person's step with uv's installer). `uninstall` and `restore` leave the memory as it is. It never
 stops or kills a process, never replaces an app that is running for this user (another user's process running from
 this user's copy does not count, PC-151; that user restarts it, PC-149), never asks for or stores a secret, and
-never installs a byte whose signature, checksum, team or notarization does not verify. The trust
+never installs a PassionCode.ai app whose signature, checksum, team or notarization does not verify. Their trust
 root is the release key bundled at `lib/release-key.asc`, pinned by fingerprint in
-`lib/openpgp.js`; a new key needs a launcher release. `PASSIONCODE_RELEASE_KEY` replaces it for
+`lib/openpgp.js`; a new key needs a launcher release. The agents' wiki memory has two trust roots of its own (PC-178,
+[ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md)): Obsidian is trusted through its Developer ID team
+`6JSW4SJWN9` and Apple's notarization, with GitHub's asset digest guarding only the transfer (whoever publishes the
+release sets it); obsidian-wiki comes from PyPI through uv, pinned by version, not by hash, and uv may fetch a Python to
+run it. `PASSIONCODE_RELEASE_KEY` replaces it for
 tests and is named in setup's output whenever it is set.
 
 ## What `permissions` changes
