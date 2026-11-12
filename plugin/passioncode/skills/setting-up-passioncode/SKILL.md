@@ -72,10 +72,11 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   without them it is offered, not installed; say so.
 - The agents' wiki memory (PC-178) comes with the apps: obsidian-wiki at the launcher's pin, installed with uv, a
   new vault in `~/Documents/Wiki` (or `--wiki-vault <dir>`) when the person has no obsidian-wiki config, and Obsidian on
-  a Mac. Never run `obsidian-wiki setup` or a bare `obsidian-wiki hooks install` yourself; the hooks commands a doctor row
-  may name are `obsidian-wiki hooks install --only SessionStart` and, as the person's choice on a Stop hook,
-  `obsidian-wiki hooks uninstall --only Stop`, and only where `~/.claude/settings.json` is not a link (a link: setup adds
-  the entry where it points, since obsidian-wiki's writer would replace the link with a plain file). Setup registers only the
+  a Mac. Never run `obsidian-wiki setup`, any `obsidian-wiki hooks install` or `hooks uninstall`, or its wiki-setup
+  skill yourself: obsidian-wiki's writer rewrites `~/.claude/settings.json` without its permission bits, so setup writes
+  the SessionStart entry itself and a Stop entry is the person's hand edit. A `memory` item unavailable because a skill
+  of the person's shares a name with one of obsidian-wiki's: pass the note on; never move or delete those skills
+  yourself (obsidian-wiki's setup would delete them). Setup registers only the
   SessionStart recap and leaves an existing config or vault as it is. A `memory` plan item that is `unavailable` names
   why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
   person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
