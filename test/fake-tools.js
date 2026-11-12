@@ -10,6 +10,10 @@
 // ps answers `-o uid= -p <pid>` from $FAKE_PS_UIDS and $FAKE_PS_UIDS_EXTRA (`pid=uid,pid=uid`), else fails.
 // A release "archive" is JSON { app, version, broken?, team? }; ditto and hdiutil unpack it into a
 // bundle whose MCP binary (catalog `mcp.bin`) is test/fake-mcp.js.
+// PC-178: uv and obsidian-wiki keep their state in $HOME/fake-wiki: `version` (what `uv tool install` installed, its
+// command written into $UV_TOOL_BIN_DIR), `hooks.json` (the hooks registered in Claude Code). obsidian-wiki's config is
+// $XDG_CONFIG_HOME (else $HOME/.config)/obsidian-wiki/config; `doctor --json` prints $FAKE_WIKI_DOCTOR's file when set.
+// $FAKE_UV_FAIL and $FAKE_WIKI_SETUP_FAIL make those commands fail.
 const fs = require('fs');
 const path = require('path');
 const catalog = require('../lib/catalog');
@@ -85,6 +89,61 @@ switch (tool) {
     const hit = [process.env.FAKE_PS_UIDS, process.env.FAKE_PS_UIDS_EXTRA].filter(Boolean).join(',').split(',').map((x) => x.split('=')).find(([p]) => p === pid);
     if (!hit) { err(`ps: process ${pid} not found`); process.exit(1); }
     out(`  ${hit[1]}`); process.exit(0);
+  }
+  case 'uv': {
+    if (args[0] === '--version') { out('uv 0.9.0'); process.exit(0); }
+    const state = path.join(home, 'fake-wiki');
+    if (args[0] === 'tool' && args[1] === 'list') { if (fs.existsSync(path.join(state, 'version'))) out(`obsidian-wiki v${fs.readFileSync(path.join(state, 'version'), 'utf8').trim()}\n- obsidian-wiki`); process.exit(0); }
+    if (args[0] === 'tool' && args[1] === 'install') {
+      if (process.env.FAKE_UV_FAIL) { err('error: Failed to download obsidian-wiki'); process.exit(2); }
+      const spec = args.find((a) => a.startsWith('obsidian-wiki=='));
+      if (!spec) { err('fake uv: only obsidian-wiki==<version>'); process.exit(2); }
+      const dir = process.env.UV_TOOL_BIN_DIR || path.join(home, '.local', 'bin');
+      fs.mkdirSync(state, { recursive: true });
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(state, 'version'), spec.split('==')[1]);
+      fs.writeFileSync(path.join(dir, 'obsidian-wiki'), `#!/bin/sh\nexec "${process.execPath}" "${__filename}" obsidian-wiki "$@"\n`, { mode: 0o755 });
+      out(`Installed 1 executable: obsidian-wiki`); process.exit(0);
+    }
+    process.exit(2);
+  }
+  case 'obsidian-wiki': {
+    const state = path.join(home, 'fake-wiki');
+    const version = (() => { try { return fs.readFileSync(path.join(state, 'version'), 'utf8').trim(); } catch (_) { return null; } })();
+    if (!version) process.exit(127); // not installed: the stub on PATH answers as a missing command does
+    const config = path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'obsidian-wiki', 'config');
+    const hooksFile = path.join(state, 'hooks.json');
+    const hooks = (() => { try { return JSON.parse(fs.readFileSync(hooksFile, 'utf8')); } catch (_) { return []; } })();
+    const saveHooks = (list) => fs.writeFileSync(hooksFile, JSON.stringify([...new Set(list)]));
+    const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
+    if (args[0] === '--version') { out(`obsidian-wiki ${version}`); process.exit(0); }
+    if (args[0] === 'setup') {
+      if (process.stdin.isTTY) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki setup ran on a terminal\n');
+      if (process.env.FAKE_WIKI_SETUP_FAIL) { err('error: setup failed'); process.exit(1); }
+      const vault = args[args.indexOf('--vault') + 1];
+      fs.mkdirSync(vault, { recursive: true });
+      fs.writeFileSync(path.join(vault, 'index.md'), '---\ntitle: Wiki Index\n---\n');
+      fs.mkdirSync(path.dirname(config), { recursive: true });
+      fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
+      // Like obsidian-wiki's own setup, it makes a skills folder for every agent it knows.
+      for (const d of ['.codex/skills', '.gemini/skills', '.gemini/antigravity/skills']) fs.mkdirSync(path.join(home, d), { recursive: true });
+      if (!args.includes('--no-hooks')) saveHooks([...hooks, 'SessionStart', 'Stop']);
+      out('Setup complete!'); process.exit(0);
+    }
+    if (args[0] === 'hooks' && args[1] === 'install') { saveHooks([...hooks, ...(only ? [only] : ['SessionStart', 'Stop'])]); process.exit(0); }
+    if (args[0] === 'hooks' && args[1] === 'uninstall') { saveHooks(hooks.filter((h) => only && h !== only)); process.exit(0); }
+    if (args[0] === 'hooks' && args[1] === 'status') {
+      out(JSON.stringify({ hooks: ['SessionStart', 'UserPromptSubmit', 'Stop'].map((event) => ({ event, registered: hooks.includes(event) })), reachability: { reachable: true, hint: '' } }));
+      process.exit(0);
+    }
+    if (args[0] === 'doctor') {
+      if (process.env.FAKE_WIKI_DOCTOR) { out(fs.readFileSync(process.env.FAKE_WIKI_DOCTOR, 'utf8')); process.exit(0); }
+      if (!fs.existsSync(config)) { out(JSON.stringify({ status: 'fail', checks: [{ name: 'global-config', status: 'fail', detail: `${config} missing`, hint: 'run: obsidian-wiki setup --vault /path/to/your/vault' }] })); process.exit(1); }
+      const vault = /OBSIDIAN_VAULT_PATH="([^"]*)"/.exec(fs.readFileSync(config, 'utf8'))[1];
+      out(JSON.stringify({ status: 'pass', checks: [{ name: 'vault-config', status: 'pass', detail: vault, hint: '' }, { name: 'session-hooks', status: 'info', detail: 'not registered (optional)', hint: 'run: obsidian-wiki hooks install' }] }));
+      process.exit(0);
+    }
+    process.exit(2);
   }
   default: err(`fake-tools: unknown ${tool}`); process.exit(127);
 }

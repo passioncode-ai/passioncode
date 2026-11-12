@@ -310,7 +310,7 @@ test('PC-108: on Windows a declined run changes nothing and keeps setup among th
   const reg = standInReg(home, REG);
   const script = `const S = require(${JSON.stringify(path.join(__dirname, '..', 'lib', 'setup'))});
     const asked = [];
-    S.setup({ online: false, ask: async (q) => { asked.push(q); return 'n'; } })
+    S.setup({ withoutIds: ['memory'], online: false, ask: async (q) => { asked.push(q); return 'n'; } }) // PC-178: the memory has tests of its own
       .then((r) => process.stdout.write(JSON.stringify({ asked, declined: r.declined, actions: r.actions, steps: r.humanSteps, exit: S.exitCode(r), text: S.render(r) })), (e) => { console.error(e); process.exit(1); });`;
   const r = spawnSync(process.execPath, ['-e', script], {
     encoding: 'utf8',

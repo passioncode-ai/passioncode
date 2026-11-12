@@ -29,7 +29,7 @@ function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion
 
 const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
 
-  ${NPX} setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
+  ${NPX} setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--wiki-vault dir] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
   ${NPX} doctor [--fix] [--offline] [--json]     check everything (changes nothing but the anonymous counts); --fix repairs as setup does
   ${NPX} update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
@@ -44,23 +44,32 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
 onboard is another name for setup, install for update. --offline skips the check for newer app
 releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
 PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes
-never does either). App ids: switchboard, dashboards,
-observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
+never does either). App ids: switchboard, dashboards, observatory, inbox, fabric; the agents'
+wiki memory: obsidian, wiki, or memory for both (a new vault goes in ~/Documents/Wiki, or the
+folder --wiki-vault names). Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
 or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode"
 marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after
 a change.`;
 
-const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric'];
+const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric', 'obsidian', 'wiki', 'memory']; // PC-178: the wiki memory's
 
 /** Flags of setup and doctor: booleans, plus --with/--without taking a comma list. Null when invalid. */
 function parseSetupArgs(cmd, rest) {
   const allowed = cmd === 'doctor' ? ['--fix', '--json', '--offline'] : ['--yes', '-y', '--json', '--offline', '--no-apps', '--no-open', '--dry-run', '--allow-tools', '--allow-commands'];
-  const o = { flags: new Set(), withIds: null, withoutIds: [], train: undefined };
+  const o = { flags: new Set(), withIds: null, withoutIds: [], train: undefined, wikiVault: null };
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
     const m = /^--(with|without)(?:=(.*))?$/.exec(arg);
     const tr = /^--train(?:=(.*))?$/.exec(arg);
-    if (tr && cmd !== 'doctor') {
+    const wv = /^--wiki-vault(?:=(.*))?$/.exec(arg);
+    if (wv && cmd !== 'doctor') {
+      // PC-178: where a new wiki vault goes; an absolute folder, `~/` read as the home folder.
+      let value = wv[1] !== undefined ? wv[1] : rest[++i];
+      if (!value || o.wikiVault) return null;
+      if (value === '~' || value.startsWith('~/')) value = require('path').join(require('os').homedir(), value.slice(1));
+      if (!require('path').isAbsolute(value)) return null;
+      o.wikiVault = require('path').normalize(value);
+    } else if (tr && cmd !== 'doctor') {
       const value = tr[1] !== undefined ? tr[1] : rest[++i];
       if (!value || o.train !== undefined) return null;
       o.train = value === 'none' ? null : value; // PC-89: a release train's pinned versions instead of the latest
@@ -116,6 +125,7 @@ async function setupOrDoctor(cmd, rest) {
     noOpen: o.flags.has('--no-open'), dryRun: o.flags.has('--dry-run'), repairOnly, online, ask: json ? null : asker(), log, train: o.train,
     allowTools: o.flags.has('--allow-tools'),
     allowCommands: o.flags.has('--allow-commands'),
+    wikiVault: o.wikiVault,
   });
   process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : S.render(r, { repairOnly }) + '\n');
   return S.exitCode(r);
