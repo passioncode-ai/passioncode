@@ -11,7 +11,8 @@
   ticket and Gatekeeper's yes; it goes into `~/Applications` like the other apps. A user with no obsidian-wiki config
   gets a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
   repository, set up with `obsidian-wiki setup --no-hooks` and given only the SessionStart recap for Claude Code. An
-  existing config, vault or hook is left exactly as it is, and obsidian-wiki's Stop hook (it asks every session in every
+  existing config, vault or hook is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records
+  after an upgrade, every other key kept), and obsidian-wiki's Stop hook (it asks every session in every
   project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
   Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
   leaves nothing it made, so the next run starts again. Without uv the steps name `brew install uv` where Homebrew is,
@@ -19,7 +20,8 @@
   so no dialog opens). An older obsidian-wiki uv lists is brought up to the pin with `uv tool install --force`, then
   `obsidian-wiki list` records the new version and keeps every other key of the config (`doctor --fix` too); a copy
   another tool put first on PATH is named, never replaced. Obsidian updates itself inside the app, so an older version is
-  information and a working Obsidian is never replaced; an administrator's copy in `/Applications` is used as yours.
+  information and a working Obsidian is never replaced; a copy in `/Applications` that root owns (a package or MDM
+  install) counts as yours, while one another user dragged in stays theirs and you get your own.
   The run ends by naming the new vault to open in Obsidian (or Obsidian's download page where it is not installed).
   A missing SessionStart hook is registered again only for the vault setup made, while the config still names it; a
   memory part the run leaves out (`--without`, `--no-apps`) does not fail it (a damaged Obsidian signature always does;
@@ -27,7 +29,12 @@
   safe commands, or says what obsidian-wiki reports and the safe route. A newer obsidian-wiki, suffixed or not, is never
   taken back to the pin. A `~/.claude/settings.json` that is a link stays a link (the entry goes where it points), a
   copy of obsidian-wiki that uv does not list is never replaced by uv, and an XDG config folder that is a link to nothing
-  does not hide an older `~/.obsidian-wiki` config. `uninstall` says the memory stays, where any of it is installed. `--with` and `--without` take `obsidian`, `wiki` and
+  does not hide an older `~/.obsidian-wiki` config. obsidian-wiki's setup and its version refresh replace a skill of
+  the same name as one of theirs in every agent's global skills folder (it deleted a `skill-creator` on a real Mac), so
+  neither runs while a skill of yours shares a name: setup names each one for you to move or rename, and `doctor` shows
+  it. obsidian-wiki never writes Claude Code's settings file (its writer made it world-readable): the launcher adds the
+  SessionStart entry, keeping the file private. The upgrade keeps the extras and requirements uv recorded.
+  `uninstall` says which parts of the memory stay, where any of it is installed. `--with` and `--without` take `obsidian`, `wiki` and
   `memory`; `--no-apps` leaves the memory out, its upgrade included. obsidian-wiki's setup creates skills folders for
   agents that are not installed (`~/.codex/skills`, `~/.gemini/skills` and more), and the set's member skills are then
   linked into those folders as into any agent's.

@@ -58,7 +58,8 @@ project, after every turn, to write into the vault. On the operator's machine th
    setup makes the vault: `~/Documents/Wiki`, or the folder `--wiki-vault` names (absolute); `git init -b main` in it
    when it has no `.git`; `obsidian-wiki setup --no-hooks --vault <dir>` with no terminal (its own questions are skipped);
    then, where Claude Code is installed (its CLI answers, as `doctor` finds it) and reads `~/.claude/settings.json`,
-   `obsidian-wiki hooks install --only SessionStart`: the read-only recap of the vault at session start. obsidian-wiki
+   the SessionStart recap (the entry `obsidian-wiki hooks install --only SessionStart` writes, written by the launcher
+   since round 6, decision 9): the read-only recap of the vault at session start. obsidian-wiki
    writes its hooks only to that literal file; where `CLAUDE_CONFIG_DIR` names another folder no hook is registered and
    `doctor` says so as information. Where that file is a link (round 5), obsidian-wiki's writer (a temporary file and
    `os.replace`) would turn it into a plain file: obsidian-wiki then writes its entry into a throwaway home and the
@@ -69,19 +70,19 @@ project, after every turn, to write into the vault. On the operator's machine th
    again (a part it cannot remove is named, with what to do). The vault the launcher made is remembered in
    `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
    SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
-   it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is: the launcher never runs
+   it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records
+   after an upgrade, every other key kept): the launcher never runs
    `obsidian-wiki setup` over a config, which rewrites the config.
 4. **The Stop hook is never the launcher's.** Setup never registers it and never removes one someone registered;
    `doctor` names it as information (`memory.hooks.stop`), with its machine-wide effect and the person's choice
-   (`gate: consent`) to remove it with `obsidian-wiki hooks uninstall --only Stop`. Hints `doctor` passes on from
+   (`gate: consent`) to remove its entry by hand (decision 9). Hints `doctor` passes on from
    `obsidian-wiki doctor` are never relayed (round 4, 2026-11-12): a memory row's fix names only `obsidian-wiki list`
-   (the stale refresh, for the version setup recorded), `obsidian-wiki hooks install --only SessionStart`,
-   `obsidian-wiki hooks status --json`, `obsidian-wiki doctor --json`, `uv tool update-shell`, `brew install uv`, the
-   launcher's own `setup --with wiki` and `doctor`, the pip/pipx note, and the person's `hooks uninstall --only Stop`;
+   (the stale refresh, for the version setup recorded), `obsidian-wiki hooks status --json`, `obsidian-wiki doctor
+   --json`, `uv tool update-shell`, `brew install uv`, the launcher's own `setup --with wiki` and `doctor`, and the
+   pip/pipx note (round 6: no hooks writer, decision 9);
    every other check gets a fixed text that names what obsidian-wiki reports and the safe route, and says never
    `obsidian-wiki setup`, a bare `hooks install`, or its wiki-setup skill. Round 5: every fix that names an obsidian-wiki
-   command carries that "never" unless it is exactly `hooks install --only SessionStart` or `hooks uninstall --only Stop`
-   (the refresh step, the missing vault files, and the fixes that send an agent to `obsidian-wiki doctor --json` or
+   command carries that "never" (round 6: with no exception; the refresh step, the missing vault files, and the fixes that send an agent to `obsidian-wiki doctor --json` or
    `hooks status --json`, which say that its session-hooks line and `hooks status` exiting 1 for an unregistered Stop
    hook are expected); where the settings file is a link, the hook fixes are by hand. A test iterates every hint obsidian-wiki
    2026.11.4's doctor and hooks can give (`test/fixtures/obsidian-wiki-2026.11.4-hints.json`).
@@ -102,6 +103,31 @@ project, after every turn, to write into the vault. On the operator's machine th
    every agent it knows (`~/.codex/skills`, `~/.gemini/skills`, and more), so the launcher no longer counts a folder that
    holds nothing but `skills` (and Gemini's `antigravity`) as Codex, Gemini or Kimi being installed, and registers no MCP
    server there (`lib/launcher.js` `agentFolder`). An empty folder still counts, as before.
+8. **A skill of the person's is never replaced by obsidian-wiki's (round 6, 2026-11-12, seen in the field: a real
+   `obsidian-wiki setup` deleted the operator's `skill-creator` in `~/.agents/skills`).** obsidian-wiki's setup and its
+   version refresh (which any ordinary command, `list` included, runs after an upgrade) link its bundled skills (40 in
+   2026.11.4, `skill-creator` among them) into every agent's global skills folder (`cli.py` `install_skills`,
+   `GLOBAL_AGENT_DIRS`, and the Hermes profiles): a link or file of the same name is unlinked and a real folder holding
+   `SKILL.md` is removed with everything in it. Before the vault step and before the upgrade's `list`, the launcher reads
+   the bundled names from the package the found `obsidian-wiki` belongs to (through the hook scripts `hooks status
+   --json` names; the pinned list `catalog.WIKI.skills` before it is installed) and looks in each of those folders: an
+   entry of a bundled name that is not obsidian-wiki's own (a link into its package) is a clash, a real folder holding
+   `SKILL.md` included even when that `SKILL.md` is the package's (the operator's own `skill-creator` was one: the same
+   `SKILL.md`, another `LICENSE.txt`). With any clash the step does not run: the `memory` plan item is unavailable, or the `tool`
+   repair is not offered, with a note naming each entry, gate `consent`, and the fix to move or rename them, then run
+   setup again; `doctor` shows `memory.wiki.clash` (a warning). The launcher never moves, quarantines or deletes them.
+9. **obsidian-wiki never writes Claude Code's settings file (round 6).** Its writer (`Path.write_text` and `os.replace`)
+   makes `~/.claude/settings.json` `0644` and replaces a link with a plain file. `hook` always runs `obsidian-wiki hooks
+   install --only SessionStart` with a throwaway home and adds exactly the entry it wrote with the launcher's own writer
+   (`lib/permissions.js` `write`: through a link, keeping the file's permission bits, a new file private), after checking
+   that `hooks` is an object and `SessionStart` a list of groups (else nothing runs and the file stays as it is). No
+   `doctor` fix names `hooks install` or `hooks uninstall`: a Stop entry, or a SessionStart entry for a vault the launcher
+   did not make, is a hand edit.
+10. **The upgrade keeps what uv recorded (round 6).** `uv tool install --force` would drop a person's extras and `--with`
+    requirements; the launcher reads `uv-receipt.toml` in uv's tool folder (`uv tool dir`) and carries the extras and
+    requirements given by name, specifier and marker into the reinstall; one given as a URL, a path, a Git source or
+    editable stops the upgrade with its name. After `list`, the version the config records decides: anything but the pin
+    fails the step with the fixed text, while obsidian-wiki's missing-skills line does not.
 
 ## Consequences
 
@@ -120,3 +146,7 @@ project, after every turn, to write into the vault. On the operator's machine th
 - `setup` runs `uv`, `git` (after `xcode-select -p` on macOS) and `obsidian-wiki` (each with no terminal, each capped in
   time); `doctor` runs `obsidian-wiki --version`, `doctor --json` and `hooks status --json`, which read only.
 - `uninstall` and `restore` leave the memory alone: the tool, the vault and its hook are the person's once made.
+- obsidian-wiki's own `wiki-setup` skill stays installed with its other skills (it is the tool's feature). It is a known
+  path to `obsidian-wiki setup` over an existing config and to its Stop hook, guarded by the setting-up-passioncode skill
+  (never `obsidian-wiki setup`, a bare `hooks install`, or that skill) and by every `doctor` fix that names an
+  obsidian-wiki command; the upstream issue is PC-192.
