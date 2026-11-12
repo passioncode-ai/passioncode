@@ -31,12 +31,14 @@
   endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same way. Your own
   obsidian-wiki off the PATH (its package named in the config, outside uv's folder) is never installed over: `doctor`
   names it and the step to put its command folder on PATH. A new vault now goes in the hidden `~/.wiki`, never
-  `~/Documents` (which iCloud may sync). A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
+  `~/Documents` (which iCloud may sync); the step to open it names Cmd+Shift+G in Obsidian's folder picker and the
+  path. A config with any control character but tab and newline is refused like the line breaks above, and a relative
+  `OBSIDIAN_WIKI_REPO` is a config form. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
   With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual; `doctor` shows it as
   `memory.config`, and every other memory row that names `setup` asks for that step first. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
   so no dialog opens). An older obsidian-wiki uv lists is brought up to the pin with `uv tool install --force`, then
-  `obsidian-wiki list` (also right after installing obsidian-wiki over an existing config) records the new version and keeps every other key of the config (`doctor --fix` too); a copy
+  `obsidian-wiki list` (also right after installing obsidian-wiki over an existing config) records the new version and package path and keeps every other key of the config (`doctor --fix` too); a copy
   another tool put first on PATH is named, never replaced. Obsidian updates itself inside the app, so an older version is
   information and a working Obsidian is never replaced; a copy in `/Applications` that root owns (a package or MDM
   install) counts as yours, while one another user dragged in stays theirs and you get your own.
