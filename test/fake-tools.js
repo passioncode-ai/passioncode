@@ -130,7 +130,8 @@ switch (tool) {
     const config = path.join((() => { try { return fs.statSync(legacyDir).isDirectory(); } catch (_) { return false; } })() && !fs.existsSync(xdgDir) ? legacyDir : xdgDir, 'config');
     // The installed package (as obsidian_wiki/_data): its bundled skills and hooks, made on first use.
     const pkg = path.join(state, 'pkg', '_data');
-    const NAMES = catalog.WIKI.skills;
+    // $FAKE_WIKI_PKG_DROP: a name the package does not bundle (an older release).
+    const NAMES = catalog.WIKI.skills.filter((n) => n !== process.env.FAKE_WIKI_PKG_DROP);
     if (!fs.existsSync(pkg)) {
       for (const n of NAMES) { fs.mkdirSync(path.join(pkg, 'skills', n), { recursive: true }); fs.writeFileSync(path.join(pkg, 'skills', n, 'SKILL.md'), `---\nname: ${n}\n---\n`); }
       fs.mkdirSync(path.join(pkg, 'hooks'), { recursive: true });
@@ -175,11 +176,11 @@ switch (tool) {
     };
     const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
     if (args[0] === '--version') { out(`obsidian-wiki ${version}`); process.exit(0); }
-    const recorded = () => { try { return (/OBSIDIAN_WIKI_VERSION="([^"]*)"/.exec(fs.readFileSync(config, 'utf8')) || [])[1] || null; } catch (_) { return null; } };
+    const recorded = () => { try { return (/^OBSIDIAN_WIKI_VERSION="([^"]*)"/m.exec(fs.readFileSync(config, 'utf8')) || [])[1] || null; } catch (_) { return null; } };
     if (args[0] === 'list') {
       if (process.env.OBSIDIAN_WIKI_NO_UPDATE_CHECK) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki list ran with its update check off\n');
       if (process.env.FAKE_WIKI_LIST_ASKS_SETUP) { err(`obsidian-wiki upgraded ${recorded()} to ${version} but the skills could not be refreshed (fake).\n   Run: obsidian-wiki setup`); out('wiki-update'); process.exit(0); }
-      if (recorded() && recorded() !== version) { refreshSkills(); fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/OBSIDIAN_WIKI_VERSION="[^"]*"/, `OBSIDIAN_WIKI_VERSION="${version}"`)); }
+      if (recorded() && recorded() !== version) { refreshSkills(); fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/^OBSIDIAN_WIKI_VERSION="[^"]*"/m, `OBSIDIAN_WIKI_VERSION="${version}"`)); }
       if (process.env.FAKE_WIKI_LIST_MISSING_SKILLS) err(`⚠️  3 skill(s) missing from ~/.claude/skills/ (e.g. wiki-agent).\n   Run: obsidian-wiki setup`);
       out('wiki-update\nwiki-query'); process.exit(0);
     }
@@ -191,13 +192,14 @@ switch (tool) {
       fs.writeFileSync(path.join(vault, 'index.md'), '---\ntitle: Wiki Index\n---\n');
       // $FAKE_WIKI_LOCK_PARENT: the vault's parent folder turns read-only before the failure, so it cannot be removed.
       if (process.env.FAKE_WIKI_LOCK_PARENT) fs.chmodSync(path.dirname(vault), 0o555);
-      if (process.env.FAKE_WIKI_SETUP_FAIL && process.env.FAKE_WIKI_SETUP_FAIL !== 'late') { err('error: setup failed'); process.exit(1); }
+      if (process.env.FAKE_WIKI_SETUP_FAIL && !['late', 'after-skills'].includes(process.env.FAKE_WIKI_SETUP_FAIL)) { err('error: setup failed'); process.exit(1); }
       fs.mkdirSync(path.dirname(config), { recursive: true });
       fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
       fs.writeFileSync(path.join(path.dirname(config), 'WRITING.md'), '# Writing profile\n'); // ensure_global_writing_profile
       if (process.env.FAKE_WIKI_SETUP_FAIL === 'late') { err('error: setup failed after its config'); process.exit(1); }
       // Like obsidian-wiki's own setup (install_global_skills), its skills go into every agent's global folder.
       for (const d of skillDirs) installSkills(d);
+      if (process.env.FAKE_WIKI_SETUP_FAIL === 'after-skills') { err('error: setup failed after linking its skills'); process.exit(1); }
       if (!args.includes('--no-hooks')) saveHooks([...hooks, 'SessionStart', 'Stop']);
       out('Setup complete!'); process.exit(0);
     }
@@ -207,6 +209,8 @@ switch (tool) {
       if (mode === 'fail') { err(`error: ${settings} could not be written (fake)`); process.exit(1); }
       if (mode === 'nofile') process.exit(0);
       if (mode === 'partial' || mode === 'nostart') { writeSettings(mode === 'partial' ? undefined : { hooks: {} }); if (mode === 'partial') fs.writeFileSync(settings, '{"hooks": {'); process.exit(0); }
+      // $FAKE_WIKI_HOOKS_INSTALL_TOUCH: another writer adds a key to that file while this runs.
+      if (process.env.FAKE_WIKI_HOOKS_INSTALL_TOUCH) { const f = process.env.FAKE_WIKI_HOOKS_INSTALL_TOUCH; const d = JSON.parse(fs.readFileSync(f, 'utf8')); d.touched = true; fs.writeFileSync(f, JSON.stringify(d)); }
       const add = (only ? [only] : ['SessionStart', 'Stop']).filter((ev) => !hooks.includes(ev));
       if (add.length) saveHooks([...hooks, ...add]);
       out(`settings: ${settings}`); process.exit(0);
