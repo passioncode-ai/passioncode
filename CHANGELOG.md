@@ -4,6 +4,17 @@
 
 ### Changed
 
+- **The course check in every passioncode-ai repository** (PC-186, fabric-workspace's board request `5c460b82`,
+  2026-11-12; the source is fabric-workspace `knowledge/rules.md` §0): `working-in-passioncode` §0 now starts with the
+  course check (the North Star metric and gaps, the one plan in waves and S4.1; the change names the track, plan row or
+  gap it serves; work that serves none goes to the board first; after the change the row is updated and its board
+  thread told) and a short "Our own system" section pointing to `knowledge/team.md`. Its description names the course
+  check, «сверка курса» and «онбординг в PassionCode» and takes 332 characters. The session-start hook prints a second
+  line in every passioncode-ai repository, the course check with links to rules §0 and the one plan and a call to read
+  `com.list {unread: true}` (`courseLine` in `plugin/passioncode/hooks/repo-rules.js`). `setting-up-passioncode` §0
+  gives a person joining PassionCode.ai the order of team.md P1 to P6: Kira first (`/start`, `/claude`), then
+  `setup`, then org-index and the knowledge base, access only through the PM agent. This repository's `AGENTS.md`
+  carries the template's item 1a, the course check.
 - **Observatory Log 0.35.12** (PC-176, project-observatory's board request `7809e7a1`, 2026-11-11): the set pins
   Observatory's tag `v0.35.12` instead of `v0.26.0`. Its three skills' descriptions take 1,046 characters (from
   2,243), within Claude Code's skill-listing budget, and every Observatory Log change since 0.26.0 comes with it.

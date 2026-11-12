@@ -26,6 +26,9 @@
     {"query": "Напиши пост в твиттер про релиз Switchboard.", "shouldTrigger": false},
     {"query": "Set up branch protection rules for a repository in another organisation.", "shouldTrigger": false},
     {"query": "Where is the knowledge base I should read before editing a passioncode-ai repo?", "shouldTrigger": true},
-    {"query": "What goes in COMMERCIAL-LICENSE.md for a PassionCode.ai repository?", "shouldTrigger": true}
+    {"query": "What goes in COMMERCIAL-LICENSE.md for a PassionCode.ai repository?", "shouldTrigger": true},
+    {"query": "Before I change fabric-inbox: which North Star gap and plan row does this fix serve?", "shouldTrigger": true},
+    {"query": "Сверка курса: с каким треком и строкой плана связать эту правку?", "shouldTrigger": true},
+    {"query": "Define the North Star metric for my own side project's landing page.", "shouldTrigger": false}
   ]
 }

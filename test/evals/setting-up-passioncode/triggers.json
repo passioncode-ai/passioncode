@@ -21,6 +21,7 @@
     {"query": "Design the onboarding screen for Fabric's first run.", "shouldTrigger": false},
     {"query": "Как в репозиториях PassionCode принято называть ветки?", "shouldTrigger": false},
     {"query": "Настрой мне Docker Compose для этого проекта.", "shouldTrigger": false},
-    {"query": "Write the copy for the /start/ page of passioncode.ai.", "shouldTrigger": false}
+    {"query": "Write the copy for the /start/ page of passioncode.ai.", "shouldTrigger": false},
+    {"query": "I'm joining PassionCode.ai as a member. Onboard me: what do I do first?", "shouldTrigger": true}
   ]
 }

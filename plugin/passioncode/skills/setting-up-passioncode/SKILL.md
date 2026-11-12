@@ -39,9 +39,28 @@ The person wants the PassionCode.ai tools on this computer (Fabric, Fabric Switc
 Dashboards, Fabric Inbox, Project Observatory, their MCP servers and the PassionCode.ai skills)
 installed, checked, repaired or updated: "set me up with PassionCode", "install Fabric", "check my
 setup", "is my Fabric setup OK", "run the doctor", "the fabric-dashboards MCP is not working", "fix
-my setup", in any language. Not this skill: contributing to a passioncode-ai repository
-(working-in-passioncode), building a Fabric agent or service (the fabric-agent-adapter skills), or
-product UX.
+my setup", "onboard me to PassionCode" (section 0 first), in any language. Not this skill:
+contributing to a passioncode-ai repository (working-in-passioncode), building a Fabric agent or
+service (the fabric-agent-adapter skills), or product UX.
+
+## 0. A person joining PassionCode.ai: the order
+
+When the person is joining PassionCode.ai as a member ("onboard me to PassionCode", "I'm a new
+member", in any language), this command is step 3 of six, not the first. The order is the
+knowledge base's [team.md](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/team.md#personal-onboarding-p1-to-p6),
+P1 to P6:
+
+1. **Kira first** (the PM agent): in Telegram, `/start` in Kira's bot, which records the role (P1);
+   then `/claude` in a private chat with her, which hands the person's own key once with one prompt
+   to paste, and Claude Code registers the MCP server `kira` (P2).
+2. **Then this skill's `setup`** (section 1 below), P3.
+3. **Then the map and the rules**: clone org-index, run its `scripts/clone_all.sh`, read the
+   knowledge base from its README (P4).
+
+Access (the organization's space on the Studio, keys, grants) is asked only from Kira, never from
+another agent's owner by hand (P5); leaving is `/leave <role>` with her (P6). A person who only
+wants the tools on their own computer, or an organization's founder (whose path is S4.1 with that
+organization's own PM agent), skips this section.
 
 ## 1. Set up, or check and repair
 
