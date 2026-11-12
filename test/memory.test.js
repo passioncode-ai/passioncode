@@ -64,6 +64,8 @@ test('PC-178: versions are compared by their leading x.y.z; a suffix the launche
 
 // Round 5: the rows doctor builds, in-process, over the fake obsidian-wiki (test/fake-tools.js) in a home of their own.
 const os = require('node:os');
+// The fake obsidian-wiki and uv are shell-script stand-ins Windows cannot start (as in test/setup.test.js, PC-135).
+const SH = process.platform === 'win32' && 'shell-script stand-ins Windows cannot start';
 const SCRIPTS = { SessionStart: 'wiki-session-recap.sh', Stop: 'wiki-stop-capture.sh' };
 function sandbox(t, { version = M.PIN, vault = true, hooks = ['SessionStart'], env = {} } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-memory-'));
@@ -94,7 +96,7 @@ function sandbox(t, { version = M.PIN, vault = true, hooks = ['SessionStart'], e
 const WRITES = ['obsidian-wiki hooks install --only SessionStart', 'obsidian-wiki hooks uninstall --only Stop'];
 const NAMES_COMMAND = /obsidian-wiki (setup|list|hooks|doctor|memory|info)\b/;
 
-test('PC-178: every memory fix that names an obsidian-wiki command carries the prohibition, unless it is exactly an allowed write', (t) => {
+test('PC-178: every memory fix that names an obsidian-wiki command carries the prohibition, unless it is exactly an allowed write', { skip: SH }, (t) => {
   const fixes = [];
   const take = (rows) => { for (const r of rows) if (r.fix) fixes.push(r.fix); };
   for (const check of FIXTURE.checks) for (const hint of FIXTURE.hints) fixes.push(M.fixFor({ name: check, status: 'warn', hint, detail: 'd' }, NPX));
@@ -134,7 +136,7 @@ test('PC-178: every memory fix that names an obsidian-wiki command carries the p
   }
 });
 
-test('PC-178: hooks status exiting 1 while Stop is not registered still reads (obsidian-wiki does that in the intended state)', (t) => {
+test('PC-178: hooks status exiting 1 while Stop is not registered still reads (obsidian-wiki does that in the intended state)', { skip: SH }, (t) => {
   const s = sandbox(t, { hooks: ['SessionStart'] });
   const h = M.hookState(path.join(s.bin, 'obsidian-wiki'));
   assert.deepEqual([h.error, h.start, h.stop], [undefined, true, false]);
@@ -153,7 +155,7 @@ test('PC-178: the config folder is found as obsidian-wiki finds it: an XDG folde
   assert.equal(M.needs(s.home, path.join(s.home, 'Wiki')).vault, false);
 });
 
-test('PC-178: the refresh step and a uv copy uv does not list', (t) => {
+test('PC-178: the refresh step and a uv copy uv does not list', { skip: SH }, (t) => {
   assert.ok(M.REFRESH.endsWith(M.NEVER), M.REFRESH);
   const s = sandbox(t, { version: '2026.10.2', env: { FAKE_UV_LIST_EMPTY: '1' } });
   const w = s.rows().find((r) => r.id === 'memory.wiki');
