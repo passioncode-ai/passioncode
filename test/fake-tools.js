@@ -17,7 +17,10 @@
 // or Stop is not registered. obsidian-wiki's config is $XDG_CONFIG_HOME (else $HOME/.config)/obsidian-wiki/config;
 // `doctor --json` prints $FAKE_WIKI_DOCTOR's file when set. $FAKE_UV_LIST_EMPTY: `uv tool list` names nothing.
 // $FAKE_WIKI_LIST_ASKS_SETUP: `list` says on stderr what obsidian-wiki's stale check says when it cannot refresh.
-// $FAKE_WIKI_HOOKS_BROKEN: `hooks status` answers no report. $FAKE_TOOLS_QUIET: nothing is logged (a test's arrangement).
+// $FAKE_WIKI_HOOKS_BROKEN: `hooks status` answers no report. `setup` and the version refresh of `list` link the bundled
+// skills (catalog.WIKI.skills, kept in $FAKE_WIKI_STATE/pkg) into every global skills folder as install_skills does.
+// $FAKE_WIKI_LIST_MISSING_SKILLS: `list` also prints obsidian-wiki's missing-skills line. `uv tool dir` names
+// $FAKE_WIKI_STATE/uv-tools, where a test may put a uv-receipt.toml. $FAKE_TOOLS_QUIET: nothing is logged (a test's arrangement).
 // $FAKE_UV_FAIL and $FAKE_WIKI_SETUP_FAIL make those commands fail ($FAKE_WIKI_SETUP_FAIL=late writes the config, then
 // fails; =quiet exits 0 without a config). Like obsidian-wiki 2026.11.4, an ordinary command (`list`) whose config
 // records another version rewrites only that line (its stale refresh) and keeps every other key. brew and xcode-select
@@ -102,9 +105,10 @@ switch (tool) {
     if (args[0] === '--version') { out('uv 0.9.0'); process.exit(0); }
     const state = process.env.FAKE_WIKI_STATE || path.join(home, 'fake-wiki');
     if (args[0] === 'tool' && args[1] === 'list') { if (fs.existsSync(path.join(state, 'version')) && !process.env.FAKE_UV_LIST_EMPTY) out(`obsidian-wiki v${fs.readFileSync(path.join(state, 'version'), 'utf8').trim()}\n- obsidian-wiki`); process.exit(0); }
+    if (args[0] === 'tool' && args[1] === 'dir') { out(path.join(state, 'uv-tools')); process.exit(0); }
     if (args[0] === 'tool' && args[1] === 'install') {
       if (process.env.FAKE_UV_FAIL) { err('error: Failed to download obsidian-wiki'); process.exit(2); }
-      const spec = args.find((a) => a.startsWith('obsidian-wiki=='));
+      const spec = (args.find((a) => /^obsidian-wiki(\[[^\]]*\])?==/.test(a)) || '').replace(/\[[^\]]*\]/, '');
       if (!spec) { err('fake uv: only obsidian-wiki==<version>'); process.exit(2); }
       const dir = process.env.UV_TOOL_BIN_DIR || path.join(home, '.local', 'bin');
       fs.mkdirSync(state, { recursive: true });
@@ -124,6 +128,29 @@ switch (tool) {
     const xdgDir = path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'obsidian-wiki');
     const legacyDir = path.join(home, '.obsidian-wiki');
     const config = path.join((() => { try { return fs.statSync(legacyDir).isDirectory(); } catch (_) { return false; } })() && !fs.existsSync(xdgDir) ? legacyDir : xdgDir, 'config');
+    // The installed package (as obsidian_wiki/_data): its bundled skills and hooks, made on first use.
+    const pkg = path.join(state, 'pkg', '_data');
+    const NAMES = catalog.WIKI.skills;
+    if (!fs.existsSync(pkg)) {
+      for (const n of NAMES) { fs.mkdirSync(path.join(pkg, 'skills', n), { recursive: true }); fs.writeFileSync(path.join(pkg, 'skills', n, 'SKILL.md'), `---\nname: ${n}\n---\n`); }
+      fs.mkdirSync(path.join(pkg, 'hooks'), { recursive: true });
+      for (const sc of ['wiki-session-recap.sh', 'wiki-prompt-recall.sh', 'wiki-stop-capture.sh']) fs.writeFileSync(path.join(pkg, 'hooks', sc), '#!/bin/sh\n', { mode: 0o755 });
+    }
+    // As cli.py install_skills: a link or file of a bundled name is unlinked, a real folder holding SKILL.md is removed
+    // with everything in it (a folder without one is skipped), then the bundled skill is linked in its place.
+    const installSkills = (dir) => {
+      fs.mkdirSync(dir, { recursive: true });
+      for (const n of NAMES) {
+        const at = path.join(dir, n);
+        const st = fs.lstatSync(at, { throwIfNoEntry: false });
+        if (st && (st.isSymbolicLink() || st.isFile())) fs.unlinkSync(at);
+        else if (st && st.isDirectory()) { if (fs.existsSync(path.join(at, 'SKILL.md'))) fs.rmSync(at, { recursive: true, force: true }); else continue; }
+        fs.symlinkSync(path.join(pkg, 'skills', n), at);
+      }
+    };
+    const skillDirs = catalog.WIKI.skillDirs.map((rel) => path.join(home, rel));
+    // As cli.py _refresh_installed_skills: only folders that already hold a bundled name with SKILL.md.
+    const refreshSkills = () => { for (const d of skillDirs) { if (NAMES.some((n) => fs.existsSync(path.join(d, n, 'SKILL.md')))) installSkills(d); } };
     const settings = path.join(home, '.claude', 'settings.json');
     const SCRIPTS = { SessionStart: 'wiki-session-recap.sh', UserPromptSubmit: 'wiki-prompt-recall.sh', Stop: 'wiki-stop-capture.sh' };
     const readSettings = () => { try { return JSON.parse(fs.readFileSync(settings, 'utf8')); } catch (_) { return {}; } };
@@ -133,7 +160,7 @@ switch (tool) {
     const writeSettings = (doc) => { // like hooks.py _write: a temporary file, then os.replace over the settings file
       fs.mkdirSync(path.dirname(settings), { recursive: true });
       const tmp = path.join(path.dirname(settings), `.settings.json.${process.pid}.tmp`);
-      fs.writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+      fs.writeFileSync(tmp, JSON.stringify(doc || {}, null, 2) + '\n');
       fs.renameSync(tmp, settings);
     };
     const saveHooks = (list) => {
@@ -141,7 +168,7 @@ switch (tool) {
       doc.hooks = doc.hooks || {};
       for (const ev of Object.keys(SCRIPTS)) {
         const groups = (doc.hooks[ev] || []).map((g) => ({ ...g, hooks: ((g && g.hooks) || []).filter((e) => !String((e && e.command) || '').includes(SCRIPTS[ev])) })).filter((g) => g.hooks.length);
-        if (list.includes(ev)) groups.push({ matcher: '', hooks: [{ type: 'command', command: `PATH="${path.join(state, 'bin')}:$PATH" bash "${path.join(state, 'hooks', SCRIPTS[ev])}"` }] });
+        if (list.includes(ev)) groups.push({ matcher: '', hooks: [{ type: 'command', command: `PATH="${path.join(state, 'bin')}:$PATH" bash "${path.join(pkg, 'hooks', SCRIPTS[ev])}"` }] });
         if (groups.length) doc.hooks[ev] = groups; else delete doc.hooks[ev];
       }
       writeSettings(doc);
@@ -152,7 +179,8 @@ switch (tool) {
     if (args[0] === 'list') {
       if (process.env.OBSIDIAN_WIKI_NO_UPDATE_CHECK) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki list ran with its update check off\n');
       if (process.env.FAKE_WIKI_LIST_ASKS_SETUP) { err(`obsidian-wiki upgraded ${recorded()} to ${version} but the skills could not be refreshed (fake).\n   Run: obsidian-wiki setup`); out('wiki-update'); process.exit(0); }
-      if (recorded() && recorded() !== version) fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/OBSIDIAN_WIKI_VERSION="[^"]*"/, `OBSIDIAN_WIKI_VERSION="${version}"`));
+      if (recorded() && recorded() !== version) { refreshSkills(); fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/OBSIDIAN_WIKI_VERSION="[^"]*"/, `OBSIDIAN_WIKI_VERSION="${version}"`)); }
+      if (process.env.FAKE_WIKI_LIST_MISSING_SKILLS) err(`⚠️  3 skill(s) missing from ~/.claude/skills/ (e.g. wiki-agent).\n   Run: obsidian-wiki setup`);
       out('wiki-update\nwiki-query'); process.exit(0);
     }
     if (args[0] === 'setup') {
@@ -166,13 +194,19 @@ switch (tool) {
       if (process.env.FAKE_WIKI_SETUP_FAIL && process.env.FAKE_WIKI_SETUP_FAIL !== 'late') { err('error: setup failed'); process.exit(1); }
       fs.mkdirSync(path.dirname(config), { recursive: true });
       fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
+      fs.writeFileSync(path.join(path.dirname(config), 'WRITING.md'), '# Writing profile\n'); // ensure_global_writing_profile
       if (process.env.FAKE_WIKI_SETUP_FAIL === 'late') { err('error: setup failed after its config'); process.exit(1); }
-      // Like obsidian-wiki's own setup, it makes a skills folder for every agent it knows.
-      for (const d of ['.codex/skills', '.gemini/skills', '.gemini/antigravity/skills']) fs.mkdirSync(path.join(home, d), { recursive: true });
+      // Like obsidian-wiki's own setup (install_global_skills), its skills go into every agent's global folder.
+      for (const d of skillDirs) installSkills(d);
       if (!args.includes('--no-hooks')) saveHooks([...hooks, 'SessionStart', 'Stop']);
       out('Setup complete!'); process.exit(0);
     }
     if (args[0] === 'hooks' && args[1] === 'install') {
+      // $FAKE_WIKI_HOOKS_INSTALL: fail (exit 1), nofile (exit 0, nothing written), partial (half a JSON file), nostart (no SessionStart).
+      const mode = process.env.FAKE_WIKI_HOOKS_INSTALL;
+      if (mode === 'fail') { err(`error: ${settings} could not be written (fake)`); process.exit(1); }
+      if (mode === 'nofile') process.exit(0);
+      if (mode === 'partial' || mode === 'nostart') { writeSettings(mode === 'partial' ? undefined : { hooks: {} }); if (mode === 'partial') fs.writeFileSync(settings, '{"hooks": {'); process.exit(0); }
       const add = (only ? [only] : ['SessionStart', 'Stop']).filter((ev) => !hooks.includes(ev));
       if (add.length) saveHooks([...hooks, ...add]);
       out(`settings: ${settings}`); process.exit(0);
@@ -180,7 +214,7 @@ switch (tool) {
     if (args[0] === 'hooks' && args[1] === 'uninstall') { const keep = hooks.filter((h) => only && h !== only); if (keep.length !== hooks.length) saveHooks(keep); process.exit(0); }
     if (args[0] === 'hooks' && args[1] === 'status') {
       if (process.env.FAKE_WIKI_HOOKS_BROKEN) { err(`error: ${settings} is not valid JSON`); process.exit(1); }
-      out(JSON.stringify({ hooks: Object.keys(SCRIPTS).map((event) => ({ event, script: SCRIPTS[event], registered: hooks.includes(event) })), reachability: { reachable: true, hint: '' } }));
+      out(JSON.stringify({ hooks: Object.keys(SCRIPTS).map((event) => ({ event, script: SCRIPTS[event], bundled: path.join(pkg, 'hooks', SCRIPTS[event]), registered: hooks.includes(event) })), reachability: { reachable: true, hint: '' } }));
       process.exit(hooks.includes('SessionStart') && hooks.includes('Stop') ? 0 : 1); // as obsidian-wiki: the required hooks are SessionStart and Stop
     }
     if (args[0] === 'doctor') {
