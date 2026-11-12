@@ -49,7 +49,8 @@ Once the skills are installed, "set me up" or "check my setup" is enough: the
 secret into a product's own hidden prompt, starting Docker for Fabric, unlocking a folder setup cannot write (or asking
 an administrator), installing uv with its own installer where Homebrew is not yours (setup names the page), installing
 Apple's command line tools when setup asks for git, moving or renaming a skill of yours that shares a name with one of
-obsidian-wiki's when setup names it, opening the wiki vault in Obsidian once, and restarting your agent.
+obsidian-wiki's when setup names it, setting XDG_CONFIG_HOME to an absolute folder (or unsetting it) when setup
+names it, opening the wiki vault in Obsidian once, and restarting your agent.
 
 ## Quick start for a new teammate
 

@@ -67,7 +67,7 @@ project, after every turn, to write into the vault. On the operator's machine th
    the link and the file's permission bits. A vault step that fails removes what the launcher made (a folder it made,
    the `.git` it made, what the failed step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the
    folder when the step made it; a folder that was there, empty, stays as it was), so the next run starts
-   again (a part it cannot remove is named, with what to do). The vault the launcher made is remembered in
+   again (a part it cannot remove is named, with what to do). A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki, records the vault, and the next `setup` registers the entry. The vault the launcher made is remembered in
    `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
    SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
    it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records

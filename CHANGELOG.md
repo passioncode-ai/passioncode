@@ -15,10 +15,11 @@
   after an upgrade, or an install over an existing config, every other key kept), and obsidian-wiki's Stop hook (it asks every session in every
   project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
   Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
-  leaves nothing it made, so the next run starts again; when the same run installed obsidian-wiki, a failed step after
-  the install uninstalls it again (`uv tool uninstall obsidian-wiki`) and says so, or names the uninstall that failed.
+  leaves nothing it made, so the next run starts again; when the same run installed obsidian-wiki, a step that fails
+  before the vault stands (git init, obsidian-wiki setup) uninstalls it again (`uv tool uninstall obsidian-wiki`) and
+  says so, or names the uninstall that failed. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki, records the vault, and the next `setup` registers the entry.
   With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) the wiki memory is
-  not offered and nothing is installed; `doctor` shows it as `memory.config`. Without uv the steps name `brew install uv` where Homebrew is,
+  not offered, nothing is installed and no repair runs; `doctor` shows it as `memory.config`. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
   so no dialog opens). An older obsidian-wiki uv lists is brought up to the pin with `uv tool install --force`, then
   `obsidian-wiki list` (also right after installing obsidian-wiki over an existing config) records the new version and keeps every other key of the config (`doctor --fix` too); a copy
@@ -36,7 +37,10 @@
   the same name as one of theirs in every agent's global skills folder (it deleted a `skill-creator` on a real Mac), so
   neither runs while a skill of yours shares a name, nor does installing obsidian-wiki over an existing config: setup
   names each one for you to move or rename, and `doctor` shows it. obsidian-wiki never writes Claude Code's settings file (its writer made it world-readable): the launcher adds the
-  SessionStart entry, keeping the file private. The upgrade keeps the extras, requirements and Python uv recorded.
+  SessionStart entry, keeping the file private. The upgrade keeps the extras, requirements and Python uv recorded, and stops, naming it, on anything else uv
+  recorded (a requirement given as a URL, path, Git source or editable; an unknown key or table), for the person to bring
+  it up with uv. A registered SessionStart entry whose script is gone is a `doctor` warning (gate `consent`): remove the
+  entry by hand, then `setup` registers it again for the vault the launcher made.
   `uninstall` says which parts of the memory stay, where any of it is installed. `--with` and `--without` take `obsidian`, `wiki` and
   `memory`; `--no-apps` leaves the memory out, its upgrade included. obsidian-wiki's setup creates skills folders for
   agents that are not installed (`~/.codex/skills`, `~/.gemini/skills` and more), and the set's member skills are then
