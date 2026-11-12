@@ -389,13 +389,15 @@
   1. Run `setup` (or `setup --yes`). In a terminal, answer the question about Obsidian, then the one about the agents' wiki
      memory (both default yes), then the repairs question if one is asked.
   2. Run `doctor` and read its `memory` section.
-  3. Open the vault in Obsidian (Open folder as vault), as the steps say.
+  3. Open the vault in Obsidian, as the steps say: choose Open folder as vault, press Cmd+Shift+G (the folder is hidden)
+     and paste its path.
 - **Expected result:** obsidian-wiki 2026.11.4 is installed with uv; `~/.wiki` is a new vault and a Git
   repository; obsidian-wiki's setup added its skills to every agent's skills folder (making the folders of agents that
   are not installed); Claude Code starts the next session with the vault's recap (obsidian-wiki's SessionStart hook) and no
   Stop hook; on a Mac, Obsidian is in this user's `~/Applications`, its image matched GitHub's digest and the app carries
   team `6JSW4SJWN9`, its ticket and Gatekeeper's yes; the steps name the restart and the vault to open in Obsidian
-  ("Open the wiki vault <dir> in Obsidian once (Open folder as vault) ..."), also when Obsidian was installed before; where
+  ("Open the wiki vault <dir> in Obsidian once to read what your agents remember: choose Open folder as vault, press
+  Cmd+Shift+G and paste <dir>."), also when Obsidian was installed before; where
   Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
   `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
@@ -458,7 +460,7 @@
   one) stops the install of obsidian-wiki, the vault step and the upgrade: obsidian-wiki's setup and its version refresh would delete or replace it,
   so the step is named unavailable with the first five entries and how many more (`doctor --json` lists every one), `doctor` shows `memory.wiki.clash`, and the person moves or renames
   them, then runs setup again. No fix ever names `obsidian-wiki setup` over a config: after an upgrade,
-  or an install over an existing config, the version setup recorded is refreshed by `obsidian-wiki list`, keeping every other key.
+  or an install over an existing config, the version setup recorded and the package path are refreshed by `obsidian-wiki list`, keeping every other key.
 - **Status:** implemented
 - **Coverage:** `test/setup.test.js` and `test/memory.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`, `test/catalog.test.js` test beginning `PC-178: an administrator`, `test/self-update.test.js` test beginning `session start names the failures`.
 - **Product:** unobserved
