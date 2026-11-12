@@ -168,7 +168,7 @@
 - **Entry point:** `npx @passioncode-ai/passioncode@latest setup` (in a terminal), or `setup --yes --json` from a coding agent
 - **Preconditions:** Node 18+; macOS for the apps; no PassionCode.ai app or skill installed.
 - **Steps:**
-  1. Run setup. In a terminal, answer one question per absent app (an app whose folder you cannot write is named instead and never asked, SCN-017; Fabric, an early preview, defaults to no without Docker and the Supabase CLI), one for the repairs, if any are left, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no), and one for the agents' wiki memory when it is offered (SCN-018): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
+  1. Run setup. In a terminal, answer one question per absent app (Obsidian included on macOS; an app whose folder you cannot write is named instead and never asked, SCN-017; Fabric, an early preview, defaults to no without Docker and the Supabase CLI), then one for the agents' wiki memory when it is offered (SCN-018), then one for the repairs, if any are left, then, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
   2. Read the result: what was installed, the checks before and after, and the numbered steps that stay the person's.
   3. Do those steps (sign-ins, consents, secrets in each product's hidden prompt), restart the coding agents.
 - **Expected result:** The chosen apps are installed from verified releases and opened once; the skill set is installed; every bundled MCP server is registered for every agent present and answers its proving call; the person's steps are listed once.
@@ -382,11 +382,12 @@
 - **Entry point:** `npx @passioncode-ai/passioncode@latest setup` in a terminal or through the person's coding agent
 - **Preconditions:** uv is installed (https://docs.astral.sh/uv/getting-started/installation/); for the newcomer, no
   obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`), no folder `~/Documents/Wiki`
-  that holds files, no skill of their own with a name obsidian-wiki bundles in an agent's global skills folder, and git
+  that holds files, no skill of their own with a name obsidian-wiki bundles in an agent's global skills folder, no
+  XDG_CONFIG_HOME set to a relative path, and git
   (on a Mac, Apple's command line tools: `xcode-select -p` answers).
 - **Steps:**
-  1. Run `setup` (or `setup --yes`). In a terminal, answer the question about the agents' wiki memory and the one about
-     Obsidian (both default yes).
+  1. Run `setup` (or `setup --yes`). In a terminal, answer the question about Obsidian, then the one about the agents' wiki
+     memory (both default yes), then the repairs question if one is asked.
   2. Run `doctor` and read its `memory` section.
   3. Open the vault in Obsidian (Open folder as vault), as the steps say.
 - **Expected result:** obsidian-wiki 2026.11.4 is installed with uv; `~/Documents/Wiki` is a new vault and a Git
@@ -398,7 +399,7 @@
   Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
   `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
-  are (apart from the version keys obsidian-wiki's own refresh records after an upgrade, every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
+  are (apart from the version keys obsidian-wiki's own refresh records after an upgrade, or an install over an existing config, every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
   `doctor --fix`), never with `obsidian-wiki setup`; a copy uv does not list (pipx, pip `--user`) is the person's to
   bring up. `--wiki-vault <dir>` puts a new vault elsewhere; `--without obsidian` leaves out the app, `--without wiki`
   obsidian-wiki, its vault, its upgrade and the hook repair, `--without memory` both, and `--no-apps` both too. A
@@ -415,7 +416,12 @@
   brew install uv, ..." where Homebrew is, else "a person installs it with the installer its page names"); no git: the
   same, naming Apple's command line tools on a Mac (`xcode-select -p` is asked first, so no install dialog opens);
   everything else is set up. A vault step that fails (git or obsidian-wiki's own setup) fails the run and leaves nothing
-  of the vault; obsidian-wiki stays installed at the pin, so the next `setup` makes only the vault. On a new Mac uv's `~/.local/bin` may not be on the
+  of the vault; when the same run installed obsidian-wiki, it is uninstalled again and the error says so (an uninstall that
+  fails is named for the person to run), so the next `setup` starts again. XDG_CONFIG_HOME set to a relative path: the
+  memory is not offered and nothing is installed (obsidian-wiki reads it from the folder it runs in, so it would not find
+  its config where the launcher does); `doctor` shows `memory.config` with the fix to set it to an absolute folder or
+  unset it. A launcher state file that cannot be read keeps the vault step going, and its line says the vault was not
+  recorded, so a missing SessionStart hook will not be offered as a repair. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
   vault the launcher made is registered again by the next `setup` or `doctor --fix`, while the config still names that
@@ -428,10 +434,10 @@
   Stop hook someone registered is an information row naming its effect on every session, removed only by the person
   (a hand edit; obsidian-wiki never writes Claude Code's settings file, which keeps its permission bits). A skill of the
   person's that shares a name with one of obsidian-wiki's (in any agent's global skills folder, `skill-creator` for
-  one) stops the vault step and the upgrade: obsidian-wiki's setup and its version refresh would delete or replace it,
+  one) stops the install of obsidian-wiki, the vault step and the upgrade: obsidian-wiki's setup and its version refresh would delete or replace it,
   so the step is named unavailable with each entry, `doctor` shows `memory.wiki.clash`, and the person moves or renames
-  them, then runs setup again. No fix ever names `obsidian-wiki setup` over a config: after an upgrade
-  the version setup recorded is refreshed by `obsidian-wiki list`, keeping every other key.
+  them, then runs setup again. No fix ever names `obsidian-wiki setup` over a config: after an upgrade,
+  or an install over an existing config, the version setup recorded is refreshed by `obsidian-wiki list`, keeping every other key.
 - **Status:** implemented
 - **Coverage:** `test/setup.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`, `test/catalog.test.js` test beginning `PC-178: an administrator`, `test/self-update.test.js` test beginning `session start names the failures`.
 - **Product:** unobserved

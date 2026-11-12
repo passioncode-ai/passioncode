@@ -90,8 +90,8 @@ step; and, for a user with no obsidian-wiki config, makes the vault folder (`~/D
 `--wiki-vault`, never one that holds files), runs `git init -b main` in it, `obsidian-wiki setup --no-hooks --vault <dir>`
 with no terminal (which writes `~/.config/obsidian-wiki/config` and its writing profile `WRITING.md` beside it, and links obsidian-wiki's own skills into each agent's
 skills folder, creating that folder for agents that are not installed too, where the set's own skills are then linked
-like any agent's skills folder; that setup, and obsidian-wiki's version refresh after an upgrade, delete or replace a
-skill of the same name as one of its 40 bundled ones in every agent's global skills folder, so neither runs while such a
+like any agent's skills folder; that setup, and obsidian-wiki's version refresh after an upgrade or an install over an existing config, delete or replace a
+skill of the same name as one of its 40 bundled ones in every agent's global skills folder, so neither runs, and obsidian-wiki is not installed, while such a
 skill of the person's is there: the step is named unavailable with each clashing entry, and the launcher never moves or
 deletes them) and, where Claude Code is installed, its SessionStart recap: one entry in the literal
 `~/.claude/settings.json`, whatever `CLAUDE_CONFIG_DIR` names (where Claude Code reads another folder the hook is not
@@ -100,10 +100,12 @@ runs with a throwaway home, and the launcher adds the entry it wrote with its ow
 the file's permission bits and makes a new file private (obsidian-wiki's own writer would make it `0644` and replace a
 link). The upgrade carries the extras and `--with` requirements uv recorded for obsidian-wiki (`uv tool dir`,
 `uv-receipt.toml`). A vault step that fails removes what it made (the folder, its `.git`, and what the
-step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the folder when the step made it). An older
+step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the folder when the step made it), and when the same run installed obsidian-wiki a
+failed step uninstalls it again (`uv tool uninstall obsidian-wiki`). An older
 obsidian-wiki is brought up with `uv tool install --force` and then `obsidian-wiki list` with its update check off
 (`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`), whose stale refresh records the new version and keeps every other key of the
-config; a `list` that asks for `obsidian-wiki setup` fails the step instead. It never registers or removes obsidian-wiki's
+config (the same `list` runs right after installing obsidian-wiki over an existing config); a `list` that asks for
+`obsidian-wiki setup` fails the step instead. It never registers or removes obsidian-wiki's
 Stop hook, never runs `obsidian-wiki setup` over an existing config (setup rewrites the config), never replaces a working
 Obsidian for its version, and never runs an installer script from the network (a missing uv is `brew install uv` where
 Homebrew is, else a person's step with uv's installer). `uninstall` and `restore` leave the memory as it is. It never

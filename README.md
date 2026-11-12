@@ -7,8 +7,9 @@ the PassionCode.ai skills listed in [`family.json`](family.json), and the agents
 (the open-source [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) with a vault of its own, and
 Obsidian to read it in). Run the same command on a
 computer that is already set up, and it checks everything, repairs what is wrong and tells you
-what changed; a computer set up before the wiki memory came gets it on its next `setup`, where uv and git are and no
-skill of yours shares a name with one of obsidian-wiki's (see the wiki memory below).
+what changed; a computer set up before the wiki memory came gets it on its next `setup`, where uv and git are, XDG_CONFIG_HOME
+is not a relative path (obsidian-wiki reads it from the folder it runs in) and no skill of yours shares a name with one
+of obsidian-wiki's (see the wiki memory below).
 
 ```bash
 npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
@@ -54,7 +55,7 @@ obsidian-wiki's when setup names it, opening the wiki vault in Obsidian once, an
 
 1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
    `npx @passioncode-ai/passioncode@latest setup`, then restart your agents. In a terminal it asks
-   one question per absent app (on macOS; one whose folder you cannot write is named instead, SCN-017), one for the repairs, if any are left, one for Claude Code's rules for PassionCode's own tools where Claude Code is and they are missing, and one for the rules for commands where Claude Code is and any are missing, and one for the agents' wiki memory when it is offered (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
+   one question per absent app (on macOS, Obsidian included; one whose folder you cannot write is named instead, SCN-017), then one for the agents' wiki memory when it is offered, then one for the repairs, if any are left, then one for Claude Code's rules for PassionCode's own tools where Claude Code is and they are missing, and one for the rules for commands where Claude Code is and any are missing (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
    (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`) and the memory (`obsidian`, `wiki`, or `memory` for both), `--no-apps` sets up the skills
    and MCP only (no memory either), `--dry-run` shows the plan, `--allow-tools` lets Claude Code use PassionCode's own tools without asking and
    `--allow-commands` run the commands setup lists, such as `gh pr merge` (each offered as its own question in a
@@ -139,12 +140,14 @@ checksums, so its image must match GitHub's digest and the app must carry Obsidi
 its notarization ticket and Gatekeeper's yes. Obsidian updates itself inside the app, so setup never replaces a working
 copy for its version, only a damaged one of yours; a copy in `/Applications` that root owns (a package or MDM install) counts as yours, while one another user dragged in stays theirs and you get your own. When you have no
 obsidian-wiki config yet, setup makes a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names; never one
-that already holds files, and never while a skill of yours shares a name with one of obsidian-wiki's, since its setup
-would replace it: setup names each one for you to move or rename; and only where git is, on a Mac Apple's command line
+that already holds files, never while XDG_CONFIG_HOME is a relative path, which obsidian-wiki reads from the folder it
+runs in (setup then installs no obsidian-wiki either, and `doctor` shows `memory.config`), and never while a skill of
+yours shares a name with one of obsidian-wiki's, since its setup would replace it: setup names each one for you to move
+or rename, and installs no obsidian-wiki while one is there; and only where git is, on a Mac Apple's command line
 tools, which setup names as a step), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` (which adds obsidian-wiki's
 skills to every agent's skills folder, making the folders of agents that are not installed) and registers only the
 SessionStart recap for Claude Code (only where Claude Code reads `~/.claude`; obsidian-wiki writes nowhere else). The run
-ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records after an upgrade, every other key kept), and the Stop hook (which asks
+ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records after an upgrade, or an install over an existing config, every other key kept), and the Stop hook (which asks
 every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
 someone did. `--without` leaves a part out: `obsidian` the app; `wiki` obsidian-wiki, its vault, its upgrade and the
 hook repair; `memory` both.
