@@ -2572,8 +2572,10 @@ test('PC-178: an older obsidian-wiki is brought up to the pin with uv tool insta
   const log = toolLog(m);
   assert.ok(log.includes(`uv tool install --force obsidian-wiki==${PIN}`), log.join('\n'));
   assert.ok(!log.some((l) => /^obsidian-wiki setup/.test(l)), log.join('\n'));
-  // Only the version setup recorded moves (obsidian-wiki's own stale refresh, run by `obsidian-wiki list`); every other line stays.
-  assert.equal(fs.readFileSync(wikiConfig(m), 'utf8'), before.replace('OBSIDIAN_WIKI_VERSION="2026.10.2"', `OBSIDIAN_WIKI_VERSION="${PIN}"`));
+  // Only the version and the package path move (obsidian-wiki's own stale refresh, run by `obsidian-wiki list`, adds the
+  // package path when absent, round 16); every other line stays.
+  const pkgPath = path.join(m.home, 'fake-wiki', 'uv-tools', 'obsidian-wiki', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+  assert.equal(fs.readFileSync(wikiConfig(m), 'utf8'), `${before.replace('OBSIDIAN_WIKI_VERSION="2026.10.2"', `OBSIDIAN_WIKI_VERSION="${PIN}"`)}OBSIDIAN_WIKI_REPO="${pkgPath}"\n`);
   assert.equal(row(fix, 'memory.wiki').state, 'ok');
   // Without uv, or installed by another tool, the row names the step and setup repairs nothing.
   const other = machine({ memory: true });
@@ -3035,7 +3037,9 @@ test('PC-178: where Obsidian is not installed, the vault step names its download
     m.env = env;
     const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', ...args);
     assert.equal(r.status, 0, r.stdout);
-    assert.ok(r.json.humanSteps.includes(`Obsidian is where you read the wiki vault ${vaultOf(m)}: download it from ${OB.page}, then open the vault in it (Open folder as vault).`), JSON.stringify(r.json.humanSteps));
+    // The route to the path, on a Mac with Cmd+Shift+G (round 16, R5).
+    const route = env.PASSIONCODE_PLATFORM === 'linux' ? `choose Open folder as vault and type or paste ${vaultOf(m)}` : `choose Open folder as vault, press Cmd+Shift+G and paste ${vaultOf(m)}`;
+    assert.ok(r.json.humanSteps.includes(`Obsidian is where you read the wiki vault ${vaultOf(m)}: download it from ${OB.page}, then open the vault in it: ${route}.`), JSON.stringify(r.json.humanSteps));
     assert.ok(!r.json.humanSteps.some((s) => s.startsWith('Open the wiki vault')), JSON.stringify(r.json.humanSteps));
   }
 });
@@ -3780,4 +3784,23 @@ test('PC-178: where Claude Code reads another folder, an older ~/.obsidian-wiki 
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   const a = r.json.actions.find((x) => x.kind === 'memory');
   assert.ok(a && a.outcome === 'done' && !/SessionStart recap was not registered/.test(a.detail), JSON.stringify(a));
+});
+
+// Round 16 (PC-178).
+test('PC-178: every darwin step that sends the person to open the vault names Cmd+Shift+G and the path', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  // A new vault, Obsidian installed in the same run; Obsidian installed over an existing config; Obsidian without the wiki.
+  const a = withMemory();
+  const b = withMemory();
+  fs.mkdirSync(path.join(b.home, 'Notes'), { recursive: true });
+  fs.mkdirSync(path.dirname(wikiConfig(b)), { recursive: true });
+  fs.writeFileSync(wikiConfig(b), `OBSIDIAN_VAULT_PATH="${path.join(b.home, 'Notes')}"\n`);
+  const c = withMemory();
+  for (const [m, args] of [[a, []], [b, ['--without', 'wiki']], [c, ['--without', 'wiki']]]) {
+    const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', ...args);
+    const open = r.json.humanSteps.filter((x) => /Open folder as vault/.test(x));
+    assert.ok(open.length, JSON.stringify(r.json.humanSteps));
+    for (const x of open) assert.ok(/Cmd\+Shift\+G/.test(x), x);
+    if (m === b) assert.ok(open.some((x) => x.includes(`paste ${path.join(b.home, 'Notes')}`)), JSON.stringify(open)); // the vault the config names
+  }
 });

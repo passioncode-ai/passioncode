@@ -23,7 +23,7 @@
 // $FAKE_WIKI_STATE/uv-tools, where a test may put a uv-receipt.toml. $FAKE_TOOLS_QUIET: nothing is logged (a test's arrangement).
 // $FAKE_UV_FAIL and $FAKE_WIKI_SETUP_FAIL make those commands fail ($FAKE_WIKI_SETUP_FAIL=late writes the config, then
 // fails; =quiet exits 0 without a config). Like obsidian-wiki 2026.11.4, an ordinary command (`list`) whose config
-// records another version rewrites only that line (its stale refresh) and keeps every other key. brew and xcode-select
+// records another version rewrites the version and package path (its stale refresh), keeping every other key beside the package path. brew and xcode-select
 // answer as installed ones do.
 const fs = require('fs');
 const path = require('path');
@@ -110,6 +110,7 @@ switch (tool) {
     if (args[0] === 'tool' && args[1] === 'dir') { out(path.join(state, 'uv-tools')); process.exit(0); }
     if (args[0] === 'tool' && args[1] === 'uninstall') {
       fs.rmSync(path.join(state, 'version'), { force: true });
+      fs.rmSync(path.join(state, 'uv-tools', 'obsidian-wiki'), { recursive: true, force: true }); // its environment and record
       fs.rmSync(path.join(process.env.UV_TOOL_BIN_DIR || path.join(home, '.local', 'bin'), 'obsidian-wiki'), { force: true });
       out('Uninstalled 1 executable: obsidian-wiki'); process.exit(0);
     }
@@ -126,6 +127,9 @@ switch (tool) {
       // $FAKE_UV_INSTALL_ADDS_SKILL: a folder holding SKILL.md appears with the first install (a clash after the reinstall, round 13, R3).
       const adds = process.env.FAKE_UV_INSTALL_ADDS_SKILL;
       if (adds && !fs.existsSync(path.join(adds, 'SKILL.md'))) { fs.mkdirSync(adds, { recursive: true }); fs.writeFileSync(path.join(adds, 'SKILL.md'), '---\nname: mine\n---\n'); }
+      // uv's record of the tool, naming the command it installed (round 16, R6).
+      fs.mkdirSync(path.join(state, 'uv-tools', 'obsidian-wiki'), { recursive: true });
+      fs.writeFileSync(path.join(state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml'), `[tool]\nrequirements = [{ name = "obsidian-wiki" }]\nentrypoints = [{ name = "obsidian-wiki", install-path = "${path.join(dir, 'obsidian-wiki')}", from = "obsidian-wiki" }]\n`);
       out(`Installed 1 executable: obsidian-wiki`); process.exit(0);
     }
     process.exit(2);
@@ -142,7 +146,8 @@ switch (tool) {
     const legacyDir = path.join(home, '.obsidian-wiki');
     const config = path.join((() => { try { return fs.statSync(legacyDir).isDirectory(); } catch (_) { return false; } })() && !fs.existsSync(xdgDir) ? legacyDir : xdgDir, 'config');
     // The installed package (as obsidian_wiki/_data): its bundled skills and hooks, made on first use.
-    const pkg = path.join(state, 'pkg', 'obsidian_wiki', '_data');
+    // Where uv puts it (round 16, R6): <uv tool dir>/obsidian-wiki/lib/python3.12/site-packages/obsidian_wiki/_data.
+    const pkg = path.join(state, 'uv-tools', 'obsidian-wiki', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
     // $FAKE_WIKI_PKG_DROP: a name the package does not bundle (an older release).
     const NAMES = catalog.WIKI.skills.filter((n) => n !== process.env.FAKE_WIKI_PKG_DROP);
     if (!fs.existsSync(pkg)) {
@@ -195,11 +200,18 @@ switch (tool) {
     };
     const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
     if (args[0] === '--version') { out(`obsidian-wiki ${version}`); process.exit(0); }
-    const recorded = () => { try { return (/^OBSIDIAN_WIKI_VERSION="([^"]*)"/m.exec(fs.readFileSync(config, 'utf8')) || [])[1] || null; } catch (_) { return null; } };
+    const recorded = () => { try { return (/^OBSIDIAN_WIKI_VERSION="?([^"\n]*)"?$/m.exec(fs.readFileSync(config, 'utf8')) || [])[1] || null; } catch (_) { return null; } };
     if (args[0] === 'list') {
       if (process.env.OBSIDIAN_WIKI_NO_UPDATE_CHECK) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki list ran with its update check off\n');
       if (process.env.FAKE_WIKI_LIST_ASKS_SETUP) { err(`obsidian-wiki upgraded ${recorded()} to ${version} but the skills could not be refreshed (fake).\n   Run: obsidian-wiki setup`); out('wiki-update'); process.exit(0); }
-      if (recorded() && recorded() !== version) { refreshSkills(); fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/^OBSIDIAN_WIKI_VERSION="[^"]*"/m, `OBSIDIAN_WIKI_VERSION="${version}"`)); }
+      // As _check_stale and write_config: the version and the package path recorded, every managed value quoted (round 16, R6, R10).
+      if (recorded() && recorded() !== version) {
+        refreshSkills();
+        let text = fs.readFileSync(config, 'utf8').replace(/^(OBSIDIAN_VAULT_PATH|OBSIDIAN_WIKI_REPO|OBSIDIAN_WIKI_VERSION)=([^"\n][^\n]*)$/gm, '$1="$2"');
+        text = text.replace(/^OBSIDIAN_WIKI_VERSION="[^"]*"/m, `OBSIDIAN_WIKI_VERSION="${version}"`);
+        text = /^OBSIDIAN_WIKI_REPO=/m.test(text) ? text.replace(/^OBSIDIAN_WIKI_REPO="[^"]*"/m, `OBSIDIAN_WIKI_REPO="${pkg}"`) : `${text.replace(/\n?$/, '\n')}OBSIDIAN_WIKI_REPO="${pkg}"\n`;
+        fs.writeFileSync(config, text);
+      }
       if (process.env.FAKE_WIKI_LIST_MISSING_SKILLS) err(`⚠️  3 skill(s) missing from ~/.claude/skills/ (e.g. wiki-agent).\n   Run: obsidian-wiki setup`);
       out('wiki-update\nwiki-query'); process.exit(0);
     }

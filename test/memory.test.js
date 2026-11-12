@@ -82,7 +82,7 @@ function sandbox(t, { version = M.PIN, vault = true, hooks = ['SessionStart'], e
   fs.mkdirSync(path.dirname(settings), { recursive: true });
   const doc = { hooks: {} };
   // The fake's package holds the scripts (made on its first call); the command names them where they are.
-  for (const ev of hooks) doc.hooks[ev] = [{ matcher: '', hooks: [{ type: 'command', command: `bash "${path.join(state, 'pkg', 'obsidian_wiki', '_data', 'hooks', SCRIPTS[ev])}"` }] }];
+  for (const ev of hooks) doc.hooks[ev] = [{ matcher: '', hooks: [{ type: 'command', command: `bash "${path.join(state, 'uv-tools', 'obsidian-wiki', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data', 'hooks', SCRIPTS[ev])}"` }] }];
   fs.writeFileSync(settings, JSON.stringify(doc));
   const vaultDir = path.join(home, 'Wiki');
   if (vault) {
@@ -211,7 +211,7 @@ test('PC-178: a clash is any entry of a bundled skill name in obsidian-wiki\'s g
   const s = sandbox(t);
   const bin = path.join(s.bin, 'obsidian-wiki');
   M.hookState(bin); // the fake makes its package on first use
-  const pkgSkills = path.join(s.state, 'pkg', 'obsidian_wiki', '_data', 'skills');
+  const pkgSkills = path.join(s.state, 'uv-tools', 'obsidian-wiki', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data', 'skills');
   const agents = path.join(s.home, '.agents', 'skills');
   fs.mkdirSync(path.join(agents, 'skill-creator'), { recursive: true });
   fs.writeFileSync(path.join(agents, 'skill-creator', 'SKILL.md'), 'mine');
@@ -422,7 +422,7 @@ test('PC-178: uv\'s receipt refuses a quoted key even when the launcher knows it
 
 test('PC-178: an entry without type "command" is not a registered SessionStart hook', { skip: SH }, (t) => {
   const s = sandbox(t, { hooks: [] });
-  const cmd = `bash "${path.join(s.state, 'pkg', 'obsidian_wiki', '_data', 'hooks', 'wiki-session-recap.sh')}"`;
+  const cmd = `bash "${path.join(s.state, 'uv-tools', 'obsidian-wiki', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data', 'hooks', 'wiki-session-recap.sh')}"`;
   fs.writeFileSync(s.settings, JSON.stringify({ hooks: { SessionStart: [{ matcher: '', hooks: [{ command: cmd }] }] } }));
   assert.equal(M.present(s.home).hook, false);
   M.hook({ home: s.home });
@@ -737,4 +737,76 @@ test('PC-178: doctor --json lists each clash entry with its problem; the refresh
   assert.ok(c.entries.some((e) => e.problem === 'clash' && e.path.endsWith(name)), JSON.stringify(c.entries));
   assert.ok(c.entries.some((e) => e.problem === 'unreadable' && e.code === 'ELOOP' && /\.codex/.test(e.path)), JSON.stringify(c.entries));
   assert.match(M.REFRESH, /records the installed version and package path/);
+});
+
+// Round 16 (PC-178).
+test('PC-178: a relative repo line gets its own step, never the form it already has', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="venv/lib/python3.12/site-packages/obsidian_wiki/_data"\n`);
+  const row = s.rows().find((r) => r.id === 'memory.vault.config-form');
+  fs.rmSync(path.join(s.state, 'version'));
+  const note = M.needs(s.home, path.join(s.home, 'New'), 'linux').note || '';
+  let err = '';
+  try { M.install({ home: s.home, vault: path.join(s.home, 'New'), claude: { here: false }, NPX }); } catch (e) { err = e.message; }
+  for (const text of [row.fix, note, err]) {
+    assert.match(text, /remove the OBSIDIAN_WIKI_REPO line|absolute path/);
+    assert.doesNotMatch(text, /write .* once as/);
+  }
+});
+
+test('PC-178: a config not saved as UTF-8 is its own form, and nothing runs over it', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  delete process.env.FAKE_TOOLS_QUIET;
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const bytes = Buffer.concat([Buffer.from(`OBSIDIAN_VAULT_PATH="${s.vaultDir}`), Buffer.from([0xff, 0xfe]), Buffer.from('"\n')]);
+  fs.writeFileSync(config, bytes);
+  assert.equal((M.configForm(s.home) || {}).form, 'not saved as UTF-8');
+  assert.throws(() => M.upgrade({ home: s.home, NPX }), /is not saved as UTF-8, which obsidian-wiki cannot read; save it as UTF-8/);
+  fs.rmSync(path.join(s.state, 'version'));
+  assert.throws(() => M.install({ home: s.home, vault: path.join(s.home, 'New'), claude: { here: false }, NPX }), /not saved as UTF-8/);
+  const log = (() => { try { return fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { return ''; } })();
+  assert.ok(!/uv tool install|obsidian-wiki list/.test(log), log);
+  assert.ok(fs.readFileSync(config).equals(bytes));
+});
+
+test('PC-178: a vault path with a double quote or a line break is refused', () => {
+  for (const dir of ['/tmp/a"b', '/tmp/a\nb']) assert.match(M.vaultProblem(dir), /choose a folder whose path has no double quote or line break/);
+});
+
+test('PC-178: after uv installs, sets up and uninstalls obsidian-wiki, nothing reads as the person\'s own copy', { skip: SH }, (t) => {
+  const s = sandbox(t, { vault: false });
+  fs.rmSync(path.join(s.state, 'version'));
+  const uvBin = path.join(s.bin, 'uv');
+  M.install({ home: s.home, vault: path.join(s.home, 'Wiki2'), claude: { here: false }, NPX });
+  assert.match(fs.readFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), 'utf8'), /OBSIDIAN_WIKI_REPO=".*[\\/]uv-tools[\\/]obsidian-wiki[\\/].*obsidian_wiki[\\/]_data"/);
+  require('../lib/releases').run(uvBin, ['tool', 'uninstall', 'obsidian-wiki'], { timeout: 30000, input: '' });
+  assert.equal(M.personalCopy(s.home, uvBin), null);
+  assert.equal(M.needs(s.home, path.join(s.home, 'Other'), 'linux').tool, true);
+});
+
+test('PC-178: a bare managed line passes, and the refresh only quotes it, keeping its meaning', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH=${s.vaultDir}\nOBSIDIAN_WIKI_VERSION=2026.10.2\n`);
+  assert.equal(M.configForm(s.home), null);
+  M.upgrade({ home: s.home, NPX });
+  const text = fs.readFileSync(config, 'utf8');
+  assert.ok(text.includes(`OBSIDIAN_VAULT_PATH="${s.vaultDir}"`) && text.includes(`OBSIDIAN_WIKI_VERSION="${M.PIN}"`), text);
+});
+
+test('PC-178: an unlistable Hermes profiles folder is its own clash entry; with uv absent, XDG_DATA_HOME places uv\'s tool folder', { skip: SH || (process.getuid && process.getuid() === 0 && 'root lists a folder whatever its mode') }, (t) => {
+  const s = sandbox(t);
+  const profiles = path.join(s.home, '.hermes', 'profiles');
+  fs.mkdirSync(profiles, { recursive: true });
+  fs.chmodSync(profiles, 0o000);
+  let c;
+  try { c = s.rows().find((r) => r.id === 'memory.wiki.clash'); } finally { fs.chmodSync(profiles, 0o755); } // before the sandbox is removed
+  assert.ok(c && c.entries.some((e) => e.problem === 'profiles-unreadable' && e.code === 'EACCES'), JSON.stringify(c));
+  const data = path.join(s.home, 'data');
+  process.env.XDG_DATA_HOME = data;
+  const pkg = path.join(data, 'uv', 'tools', 'obsidian-wiki', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+  fs.mkdirSync(pkg, { recursive: true });
+  fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="${pkg}"\n`);
+  assert.equal(M.personalCopy(s.home, null), null);
 });
