@@ -81,7 +81,8 @@ function sandbox(t, { version = M.PIN, vault = true, hooks = ['SessionStart'], e
   const settings = path.join(home, '.claude', 'settings.json');
   fs.mkdirSync(path.dirname(settings), { recursive: true });
   const doc = { hooks: {} };
-  for (const ev of hooks) doc.hooks[ev] = [{ matcher: '', hooks: [{ type: 'command', command: `bash "${path.join(state, 'hooks', SCRIPTS[ev])}"` }] }];
+  // The fake's package holds the scripts (made on its first call); the command names them where they are.
+  for (const ev of hooks) doc.hooks[ev] = [{ matcher: '', hooks: [{ type: 'command', command: `bash "${path.join(state, 'pkg', '_data', 'hooks', SCRIPTS[ev])}"` }] }];
   fs.writeFileSync(settings, JSON.stringify(doc));
   const vaultDir = path.join(home, 'Wiki');
   if (vault) {
@@ -276,4 +277,42 @@ test('PC-178: a clash that appears after git init stops the vault step before ob
   try { log = fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { /* none */ }
   assert.ok(!/obsidian-wiki setup/.test(log), log);
   assert.equal(fs.readFileSync(path.join(s.home, '.agents', 'skills', 'skill-creator', 'SKILL.md'), 'utf8'), 'mine\n');
+});
+
+// Round 8.
+test('PC-178: a registered SessionStart hook whose script is not there is not ok, and names the path', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: ['SessionStart'] });
+  const gone = path.join(s.home, 'old-venv', 'obsidian_wiki', '_data', 'hooks', 'wiki-session-recap.sh');
+  fs.writeFileSync(s.settings, JSON.stringify({ hooks: { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command: `PATH="/x:$PATH" bash "${gone}"` }] }] } }));
+  const h = s.rows().find((r) => r.id === 'memory.hooks');
+  assert.equal(h.state, 'warn', JSON.stringify(h));
+  assert.ok(h.detail.includes(gone), h.detail);
+  assert.ok(h.fix.includes(M.NEVER), h.fix);
+});
+
+test('PC-178: a link to nothing whose text points into an obsidian_wiki package is obsidian-wiki\'s own, not a clash', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const dir = path.join(s.home, '.agents', 'skills');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.symlinkSync(path.join(s.home, 'removed-venv', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data', 'skills', 'wiki-lint'), path.join(dir, 'wiki-lint'));
+  fs.symlinkSync(path.join(s.home, 'elsewhere', 'wiki-query'), path.join(dir, 'wiki-query'));
+  assert.deepEqual(M.clashes(s.home, path.join(s.bin, 'obsidian-wiki')), [path.join(dir, 'wiki-query')]);
+});
+
+test('PC-178: uv\'s receipt fails closed: a comment, an unterminated or escaped string, options that change resolution', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const uvBin = path.join(s.bin, 'uv');
+  for (const text of [
+    '[tool]\nrequirements = [\n    { name = "obsidian-wiki" }, # pinned by hand\n]\n',
+    '[tool]\nrequirements = [{ name = "obsidian-wiki }]\n',
+    '[tool]\nrequirements = [{ name = "obsidian-wiki", marker = "python_version >= \\"3.8\\"" }]\n',
+    '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n\n[tool.options]\nindex-url = "https://example.com/simple"\n',
+    '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n\n[tool.options]\nprerelease = "allow"\n',
+  ]) {
+    receipt(s, text);
+    assert.throws(() => M.receiptSpec(uvBin), /cannot carry/, text);
+  }
+  // `python` is read only from [tool].
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n\n[other]\npython = "3.9"\n');
+  assert.equal(M.receiptSpec(uvBin).python, null);
 });

@@ -2259,7 +2259,9 @@ test('PC-89: an unusable saved train leaves the update repair and Windows downlo
   const switchboard = catalog.byId('switchboard');
   fs.writeFileSync(path.join(m.home, '.claude.json'), JSON.stringify({ mcpServers: { [switchboard.mcp.name]: { command: path.join(m.apps, switchboard.app, switchboard.mcp.bin), args: [] } } }));
   const doc = await cli(m, api, 'doctor', '--json', '--offline');
-  assert.ok(!doc.json.checks.some((c) => c.fix && /setup --with/.test(c.fix)), JSON.stringify(doc.json.checks.filter((c) => c.fix && /setup --with/.test(c.fix))));
+  // A memory row keeps its own step after the train's (PC-178 round 8): `setup --with` only once the train is usable.
+  const promised = (c) => c.fix && /setup --with/.test(c.fix) && !(/^memory\./.test(c.id) && c.fix.startsWith('first make the release train usable: '));
+  assert.ok(!doc.json.checks.some(promised), JSON.stringify(doc.json.checks.filter(promised)));
   const stale = doc.json.checks.find((c) => c.id === 'mcp.claude.switchboard');
   assert.ok(stale && stale.state === 'fail' && /first make the release train usable/.test(stale.fix), JSON.stringify(stale));
   assert.ok(doc.json.checks.some((c) => c.repair && c.repair.kind === 'update'), 'the update repair still runs');
@@ -3441,6 +3443,9 @@ test('PC-178: a vault step that fails after obsidian-wiki linked its skills remo
     for (const n of fs.existsSync(dir) ? fs.readdirSync(dir) : []) assert.ok(!catalog.WIKI.skills.includes(n), `${rel}/${n} left`);
   }
   assert.equal(fs.readFileSync(path.join(mine, 'SKILL.md'), 'utf8'), 'mine');
+  // The skills folders the step made for agents that are not here are gone too (round 8, R6); the ones there stay.
+  for (const top of ['.trae', '.trae-cn', '.kiro', '.pi', '.openclaw', '.copilot', '.gemini', '.hermes']) assert.ok(!fs.existsSync(path.join(m.home, top)), `${top} left`);
+  assert.ok(fs.existsSync(path.join(m.home, '.agents', 'skills')) && fs.existsSync(path.join(m.home, '.codex')));
 });
 
 test('PC-178: uninstall names obsidian-wiki\'s vault and hook only where they are', { skip: MAC_SIM }, async (t) => {
@@ -3460,4 +3465,62 @@ test('PC-178: the refresh step is offered only at or above the pin; below it the
   const v = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.vault');
   assert.ok(!/obsidian-wiki list/.test(v.fix), v.fix);
   assert.match(v.fix, /memory\.wiki/);
+});
+
+// Round 8 (PC-178).
+test('PC-178: installing obsidian-wiki over an existing config is not run over a clash either: its next command would refresh the skills', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  fs.mkdirSync(path.dirname(wikiConfig(m)), { recursive: true });
+  fs.mkdirSync(path.join(m.home, 'Wiki'));
+  fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Wiki')}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`); // after uv tool uninstall
+  const snapshot = giveOwnSkill(m);
+  const before = snapshot();
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  const item = r.json.plan.find((i) => i.kind === 'memory');
+  assert.ok(item && item.unavailable, JSON.stringify(r.json.plan));
+  assert.ok(item.note.includes(path.join(m.home, '.agents', 'skills', 'skill-creator')) && item.note.includes(path.join(m.home, '.claude', 'skills', 'skill-creator')), item.note);
+  assert.ok(row(r, 'memory.wiki.clash'), 'the clash row shows with a config too');
+  assert.equal(snapshot(), before);
+  assert.ok(!toolLog(m).some((l) => /^uv tool install/.test(l)), toolLog(m).join('\n'));
+  // With no clash, the install is followed by the refresh, so no version mismatch is left for an agent's next command.
+  const n = withMemory();
+  fs.mkdirSync(path.dirname(wikiConfig(n)), { recursive: true });
+  fs.mkdirSync(path.join(n.home, 'Wiki'));
+  fs.writeFileSync(wikiConfig(n), `OBSIDIAN_VAULT_PATH="${path.join(n.home, 'Wiki')}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`);
+  const ok = await cli(n, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.equal(ok.json.actions.find((a) => a.kind === 'memory').outcome, 'done', JSON.stringify(ok.json.actions));
+  assert.match(fs.readFileSync(wikiConfig(n), 'utf8'), new RegExp(`OBSIDIAN_WIKI_VERSION="${PIN}"`));
+  assert.ok(toolLog(n).includes('obsidian-wiki list ran with its update check off'), toolLog(n).join('\n'));
+});
+
+test('PC-178: a version the launcher cannot order gets its own vault hint, naming it, with no route memory.wiki lacks', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, `${PIN}.post1`, { vault: path.join(m.home, 'Wiki') });
+  fs.writeFileSync(wikiConfig(m), fs.readFileSync(wikiConfig(m), 'utf8').replace(`OBSIDIAN_WIKI_VERSION="${PIN}.post1"`, 'OBSIDIAN_WIKI_VERSION="2026.10.2"'));
+  const v = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.vault');
+  assert.ok(v.fix.includes(`${PIN}.post1`), v.fix);
+  assert.doesNotMatch(v.fix, /memory\.wiki names|obsidian-wiki list/);
+});
+
+test('PC-178: under an unusable train the memory rows keep their own step after the train\'s', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, PIN);
+  giveOwnSkill(m);
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode/state.json'), JSON.stringify({ train: 'gone' }));
+  const c = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.wiki.clash');
+  assert.match(c.fix, /^first make the release train usable: .*; then move or rename/);
+});
+
+test('PC-178: a relative XDG_CONFIG_HOME stops the vault step: obsidian-wiki would read it from the folder it runs in', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  m.env = { XDG_CONFIG_HOME: 'relative/config' };
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  const item = r.json.plan.find((i) => i.kind === 'memory');
+  assert.ok(item && item.unavailable && /XDG_CONFIG_HOME/.test(item.note), JSON.stringify(item));
+  assert.ok(!toolLog(m).some((l) => /^obsidian-wiki setup/.test(l)));
 });
