@@ -51,7 +51,9 @@ its notice marker, the shared `PassionCode/installation.json` created once if ab
 `https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
 it reads Obsidian's `Info.plist` and signature like an app's and the names of the `obsidian-<version>.asar` files in
 `~/Library/Application Support/obsidian` (the version Obsidian updated itself to) and obsidian-wiki's config file (only
-its vault path), runs `uv --version`, `uv tool list` (a copy counts as uv's only when uv lists it) and `brew --prefix`
+its vault path), runs `uv --version`, `uv tool list` (a copy counts as uv's only when uv lists it), and, when uv holds an obsidian-wiki
+that does not run, `uv tool dir` and reads its `uv-receipt.toml` and `pyvenv.cfg` (to name the person's reinstall),
+and `brew --prefix`
 (Homebrew counts only where this user can write its `bin`), and runs `obsidian-wiki --version`, `obsidian-wiki doctor
 --json` and `obsidian-wiki hooks status --json`, which read the
 person's obsidian-wiki config, vault and Claude Code hooks and change nothing; it reads the names of the bundled skills

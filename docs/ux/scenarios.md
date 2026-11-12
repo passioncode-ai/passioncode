@@ -426,10 +426,13 @@
   its config where the launcher does); `doctor` shows `memory.config` with the fix to set it to an absolute folder or
   unset it. A launcher state file that cannot be read keeps the vault step going, and its line says the vault was not
   recorded, so a missing SessionStart hook will not be offered as a repair. A skills folder or entry that cannot be read (a looped
-  link, a folder this user may not read) is named "could not be read: <code>" in `memory.wiki.clash` and counts as a
-  clash: no install, vault step or upgrade runs over it. An obsidian-wiki uv holds that does not run (its Python gone,
+  link, a folder this user may not read) is named on its own, "<folder> could not be read (<code>)", with the fix to repair the link or the permissions, then run setup, never as a skill of
+  yours to move, in `memory.wiki.clash`, and counts as a clash: no install, vault step or upgrade runs over it. An obsidian-wiki uv holds that does not run (its Python gone,
   or its command not on this PATH) is never installed over or uninstalled: `memory.wiki` warns "installed by uv but does
-  not run" with the person's reinstall, using what uv recorded. A memory check that fails in a way nobody foresaw is one
+  not run" with the person's reinstall, using what uv recorded (its own version specifier, never the pin, each value
+  single-quoted). A config that writes `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` or `OBSIDIAN_WIKI_VERSION` with spaces
+  around `=` stops every `obsidian-wiki list` (the upgrade, the install over a config), since its version refresh would
+  empty that key: `memory.vault.spaced` names it, and the config is left byte for byte. A memory check that fails in a way nobody foresaw is one
   `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
