@@ -168,7 +168,7 @@
 - **Entry point:** `npx @passioncode-ai/passioncode@latest setup` (in a terminal), or `setup --yes --json` from a coding agent
 - **Preconditions:** Node 18+; macOS for the apps; no PassionCode.ai app or skill installed.
 - **Steps:**
-  1. Run setup. In a terminal, answer one question per absent app (an app whose folder you cannot write is named instead and never asked, SCN-017; Fabric, an early preview, defaults to no without Docker and the Supabase CLI), one for the repairs, if any are left, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
+  1. Run setup. In a terminal, answer one question per absent app (an app whose folder you cannot write is named instead and never asked, SCN-017; Fabric, an early preview, defaults to no without Docker and the Supabase CLI), one for the repairs, if any are left, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no), and one for the agents' wiki memory when it is offered (SCN-018): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
   2. Read the result: what was installed, the checks before and after, and the numbered steps that stay the person's.
   3. Do those steps (sign-ins, consents, secrets in each product's hidden prompt), restart the coding agents.
 - **Expected result:** The chosen apps are installed from verified releases and opened once; the skill set is installed; every bundled MCP server is registered for every agent present and answers its proving call; the person's steps are listed once.
@@ -207,7 +207,7 @@
 - **Preconditions:** None.
 - **Steps:**
   1. Run doctor.
-  2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
+  2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services, and `memory` for the agents' wiki memory, SCN-018), each with its state and, when not ok, its fix.
 - **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result, its release cache (`~/.passioncode/releases-cache.json`, release lookups kept 30 minutes) and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
@@ -395,14 +395,15 @@
   Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
   `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
-  are; an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
+  are (apart from the version keys obsidian-wiki's own refresh records after an upgrade, every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
   `doctor --fix`), never with `obsidian-wiki setup`; a copy uv does not list (pipx, pip `--user`) is the person's to
   bring up. `--wiki-vault <dir>` puts a new vault elsewhere; `--without obsidian` leaves out the app, `--without wiki`
   obsidian-wiki, its vault, its upgrade and the hook repair, `--without memory` both, and `--no-apps` both too. A
   `~/.claude/settings.json` that is a link stays one: the SessionStart entry is added where it points. On Linux and Windows setup installs no
   Obsidian and `doctor` names its download page; obsidian-wiki is still installed where uv is. Obsidian updates itself
   inside the app: an older version is information, and setup never replaces a working copy for it (only a damaged copy
-  of this user's own); a copy an administrator installed in `/Applications` is used as this user's, with no second copy.
+  of this user's own); a copy in `/Applications` that root owns (a package or MDM install) counts as this user's, with no
+  second copy, while one another user dragged in stays theirs and this user gets their own.
   Where Claude Code reads another folder (`CLAUDE_CONFIG_DIR`), no hook is registered (obsidian-wiki writes only
   `~/.claude/settings.json`) and `doctor` says so; where Claude Code is not installed, no hook is offered.
 - **UI elements:** the plan's `memory` and Obsidian `install` lines, the memory question, `doctor`'s `memory` section
@@ -422,7 +423,11 @@
   included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
   failure with its check names, and the session-start line then names `doctor`, not `setup`, which cannot repair it; a
   Stop hook someone registered is an information row naming its effect on every session, removed only by the person
-  (`obsidian-wiki hooks uninstall --only Stop`). No fix ever names `obsidian-wiki setup` over a config: after an upgrade
+  (a hand edit; obsidian-wiki never writes Claude Code's settings file, which keeps its permission bits). A skill of the
+  person's that shares a name with one of obsidian-wiki's (in any agent's global skills folder, `skill-creator` for
+  one) stops the vault step and the upgrade: obsidian-wiki's setup and its version refresh would delete or replace it,
+  so the step is named unavailable with each entry, `doctor` shows `memory.wiki.clash`, and the person moves or renames
+  them, then runs setup again. No fix ever names `obsidian-wiki setup` over a config: after an upgrade
   the version setup recorded is refreshed by `obsidian-wiki list`, keeping every other key.
 - **Status:** implemented
 - **Coverage:** `test/setup.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`, `test/catalog.test.js` test beginning `PC-178: an administrator`, `test/self-update.test.js` test beginning `session start names the failures`.
