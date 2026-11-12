@@ -104,6 +104,8 @@ switch (tool) {
   case 'uv': {
     if (args[0] === '--version') { out('uv 0.9.0'); process.exit(0); }
     const state = process.env.FAKE_WIKI_STATE || path.join(home, 'fake-wiki');
+    // $FAKE_UV_LIST_ONLY_MCP: uv holds only obsidian-wiki-mcp, a tool whose name begins like obsidian-wiki's (round 13, R2).
+    if (args[0] === 'tool' && args[1] === 'list' && process.env.FAKE_UV_LIST_ONLY_MCP) { out('obsidian-wiki-mcp v1.0.0\n- obsidian-wiki-mcp'); process.exit(0); }
     if (args[0] === 'tool' && args[1] === 'list') { if (fs.existsSync(path.join(state, 'version')) && !process.env.FAKE_UV_LIST_EMPTY) out(`obsidian-wiki v${fs.readFileSync(path.join(state, 'version'), 'utf8').trim()}\n- obsidian-wiki`); process.exit(0); }
     if (args[0] === 'tool' && args[1] === 'dir') { out(path.join(state, 'uv-tools')); process.exit(0); }
     if (args[0] === 'tool' && args[1] === 'uninstall') {
@@ -121,6 +123,9 @@ switch (tool) {
       // $FAKE_UV_INSTALLS_VERSION: what lands is not what was asked for (round 11, R1).
       fs.writeFileSync(path.join(state, 'version'), process.env.FAKE_UV_INSTALLS_VERSION || spec.split('==')[1]);
       fs.writeFileSync(path.join(dir, 'obsidian-wiki'), `#!/bin/sh\nexec "${process.execPath}" "${__filename}" obsidian-wiki "$@"\n`, { mode: 0o755 });
+      // $FAKE_UV_INSTALL_ADDS_SKILL: a folder holding SKILL.md appears with the first install (a clash after the reinstall, round 13, R3).
+      const adds = process.env.FAKE_UV_INSTALL_ADDS_SKILL;
+      if (adds && !fs.existsSync(path.join(adds, 'SKILL.md'))) { fs.mkdirSync(adds, { recursive: true }); fs.writeFileSync(path.join(adds, 'SKILL.md'), '---\nname: mine\n---\n'); }
       out(`Installed 1 executable: obsidian-wiki`); process.exit(0);
     }
     process.exit(2);
@@ -210,6 +215,8 @@ switch (tool) {
       fs.mkdirSync(path.dirname(config), { recursive: true });
       fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
       fs.writeFileSync(path.join(path.dirname(config), 'WRITING.md'), '# Writing profile\n'); // ensure_global_writing_profile
+      // $FAKE_WIKI_LOCK_CONFIG: the config folder turns unlistable before the failure (round 13, R8).
+      if (process.env.FAKE_WIKI_LOCK_CONFIG) fs.chmodSync(path.dirname(config), 0o300);
       if (process.env.FAKE_WIKI_SETUP_FAIL === 'late') { err('error: setup failed after its config'); process.exit(1); }
       // Like obsidian-wiki's own setup (install_global_skills), its skills go into every agent's global folder.
       for (const d of skillDirs) installSkills(d);

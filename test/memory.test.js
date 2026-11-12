@@ -436,12 +436,12 @@ test('PC-178: a config key written with spaces around = stops every obsidian-wik
   const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
   const text = `OBSIDIAN_VAULT_PATH = "${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`;
   fs.writeFileSync(config, text);
-  assert.throws(() => M.upgrade({ home: s.home, NPX }), /writes OBSIDIAN_VAULT_PATH with spaces around =, which obsidian-wiki's version refresh would empty; write it as OBSIDIAN_VAULT_PATH="\.\.\.", then run setup again; nothing was upgraded/);
+  assert.throws(() => M.upgrade({ home: s.home, NPX }), /writes OBSIDIAN_VAULT_PATH with spaces around =, which obsidian-wiki's version refresh would rewrite; write it once as OBSIDIAN_VAULT_PATH="\.\.\.", then run setup again; nothing was upgraded/);
   const log = (() => { try { return fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { return ''; } })();
   assert.ok(!/uv tool install|obsidian-wiki list/.test(log), log);
   assert.equal(fs.readFileSync(config, 'utf8'), text);
   const rows = s.rows();
-  const sp = rows.find((r) => r.id === 'memory.vault.spaced');
+  const sp = rows.find((r) => r.id === 'memory.vault.config-form');
   assert.ok(sp && sp.state === 'warn' && sp.gate === 'consent', JSON.stringify(rows));
   assert.equal(rows.find((r) => r.id === 'memory.wiki').repair, null);
 });
@@ -475,4 +475,115 @@ test('PC-178: a clash that is only a folder it could not read says so, never a s
   for (const text of [clash.detail, clash.fix]) assert.ok(!/skills? of yours|move or rename/.test(text), text);
   assert.ok(/could not be read \(ELOOP\)/.test(clash.detail) && /repair the link or the permissions/.test(clash.fix), JSON.stringify(clash));
   assert.ok(!/skills? of yours|move or rename/.test(note), note);
+});
+
+// Round 13 (PC-178).
+test('PC-178: a config line obsidian-wiki\'s refresh would rewrite stops every list, in each form, and the config stays byte for byte', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  delete process.env.FAKE_TOOLS_QUIET;
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const v = s.vaultDir;
+  for (const [text, form] of [
+    [`OBSIDIAN_VAULT_PATH='${v}'\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, /in single quotes/],
+    [`export OBSIDIAN_VAULT_PATH="${v}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, /after export/],
+    [`OBSIDIAN_VAULT_PATH="${v}" # mine\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, /with text after its value/],
+    [`OBSIDIAN_VAULT_PATH="${v}"\nOBSIDIAN_VAULT_PATH="${v}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, /more than once/],
+    [`OBSIDIAN_VAULT_PATH="${v}"\nOBSIDIAN_WIKI_REPO="/home/me/obsidian-wiki"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, /outside obsidian-wiki's package/],
+    [`OBSIDIAN_VAULT_PATH = "${v}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, /with spaces around =/],
+  ]) {
+    fs.writeFileSync(config, text);
+    fs.rmSync(path.join(s.home, 'fake-tools.log'), { force: true });
+    assert.throws(() => M.upgrade({ home: s.home, NPX }), form, text);
+    const log = (() => { try { return fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { return ''; } })();
+    assert.ok(!/uv tool install|obsidian-wiki list/.test(log), `${text}: ${log}`);
+    assert.equal(fs.readFileSync(config, 'utf8'), text);
+    const row = s.rows().find((r) => r.id === 'memory.vault.config-form');
+    assert.ok(row && row.gate === 'consent' && form.test(row.detail), JSON.stringify(row));
+  }
+  // The forms obsidian-wiki keeps as they are pass.
+  for (const text of [`OBSIDIAN_VAULT_PATH="${v}"\n`, `OBSIDIAN_VAULT_PATH=${v}\nOBSIDIAN_WIKI_REPO="/x/site-packages/obsidian_wiki/_data"\n`]) {
+    fs.writeFileSync(config, text);
+    assert.equal(M.configForm(s.home), null, text);
+  }
+});
+
+test('PC-178: with obsidian-wiki not installed, a config line its refresh would rewrite shows its row and routes memory.wiki\'s fix', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  fs.rmSync(path.join(s.state, 'version'));
+  fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `export OBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`);
+  const rows = s.rows();
+  const w = rows.find((r) => r.id === 'memory.wiki');
+  assert.ok(rows.some((r) => r.id === 'memory.vault.config-form'), JSON.stringify(rows));
+  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line memory\.vault\.config-form names; then /.test(w.fix) && w.gate === 'consent', JSON.stringify(w));
+  const need = M.needs(s.home, path.join(s.home, 'New'), 'linux');
+  assert.ok(/after export/.test(need.note || ''), JSON.stringify(need));
+});
+
+test('PC-178: the refresh step after a clash of unreadable folders asks to repair them, never to move skills', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const report = path.join(s.home, 'doctor.json');
+  fs.writeFileSync(report, JSON.stringify({ checks: [{ name: 'setup-version', status: 'warn', detail: 'recorded 2026.10.2' }] }));
+  process.env.FAKE_WIKI_DOCTOR = report;
+  fs.symlinkSync(path.join(s.home, '.codex'), path.join(s.home, '.codex'));
+  const v = s.rows().find((r) => r.id === 'memory.vault');
+  assert.ok(/first repair the folders memory\.wiki\.clash names; then run: obsidian-wiki list/.test(v.fix) && !/move or rename/.test(v.fix), v.fix);
+});
+
+test('PC-178: a long memory fix keeps the prohibition first and stays under 1000 characters; a long clash list is capped', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const report = path.join(s.home, 'doctor.json');
+  const long = 'x'.repeat(60);
+  fs.writeFileSync(report, JSON.stringify({ checks: ['one', 'two', 'three', 'four'].map((n) => ({ name: `check-${n}`, status: 'warn', detail: long, hint: 'run obsidian-wiki setup' })) }));
+  process.env.FAKE_WIKI_DOCTOR = report;
+  const v = s.rows().find((r) => r.id === 'memory.vault');
+  assert.ok(v.fix.startsWith(M.NEVER) && v.fix.split(M.NEVER).length === 2, v.fix);
+  assert.ok(v.fix.length <= 1000, `${v.fix.length}: ${v.fix}`);
+  delete process.env.FAKE_WIKI_DOCTOR;
+  const names = require('../lib/catalog').WIKI.skills.slice(0, 8);
+  for (const n of names) { fs.mkdirSync(path.join(s.home, '.agents', 'skills', n), { recursive: true }); fs.writeFileSync(path.join(s.home, '.agents', 'skills', n, 'SKILL.md'), 'mine'); }
+  const c = s.rows().find((r) => r.id === 'memory.wiki.clash');
+  assert.ok(/, and 3 more$/.test(c.detail), c.detail);
+});
+
+test('PC-178: an entry that is not a command hook is not judged for a missing script', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: ['SessionStart'] });
+  const doc = JSON.parse(fs.readFileSync(s.settings, 'utf8'));
+  doc.hooks.SessionStart.push({ matcher: '', hooks: [{ command: 'bash "/gone/obsidian_wiki/_data/hooks/wiki-session-recap.sh"' }] });
+  fs.writeFileSync(s.settings, JSON.stringify(doc));
+  const h = s.rows().find((r) => r.id === 'memory.hooks');
+  assert.ok(!/\/gone\//.test(h.detail), JSON.stringify(h));
+});
+
+test('PC-178: uv\'s receipt refuses a quoted or dotted key inside a requirement', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const uvBin = path.join(s.bin, 'uv');
+  for (const text of ['[tool]\nrequirements = [{ "name" = "obsidian-wiki" }]\n', '[tool]\nrequirements = [{ name = "obsidian-wiki", extras.x = "y" }]\n']) {
+    receipt(s, text);
+    assert.throws(() => M.receiptSpec(uvBin), /quoted or dotted key/, text);
+  }
+});
+
+test('PC-178: a copy uv\'s record does not name as the command it installed gets no upgrade repair', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\nentrypoints = [{ name = "obsidian-wiki", install-path = "/elsewhere/bin/obsidian-wiki", from = "obsidian-wiki" }]\n');
+  assert.equal(s.rows().find((r) => r.id === 'memory.wiki').repair, null);
+  receipt(s, `[tool]\nrequirements = [{ name = "obsidian-wiki" }]\nentrypoints = [{ name = "obsidian-wiki", install-path = "${path.join(s.bin, 'obsidian-wiki')}", from = "obsidian-wiki" }]\n`);
+  assert.deepEqual(s.rows().find((r) => r.id === 'memory.wiki').repair, { kind: 'tool', product: 'wiki' });
+});
+
+test('PC-178: an upgrade whose refresh refuses after the reinstall puts the previous version back', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  const name = require('../lib/catalog').WIKI.skills[0];
+  process.env.FAKE_UV_INSTALL_ADDS_SKILL = path.join(s.home, '.agents', 'skills', name);
+  assert.throws(() => M.upgrade({ home: s.home, NPX }), /obsidian-wiki was put back to 2026\.10\.2 \(uv tool install --force obsidian-wiki==2026\.10\.2\)/);
+  assert.equal(fs.readFileSync(path.join(s.state, 'version'), 'utf8'), '2026.10.2');
+});
+
+test('PC-178: a done tool upgrade, a hook repair and a memory action each add the restart step', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const S = require('../lib/setup');
+  for (const a of [{ kind: 'tool', outcome: 'done' }, { kind: 'hook', outcome: 'done' }, { kind: 'memory', outcome: 'done' }]) {
+    const steps = S.humanSteps({ actions: [{ detail: '', product: 'wiki', ...a }], platform: 'linux', home: s.home }, [], [], [], false);
+    assert.ok(steps.some((x) => /^Restart your coding agents/.test(x)), `${a.kind}: ${JSON.stringify(steps)}`);
+  }
 });
