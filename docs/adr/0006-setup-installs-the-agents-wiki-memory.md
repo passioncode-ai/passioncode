@@ -38,12 +38,14 @@ project, after every turn, to write into the vault. On the operator's machine th
    systems: `doctor` names https://obsidian.md/download, and setup installs no Obsidian.
 2. **obsidian-wiki is a tool pinned by the launcher release**, like the skills (`family.json`), not by a train:
    `catalog.WIKI.pin`, `2026.11.4` at this decision. It is installed with `uv tool install obsidian-wiki==<pin>`, and an
-   older one is brought up with `uv tool install --force obsidian-wiki==<pin>` only when `uv tool list` shows uv
-   installed it, that is when the copy found first on PATH is the one in uv's tool folder (a copy pip or pipx put first
+   older one is brought up with `uv tool install --force obsidian-wiki==<pin>` only when the copy found first on PATH is
+   in uv's tool folder AND `uv tool list` names obsidian-wiki (round 5: pipx and pip `--user` put theirs in
+   `~/.local/bin` too; a copy uv does not list is the person's to bring up, gate `consent`; a copy pip or pipx put first
    on PATH is named, `memory.wiki.shadow`, never replaced under it). Right after that upgrade setup runs
-   `obsidian-wiki list`: any ordinary command runs obsidian-wiki's stale refresh, which records the new version in the
+   `obsidian-wiki list` with its update check off (`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`): any ordinary command runs obsidian-wiki's stale refresh, which records the new version in the
    config and refreshes the skills it linked, keeping every other key (2026.11.4 `_check_stale`), so the setup-version
-   warning never follows the launcher's own upgrade. Versions compare by their leading x.y.z: above the pin is left
+   warning never follows the launcher's own upgrade; a `list` whose stale check could not refresh and asks for
+   `obsidian-wiki setup` fails the step with the fixed text below, never a "done". Versions compare by their leading x.y.z: above the pin is left
    alone, below it is upgraded, and the pin's own x.y.z with a suffix the launcher cannot order (or no version) is a
    warning with no repair, so a newer build is never taken back. Without uv, setup names a step: with
    Homebrew whose `bin` this user can write (`$(brew --prefix)/bin`), `brew install uv` (an agent runs it; the launcher does not); without, a person runs the installer uv's page
@@ -51,14 +53,19 @@ project, after every turn, to write into the vault. On the operator's machine th
    (on macOS `xcode-select -p` is asked first, so no install dialog opens), the vault is not offered either.
 3. **A vault only for a user who has none.** When obsidian-wiki has no config in the one folder it reads (found as it
    finds it: `~/.obsidian-wiki` only while `$XDG_CONFIG_HOME/obsidian-wiki`, default `~/.config/obsidian-wiki`, does not
-   exist; an entry there that is a link to nothing still counts as a config),
+   exist as `Path.exists()` sees it, so a folder that is a link to nothing does not; the config file itself that is a link
+   to nothing still counts as a config),
    setup makes the vault: `~/Documents/Wiki`, or the folder `--wiki-vault` names (absolute); `git init -b main` in it
    when it has no `.git`; `obsidian-wiki setup --no-hooks --vault <dir>` with no terminal (its own questions are skipped);
    then, where Claude Code is installed (its CLI answers, as `doctor` finds it) and reads `~/.claude/settings.json`,
    `obsidian-wiki hooks install --only SessionStart`: the read-only recap of the vault at session start. obsidian-wiki
    writes its hooks only to that literal file; where `CLAUDE_CONFIG_DIR` names another folder no hook is registered and
-   `doctor` says so as information. A vault step that fails removes what the launcher made (a folder it made, the `.git`
-   it made, a config the failed step wrote; a folder that was there, empty, stays as it was), so the next run starts
+   `doctor` says so as information. Where that file is a link (round 5), obsidian-wiki's writer (a temporary file and
+   `os.replace`) would turn it into a plain file: obsidian-wiki then writes its entry into a throwaway home and the
+   launcher adds exactly that entry where the link points, with its own writer (`lib/permissions.js` `write`), keeping
+   the link and the file's permission bits. A vault step that fails removes what the launcher made (a folder it made,
+   the `.git` it made, what the failed step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the
+   folder when the step made it; a folder that was there, empty, stays as it was), so the next run starts
    again (a part it cannot remove is named, with what to do). The vault the launcher made is remembered in
    `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
    SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
@@ -72,7 +79,11 @@ project, after every turn, to write into the vault. On the operator's machine th
    `obsidian-wiki hooks status --json`, `obsidian-wiki doctor --json`, `uv tool update-shell`, `brew install uv`, the
    launcher's own `setup --with wiki` and `doctor`, the pip/pipx note, and the person's `hooks uninstall --only Stop`;
    every other check gets a fixed text that names what obsidian-wiki reports and the safe route, and says never
-   `obsidian-wiki setup`, a bare `hooks install`, or its wiki-setup skill. A test iterates every hint obsidian-wiki
+   `obsidian-wiki setup`, a bare `hooks install`, or its wiki-setup skill. Round 5: every fix that names an obsidian-wiki
+   command carries that "never" unless it is exactly `hooks install --only SessionStart` or `hooks uninstall --only Stop`
+   (the refresh step, the missing vault files, and the fixes that send an agent to `obsidian-wiki doctor --json` or
+   `hooks status --json`, which say that its session-hooks line and `hooks status` exiting 1 for an unregistered Stop
+   hook are expected); where the settings file is a link, the hook fixes are by hand. A test iterates every hint obsidian-wiki
    2026.11.4's doctor and hooks can give (`test/fixtures/obsidian-wiki-2026.11.4-hints.json`).
 5. **`doctor` reads the memory** (area `memory`): Obsidian (installed, version against its latest, signature and team,
    a copy in `/Applications` left as it is), obsidian-wiki (found by name on PATH or where uv puts it, version against

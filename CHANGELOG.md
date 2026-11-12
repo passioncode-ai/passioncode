@@ -16,7 +16,7 @@
   Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
   leaves nothing it made, so the next run starts again. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
-  so no dialog opens). An older obsidian-wiki uv installed is brought up to the pin with `uv tool install --force`, then
+  so no dialog opens). An older obsidian-wiki uv lists is brought up to the pin with `uv tool install --force`, then
   `obsidian-wiki list` records the new version and keeps every other key of the config (`doctor --fix` too); a copy
   another tool put first on PATH is named, never replaced. Obsidian updates itself inside the app, so an older version is
   information and a working Obsidian is never replaced; an administrator's copy in `/Applications` is used as yours.
@@ -25,7 +25,9 @@
   memory part the run leaves out (`--without`, `--no-apps`) does not fail it (a damaged Obsidian signature always does;
   the JSON names the parts in `leftOut`). obsidian-wiki's own hints are never relayed: a fix names only a short list of
   safe commands, or says what obsidian-wiki reports and the safe route. A newer obsidian-wiki, suffixed or not, is never
-  taken back to the pin. `uninstall` says the memory stays. `--with` and `--without` take `obsidian`, `wiki` and
+  taken back to the pin. A `~/.claude/settings.json` that is a link stays a link (the entry goes where it points), a
+  copy of obsidian-wiki that uv does not list is never replaced by uv, and an XDG config folder that is a link to nothing
+  does not hide an older `~/.obsidian-wiki` config. `uninstall` says the memory stays, where any of it is installed. `--with` and `--without` take `obsidian`, `wiki` and
   `memory`; `--no-apps` leaves the memory out, its upgrade included. obsidian-wiki's setup creates skills folders for
   agents that are not installed (`~/.codex/skills`, `~/.gemini/skills` and more), and the set's member skills are then
   linked into those folders as into any agent's.
