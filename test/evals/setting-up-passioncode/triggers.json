@@ -21,6 +21,8 @@
     {"query": "Design the onboarding screen for Fabric's first run.", "shouldTrigger": false},
     {"query": "Как в репозиториях PassionCode принято называть ветки?", "shouldTrigger": false},
     {"query": "Настрой мне Docker Compose для этого проекта.", "shouldTrigger": false},
-    {"query": "Write the copy for the /start/ page of passioncode.ai.", "shouldTrigger": false}
+    {"query": "Write the copy for the /start/ page of passioncode.ai.", "shouldTrigger": false},
+    {"query": "Set up the agents' wiki memory and Obsidian on this Mac too.", "shouldTrigger": true},
+    {"query": "Write today's meeting notes into my Obsidian wiki vault.", "shouldTrigger": false}
   ]
 }

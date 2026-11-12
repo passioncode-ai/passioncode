@@ -1,10 +1,10 @@
 ---
 name: setting-up-passioncode
 description: >-
-  Use when a person asks to install, set up, check, repair or update the PassionCode.ai tools on
-  this computer (Fabric and its apps, Observatory, their MCP servers, the skills): "install
-  Fabric", "check my setup", «установи PassionCode», «проверь мою установку». NOT for working in
-  a passioncode-ai repository (working-in-passioncode).
+  Use when a person asks to install, set up, check, repair or update PassionCode.ai here (Fabric,
+  its apps and MCP servers, the skills, the agents' wiki memory and Obsidian): "install Fabric",
+  "check my setup", «установи PassionCode», «проверь мою установку». NOT for working in a
+  passioncode-ai repository (working-in-passioncode).
 license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
 compatibility: Needs Node 18+ and network access to npm and GitHub; it reaches analytics.passioncode.ai when it can (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills and MCP servers and names each app's download page.
 metadata:
@@ -36,10 +36,11 @@ for them. Setup and doctor still run if `npx` works in your shell.
 ## When this skill applies
 
 The person wants the PassionCode.ai tools on this computer (Fabric, Fabric Switchboard, Fabric
-Dashboards, Fabric Inbox, Project Observatory, their MCP servers and the PassionCode.ai skills)
-installed, checked, repaired or updated: "set me up with PassionCode", "install Fabric", "check my
-setup", "is my Fabric setup OK", "run the doctor", "the fabric-dashboards MCP is not working", "fix
-my setup", in any language. Not this skill: contributing to a passioncode-ai repository
+Dashboards, Fabric Inbox, Project Observatory, their MCP servers and the PassionCode.ai skills, and
+the agents' wiki memory: obsidian-wiki, its vault and Obsidian) installed, checked, repaired or
+updated: "set me up with PassionCode", "install Fabric", "check my setup", "is my Fabric setup OK",
+"run the doctor", "the fabric-dashboards MCP is not working", "set up the wiki memory", "install
+Obsidian", "fix my setup", in any language. Not this skill: contributing to a passioncode-ai repository
 (working-in-passioncode), building a Fabric agent or service (the fabric-agent-adapter skills), or
 product UX.
 
@@ -49,7 +50,8 @@ product UX.
 npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 ```
 
-- It checks everything first, installs the apps that are missing from their signed releases,
+- It checks everything first, installs the PassionCode.ai apps that are missing from their signed releases (Obsidian,
+  for the wiki memory, checked by its own signature and notarization),
   repairs what is wrong (skills, MCP registrations, an outdated or damaged app that is not
   running, a stopped service its supervisor owns), checks again and returns JSON.
 - A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe.
@@ -74,6 +76,10 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files: ask the
   person for another and pass `--wiki-vault`. A `memory.hooks.stop` row is the person's choice: report it, never
   remove it without their word.
+- For the wiki memory's setup, repair or hooks, use this launcher's `setup` and `doctor`, never obsidian-wiki's own
+  `wiki-setup` skill: that skill runs `obsidian-wiki setup` (which rewrites an existing config) and offers the Stop hook.
+  If the person asks for it anyway, it must not run `obsidian-wiki setup` over an existing config nor register the Stop
+  hook.
 - Only checking? `npx --yes @passioncode-ai/passioncode@latest doctor --json` changes nothing (apart from the launcher's
   anonymous counts).
   Exit 0: no check failed; 1: at least one did; 2: bad arguments.
