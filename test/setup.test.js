@@ -3622,7 +3622,9 @@ test('PC-178: a looped skills folder and an unreadable Hermes profile leave doct
   const d = await cli(m, api, 'doctor', '--json', '--offline');
   assert.ok(d.json && Array.isArray(d.json.checks), d.stdout + d.stderr);
   const clash = row(d, 'memory.wiki.clash');
-  assert.ok(clash && /\.codex.*could not be read: ELOOP/.test(clash.detail) && /p1.*could not be read: EACCES/.test(clash.detail), JSON.stringify(clash));
+  assert.ok(clash && /\.codex.* could not be read \(ELOOP\)/.test(clash.detail) && /p1.* could not be read \(EACCES\)/.test(clash.detail), JSON.stringify(clash));
+  // Round 12, P1: folders that could not be read are not skills of the person's to move.
+  assert.ok(!/skills? of yours|move or rename/.test(`${clash.detail} ${clash.fix}`) && /repair the link or the permissions/.test(clash.fix), JSON.stringify(clash));
   const s = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   assert.ok(s.json && Array.isArray(s.json.plan), s.stdout + s.stderr);
   assert.ok(!toolLog(m).some((l) => /^uv tool install|^obsidian-wiki setup/.test(l)), toolLog(m).join('\n'));
@@ -3636,9 +3638,10 @@ test('PC-178: an obsidian-wiki uv holds that does not run is never installed ove
   const d = await cli(m, api, 'doctor', '--json', '--offline');
   const w = row(d, 'memory.wiki');
   assert.ok(w && w.state === 'warn' && /installed by uv but does not run/.test(w.detail) && /uv tool install --force/.test(w.fix) && w.gate === 'consent' && !w.repair, JSON.stringify(w));
+  assert.ok(!w.fix.includes(`==${PIN}`), `a newer copy is never taken back to the pin (round 12, U1): ${w.fix}`);
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   const item = r.json.plan.find((i) => i.kind === 'memory');
-  assert.ok(item && item.unavailable && /does not run/.test(item.note), JSON.stringify(item));
+  assert.ok(item && item.unavailable && /does not run/.test(item.note) && !item.note.includes(`==${PIN}`), JSON.stringify(item));
   assert.ok(!toolLog(m).some((l) => /^uv tool (install|uninstall)/.test(l)), toolLog(m).join('\n'));
   assert.equal(fs.readFileSync(path.join(m.home, 'fake-wiki', 'version'), 'utf8'), '2026.12.0');
 });
@@ -3670,11 +3673,13 @@ test('PC-178: a SessionStart recap that fails after the vault stands names the k
   assert.equal(a.outcome, 'failed');
   assert.ok(a.error.includes(`made the wiki vault ${vault} (kept); its SessionStart recap was not registered`) && !/nothing was changed/.test(a.error), a.error);
   assert.ok(r.json.humanSteps.some((s) => s.startsWith('The wiki memory: ') && /run setup again/.test(s)), JSON.stringify(r.json.humanSteps));
+  assert.ok(r.json.humanSteps.some((s) => /^Restart your coding agents/.test(s)), `the kept vault's skills load at session start (round 12, R8): ${JSON.stringify(r.json.humanSteps)}`);
   assert.equal(JSON.parse(fs.readFileSync(path.join(m.home, '.passioncode', 'state.json'), 'utf8')).wiki.vault, vault);
   assert.ok(fs.existsSync(path.join(m.home, 'fake-wiki', 'version')), 'obsidian-wiki stays: the vault it set up stands');
   fs.writeFileSync(settings, good);
   const r2 = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   assert.deepEqual(r2.json.actions.filter((x) => /^(memory|tool|hook)$/.test(x.kind)).map((x) => `${x.kind}:${x.outcome}`), ['hook:done'], JSON.stringify(r2.json.actions));
+  assert.ok(r2.json.humanSteps.some((s) => /^Restart your coding agents/.test(s)), `a hook repair needs a new session (round 12, R8): ${JSON.stringify(r2.json.humanSteps)}`);
   assert.deepEqual(wikiHooks(m), ['SessionStart']);
 });
 

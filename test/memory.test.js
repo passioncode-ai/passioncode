@@ -371,7 +371,7 @@ test('PC-178: a skills folder that cannot be read is a clash that names its code
   fs.symlinkSync(path.join(s.home, '.codex'), path.join(s.home, '.codex')); // a link to itself: ELOOP
   let found;
   assert.doesNotThrow(() => { found = M.clashes(s.home, null); });
-  assert.ok(found.some((e) => /\.codex.*could not be read: ELOOP/.test(e)), found.join('\n'));
+  assert.ok(found.some((e) => /\.codex.* could not be read \(ELOOP\)/.test(e)), found.join('\n'));
 });
 
 test('PC-178: uv\'s receipt refuses a \'literal\' key it does not know and an array of tables', { skip: SH }, (t) => {
@@ -392,4 +392,87 @@ test('PC-178: a memory check that throws is one warning row in doctor, never a c
   const checks = await D.collect({ home: s.home, platform: 'linux', claude: { available: () => false }, online: false });
   const e = checks.find((c) => c.id === 'memory.error');
   assert.ok(e && e.state === 'warn' && /could not be checked: EPERM/.test(e.detail) && /doctor$/.test(e.fix) && e.gate === null && !e.repair, JSON.stringify(e));
+});
+
+// Round 12 (PC-178).
+test('PC-178: the reinstall of a uv-held copy keeps its own specifier, never the pin, and every value is single-quoted', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const uvBin = path.join(s.bin, 'uv');
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki", extras = ["ast", "graph"], specifier = "==2026.12.0" }, { name = "tree-sitter", specifier = "<0.22" }]\npython = "3.12"\n');
+  const fix = M.reinstallFix(uvBin);
+  assert.ok(fix.includes("'obsidian-wiki[ast,graph]==2026.12.0'") && !fix.includes(`==${M.PIN}`), fix);
+  assert.ok(fix.includes("--with 'tree-sitter<0.22'") && fix.includes("--python '3.12'"), fix);
+  const zsh = require('node:child_process').spawnSync('zsh', ['-n', '-c', fix.split(': ').slice(1).join(': ')]);
+  if (!zsh.error) assert.equal(zsh.status, 0, String(zsh.stderr));
+  // With no specifier recorded, none is named; the upgrade still pins.
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+  assert.ok(M.reinstallFix(uvBin).includes("'obsidian-wiki'") && !M.reinstallFix(uvBin).includes('=='), M.reinstallFix(uvBin));
+  assert.equal(M.receiptSpec(uvBin).requirement, `obsidian-wiki==${M.PIN}`);
+});
+
+test('PC-178: uv\'s receipt refuses a quoted key even when the launcher knows it', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const uvBin = path.join(s.bin, 'uv');
+  for (const text of ["[tool]\n'requirements' = [{ name = \"obsidian-wiki\" }]\n", '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n"python" = "3.12"\n']) {
+    receipt(s, text);
+    assert.throws(() => M.receiptSpec(uvBin), /a quoted key/, text);
+  }
+});
+
+test('PC-178: an entry without type "command" is not a registered SessionStart hook', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: [] });
+  const cmd = `bash "${path.join(s.state, 'pkg', '_data', 'hooks', 'wiki-session-recap.sh')}"`;
+  fs.writeFileSync(s.settings, JSON.stringify({ hooks: { SessionStart: [{ matcher: '', hooks: [{ command: cmd }] }] } }));
+  assert.equal(M.present(s.home).hook, false);
+  M.hook({ home: s.home });
+  const groups = JSON.parse(fs.readFileSync(s.settings, 'utf8')).hooks.SessionStart;
+  assert.ok(groups.some((g) => g.hooks.some((e) => e.type === 'command' && e.command.includes('wiki-session-recap.sh'))), JSON.stringify(groups));
+  assert.equal(M.present(s.home).hook, true);
+});
+
+test('PC-178: a config key written with spaces around = stops every obsidian-wiki list, and the config stays byte for byte', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2', env: { FAKE_TOOLS_QUIET: '' } });
+  delete process.env.FAKE_TOOLS_QUIET;
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const text = `OBSIDIAN_VAULT_PATH = "${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`;
+  fs.writeFileSync(config, text);
+  assert.throws(() => M.upgrade({ home: s.home, NPX }), /writes OBSIDIAN_VAULT_PATH with spaces around =, which obsidian-wiki's version refresh would empty; write it as OBSIDIAN_VAULT_PATH="\.\.\.", then run setup again; nothing was upgraded/);
+  const log = (() => { try { return fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { return ''; } })();
+  assert.ok(!/uv tool install|obsidian-wiki list/.test(log), log);
+  assert.equal(fs.readFileSync(config, 'utf8'), text);
+  const rows = s.rows();
+  const sp = rows.find((r) => r.id === 'memory.vault.spaced');
+  assert.ok(sp && sp.state === 'warn' && sp.gate === 'consent', JSON.stringify(rows));
+  assert.equal(rows.find((r) => r.id === 'memory.wiki').repair, null);
+});
+
+test('PC-178: the upgrade keeps the Python obsidian-wiki\'s venv was made with when uv\'s record names none', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  delete process.env.FAKE_TOOLS_QUIET;
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+  fs.writeFileSync(path.join(s.state, 'uv-tools', 'obsidian-wiki', 'pyvenv.cfg'), 'home = /opt/python/bin\ninclude-system-site-packages = false\nversion_info = 3.12.4.final.0\n');
+  assert.equal(M.venvPython(path.join(s.bin, 'uv')), '3.12');
+  M.upgrade({ home: s.home, NPX });
+  const log = fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8');
+  assert.ok(log.includes(`uv tool install --force obsidian-wiki==${M.PIN} --python 3.12`), log);
+});
+
+test('PC-178: setup names a memory that could not be checked in neutral words', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const S = require('../lib/setup');
+  const real = M.needs;
+  M.needs = () => { throw new Error('EPERM: operation not permitted'); };
+  t.after(() => { M.needs = real; });
+  const item = S.plan([], { platform: 'linux', home: s.home }).find((i) => i.kind === 'memory');
+  assert.ok(item && item.unavailable && item.detail === "the agents' wiki memory could not be checked: EPERM: operation not permitted", JSON.stringify(item));
+});
+
+test('PC-178: a clash that is only a folder it could not read says so, never a skill to move', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  fs.symlinkSync(path.join(s.home, '.codex'), path.join(s.home, '.codex'));
+  const note = require('../lib/memory').needs(s.home, path.join(s.home, 'New'), 'linux').note || '';
+  const clash = s.rows().find((r) => r.id === 'memory.wiki.clash');
+  for (const text of [clash.detail, clash.fix]) assert.ok(!/skills? of yours|move or rename/.test(text), text);
+  assert.ok(/could not be read \(ELOOP\)/.test(clash.detail) && /repair the link or the permissions/.test(clash.fix), JSON.stringify(clash));
+  assert.ok(!/skills? of yours|move or rename/.test(note), note);
 });
