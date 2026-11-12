@@ -108,6 +108,17 @@
         "when none does, posts the work to the board (com.submit to fabric-workspace) instead of starting it, and takes the next planned task",
         "after a change, updates the plan row it moved and says so in that row's board thread"
       ]
+    },
+    {
+      "id": "platform-issue-to-passioncode-owners",
+      "trap": "an agent in a client organization hit a Fabric Switchboard failure and filed it with that organization's architect, so PassionCode's owners never saw a defect of their own platform",
+      "request": "Switchboard keeps refusing to switch accounts in this org's sessions. Raise it with our architect.",
+      "expected": [
+        "classifies the failure as a platform issue (Fabric Switchboard is a platform part), not an issue of one agent",
+        "routes it to PassionCode's owners: com.submit to the owning Project and to Kira (passioncode-pm-agent), not to the organization's architect or owner",
+        "files it with evidence (version, command and output) and no personal data or secret",
+        "cites decision PM-D19 as the rule"
+      ]
     }
   ]
 }

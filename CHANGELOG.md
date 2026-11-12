@@ -4,6 +4,14 @@
 
 ### Changed
 
+- **A platform issue goes to PassionCode's owners** (PC-187, Kira's board message `77168f19`, 2026-11-12; decision
+  PM-D19 of passioncode-pm-agent): `working-in-passioncode` §0 gains a section that sorts an issue of one agent (its
+  owner, then the organization's architect and owners) from an issue of the platform (Fabric and its tools, Project
+  Observatory, the launcher and skills, the adapter and contract, studio-agent and the Studio spaces, the board, the
+  templates base). A platform issue goes, from every organization, on the board to the part's owning Project and to
+  Kira (passioncode-pm-agent) for the operator and the partner, with evidence and no personal data; a client
+  organization's PM agent also reports it with its usage to `gtm-deal-desk` once that tool exists. New eval scenario
+  `platform-issue-to-passioncode-owners` and one trigger query.
 - **The course check in every passioncode-ai repository** (PC-186, fabric-workspace's board request `5c460b82`,
   2026-11-12; the source is fabric-workspace `knowledge/rules.md` §0): `working-in-passioncode` §0 now starts with the
   course check (the North Star metric and gaps, the one plan in waves and S4.1; the change names the track, plan row or
