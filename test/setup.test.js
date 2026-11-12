@@ -2486,7 +2486,7 @@ test('PC-178: setup --yes installs Obsidian, checked by its own chain, and the w
   assert.ok(offered.includes('install:obsidian') && offered.includes('memory:wiki'), JSON.stringify(plan.json.plan));
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'memory');
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  const vault = path.join(m.home, 'Documents', 'Wiki');
+  const vault = path.join(m.home, '.wiki');
   const install = r.json.actions.find((a) => a.kind === 'install' && a.product === 'obsidian');
   assert.ok(install && install.outcome === 'done' && install.detail.includes(`installed Obsidian 1.15.0 at ${path.join(m.apps, OB.app)}`), JSON.stringify(r.json.actions));
   const made = r.json.actions.find((a) => a.kind === 'memory');
@@ -2549,7 +2549,7 @@ test('PC-178: an existing wiki config and vault are left exactly as they are', {
   const log = toolLog(m);
   assert.ok(!log.some((l) => /^obsidian-wiki (setup|hooks install)|^uv tool install/.test(l)), log.join('\n'));
   assert.equal(fs.readFileSync(wikiConfig(m), 'utf8'), before, 'the config is untouched');
-  assert.ok(!fs.existsSync(path.join(m.home, 'Documents', 'Wiki')), 'no second vault');
+  assert.ok(!fs.existsSync(path.join(m.home, '.wiki')), 'no second vault');
   assert.match(row(r, 'memory.vault').detail, new RegExp(`wiki vault ${vault}: obsidian-wiki doctor passes`));
   // No SessionStart hook in an existing setup is named, never added.
   assert.equal(row(r, 'memory.hooks').state, 'info');
@@ -2623,7 +2623,7 @@ test('PC-178: a Stop hook someone registered is information naming its effect; s
 test('PC-178: a vault folder that holds files is never written; --wiki-vault names another; --without leaves each part out', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine({ tools: [...TOOLS, 'uv', 'obsidian-wiki'], memory: true });
-  const taken = path.join(m.home, 'Documents', 'Wiki');
+  const taken = path.join(m.home, '.wiki');
   fs.mkdirSync(taken, { recursive: true });
   fs.writeFileSync(path.join(taken, 'mine.md'), 'my own notes\n');
   const plan = await cli(m, api, 'setup', '--dry-run', '--json', '--offline');
@@ -2686,7 +2686,7 @@ test('PC-178: on Linux setup installs no Obsidian, names its download page, and 
 });
 
 // PC-178, the fix round after the blind readings of PR #329 (unit, seam and product, at 087ce41).
-const vaultOf = (m) => path.join(m.home, 'Documents', 'Wiki');
+const vaultOf = (m) => path.join(m.home, '.wiki');
 const withMemory = (extra = []) => machine({ tools: [...TOOLS, 'uv', 'obsidian-wiki', ...extra], memory: true });
 
 test('PC-178: a failed vault step removes what the launcher made; a folder that was there stays as it was; the next run makes the vault', { skip: MAC_SIM }, async (t) => {
@@ -3200,7 +3200,7 @@ test('PC-178: a legacy config beside an XDG config folder that is a link to noth
   assert.ok(!r.json.plan.some((i) => i.kind === 'memory' && i.vault), JSON.stringify(r.json.plan));
   assert.ok(!toolLog(m).some((l) => /^obsidian-wiki setup/.test(l)), toolLog(m).join('\n'));
   assert.equal(fs.readFileSync(legacy, 'utf8'), bytes);
-  assert.ok(!fs.existsSync(path.join(m.home, 'Documents', 'Wiki')));
+  assert.ok(!fs.existsSync(path.join(m.home, '.wiki')));
 });
 
 test('PC-178: a Claude Code settings file that is a link stays a link: the SessionStart entry goes where it points', { skip: MAC_SIM }, async (t) => {
@@ -3673,7 +3673,7 @@ test('PC-178: a SessionStart recap that fails after the vault stands names the k
   const good = fs.readFileSync(settings, 'utf8');
   fs.writeFileSync(settings, JSON.stringify({ ...JSON.parse(good), hooks: 'oops' }));
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
-  const vault = path.join(m.home, 'Documents', 'Wiki');
+  const vault = path.join(m.home, '.wiki');
   const a = r.json.actions.find((x) => x.kind === 'memory');
   assert.equal(a.outcome, 'failed');
   assert.ok(a.error.includes(`made the wiki vault ${vault} (kept); its SessionStart recap was not registered`) && !/nothing was changed/.test(a.error), a.error);
@@ -3749,4 +3749,35 @@ test('PC-178: an undo that cannot list obsidian-wiki\'s config folder names it, 
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   const a = r.json.actions.find((x) => x.kind === 'memory');
   assert.ok(a.outcome === 'failed' && a.error.includes(`reading ${cdir} failed (EACCES)`), JSON.stringify(a));
+});
+
+// Round 14 (PC-178).
+test('PC-178: the person\'s own obsidian-wiki off PATH is never installed over; doctor names its package', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  const pkg = path.join(m.home, 'venv', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+  fs.mkdirSync(pkg, { recursive: true });
+  fs.mkdirSync(path.join(m.home, 'Notes'), { recursive: true });
+  fs.mkdirSync(path.dirname(wikiConfig(m)), { recursive: true });
+  const text = `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Notes')}"\nOBSIDIAN_WIKI_REPO="${pkg}"\nOBSIDIAN_WIKI_VERSION="2026.12.1"\n`;
+  fs.writeFileSync(wikiConfig(m), text);
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.ok(!r.json.plan.some((i) => i.kind === 'memory'), JSON.stringify(r.json.plan));
+  assert.ok(!toolLog(m).some((l) => /^uv tool install|^obsidian-wiki (setup|list|hooks install)/.test(l)), toolLog(m).join('\n'));
+  assert.equal(fs.readFileSync(wikiConfig(m), 'utf8'), text);
+  const w = row(r, 'memory.wiki');
+  assert.ok(w && w.state === 'warn' && w.gate === 'consent' && w.detail.includes(pkg) && /on your PATH/.test(w.fix), JSON.stringify(w));
+});
+
+test('PC-178: where Claude Code reads another folder, an older ~/.obsidian-wiki adds no note about a recap setup would not register anyway', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  fs.mkdirSync(path.join(m.home, '.obsidian-wiki'));
+  fs.writeFileSync(path.join(m.home, '.obsidian-wiki', 'config'), 'OBSIDIAN_VAULT_PATH="/old"\n');
+  fs.mkdirSync(path.join(m.home, '.config', 'obsidian-wiki'), { recursive: true });
+  m.configDir = path.join(m.home, 'claude-elsewhere');
+  fs.mkdirSync(m.configDir, { recursive: true });
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  const a = r.json.actions.find((x) => x.kind === 'memory');
+  assert.ok(a && a.outcome === 'done' && !/SessionStart recap was not registered/.test(a.detail), JSON.stringify(a));
 });

@@ -46,7 +46,7 @@ releases; --quiet prints nothing when an update succeeds; --allow-tools lets Cla
 PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes
 never does either). Ids for --with and --without: switchboard, dashboards, observatory, inbox,
 fabric (the apps); obsidian, wiki, or memory for both (the agents' wiki memory). A new vault goes
-in ~/Documents/Wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes:
+in ~/.wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes:
 0 nothing failed in what the run covered (the memory.* rows of a part named in leftOut do not
 count, except a failing Obsidian signature), or only a plan was shown, 1 a check or a step failed,
 2 bad arguments. Claude Code gets plugins from the local "passioncode"

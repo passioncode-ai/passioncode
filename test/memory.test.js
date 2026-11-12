@@ -587,3 +587,78 @@ test('PC-178: a done tool upgrade, a hook repair and a memory action each add th
     assert.ok(steps.some((x) => /^Restart your coding agents/.test(x)), `${a.kind}: ${JSON.stringify(steps)}`);
   }
 });
+
+// Round 14 (PC-178).
+test('PC-178: a config with a line break obsidian-wiki reads differently, or a byte order mark, is refused and left byte for byte', { skip: SH }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  delete process.env.FAKE_TOOLS_QUIET;
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const v = s.vaultDir;
+  const breaks = /with Windows line endings or a line break obsidian-wiki reads differently/;
+  for (const [text, form] of [
+    [`# a\rOBSIDIAN_VAULT_PATH = "${v}"\r`, breaks],
+    [`OBSIDIAN_VAULT_PATH="${v}"\r\nOBSIDIAN_WIKI_VERSION="2026.10.2"\r\n`, breaks],
+    [`OBSIDIAN_VAULT_PATH="${v} x"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, breaks],
+    ...['\v', '\f', '\x1c', '\x1d', '\x1e', '\x85', ' '].map((c) => [`OBSIDIAN_VAULT_PATH="${v}"\n#${c}\n`, breaks]),
+    [`﻿OBSIDIAN_VAULT_PATH="${v}"\n`, /starts with a byte order mark: save it without one/],
+  ]) {
+    fs.writeFileSync(config, text);
+    fs.rmSync(path.join(s.home, 'fake-tools.log'), { force: true });
+    assert.throws(() => M.upgrade({ home: s.home, NPX }), form, JSON.stringify(text));
+    const log = (() => { try { return fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { return ''; } })();
+    assert.ok(!/uv tool install|obsidian-wiki list/.test(log), log);
+    assert.equal(fs.readFileSync(config, 'utf8'), text);
+    const row = s.rows().find((r) => r.id === 'memory.vault.config-form');
+    assert.ok(row && row.gate === 'consent', JSON.stringify(text));
+  }
+  // install() over the same config: refused before uv runs.
+  fs.rmSync(path.join(s.state, 'version'));
+  const text = `OBSIDIAN_VAULT_PATH="${v}"\r\n`;
+  fs.writeFileSync(config, text);
+  fs.rmSync(path.join(s.home, 'fake-tools.log'), { force: true });
+  assert.throws(() => M.install({ home: s.home, vault: path.join(s.home, 'New'), claude: { here: false }, NPX }), breaks);
+  assert.ok(!fs.existsSync(path.join(s.home, 'fake-tools.log')) || !/uv tool install/.test(fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8')));
+  assert.equal(fs.readFileSync(config, 'utf8'), text);
+});
+
+test('PC-178: two vault lines keep the hook from being registered and the repair from being offered', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: [] });
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const text = `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${path.join(s.home, 'Other')}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`;
+  fs.writeFileSync(config, text);
+  const before = fs.readFileSync(s.settings, 'utf8');
+  assert.throws(() => M.hook({ home: s.home }), /writes OBSIDIAN_VAULT_PATH more than once.*; nothing was changed$/);
+  assert.equal(fs.readFileSync(s.settings, 'utf8'), before);
+  const h = s.rows(s.vaultDir).find((r) => r.id === 'memory.hooks');
+  assert.ok(h && h.repair === null && h.gate === 'consent' && /^first rewrite the OBSIDIAN_VAULT_PATH line memory\.vault\.config-form names; then /.test(h.fix), JSON.stringify(h));
+});
+
+test('PC-178: rows that point at a repo line outside the package say remove it; an empty repo line is accepted', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="/home/me/obsidian-wiki"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`);
+  const report = path.join(s.home, 'doctor.json');
+  fs.writeFileSync(report, JSON.stringify({ checks: [{ name: 'setup-version', status: 'warn', detail: 'recorded 2026.10.2' }] }));
+  process.env.FAKE_WIKI_DOCTOR = report;
+  const v = s.rows().find((r) => r.id === 'memory.vault');
+  assert.ok(/first remove the OBSIDIAN_WIKI_REPO line memory\.vault\.config-form names; then run: obsidian-wiki list/.test(v.fix), v.fix);
+  fs.rmSync(path.join(s.state, 'version'));
+  const w = s.rows().find((r) => r.id === 'memory.wiki');
+  assert.ok(/^first remove the OBSIDIAN_WIKI_REPO line/.test(w.fix), w.fix);
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO=\n`);
+  assert.equal(M.configForm(s.home), null);
+});
+
+test('PC-178: a ~/.obsidian-wiki that is a link to the XDG folder is that folder, not an older one', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  fs.symlinkSync(path.join(s.home, '.config', 'obsidian-wiki'), path.join(s.home, '.obsidian-wiki'));
+  assert.equal(M.legacyShadow(s.home), null);
+});
+
+test('PC-178: doctor --json keeps every clashing entry while the detail names five', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  for (const n of require('../lib/catalog').WIKI.skills.slice(0, 8)) { fs.mkdirSync(path.join(s.home, '.agents', 'skills', n), { recursive: true }); fs.writeFileSync(path.join(s.home, '.agents', 'skills', n, 'SKILL.md'), 'mine'); }
+  const c = s.rows().find((r) => r.id === 'memory.wiki.clash');
+  assert.equal(c.entries.length, 8);
+  assert.ok(/, and 3 more$/.test(c.detail), c.detail);
+});

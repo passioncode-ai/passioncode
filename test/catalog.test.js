@@ -229,3 +229,10 @@ test('PC-178: an administrator\'s Obsidian in /Applications is this user\'s Obsi
   assert.equal(C.adminCopy(obsidian, { home: w.home, shared: '/System/Applications', uid: me }), null, 'a copy of their own wins');
 });
 
+
+test('PC-178: no skill PassionCode ships shares a name with one of obsidian-wiki\'s bundled skills (its setup would replace it)', () => {
+  const ours = fs.readdirSync(path.join(__dirname, '..', 'plugin', 'passioncode', 'skills'));
+  const members = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'family.json'), 'utf8')).members.map((x) => x.name);
+  const clash = [...ours, ...members].filter((n) => C.WIKI.skills.includes(n));
+  assert.deepEqual(clash, []);
+});

@@ -20,7 +20,7 @@ Contract: brand-contract v1
 | uninstall.mcp-incomplete | Uninstall incomplete: ${kept.join('; ')}; kept. The rest of uninstall finished. Make the file and its folder readable and writable (for a link, the folder it points into) and retry uninstall. | lib/launcher.js:1126 | SCN-005 | proposed | copy |
 | help.1 | passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills, the agents' wiki memory | bin/passioncode.js:30 | SCN-007, SCN-018 | proposed | layout |
 | help.2 | ${NPX} setup [--yes\|-y] [--with ids] [--without ids] [--train name\|none] [--wiki-vault dir] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json] a new machine: install and configure everything; an existing one: check, repair, check again ${NPX} doctor [--fix] [--offline] [--json] check everything (changes nothing but the anonymous counts); --fix repairs as setup does ${NPX} update [--dry-run] [--quiet] [--json] install or update the skill set and the apps' MCP registrations ${NPX} status [--json] what is installed where ${NPX} restore [--json] put back what the last update moved aside ${NPX} config set update.auto on\|off [--json] background updates at session start ${NPX} uninstall [--json] remove the set (quarantined items stay restorable) ${NPX} permissions [allow\|remove <rule>...\|mode <mode> [--confirm-bypass]] [--by who] [--json] Claude Code's permission rules PassionCode installed, and its default mode; allow and remove change only PassionCode's rules ${NPX} analytics [on\|off\|status] [--json] anonymous usage and error counts (on by default) | bin/passioncode.js:32 | SCN-007 | proposed | layout |
-| help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). Ids for --with and --without: switchboard, dashboards, observatory, inbox, fabric (the apps); obsidian, wiki, or memory for both (the agents' wiki memory). A new vault goes in ~/Documents/Wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes: 0 nothing failed in what the run covered (the memory.* rows of a part named in leftOut do not count, except a failing Obsidian signature), or only a plan was shown, 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:44 | SCN-007, SCN-018 | proposed | layout |
+| help.3 | onboard is another name for setup, install for update. --offline skips the check for newer app releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes never does either). Ids for --with and --without: switchboard, dashboards, observatory, inbox, fabric (the apps); obsidian, wiki, or memory for both (the agents' wiki memory). A new vault goes in ~/.wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes: 0 nothing failed in what the run covered (the memory.* rows of a part named in leftOut do not count, except a failing Obsidian signature), or only a plan was shown, 1 a check or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode" marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after a change. | bin/passioncode.js:44 | SCN-007, SCN-018 | proposed | layout |
 | args.unsupported | passioncode: unsupported arguments for ${cmd}; run passioncode help. | bin/passioncode.js:275 | SCN-007 | proposed | copy |
 | hook.spawn-failed | [passioncode] could not start the background update; check that npx is on PATH and retry next session. | plugin/passioncode/hooks/session-start.js:181 | SCN-006 | proposed | copy |
 | hook.npm-missing | [passioncode] there is no npm beside the Node in ${nodeDir}, so automatic updates cannot be checked or installed; reinstall that Node.js with npm (with the tool that installed it), or put a Node.js that has npm first on PATH, then start Claude Code again: the next session checks again.${now} | plugin/passioncode/hooks/update-check.js:357 | SCN-006 | proposed | copy |
@@ -223,34 +223,34 @@ Contract: brand-contract v1
 | hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:288 | SCN-006 | proposed | copy |
 | hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:207 | SCN-013 | proposed | copy |
 | setup.memory-install-vault | install ${catalog.WIKI.name} ${memory.PIN} with uv (the agents' wiki memory) and make its vault in ${vault} | lib/setup.js:108 | SCN-018 | proposed | copy |
-| setup.memory-install | install ${catalog.WIKI.name} ${memory.PIN} with uv (the agents' wiki memory); your wiki config stays as it is | lib/setup.js:109 | SCN-018 | proposed | copy |
+| setup.memory-install | install ${catalog.WIKI.name} ${memory.PIN} with uv (the agents' wiki memory); your wiki config keeps its keys, apart from the version and package path obsidian-wiki's refresh records | lib/setup.js:109 | SCN-018 | proposed | copy |
 | setup.memory-vault | make the agents' wiki vault in ${vault} with obsidian-wiki setup --no-hooks | lib/setup.js:110 | SCN-018 | proposed | copy |
 | setup.memory-folder-taken | ${vault} ${problem}; choose an empty or new folder with --wiki-vault <dir> | lib/setup.js:111 | SCN-018 | proposed | copy |
 | setup.memory-question | ${i.detail[0].toUpperCase()}${i.detail.slice(1)}? | lib/setup.js:255 | SCN-018 | proposed | layout |
 | setup.memory-step | The wiki memory: ${i.note} | lib/setup.js:498 | SCN-018 | proposed | layout |
 | setup.memory-name | the wiki memory | lib/setup.js:145 | SCN-018 | proposed | copy |
 | setup.repair-tool | bring ${catalog.WIKI.name} up to ${memory.PIN} with uv tool install --force (its vault stays as it is, and the config's keys too apart from the version and package path obsidian-wiki's refresh records) | lib/setup.js:133 | SCN-018 | proposed | copy |
-| memory.vault-problem.not-folder | is not a folder | lib/memory.js:167 | SCN-018 | proposed | copy |
-| memory.vault-problem.holds-files | already holds files | lib/memory.js:170 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-absent | ${catalog.WIKI.name} (the agents' wiki memory): not installed | lib/memory.js:400 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-behind | ${catalog.WIKI.name} ${t.version}; this launcher pins ${PIN} | lib/memory.js:425 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-unread | ${catalog.WIKI.name} at ${t.bin}: its version could not be read; this launcher pins ${PIN} | lib/memory.js:416 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-other-tool | bring it to ${PIN} with the tool that installed it (uv does not list it) | lib/memory.js:426 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-pinned | ${catalog.WIKI.name} ${t.version} (pinned by this launcher) | lib/memory.js:431 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-ahead | ${catalog.WIKI.name} ${t.version}, ahead of this launcher's pin ${PIN}; never taken back | lib/memory.js:431 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-path | ${catalog.WIKI.name} is in ${path.dirname(t.bin)}, which is not on your PATH, so agents and its hooks cannot run it by name | lib/memory.js:437 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-path-fix | uv tool update-shell, then open a new terminal | lib/memory.js:437 | SCN-018 | proposed | copy |
-| doctor.memory-vault-none | no wiki vault yet (obsidian-wiki has no config) | lib/memory.js:446 | SCN-018 | proposed | copy |
-| doctor.memory-vault-passes | obsidian-wiki doctor passes | lib/memory.js:475 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-none | Claude Code starts a session without a recap of the wiki (obsidian-wiki's SessionStart hook is not registered) | lib/memory.js:514 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-unreachable | obsidian-wiki's SessionStart hook is registered but cannot reach the package, so it ends silently | lib/memory.js:520 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-ok | Claude Code starts each session with a recap of the wiki (obsidian-wiki's SessionStart hook) | lib/memory.js:521 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-stop | obsidian-wiki's Stop hook is registered: after every turn of every Claude Code session, in every project, it asks the agent to write into the wiki; the launcher never registers it | lib/memory.js:524 | SCN-018 | proposed | copy |
-| memory.done-installed | installed ${catalog.WIKI.name} ${PIN} | lib/memory.js:595 | SCN-018 | proposed | copy |
-| memory.done-vault | made the wiki vault ${vault} | lib/memory.js:685 | SCN-018 | proposed | copy |
-| memory.done-hook | registered its SessionStart recap for Claude Code | lib/memory.js:700 | SCN-018 | proposed | copy |
-| memory.no-uv | uv is not installed (${UV_PAGE}); nothing was installed | lib/memory.js:573 | SCN-018 | proposed | copy |
-| memory.folder-taken | ${vault} ${problem}; no vault was made (choose another folder with --wiki-vault <dir>) | lib/memory.js:615 | SCN-018 | proposed | copy |
+| memory.vault-problem.not-folder | is not a folder | lib/memory.js:170 | SCN-018 | proposed | copy |
+| memory.vault-problem.holds-files | already holds files | lib/memory.js:173 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-absent | ${catalog.WIKI.name} (the agents' wiki memory): not installed | lib/memory.js:410 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-behind | ${catalog.WIKI.name} ${t.version}; this launcher pins ${PIN} | lib/memory.js:435 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-unread | ${catalog.WIKI.name} at ${t.bin}: its version could not be read; this launcher pins ${PIN} | lib/memory.js:426 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-other-tool | bring it to ${PIN} with the tool that installed it (uv does not list it) | lib/memory.js:436 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-pinned | ${catalog.WIKI.name} ${t.version} (pinned by this launcher) | lib/memory.js:441 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-ahead | ${catalog.WIKI.name} ${t.version}, ahead of this launcher's pin ${PIN}; never taken back | lib/memory.js:441 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-path | ${catalog.WIKI.name} is in ${path.dirname(t.bin)}, which is not on your PATH, so agents and its hooks cannot run it by name | lib/memory.js:447 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-path-fix | uv tool update-shell, then open a new terminal | lib/memory.js:447 | SCN-018 | proposed | copy |
+| doctor.memory-vault-none | no wiki vault yet (obsidian-wiki has no config) | lib/memory.js:456 | SCN-018 | proposed | copy |
+| doctor.memory-vault-passes | obsidian-wiki doctor passes | lib/memory.js:485 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-none | Claude Code starts a session without a recap of the wiki (obsidian-wiki's SessionStart hook is not registered) | lib/memory.js:525 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-unreachable | obsidian-wiki's SessionStart hook is registered but cannot reach the package, so it ends silently | lib/memory.js:531 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-ok | Claude Code starts each session with a recap of the wiki (obsidian-wiki's SessionStart hook) | lib/memory.js:532 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-stop | obsidian-wiki's Stop hook is registered: after every turn of every Claude Code session, in every project, it asks the agent to write into the wiki; the launcher never registers it | lib/memory.js:535 | SCN-018 | proposed | copy |
+| memory.done-installed | installed ${catalog.WIKI.name} ${PIN} | lib/memory.js:609 | SCN-018 | proposed | copy |
+| memory.done-vault | made the wiki vault ${vault} | lib/memory.js:699 | SCN-018 | proposed | copy |
+| memory.done-hook | registered its SessionStart recap for Claude Code | lib/memory.js:715 | SCN-018 | proposed | copy |
+| memory.no-uv | uv is not installed (${UV_PAGE}); nothing was installed | lib/memory.js:587 | SCN-018 | proposed | copy |
+| memory.folder-taken | ${vault} ${problem}; no vault was made (choose another folder with --wiki-vault <dir>) | lib/memory.js:629 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-other-system | ${ob.name}: setup installs it on macOS; on this system download it from ${ob.page} | lib/doctor.js:402 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-absent | ${ob.name} (where you read the agents' wiki memory): not installed | lib/doctor.js:412 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-team | (its Developer ID team is ${ob.team}) | lib/doctor.js:435 | SCN-018 | proposed | copy |
@@ -267,17 +267,17 @@ Contract: brand-contract v1
 | memory.needs-git.mac | needs git: install Apple's command line tools (xcode-select --install), then run setup again | lib/memory.js:156 | SCN-018 | proposed | copy |
 | memory.needs-git | needs git: install it (${GIT_PAGE}), then run setup again | lib/memory.js:158 | SCN-018 | proposed | copy |
 | memory.refresh | run: obsidian-wiki list (an ordinary command: it records the installed version and refreshes the skills, keeping every other key of the config); ${NEVER} | lib/memory.js:30 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-shadow | ${t.bin} is found on PATH before uv's copy in ${path.dirname(t.uvCopy)}, so agents run that one | lib/memory.js:434 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-shadow-fix | remove it with the tool that installed it (pip uninstall obsidian-wiki, or pipx uninstall obsidian-wiki) | lib/memory.js:434 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-elsewhere | obsidian-wiki's SessionStart hook is registered where this Claude Code does not read it: obsidian-wiki writes its hooks only to ${hooksFile(home)}; this Claude Code reads ${claude.settings} | lib/memory.js:500 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-elsewhere-none | obsidian-wiki writes its hooks only to ${hooksFile(home)}; this Claude Code reads ${claude.settings}, so it starts sessions without a recap of the wiki | lib/memory.js:501 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-unreadable | obsidian-wiki's hooks could not be read (${h.error}) | lib/memory.js:495 | SCN-018 | proposed | copy |
-| doctor.memory-vault-unread | wiki vault: obsidian-wiki doctor could not be read (${(r.err \|\| r.out \|\| `exit ${r.code}`).trim().split('\n')[0]}) | lib/memory.js:455 | SCN-018 | proposed | copy |
-| memory.done-hook-repair | registered obsidian-wiki's SessionStart recap for Claude Code | lib/memory.js:753 | SCN-018 | proposed | copy |
-| memory.vault-step-failed | ${message}; nothing of the vault step was kept | lib/memory.js:672 | SCN-018 | proposed | copy |
-| memory.setup-no-config | obsidian-wiki setup --no-hooks --vault ${vault} wrote no config | lib/memory.js:683 | SCN-018 | proposed | copy |
-| memory.uv-installed-but | uv installed obsidian-wiki, but ${t ? `it reads ${t.version \|\| 'no version'}` : 'it does not answer'} | lib/memory.js:593 | SCN-018 | proposed | copy |
-| memory.list-failed | obsidian-wiki list (it records the new version): ${lastLine(l)} | lib/memory.js:768 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-shadow | ${t.bin} is found on PATH before uv's copy in ${path.dirname(t.uvCopy)}, so agents run that one | lib/memory.js:444 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-shadow-fix | remove it with the tool that installed it (pip uninstall obsidian-wiki, or pipx uninstall obsidian-wiki) | lib/memory.js:444 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-elsewhere | obsidian-wiki's SessionStart hook is registered where this Claude Code does not read it: obsidian-wiki writes its hooks only to ${hooksFile(home)}; this Claude Code reads ${claude.settings} | lib/memory.js:510 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-elsewhere-none | obsidian-wiki writes its hooks only to ${hooksFile(home)}; this Claude Code reads ${claude.settings}, so it starts sessions without a recap of the wiki | lib/memory.js:511 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-unreadable | obsidian-wiki's hooks could not be read (${h.error}) | lib/memory.js:505 | SCN-018 | proposed | copy |
+| doctor.memory-vault-unread | wiki vault: obsidian-wiki doctor could not be read (${(r.err \|\| r.out \|\| `exit ${r.code}`).trim().split('\n')[0]}) | lib/memory.js:465 | SCN-018 | proposed | copy |
+| memory.done-hook-repair | registered obsidian-wiki's SessionStart recap for Claude Code | lib/memory.js:771 | SCN-018 | proposed | copy |
+| memory.vault-step-failed | ${message}; nothing of the vault step was kept | lib/memory.js:686 | SCN-018 | proposed | copy |
+| memory.setup-no-config | obsidian-wiki setup --no-hooks --vault ${vault} wrote no config | lib/memory.js:697 | SCN-018 | proposed | copy |
+| memory.uv-installed-but | uv installed obsidian-wiki, but ${t ? `it reads ${t.version \|\| 'no version'}` : 'it does not answer'} | lib/memory.js:607 | SCN-018 | proposed | copy |
+| memory.list-failed | obsidian-wiki list (it records the new version): ${lastLine(l)} | lib/memory.js:786 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-outdated | ; ${latest.version} is out (Obsidian updates itself inside the app) | lib/doctor.js:427 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-admin |  (the copy an administrator installed in ${path.dirname(admin)}) | lib/doctor.js:424 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-admin-fix | an administrator reinstalls Obsidian from ${ob.page} | lib/doctor.js:436 | SCN-018 | proposed | copy |
@@ -286,106 +286,122 @@ Contract: brand-contract v1
 | args.wiki-vault-relative | --wiki-vault takes an absolute folder, or one that starts with ~/ (not ${value}) | bin/passioncode.js:72 | SCN-007, SCN-018 | proposed | copy |
 | setup.restart | Restart your coding agents: skills and MCP servers load when a session starts. | lib/setup.js:518 | SCN-008, SCN-018 | proposed | copy |
 | setup.memory-download-obsidian | Obsidian is where you read the wiki vault ${v}: download it from ${ob.page}, then open the vault in it (Open folder as vault). | lib/setup.js:508 | SCN-018 | proposed | copy |
-| memory.report-installed | installed ${catalog.WIKI.name} ${PIN} with uv | lib/memory.js:594 | SCN-018 | proposed | copy |
-| memory.report-vault | made the wiki vault ${vault} (a Git repository) with obsidian-wiki setup --no-hooks | lib/memory.js:684 | SCN-018 | proposed | copy |
-| memory.vault-problem.unreadable | cannot be read (${error.code \|\| error.message}) | lib/memory.js:169 | SCN-018 | proposed | copy |
-| memory.hook-no-tool | obsidian-wiki is not installed | lib/memory.js:719 | SCN-018 | proposed | copy |
-| memory.upgrade-no-uv | uv is not installed (${UV_PAGE}) | lib/memory.js:784 | SCN-018 | proposed | copy |
-| memory.upgrade-reads | uv installed obsidian-wiki ${PIN}, but it reads ${after ? after.version \|\| 'no version' : 'nothing'} | lib/memory.js:802 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-skills-elsewhere | ; obsidian-wiki's skills are likewise only in ${path.join(home, '.claude', 'skills')} | lib/memory.js:502 | SCN-018 | proposed | copy |
-| memory.undo-failed | removing ${vault} failed (${error.code \|\| error.message}): remove it, then run setup again | lib/memory.js:642 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-uncomparable | ${catalog.WIKI.name} ${t.version} (not a version this launcher compares); this launcher pins ${PIN} | lib/memory.js:417 | SCN-018 | proposed | copy |
-| memory.fix-reported | obsidian-wiki reports ${name} ${check.status \|\| 'warn'}: ${detail}; ${READ_DOCTOR}; ${NEVER} | lib/memory.js:192 | SCN-018 | proposed | copy |
+| memory.report-installed | installed ${catalog.WIKI.name} ${PIN} with uv | lib/memory.js:608 | SCN-018 | proposed | copy |
+| memory.report-vault | made the wiki vault ${vault} (a Git repository) with obsidian-wiki setup --no-hooks | lib/memory.js:698 | SCN-018 | proposed | copy |
+| memory.vault-problem.unreadable | cannot be read (${error.code \|\| error.message}) | lib/memory.js:172 | SCN-018 | proposed | copy |
+| memory.hook-no-tool | obsidian-wiki is not installed | lib/memory.js:737 | SCN-018 | proposed | copy |
+| memory.upgrade-no-uv | uv is not installed (${UV_PAGE}) | lib/memory.js:802 | SCN-018 | proposed | copy |
+| memory.upgrade-reads | uv installed obsidian-wiki ${PIN}, but it reads ${after ? after.version \|\| 'no version' : 'nothing'} | lib/memory.js:820 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-skills-elsewhere | ; obsidian-wiki's skills are likewise only in ${path.join(home, '.claude', 'skills')} | lib/memory.js:512 | SCN-018 | proposed | copy |
+| memory.undo-failed | removing ${vault} failed (${error.code \|\| error.message}): remove it, then run setup again | lib/memory.js:656 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-uncomparable | ${catalog.WIKI.name} ${t.version} (not a version this launcher compares); this launcher pins ${PIN} | lib/memory.js:427 | SCN-018 | proposed | copy |
+| memory.fix-reported | obsidian-wiki reports ${name} ${check.status \|\| 'warn'}: ${detail}; ${READ_DOCTOR}; ${NEVER} | lib/memory.js:195 | SCN-018 | proposed | copy |
 | memory.fix-never | never `obsidian-wiki setup`, a bare `obsidian-wiki hooks install`, or obsidian-wiki's wiki-setup skill | lib/memory.js:29 | SCN-018 | proposed | copy |
-| memory.fix-missing-files | create the missing files by hand (${detail}); ${NEVER} | lib/memory.js:190 | SCN-018 | proposed | copy |
-| doctor.memory-config-broken | obsidian-wiki's config ${config} cannot be read (${broken}); setup makes no vault while it is there | lib/memory.js:449 | SCN-018 | proposed | copy |
-| doctor.memory-config-broken-fix | repair or remove ${config}, then ${NPX} setup --with wiki | lib/memory.js:449 | SCN-018 | proposed | copy |
-| doctor.memory-vault-unread-fix | run: obsidian-wiki doctor --json (it answered no report); repair through ${NPX} setup --with wiki where it offers one; its session-hooks line asking for a hooks install is expected, since the launcher registers only SessionStart; ${NEVER} | lib/memory.js:455 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-unreadable-fix | run: obsidian-wiki hooks status --json (it exits 1 while the Stop hook is not registered, which is expected: the launcher never registers it); ${NEVER} | lib/memory.js:495 | SCN-018 | proposed | copy |
-| memory.done-upgrade-brought | brought ${catalog.WIKI.name} ${before.version} up to ${PIN}; the vault is as it was, and the config's keys too apart from the version and package path obsidian-wiki's refresh records | lib/memory.js:812 | SCN-018 | proposed | copy |
-| memory.done-upgrade-forced | installed ${catalog.WIKI.name} ${PIN} with uv tool install --force; the vault is as it was, and the config's keys too apart from the version and package path obsidian-wiki's refresh records | lib/memory.js:813 | SCN-018 | proposed | copy |
+| memory.fix-missing-files | create the missing files by hand (${detail}); ${NEVER} | lib/memory.js:193 | SCN-018 | proposed | copy |
+| doctor.memory-config-broken | obsidian-wiki's config ${config} cannot be read (${broken}); setup makes no vault while it is there | lib/memory.js:459 | SCN-018 | proposed | copy |
+| doctor.memory-config-broken-fix | repair or remove ${config}, then ${NPX} setup --with wiki | lib/memory.js:459 | SCN-018 | proposed | copy |
+| doctor.memory-vault-unread-fix | run: obsidian-wiki doctor --json (it answered no report); repair through ${NPX} setup --with wiki where it offers one; its session-hooks line asking for a hooks install is expected, since the launcher registers only SessionStart; ${NEVER} | lib/memory.js:465 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-unreadable-fix | run: obsidian-wiki hooks status --json (it exits 1 while the Stop hook is not registered, which is expected: the launcher never registers it); ${NEVER} | lib/memory.js:505 | SCN-018 | proposed | copy |
+| memory.done-upgrade-brought | brought ${catalog.WIKI.name} ${before.version} up to ${PIN}; the vault is as it was, and the config's keys too apart from the version and package path obsidian-wiki's refresh records | lib/memory.js:830 | SCN-018 | proposed | copy |
+| memory.done-upgrade-forced | installed ${catalog.WIKI.name} ${PIN} with uv tool install --force; the vault is as it was, and the config's keys too apart from the version and package path obsidian-wiki's refresh records | lib/memory.js:831 | SCN-018 | proposed | copy |
 | uninstall.memory-stays | \nThe agents' wiki memory stays: ${parts.join(', and ')}. | bin/passioncode.js:336 | SCN-005, SCN-018 | proposed | copy |
-| memory.list-asks-setup | obsidian-wiki list did not record ${PIN} (it asks for obsidian-wiki setup); read \`obsidian-wiki doctor --json\`; repair through \`${NPX} setup --with wiki\` where it offers one; ${NEVER} | lib/memory.js:772 | SCN-018 | proposed | copy |
-| memory.hook-link-done | registered obsidian-wiki's SessionStart recap for Claude Code in ${linked}, where the link ${file} points (the link stays) | lib/memory.js:752 | SCN-018 | proposed | copy |
-| memory.hook-link-already | obsidian-wiki's SessionStart recap is registered already in ${linked \|\| file} | lib/memory.js:737 | SCN-018 | proposed | copy |
-| memory.hook-link-unread | obsidian-wiki hooks install --only SessionStart wrote no settings the launcher could read (${e.code \|\| e.name}) | lib/memory.js:743 | SCN-018 | proposed | copy |
-| memory.hook-link-no-entry | obsidian-wiki hooks install --only SessionStart wrote no SessionStart entry | lib/memory.js:745 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-link-fix-ours | ${NPX} setup (the launcher adds the entry to ${where}${linked ? `, where the link ${hooksFile(home)} points, keeping the link` : ''}) | lib/memory.js:512 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-link-fix | add obsidian-wiki's SessionStart entry (its command for ${HOOK_SCRIPTS.SessionStart}) to ${where} by hand, keeping the file's permissions; never \`obsidian-wiki hooks install\` (it rewrites the file without them${linked ? ' and replaces the link' : ''}); ${NEVER} | lib/memory.js:513 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-stop-link-fix | remove obsidian-wiki's Stop entry (its command for ${HOOK_SCRIPTS.Stop}) from ${linked \|\| hooksFile(home)} by hand, keeping the file's permissions; never \`obsidian-wiki hooks uninstall\` (it rewrites the file without them${linked ? ' and replaces the link' : ''}); ${NEVER} | lib/memory.js:525 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-absent-fix | ${route.step}, then ${NPX} setup --with wiki | lib/memory.js:399 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-behind-uv-first | ${route.step}, then ${NPX} setup | lib/memory.js:426 | SCN-018 | proposed | copy |
-| memory.undo-config-failed | removing ${f} failed (${error.code \|\| error.message}): remove it, then run setup again | lib/memory.js:648 | SCN-018 | proposed | copy |
-| memory.clash-note | obsidian-wiki's setup and its version refresh would replace ${list.length === 1 ? 'a skill of yours that shares a name with one of its own' : `${list.length} skills of yours that share a name with its own`} (${capped(list)}); move or rename ${list.length === 1 ? 'it' : 'them'} | lib/memory.js:310 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-clash | ${list.length === 1 ? 'a skill of yours shares a name' : `${list.length} skills of yours share a name`} with one of obsidian-wiki's, which its setup and its version refresh would replace: ${capped(list)} | lib/memory.js:319 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-clash-fix | move or rename ${list.length === 1 ? 'it' : 'them'} | lib/memory.js:322 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-clash-fix-then | ${fix}, then ${then} | lib/memory.js:323 | SCN-018 | proposed | copy |
-| doctor.memory-vault-refresh-after-clash | first ${clashVerb(clashed)} memory.wiki.clash names; then ${REFRESH} | lib/memory.js:471 | SCN-018 | proposed | copy |
-| memory.no-vault-clash | ${clashNote(clashed)}; no vault was made | lib/memory.js:613 | SCN-018 | proposed | copy |
-| memory.no-upgrade-clash | ${clashNote(clashed)}; nothing was upgraded | lib/memory.js:788 | SCN-018 | proposed | copy |
-| memory.hook-shape-hooks | ${file}: "hooks" is not an object; nothing was changed | lib/memory.js:730 | SCN-018 | proposed | copy |
-| memory.hook-shape-start | ${file}: "hooks.SessionStart" is not a list of groups, each with a "hooks" list; nothing was changed | lib/memory.js:733 | SCN-018 | proposed | copy |
-| memory.receipt-cannot-carry | uv's record for obsidian-wiki has ${name} as ${other.join(', ')}, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:905 | SCN-018 | proposed | copy |
+| memory.list-asks-setup | obsidian-wiki list did not record ${PIN} (it asks for obsidian-wiki setup); read \`obsidian-wiki doctor --json\`; repair through \`${NPX} setup --with wiki\` where it offers one; ${NEVER} | lib/memory.js:790 | SCN-018 | proposed | copy |
+| memory.hook-link-done | registered obsidian-wiki's SessionStart recap for Claude Code in ${linked}, where the link ${file} points (the link stays) | lib/memory.js:770 | SCN-018 | proposed | copy |
+| memory.hook-link-already | obsidian-wiki's SessionStart recap is registered already in ${linked \|\| file} | lib/memory.js:755 | SCN-018 | proposed | copy |
+| memory.hook-link-unread | obsidian-wiki hooks install --only SessionStart wrote no settings the launcher could read (${e.code \|\| e.name}) | lib/memory.js:761 | SCN-018 | proposed | copy |
+| memory.hook-link-no-entry | obsidian-wiki hooks install --only SessionStart wrote no SessionStart entry | lib/memory.js:763 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-link-fix-ours | ${NPX} setup (the launcher adds the entry to ${where}${linked ? `, where the link ${hooksFile(home)} points, keeping the link` : ''}) | lib/memory.js:523 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-link-fix | add obsidian-wiki's SessionStart entry (its command for ${HOOK_SCRIPTS.SessionStart}) to ${where} by hand, keeping the file's permissions; never \`obsidian-wiki hooks install\` (it rewrites the file without them${linked ? ' and replaces the link' : ''}); ${NEVER} | lib/memory.js:524 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-stop-link-fix | remove obsidian-wiki's Stop entry (its command for ${HOOK_SCRIPTS.Stop}) from ${linked \|\| hooksFile(home)} by hand, keeping the file's permissions; never \`obsidian-wiki hooks uninstall\` (it rewrites the file without them${linked ? ' and replaces the link' : ''}); ${NEVER} | lib/memory.js:536 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-absent-fix | ${route.step}, then ${NPX} setup --with wiki | lib/memory.js:409 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-behind-uv-first | ${route.step}, then ${NPX} setup | lib/memory.js:436 | SCN-018 | proposed | copy |
+| memory.undo-config-failed | removing ${f} failed (${error.code \|\| error.message}): remove it, then run setup again | lib/memory.js:662 | SCN-018 | proposed | copy |
+| memory.clash-note | obsidian-wiki's setup and its version refresh would replace ${list.length === 1 ? 'a skill of yours that shares a name with one of its own' : `${list.length} skills of yours that share a name with its own`} (${capped(list)}); move or rename ${list.length === 1 ? 'it' : 'them'} | lib/memory.js:313 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-clash | ${list.length === 1 ? 'a skill of yours shares a name' : `${list.length} skills of yours share a name`} with one of obsidian-wiki's, which its setup and its version refresh would replace: ${capped(list)} | lib/memory.js:322 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-clash-fix | move or rename ${list.length === 1 ? 'it' : 'them'} | lib/memory.js:325 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-clash-fix-then | ${fix}, then ${then} | lib/memory.js:327 | SCN-018 | proposed | copy |
+| doctor.memory-vault-refresh-after-clash | first ${clashVerb(clashed)} memory.wiki.clash names; then ${REFRESH} | lib/memory.js:481 | SCN-018 | proposed | copy |
+| memory.no-vault-clash | ${clashNote(clashed)}; no vault was made | lib/memory.js:627 | SCN-018 | proposed | copy |
+| memory.no-upgrade-clash | ${clashNote(clashed)}; nothing was upgraded | lib/memory.js:806 | SCN-018 | proposed | copy |
+| memory.hook-shape-hooks | ${file}: "hooks" is not an object; nothing was changed | lib/memory.js:748 | SCN-018 | proposed | copy |
+| memory.hook-shape-start | ${file}: "hooks.SessionStart" is not a list of groups, each with a "hooks" list; nothing was changed | lib/memory.js:751 | SCN-018 | proposed | copy |
+| memory.receipt-cannot-carry | uv's record for obsidian-wiki has ${name} as ${other.join(', ')}, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:923 | SCN-018 | proposed | copy |
 | setup.obsidian-no-vault | Obsidian: the agents' wiki vault comes with the wiki memory's setup step; once it is made, open it in Obsidian (Open folder as vault). | lib/catalog.js:100 | SCN-018 | proposed | copy |
 | doctor.memory-hooks-none-fix | obsidian-wiki hooks install --only SessionStart | none (no fix names it since PC-178 round 6) | SCN-018 | retired 2026-11-12 | copy |
-| doctor.memory-vault-upgrade-first | bring obsidian-wiki up to ${PIN} first, by the route memory.wiki names; its upgrade records the version | lib/memory.js:469 | SCN-018 | proposed | copy |
-| memory.undo-links | , and the ${unlinked} skill links obsidian-wiki's setup made were removed | lib/memory.js:671 | SCN-018 | proposed | copy |
-| memory.receipt-held | uv's record for obsidian-wiki has ${held.join(', ')}, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:893 | SCN-018 | proposed | copy |
+| doctor.memory-vault-upgrade-first | bring obsidian-wiki up to ${PIN} first, by the route memory.wiki names; its upgrade records the version | lib/memory.js:479 | SCN-018 | proposed | copy |
+| memory.undo-links | , and the ${unlinked} skill links obsidian-wiki's setup made were removed | lib/memory.js:685 | SCN-018 | proposed | copy |
+| memory.receipt-held | uv's record for obsidian-wiki has ${held.join(', ')}, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:911 | SCN-018 | proposed | copy |
 | uninstall.memory-wiki-part | obsidian-wiki, its vault and SessionStart hook' : here.vault ? 'obsidian-wiki and its vault' : here.hook ? 'obsidian-wiki and its SessionStart hook' : 'obsidian-wiki | bin/passioncode.js:334 | SCN-005, SCN-018 | proposed | copy |
 | memory.xdg-relative | XDG_CONFIG_HOME is a relative path (${v}), which obsidian-wiki reads from the folder it runs in; set it to an absolute folder, or unset it, then run setup again | lib/memory.js:63 | SCN-018 | proposed | copy |
-| memory.xdg-no-install | ${xdg}; nothing was installed | lib/memory.js:568 | SCN-018 | proposed | copy |
-| memory.xdg-no-change | ${xdg}; nothing was changed | lib/memory.js:715 | SCN-018 | proposed | copy |
-| doctor.memory-vault-unordered | obsidian-wiki ${t.version \|\| '(its version could not be read)'} is installed, a version this launcher cannot order against its pin ${PIN}, so it leaves the recorded version to you; ${NEVER} | lib/memory.js:468 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-script-missing | obsidian-wiki's SessionStart hook is registered, but the script its command runs is not there: ${gone} | lib/memory.js:518 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-script-missing-fix | remove that entry from ${linked \|\| hooksFile(home)} by hand, keeping the file's permissions; then ${NPX} setup --with wiki registers it again for the vault the launcher made; ${NEVER} | lib/memory.js:519 | SCN-018 | proposed | copy |
-| memory.no-install-clash | ${clashNote(before)}; nothing was installed | lib/memory.js:582 | SCN-018 | proposed | copy |
-| memory.no-refresh-clash | ${clashNote(clashed)}; its version was not recorded | lib/memory.js:766 | SCN-018 | proposed | copy |
-| memory.undo-folders | , with the empty skills folders it made | lib/memory.js:671 | SCN-018 | proposed | copy |
-| memory.receipt-unreadable | uv's record for obsidian-wiki has a ${key} list with ${why}, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:825 | SCN-018 | proposed | copy |
+| memory.xdg-no-install | ${xdg}; nothing was installed | lib/memory.js:580 | SCN-018 | proposed | copy |
+| memory.xdg-no-change | ${xdg}; nothing was changed | lib/memory.js:730 | SCN-018 | proposed | copy |
+| doctor.memory-vault-unordered | obsidian-wiki ${t.version \|\| '(its version could not be read)'} is installed, a version this launcher cannot order against its pin ${PIN}, so it leaves the recorded version to you; ${NEVER} | lib/memory.js:478 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-script-missing | obsidian-wiki's SessionStart hook is registered, but the script its command runs is not there: ${gone} | lib/memory.js:529 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-script-missing-fix | remove that entry from ${linked \|\| hooksFile(home)} by hand, keeping the file's permissions; then ${NPX} setup --with wiki registers it again for the vault the launcher made; ${NEVER} | lib/memory.js:530 | SCN-018 | proposed | copy |
+| memory.no-install-clash | ${clashNote(before)}; nothing was installed | lib/memory.js:596 | SCN-018 | proposed | copy |
+| memory.no-refresh-clash | ${clashNote(clashed)}; its version was not recorded | lib/memory.js:784 | SCN-018 | proposed | copy |
+| memory.undo-folders | , with the empty skills folders it made | lib/memory.js:685 | SCN-018 | proposed | copy |
+| memory.receipt-unreadable | uv's record for obsidian-wiki has a ${key} list with ${why}, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:843 | SCN-018 | proposed | copy |
 | doctor.train-then-memory | first make the release train usable: ${fix}; then ${c.fix} | lib/doctor.js:466 | SCN-018 | proposed | copy |
-| doctor.memory-config-relative-fix | ${XDG_FIRST}, then ${NPX} setup --with wiki | lib/memory.js:387 | SCN-018 | proposed | copy |
-| memory.uninstalled-again | ${error.message}; obsidian-wiki was uninstalled again (uv tool uninstall obsidian-wiki) | lib/memory.js:603 | SCN-018 | proposed | copy |
-| memory.uninstall-failed | ${error.message}; uv tool uninstall obsidian-wiki failed (${lastLine(un)}): run it yourself | lib/memory.js:604 | SCN-018 | proposed | copy |
+| doctor.memory-config-relative-fix | ${XDG_FIRST}, then ${NPX} setup --with wiki | lib/memory.js:391 | SCN-018 | proposed | copy |
+| memory.uninstalled-again | ${error.message}; obsidian-wiki was uninstalled again (uv tool uninstall obsidian-wiki) | lib/memory.js:617 | SCN-018 | proposed | copy |
+| memory.uninstall-failed | ${error.message}; uv tool uninstall obsidian-wiki failed (${lastLine(un)}): run it yourself | lib/memory.js:618 | SCN-018 | proposed | copy |
 | setup.memory-unrecorded | ; the vault was not recorded in the launcher's state file (${a.unrecorded}), so a missing SessionStart hook will not be offered as a repair | lib/setup.js:380 | SCN-018 | proposed | copy |
-| memory.receipt-before-table | text before its first table | lib/memory.js:885 | SCN-018 | proposed | copy |
-| memory.receipt-unknown-table | a [${n}] table | lib/memory.js:887 | SCN-018 | proposed | copy |
-| memory.unreadable-entry | ${at} could not be read (${code}) | lib/memory.js:241 | SCN-018 | proposed | copy |
-| memory.wiki-broken | obsidian-wiki is installed by uv but does not run (its Python may be gone, or its command is not on this PATH) | lib/memory.js:927 | SCN-018 | proposed | copy |
-| memory.reinstall-recorded | reinstall it with uv, with what uv recorded: ${args.join(' ')} | lib/memory.js:948 | SCN-018 | proposed | copy |
-| memory.reinstall-plain | reinstall it with uv (uv tool install --force obsidian-wiki, with the extras and requirements you gave it) | lib/memory.js:949 | SCN-018 | proposed | copy |
-| doctor.memory-xdg-first | first ${XDG_FIRST}; then ${row.fix} | lib/memory.js:381 | SCN-018 | proposed | copy |
-| doctor.memory-xdg-step | set XDG_CONFIG_HOME to an absolute folder, or unset it | lib/memory.js:378 | SCN-018 | proposed | copy |
+| memory.receipt-before-table | text before its first table | lib/memory.js:903 | SCN-018 | proposed | copy |
+| memory.receipt-unknown-table | a [${n}] table | lib/memory.js:905 | SCN-018 | proposed | copy |
+| memory.unreadable-entry | ${at} could not be read (${code}) | lib/memory.js:244 | SCN-018 | proposed | copy |
+| memory.wiki-broken | obsidian-wiki is installed by uv but does not run (its Python may be gone, or its command is not on this PATH) | lib/memory.js:945 | SCN-018 | proposed | copy |
+| memory.reinstall-recorded | reinstall it with uv, with what uv recorded: ${args.join(' ')} | lib/memory.js:966 | SCN-018 | proposed | copy |
+| memory.reinstall-plain | reinstall it with uv (uv tool install --force obsidian-wiki, with the extras and requirements you gave it) | lib/memory.js:967 | SCN-018 | proposed | copy |
+| doctor.memory-xdg-first | first ${XDG_FIRST}; then ${row.fix} | lib/memory.js:385 | SCN-018 | proposed | copy |
+| doctor.memory-xdg-step | set XDG_CONFIG_HOME to an absolute folder, or unset it | lib/memory.js:382 | SCN-018 | proposed | copy |
 | doctor.memory-error | the wiki memory could not be checked: ${error.message \|\| error} | lib/doctor.js:448 | SCN-018 | proposed | copy |
 | doctor.memory-error-fix | fix what it names, then ${NPX} doctor | lib/doctor.js:448 | SCN-018 | proposed | copy |
 | setup.memory-unchecked | could not be checked (${error.message \|\| error}); fix that, then run setup again | lib/setup.js:100 | SCN-018 | proposed | copy |
-| memory.hook-kept | ${done.join(', ')} (kept); its SessionStart recap was not registered: ${reason}; fix that, then run setup again, which registers it | lib/memory.js:696 | SCN-018 | proposed | copy |
-| memory.hook-settings-unchanged | ; Claude Code's settings file was not changed | lib/memory.js:695 | SCN-018 | proposed | copy |
-| memory.undo-unreadable | reading obsidian-wiki's skills folders failed (${error.code \|\| error.message}): remove the skill links its setup made, then run setup again | lib/memory.js:656 | SCN-018 | proposed | copy |
-| memory.receipt-array-tables | an array of tables ([[...]]) | lib/memory.js:886 | SCN-018 | proposed | copy |
+| memory.hook-kept | ${done.join(', ')} (kept); its SessionStart recap was not registered: ${reason}; fix that, then run setup again, which registers it | lib/memory.js:711 | SCN-018 | proposed | copy |
+| memory.hook-settings-unchanged | ; Claude Code's settings file was not changed | lib/memory.js:710 | SCN-018 | proposed | copy |
+| memory.undo-unreadable | reading obsidian-wiki's skills folders failed (${error.code \|\| error.message}): remove the skill links its setup made, then run setup again | lib/memory.js:670 | SCN-018 | proposed | copy |
+| memory.receipt-array-tables | an array of tables ([[...]]) | lib/memory.js:904 | SCN-018 | proposed | copy |
 | setup.memory-kept-step | The wiki memory: ${a.error} | lib/setup.js:500 | SCN-018 | proposed | copy |
-| memory.clash-unreadable | ${capped(bad)}: repair the link or the permissions | lib/memory.js:311 | SCN-018 | proposed | copy |
-| doctor.memory-clash-unreadable | ${capped(bad)}, where obsidian-wiki's setup links its skills | lib/memory.js:320 | SCN-018 | proposed | copy |
-| memory.undo-config-unread | reading ${cdir} failed (${error.code \|\| error.message}): remove what obsidian-wiki setup wrote there, then run setup again | lib/memory.js:645 | SCN-018 | proposed | copy |
-| memory.receipt-quoted-key | a quoted key (${m[2]}) | lib/memory.js:889 | SCN-018 | proposed | copy |
+| memory.clash-unreadable | ${capped(bad)}: repair the link or the permissions | lib/memory.js:314 | SCN-018 | proposed | copy |
+| doctor.memory-clash-unreadable | ${capped(bad)}, where obsidian-wiki's setup links its skills | lib/memory.js:323 | SCN-018 | proposed | copy |
+| memory.undo-config-unread | reading ${cdir} failed (${error.code \|\| error.message}): remove what obsidian-wiki setup wrote there, then run setup again | lib/memory.js:659 | SCN-018 | proposed | copy |
+| memory.receipt-quoted-key | a quoted key (${m[2]}) | lib/memory.js:907 | SCN-018 | proposed | copy |
 | setup.memory-unchecked-detail | the agents' wiki memory could not be checked: ${need.unchecked} | lib/setup.js:108 | SCN-018 | proposed | copy |
-| memory.config-form-repo | ${config} points ${key} outside obsidian-wiki's package, which its version refresh would replace with the package path; remove that line, then run setup again | lib/memory.js:995 | SCN-018 | proposed | copy |
-| memory.config-form | ${config} writes ${key} ${form}, which obsidian-wiki's version refresh would rewrite; write it once as ${key}="...", then run setup again | lib/memory.js:996 | SCN-018 | proposed | copy |
-| memory.config-form.repeated | more than once | lib/memory.js:980 | SCN-018 | proposed | copy |
-| memory.config-form.export | after export | lib/memory.js:982 | SCN-018 | proposed | copy |
-| doctor.memory-config-form-repo-fix | remove the ${form.key} line from ${form.config}, then ${NPX} setup | lib/memory.js:1033 | SCN-018 | proposed | copy |
-| doctor.memory-config-form-fix | write ${form.key} once as ${form.key}="..." in ${form.config}, then ${NPX} setup | lib/memory.js:1033 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-config-form-first | first rewrite the ${form.key} line memory.vault.config-form names; then ${fix} | lib/memory.js:400 | SCN-018 | proposed | copy |
-| memory.shadow | obsidian-wiki's SessionStart recap reads ${legacy} while its commands read ${configDir(home)}, so it would recap another vault; remove or merge ${legacy}, then run setup again | lib/memory.js:1013 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-shadow-fix | remove ${shadow}, or merge it into ${configDir(home)}, then ${NPX} setup | lib/memory.js:494 | SCN-018 | proposed | copy |
-| memory.done-shadow | its SessionStart recap was not registered: ${shadowNote(home, shadow)} | lib/memory.js:691 | SCN-018 | proposed | copy |
-| memory.clash-verb.skills | move or rename the skills | lib/memory.js:1029 | SCN-018 | proposed | copy |
-| memory.clash-verb.folders | repair the folders | lib/memory.js:1029 | SCN-018 | proposed | copy |
-| memory.capped-more | , and ${list.length - 5} more | lib/memory.js:1024 | SCN-018 | proposed | copy |
-| memory.upgrade-stays | ${error.message}; obsidian-wiki ${PIN} stays installed while its config records another version, so its next command asks for obsidian-wiki setup | lib/memory.js:805 | SCN-018 | proposed | copy |
-| memory.upgrade-put-back | ${error.message}; obsidian-wiki was put back to ${before.version} (uv ${back.join(' ')}) | lib/memory.js:807 | SCN-018 | proposed | copy |
-| memory.upgrade-put-back-failed | ${error.message}; putting obsidian-wiki back to ${before.version} failed (${lastLine(b)}): obsidian-wiki ${PIN} stays installed while its config records ${before.version}, so its next command asks for obsidian-wiki setup; run uv ${back.join(' ')} yourself | lib/memory.js:808 | SCN-018 | proposed | copy |
-| memory.receipt-inline-key | uv's record for obsidian-wiki has a quoted or dotted key in a requirement, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:899 | SCN-018 | proposed | copy |
-| memory.read-doctor | read `obsidian-wiki doctor --json` (its session-hooks hint asking for a bare hooks install is expected: the launcher registers only SessionStart) | lib/memory.js:194 | SCN-018 | proposed | copy |
+| memory.config-form-repo | ${config} points ${key} outside obsidian-wiki's package, which its version refresh would replace with the package path; remove that line, then run setup again | lib/memory.js:1018 | SCN-018 | proposed | copy |
+| memory.config-form | ${config} writes ${key} ${form}, which obsidian-wiki's version refresh would rewrite; write it once as ${key}="...", then run setup again | lib/memory.js:1021 | SCN-018 | proposed | copy |
+| memory.config-form.repeated | more than once | lib/memory.js:1003 | SCN-018 | proposed | copy |
+| memory.config-form.export | after export | lib/memory.js:1005 | SCN-018 | proposed | copy |
+| doctor.memory-config-form-repo-fix | remove the ${form.key} line from ${form.config}, then ${NPX} setup | lib/memory.js:1062 | SCN-018 | proposed | copy |
+| doctor.memory-config-form-fix | write ${form.key} once as ${form.key}="..." in ${form.config}, then ${NPX} setup | lib/memory.js:1065 | SCN-018 | proposed | copy |
+| memory.shadow | obsidian-wiki's SessionStart recap reads ${legacy} while its commands read ${configDir(home)}, so it would recap another vault; remove or merge ${legacy}, then run setup again | lib/memory.js:1042 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-shadow-fix | remove ${shadow}, or merge it into ${configDir(home)}, then ${NPX} setup | lib/memory.js:504 | SCN-018 | proposed | copy |
+| memory.done-shadow | its SessionStart recap was not registered: ${shadowNote(home, shadow)} | lib/memory.js:706 | SCN-018 | proposed | copy |
+| memory.clash-verb.skills | move or rename the skills | lib/memory.js:1058 | SCN-018 | proposed | copy |
+| memory.clash-verb.folders | repair the folders | lib/memory.js:1058 | SCN-018 | proposed | copy |
+| memory.capped-more | , and ${list.length - 5} more | lib/memory.js:1053 | SCN-018 | proposed | copy |
+| memory.upgrade-stays | ${error.message}; obsidian-wiki ${PIN} stays installed while its config records another version, so its next command asks for obsidian-wiki setup | lib/memory.js:823 | SCN-018 | proposed | copy |
+| memory.upgrade-put-back | ${error.message}; obsidian-wiki was put back to ${before.version} (uv ${back.join(' ')}) | lib/memory.js:825 | SCN-018 | proposed | copy |
+| memory.upgrade-put-back-failed | ${error.message}; putting obsidian-wiki back to ${before.version} failed (${lastLine(b)}): obsidian-wiki ${PIN} stays installed while its config records ${before.version}, so its next command asks for obsidian-wiki setup; run uv ${back.join(' ')} yourself | lib/memory.js:826 | SCN-018 | proposed | copy |
+| memory.receipt-inline-key | uv's record for obsidian-wiki has a quoted or dotted key in a requirement, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:917 | SCN-018 | proposed | copy |
+| memory.read-doctor | read `obsidian-wiki doctor --json` (its session-hooks hint asking for a bare hooks install is expected: the launcher registers only SessionStart) | lib/memory.js:197 | SCN-018 | proposed | copy |
+| memory.config-form.spaced | with spaces around = | lib/memory.js:421 | SCN-018 | proposed | copy |
+| memory.config-form.single-quotes | in single quotes | lib/memory.js:1009 | SCN-018 | proposed | copy |
+| memory.config-form.trailing | with text after its value | lib/memory.js:1009 | SCN-018 | proposed | copy |
+| memory.config-form.bom | starts with a byte order mark | lib/memory.js:997 | SCN-018 | proposed | copy |
+| memory.config-form.breaks | with Windows line endings or a line break obsidian-wiki reads differently | lib/memory.js:998 | SCN-018 | proposed | copy |
+| memory.config-form-bom-note | ${config} starts with a byte order mark: save it without one, then run setup again | lib/memory.js:1019 | SCN-018 | proposed | copy |
+| memory.config-form-breaks-note | ${config} is written ${form}, which obsidian-wiki's version refresh would rewrite; save it with plain line endings (\\n), then run setup again | lib/memory.js:1020 | SCN-018 | proposed | copy |
+| memory.form-step.remove | remove the ${form.key} line memory.vault.config-form names | lib/memory.js:1023 | SCN-018 | proposed | copy |
+| memory.form-step.save | save the config as memory.vault.config-form names | lib/memory.js:1024 | SCN-018 | proposed | copy |
+| memory.form-step.rewrite | rewrite the ${form.key} line memory.vault.config-form names | lib/memory.js:1024 | SCN-018 | proposed | copy |
+| doctor.memory-config-form-bom-fix | save ${form.config} without a byte order mark, then ${NPX} setup | lib/memory.js:1063 | SCN-018 | proposed | copy |
+| doctor.memory-config-form-breaks-fix | save ${form.config} with plain line endings (\\n), then ${NPX} setup | lib/memory.js:1064 | SCN-018 | proposed | copy |
+| doctor.memory-form-first | first ${formStep(form)}; then ${fix} | lib/memory.js:410 | SCN-018 | proposed | copy |
+| doctor.memory-vault-refresh-form | first ${formStep(spaced)}; then ${REFRESH} | lib/memory.js:480 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-form-first | first ${formStep(form)}; then ${NPX} setup | lib/memory.js:523 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-own-fix | put the folder of that obsidian-wiki's command on your PATH, then ${NPX} doctor; the launcher never installs another copy over it | lib/memory.js:403 | SCN-018 | proposed | copy |
+| memory.own-note | your own obsidian-wiki (its package ${at}) is installed outside uv, and its command is not on this PATH; put its command folder on PATH: the launcher never installs another copy over it | lib/memory.js:1086 | SCN-018 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further
 wording changes. Version values and timestamps remain verbatim observations.
