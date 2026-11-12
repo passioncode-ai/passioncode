@@ -417,15 +417,20 @@
   same, naming Apple's command line tools on a Mac (`xcode-select -p` is asked first, so no install dialog opens);
   everything else is set up. A vault step that fails (git or obsidian-wiki's own setup) fails the run and leaves nothing
   of the vault; when the same run installed obsidian-wiki, it is uninstalled again and the error says so (an uninstall that
-  fails is named for the person to run), so the next `setup` starts again. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki, records the vault, and the next `setup` registers the entry. A registered SessionStart entry whose
+  fails is named for the person to run), so the next `setup` starts again. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry. A registered SessionStart entry whose
   script is gone is a `memory.hooks` warning (gate `consent`): the person removes the entry, then `setup` registers it
   again for the vault the launcher made. An upgrade stops, naming it, on anything in uv's record it cannot carry (a
   requirement given as a URL, path, Git source or editable; an unknown key or table): the person brings obsidian-wiki up
-  with uv. XDG_CONFIG_HOME set to a relative path: the
-  memory is not offered, nothing is installed and no repair runs (obsidian-wiki reads it from the folder it runs in, so it would not find
+  with uv. XDG_CONFIG_HOME set to a relative path: 
+  obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual (obsidian-wiki reads it from the folder it runs in, so it would not find
   its config where the launcher does); `doctor` shows `memory.config` with the fix to set it to an absolute folder or
   unset it. A launcher state file that cannot be read keeps the vault step going, and its line says the vault was not
-  recorded, so a missing SessionStart hook will not be offered as a repair. On a new Mac uv's `~/.local/bin` may not be on the
+  recorded, so a missing SessionStart hook will not be offered as a repair. A skills folder or entry that cannot be read (a looped
+  link, a folder this user may not read) is named "could not be read: <code>" in `memory.wiki.clash` and counts as a
+  clash: no install, vault step or upgrade runs over it. An obsidian-wiki uv holds that does not run (its Python gone,
+  or its command not on this PATH) is never installed over or uninstalled: `memory.wiki` warns "installed by uv but does
+  not run" with the person's reinstall, using what uv recorded. A memory check that fails in a way nobody foresaw is one
+  `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
   vault the launcher made is registered again by the next `setup` or `doctor --fix`, while the config still names that

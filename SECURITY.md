@@ -102,7 +102,7 @@ link). The upgrade carries the extras, `--with` requirements and Python uv recor
 `uv-receipt.toml`) and stops, naming it, on anything else the receipt holds (a requirement given as a URL, path, Git
 source or editable; an unknown key or table). A vault step that fails removes what it made (the folder, its `.git`, and what the
 step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the folder when the step made it), and when the same run installed obsidian-wiki a
-step that fails before the vault stands uninstalls it again (`uv tool uninstall obsidian-wiki`); a failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki, records the vault, and the next `setup` registers the entry. An older
+step that fails before the vault stands uninstalls it again (`uv tool uninstall obsidian-wiki`); a failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry. An older
 obsidian-wiki is brought up with `uv tool install --force` and then `obsidian-wiki list` with its update check off
 (`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`), whose stale refresh records the new version and keeps every other key of the
 config (the same `list` runs right after installing obsidian-wiki over an existing config); a `list` that asks for
