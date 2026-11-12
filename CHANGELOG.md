@@ -16,10 +16,11 @@
   project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
   Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
   leaves nothing it made, so the next run starts again; when the same run installed obsidian-wiki, a step that fails
-  before the vault stands (git init, obsidian-wiki setup) uninstalls it again (`uv tool uninstall obsidian-wiki`) and
-  says so, or names the uninstall that failed. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki, records the vault, and the next `setup` registers the entry.
-  With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) the wiki memory is
-  not offered, nothing is installed and no repair runs; `doctor` shows it as `memory.config`. Without uv the steps name `brew install uv` where Homebrew is,
+  before the vault stands (the version check after the install, the version refresh over an existing config, git
+  init, obsidian-wiki setup) uninstalls it again (`uv tool uninstall obsidian-wiki`) and
+  says so, or names the uninstall that failed. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
+  With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual; `doctor` shows it as
+  `memory.config`, and every other memory row that names `setup` asks for that step first. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
   so no dialog opens). An older obsidian-wiki uv lists is brought up to the pin with `uv tool install --force`, then
   `obsidian-wiki list` (also right after installing obsidian-wiki over an existing config) records the new version and keeps every other key of the config (`doctor --fix` too); a copy

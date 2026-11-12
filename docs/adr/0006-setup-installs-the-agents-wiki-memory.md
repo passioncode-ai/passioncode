@@ -67,7 +67,7 @@ project, after every turn, to write into the vault. On the operator's machine th
    the link and the file's permission bits. A vault step that fails removes what the launcher made (a folder it made,
    the `.git` it made, what the failed step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the
    folder when the step made it; a folder that was there, empty, stays as it was), so the next run starts
-   again (a part it cannot remove is named, with what to do). A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki, records the vault, and the next `setup` registers the entry. The vault the launcher made is remembered in
+   again (a part it cannot remove is named, with what to do). A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry. The vault the launcher made is remembered in
    `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
    SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
    it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records
@@ -145,8 +145,16 @@ project, after every turn, to write into the vault. On the operator's machine th
     step of the same action fails (the refresh over an existing config, or the vault step before the vault stands), the
     launcher runs `uv tool uninstall obsidian-wiki` and says so, or names the uninstall that failed for the person to
     run: a tool left with no config, or with an old recorded version, answers every agent's next command with "Run:
-    obsidian-wiki setup". A relative XDG_CONFIG_HOME, which obsidian-wiki reads from the folder it runs in, makes the
-    whole memory item unavailable (no install either), and `doctor` shows it as `memory.config`.
+    obsidian-wiki setup". A relative XDG_CONFIG_HOME, which obsidian-wiki reads from the folder it runs in, leaves obsidian-wiki
+    out: it is not installed or upgraded, no vault is made and no SessionStart hook is registered (the `tool` and `hook`
+    repairs included); Obsidian and the apps are set up as usual, and `doctor` shows it as `memory.config`.
+13. **What cannot be read is refused, never a crash (round 11).** A skills folder or entry `lstat` cannot read (a looped
+    link, ELOOP; a folder this user may not read, EACCES) counts as a clash, named "could not be read: <code>": the
+    install, the vault step and the upgrade do not run over it, since obsidian-wiki's setup would meet it too. An
+    obsidian-wiki uv holds that does not run is the person's to reinstall with what uv recorded: setup never runs a plain
+    `uv tool install` over it (it would drop the extras or take back a newer version) and never uninstalls it. A memory
+    check that throws anyway is one `memory.error` warning in `doctor` and a memory item left out of `setup` with that
+    note.
 
 ## Consequences
 
