@@ -1,0 +1,30 @@
+{
+  "source": "obsidian-wiki 2026.11.4 (PyPI), obsidian_wiki/cli.py doctor checks and obsidian_wiki/hooks.py reachability: every hint string, as written there (f-string fields filled with a sample value)",
+  "checks": ["bundled-skills", "bootstrap-assets", "global-config", "vault-config", "setup-version", "vault-path", "vault-core-files", "memory-surface", "session-hooks", "manifest-json", "agent-installs", "project-bootstrap", "code-understand", "codegraph"],
+  "hints": [
+    "",
+    "code-understand may not find any symbols",
+    "code-understand will produce an empty focus map",
+    "set CODE_UNDERSTANDING_CODEGRAPH_BIN or install codegraph",
+    "run: obsidian-wiki setup --project /tmp/project",
+    "add .codegraph/ to .gitignore",
+    "install ripgrep for cross-file reference evidence",
+    "re-run setup to record install metadata",
+    "re-run: obsidian-wiki code-understand --project <project>",
+    "reinstall obsidian-wiki",
+    "run: obsidian-wiki code-understand --project <project>",
+    "run: obsidian-wiki setup --vault /path/to/your/vault",
+    "fix OBSIDIAN_VAULT_PATH or re-run setup",
+    "pass an existing directory",
+    "re-run obsidian-wiki setup to fill missing skills",
+    "repair or regenerate .manifest.json",
+    "run the wiki setup skill or create the missing files",
+    "run: obsidian-wiki hooks install",
+    "run: obsidian-wiki hooks status",
+    "run: obsidian-wiki memory migrate   (preview first, then --apply)",
+    "run: obsidian-wiki memory status",
+    "run: obsidian-wiki memory sync",
+    "run: obsidian-wiki setup",
+    "install into the interpreter hooks use, or put `obsidian-wiki` on PATH (this session's interpreter is /usr/bin/python3)"
+  ]
+}

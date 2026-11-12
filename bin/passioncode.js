@@ -27,7 +27,7 @@ function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion
   return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''}${refused ? `; not installed automatically: ${REFUSED[refused] || 'refused'}` : ''})`;
 }
 
-const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
+const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills, the agents' wiki memory
 
   ${NPX} setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--wiki-vault dir] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
@@ -46,7 +46,7 @@ releases; --quiet prints nothing when an update succeeds; --allow-tools lets Cla
 PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes
 never does either). Ids for --with and --without: switchboard, dashboards, observatory, inbox,
 fabric (the apps); obsidian, wiki, or memory for both (the agents' wiki memory). A new vault goes
-in ~/Documents/Wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
+in ~/Documents/Wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes: 0 nothing failed in what the run covered (or only a plan was shown), 1 a check
 or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode"
 marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after
 a change.`;
@@ -323,7 +323,8 @@ async function main(argv) {
     }
     if (cmd === 'uninstall') {
       const r = partly(() => L.uninstall(), 'Removed');
-      out(r, r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.');
+      const stays = "The agents' wiki memory stays: obsidian-wiki, its vault and SessionStart hook, and Obsidian."; // PC-178
+      out(r, `${r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.'}\n${stays}`);
       return 0;
     }
     process.stdout.write(HELP + '\n');

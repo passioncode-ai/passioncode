@@ -161,7 +161,12 @@ switch (tool) {
   }
   case 'brew': {
     // `brew --prefix`: $FAKE_BREW_PREFIX, else a folder of this home's (made, writable).
-    if (args[0] === '--prefix') { const at = process.env.FAKE_BREW_PREFIX || path.join(home, 'homebrew'); fs.mkdirSync(at, { recursive: true }); out(at); process.exit(0); }
+    if (args[0] === '--prefix') {
+      const at = process.env.FAKE_BREW_PREFIX || path.join(home, 'homebrew');
+      fs.mkdirSync(at, { recursive: true });
+      try { fs.mkdirSync(path.join(at, 'bin'), { recursive: true }); } catch (_) { /* a prefix this user cannot write */ }
+      out(at); process.exit(0);
+    }
     out('Homebrew 4.6.0'); process.exit(0);
   }
   case 'xcode-select': out('/Library/Developer/CommandLineTools'); process.exit(0);
