@@ -325,8 +325,14 @@ async function main(argv) {
     }
     if (cmd === 'uninstall') {
       const r = partly(() => L.uninstall(), 'Removed');
-      // PC-178: said only where something of the wiki memory is here (obsidian-wiki answers, or Obsidian is installed).
-      const stays = require('../lib/memory').present(require('os').homedir()) ? "\nThe agents' wiki memory stays: obsidian-wiki, its vault and SessionStart hook, and Obsidian." : '';
+      // PC-178: the parts of the wiki memory found here, named (obsidian-wiki when it answers, Obsidian when the app is
+      // there); nothing when neither is. A --json run asks nothing of them (round 6, P6): its answer is the removals.
+      let stays = '';
+      if (!json) {
+        const here = require('../lib/memory').present(require('os').homedir());
+        const parts = [here.wiki ? 'obsidian-wiki, its vault and SessionStart hook' : null, here.obsidian ? 'Obsidian' : null].filter(Boolean);
+        if (parts.length) stays = `\nThe agents' wiki memory stays: ${parts.join(', and ')}.`;
+      }
       out(r, `${r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.'}${stays}`);
       return 0;
     }
