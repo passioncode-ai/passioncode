@@ -31,7 +31,7 @@ try {
   delete env.SWITCHBOARD_CLAUDE_SOURCE_DIR;
   // PC-178: a developer's XDG folders and uv's or obsidian-wiki's variables would move the config, the tool folder or
   // uv's installer folders out of a test's home: none reaches a test (a test that needs one sets its own).
-  for (const k of Object.keys(env)) if (/^(XDG_|UV_|OBSIDIAN_WIKI_|OBSIDIAN_VAULT)/.test(k)) delete env[k];
+  for (const k of Object.keys(env)) if (/^(XDG_|UV_|OBSIDIAN_WIKI_|OBSIDIAN_VAULT|HERMES_HOME$)/.test(k)) delete env[k];
   // PC-145: the shared apps folder is a scratch one, so no test reads the machine's own /Applications.
   env.PASSIONCODE_SHARED_APPLICATIONS = path.join(scratch, 'shared-Applications');
   const child = spawn(process.execPath, ['--test', ...flags, ...tests], { stdio: 'inherit', env });

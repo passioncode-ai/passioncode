@@ -349,3 +349,47 @@ test('PC-178: a hook script path is checked only where it can be: never a Git Ba
     delete process.env.PASSIONCODE_PLATFORM;
   }
 });
+
+// Round 11 (PC-178).
+test('PC-178: a Hermes profile that is a link to a folder is one obsidian-wiki fills; a link to nothing is skipped', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const profiles = path.join(s.home, '.hermes', 'profiles');
+  const real = path.join(s.home, 'elsewhere', 'work');
+  const name = require('../lib/catalog').WIKI.skills[0];
+  fs.mkdirSync(path.join(real, 'skills', name), { recursive: true });
+  fs.writeFileSync(path.join(real, 'skills', name, 'SKILL.md'), '---\nname: mine\n---\n');
+  fs.mkdirSync(profiles, { recursive: true });
+  fs.symlinkSync(real, path.join(profiles, 'work'));
+  fs.symlinkSync(path.join(s.home, 'nowhere'), path.join(profiles, 'gone'));
+  assert.ok(M.skillFolders(s.home).includes(path.join(profiles, 'work', 'skills')), M.skillFolders(s.home).join('\n'));
+  assert.ok(!M.skillFolders(s.home).includes(path.join(profiles, 'gone', 'skills')));
+  assert.ok(M.clashes(s.home, null).includes(path.join(profiles, 'work', 'skills', name)), M.clashes(s.home, null).join('\n'));
+});
+
+test('PC-178: a skills folder that cannot be read is a clash that names its code, never a throw', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  fs.symlinkSync(path.join(s.home, '.codex'), path.join(s.home, '.codex')); // a link to itself: ELOOP
+  let found;
+  assert.doesNotThrow(() => { found = M.clashes(s.home, null); });
+  assert.ok(found.some((e) => /\.codex.*could not be read: ELOOP/.test(e)), found.join('\n'));
+});
+
+test('PC-178: uv\'s receipt refuses a \'literal\' key it does not know and an array of tables', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const uvBin = path.join(s.bin, 'uv');
+  receipt(s, "[tool]\nrequirements = [{ name = \"obsidian-wiki\" }]\n'constraints' = [{ name = \"numpy\", specifier = \"<2\" }]\n");
+  assert.throws(() => M.receiptSpec(uvBin), /constraints/);
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n\n[[tool.extra]]\nname = "x"\n');
+  assert.throws(() => M.receiptSpec(uvBin), /array of tables/);
+});
+
+test('PC-178: a memory check that throws is one warning row in doctor, never a crash', { skip: SH }, async (t) => {
+  const s = sandbox(t);
+  const D = require('../lib/doctor');
+  const real = M.checks;
+  M.checks = () => { throw new Error('EPERM: operation not permitted, lstat \'/x\''); };
+  t.after(() => { M.checks = real; });
+  const checks = await D.collect({ home: s.home, platform: 'linux', claude: { available: () => false }, online: false });
+  const e = checks.find((c) => c.id === 'memory.error');
+  assert.ok(e && e.state === 'warn' && /could not be checked: EPERM/.test(e.detail) && /doctor$/.test(e.fix) && e.gate === null && !e.repair, JSON.stringify(e));
+});

@@ -118,7 +118,8 @@ switch (tool) {
       const dir = process.env.UV_TOOL_BIN_DIR || path.join(home, '.local', 'bin');
       fs.mkdirSync(state, { recursive: true });
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(state, 'version'), spec.split('==')[1]);
+      // $FAKE_UV_INSTALLS_VERSION: what lands is not what was asked for (round 11, R1).
+      fs.writeFileSync(path.join(state, 'version'), process.env.FAKE_UV_INSTALLS_VERSION || spec.split('==')[1]);
       fs.writeFileSync(path.join(dir, 'obsidian-wiki'), `#!/bin/sh\nexec "${process.execPath}" "${__filename}" obsidian-wiki "$@"\n`, { mode: 0o755 });
       out(`Installed 1 executable: obsidian-wiki`); process.exit(0);
     }
@@ -128,6 +129,8 @@ switch (tool) {
     const state = process.env.FAKE_WIKI_STATE || path.join(home, 'fake-wiki');
     const version = (() => { try { return fs.readFileSync(path.join(state, 'version'), 'utf8').trim(); } catch (_) { return null; } })();
     if (!version) process.exit(127); // not installed: the stub on PATH answers as a missing command does
+    // $FAKE_WIKI_BROKEN: uv holds it, but it does not run (its Python removed): 127 for every command (round 11, S2).
+    if (process.env.FAKE_WIKI_BROKEN) { err('bad interpreter: No such file or directory'); process.exit(127); }
     // As obsidian-wiki 2026.11.4 resolves it (cli.py _resolve_global_config_dir): ~/.obsidian-wiki only while it is a
     // folder and the XDG folder does not exist (Path.exists follows a link: a link to nothing does not exist).
     const xdgDir = path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'obsidian-wiki');
@@ -154,7 +157,13 @@ switch (tool) {
         fs.symlinkSync(path.join(pkg, 'skills', n), at);
       }
     };
+    // As GLOBAL_AGENT_DIRS, with HERMES_HOME's skills and each Hermes profile's (`p.is_dir()` follows a link; round 11, R4).
     const skillDirs = catalog.WIKI.skillDirs.map((rel) => path.join(home, rel));
+    if (process.env.HERMES_HOME) skillDirs.push(path.join(process.env.HERMES_HOME, 'skills'));
+    try {
+      const profiles = path.join(home, '.hermes', 'profiles');
+      for (const p of fs.readdirSync(profiles)) { try { if (fs.statSync(path.join(profiles, p)).isDirectory()) skillDirs.push(path.join(profiles, p, 'skills')); } catch (_) { /* a link to nothing */ } }
+    } catch (_) { /* none */ }
     // As cli.py _refresh_installed_skills: only folders that already hold a bundled name with SKILL.md.
     const refreshSkills = () => { for (const d of skillDirs) { if (NAMES.some((n) => fs.existsSync(path.join(d, n, 'SKILL.md')))) installSkills(d); } };
     const settings = path.join(home, '.claude', 'settings.json');
