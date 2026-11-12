@@ -56,8 +56,9 @@ its vault path), runs `uv --version`, `uv tool list` (a copy counts as uv's only
 --json` and `obsidian-wiki hooks status --json`, which read the
 person's obsidian-wiki config, vault and Claude Code hooks and change nothing; it reads the names of the bundled skills
 in the obsidian-wiki package that command belongs to, and the entries with those names in obsidian-wiki's global skills
-folders (the twelve under the home folder and the Hermes profiles): whether each is a link and where it points, and
-whether a folder holds `SKILL.md`, never their content; doctor prints only check names, states,
+folders (the twelve under the home folder, `$HERMES_HOME/skills` and the Hermes profiles): whether each is a link and
+where it points, and whether a folder holds `SKILL.md`, never their content; it reads whether `~/.claude/settings.json`
+is a link and where it points, and whether the script a registered SessionStart command names is there; doctor prints only check names, states,
 details and hints, never a page of the vault.
 
 `setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`, and a vault setup made is

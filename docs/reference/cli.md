@@ -510,9 +510,9 @@ Uninstall removes only links targeting this launcher's active release/hub, inclu
 equivalent relative links. It leaves the Claude Code rules setup added (the tool rules of PC-117 and the command rules of PC-119)
 and the rules `permissions allow` added and the default mode `permissions mode` set (PC-125) in
 `~/.claude/settings.json`, the declarations in `~/.passioncode/rules.d/` and the ledger `~/.passioncode/permissions.json`
-(under `PASSIONCODE_HOME` when it is set), and the agents' wiki memory: obsidian-wiki, its vault and SessionStart hook,
-and Obsidian ([ADR-0006](../adr/0006-setup-installs-the-agents-wiki-memory.md)); `restore` leaves the memory too;
-the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and `~/.passioncode/run/` (the self-update's run folder and its cache, safe to remove), and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
+(under `PASSIONCODE_HOME` when it is set); the person removes them there, or at any time with `permissions remove` and
+`permissions mode default` (which sets the mode to `default`; it does not unset it). It leaves the agents' wiki memory:
+obsidian-wiki, its vault and SessionStart hook, and Obsidian ([ADR-0006](../adr/0006-setup-installs-the-agents-wiki-memory.md)); `restore` leaves the memory too. It also leaves `~/.passioncode/analytics.json`, so an `analytics off` survives a reinstall, and `~/.passioncode/run/` (the self-update's run folder and its cache, safe to remove), and the shared `PassionCode/installation.json`, which the PassionCode apps use too; `uninstall` itself is counted like any command. Other user files stay in place. Failed plugin removal
 returns exit 1 and keeps the marketplace and active release for a retry. A
 marketplace still serving another installed plugin is retained. An MCP registration
 whose file the system cannot open now (its permissions, or a link into a locked

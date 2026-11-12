@@ -7,8 +7,8 @@ the PassionCode.ai skills listed in [`family.json`](family.json), and the agents
 (the open-source [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) with a vault of its own, and
 Obsidian to read it in). Run the same command on a
 computer that is already set up, and it checks everything, repairs what is wrong and tells you
-what changed; a computer set up before the wiki memory came gets it on its next `setup`, unless that run says
-`--without memory`.
+what changed; a computer set up before the wiki memory came gets it on its next `setup`, where uv and git are and no
+skill of yours shares a name with one of obsidian-wiki's (see the wiki memory below).
 
 ```bash
 npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
@@ -140,7 +140,9 @@ its notarization ticket and Gatekeeper's yes. Obsidian updates itself inside the
 copy for its version, only a damaged one of yours; a copy in `/Applications` that root owns (a package or MDM install) counts as yours, while one another user dragged in stays theirs and you get your own. When you have no
 obsidian-wiki config yet, setup makes a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names; never one
 that already holds files, and never while a skill of yours shares a name with one of obsidian-wiki's, since its setup
-would replace it: setup names each one for you to move or rename), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` and registers only the
+would replace it: setup names each one for you to move or rename; and only where git is, on a Mac Apple's command line
+tools, which setup names as a step), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` (which adds obsidian-wiki's
+skills to every agent's skills folder, making the folders of agents that are not installed) and registers only the
 SessionStart recap for Claude Code (only where Claude Code reads `~/.claude`; obsidian-wiki writes nowhere else). The run
 ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records after an upgrade, every other key kept), and the Stop hook (which asks
 every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
