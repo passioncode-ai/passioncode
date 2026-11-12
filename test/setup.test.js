@@ -2981,7 +2981,8 @@ test('PC-178: a vault folder the launcher cannot remove after a failure is named
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki', '--wiki-vault', vault);
   const a = r.json.actions.find((x) => x.kind === 'memory');
   assert.equal(a.outcome, 'failed');
-  assert.match(a.error, new RegExp(`removing ${vault.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} failed \\(EACCES\\): remove it, then run setup again$`));
+  // The obsidian-wiki this run installed is uninstalled again (round 9, R1), said after the part left behind.
+  assert.match(a.error, new RegExp(`removing ${vault.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} failed \\(EACCES\\): remove it, then run setup again; obsidian-wiki was uninstalled again`));
   assert.doesNotMatch(a.error, /nothing of the vault step was kept/);
 });
 
@@ -3523,4 +3524,58 @@ test('PC-178: a relative XDG_CONFIG_HOME stops the vault step: obsidian-wiki wou
   const item = r.json.plan.find((i) => i.kind === 'memory');
   assert.ok(item && item.unavailable && /XDG_CONFIG_HOME/.test(item.note), JSON.stringify(item));
   assert.ok(!toolLog(m).some((l) => /^obsidian-wiki setup/.test(l)));
+});
+
+// Round 9 (PC-178).
+test('PC-178: a file where obsidian-wiki\'s skills folders would be leaves doctor and setup answering JSON', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  fs.mkdirSync(path.join(m.home, '.hermes', 'profiles'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.hermes', 'profiles', '.DS_Store'), 'x');
+  fs.writeFileSync(path.join(m.home, '.pi'), 'a file');
+  fs.writeFileSync(path.join(m.home, '.trae'), 'a file');
+  const d = await cli(m, api, 'doctor', '--json', '--offline');
+  assert.ok(d.json && Array.isArray(d.json.checks), d.stdout + d.stderr);
+  const s = await cli(m, api, 'setup', '--dry-run', '--json', '--offline', '--with', 'wiki');
+  assert.ok(s.json && Array.isArray(s.json.plan), s.stdout + s.stderr);
+});
+
+test('PC-178: a vault step that fails in the run that installed obsidian-wiki uninstalls it again, and says so', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  m.env = { FAKE_WIKI_SETUP_FAIL: '1' };
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  const a = r.json.actions.find((x) => x.kind === 'memory');
+  assert.equal(a.outcome, 'failed');
+  assert.match(a.error, /obsidian-wiki was uninstalled again \(uv tool uninstall obsidian-wiki\)/);
+  assert.ok(toolLog(m).includes('uv tool uninstall obsidian-wiki'), toolLog(m).join('\n'));
+  assert.ok(!fs.existsSync(path.join(m.home, 'fake-wiki', 'version')), 'no obsidian-wiki left to tell an agent to run its setup');
+  // One that was there before the run stays.
+  const n = withMemory();
+  giveWiki(n, PIN);
+  n.env = { FAKE_WIKI_SETUP_FAIL: '1' };
+  const r2 = await cli(n, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.equal(r2.json.actions.find((x) => x.kind === 'memory').outcome, 'failed');
+  assert.ok(!toolLog(n).includes('uv tool uninstall obsidian-wiki'));
+  assert.ok(fs.existsSync(path.join(n.home, 'fake-wiki', 'version')));
+});
+
+test('PC-178: a state file that cannot be read does not stop the hook step; the action says what was not recorded', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  fs.mkdirSync(path.join(m.home, '.passioncode'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.passioncode', 'state.json'), '{ not json');
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  const a = r.json.actions.find((x) => x.kind === 'memory');
+  assert.equal(a.outcome, 'done', JSON.stringify(a));
+  assert.match(a.detail, /not recorded/);
+  assert.deepEqual(wikiHooks(m), ['SessionStart']);
+});
+
+test('PC-178: doctor names a relative XDG_CONFIG_HOME in its own memory row', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  m.env = { XDG_CONFIG_HOME: 'relative/config' };
+  const c = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.config');
+  assert.ok(c && c.state === 'warn' && /XDG_CONFIG_HOME is a relative path/.test(c.detail), JSON.stringify(c));
 });

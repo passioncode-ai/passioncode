@@ -106,6 +106,11 @@ switch (tool) {
     const state = process.env.FAKE_WIKI_STATE || path.join(home, 'fake-wiki');
     if (args[0] === 'tool' && args[1] === 'list') { if (fs.existsSync(path.join(state, 'version')) && !process.env.FAKE_UV_LIST_EMPTY) out(`obsidian-wiki v${fs.readFileSync(path.join(state, 'version'), 'utf8').trim()}\n- obsidian-wiki`); process.exit(0); }
     if (args[0] === 'tool' && args[1] === 'dir') { out(path.join(state, 'uv-tools')); process.exit(0); }
+    if (args[0] === 'tool' && args[1] === 'uninstall') {
+      fs.rmSync(path.join(state, 'version'), { force: true });
+      fs.rmSync(path.join(process.env.UV_TOOL_BIN_DIR || path.join(home, '.local', 'bin'), 'obsidian-wiki'), { force: true });
+      out('Uninstalled 1 executable: obsidian-wiki'); process.exit(0);
+    }
     if (args[0] === 'tool' && args[1] === 'install') {
       if (process.env.FAKE_UV_FAIL) { err('error: Failed to download obsidian-wiki'); process.exit(2); }
       const spec = (args.find((a) => /^obsidian-wiki(\[[^\]]*\])?==/.test(a)) || '').replace(/\[[^\]]*\]/, '');

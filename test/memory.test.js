@@ -312,7 +312,40 @@ test('PC-178: uv\'s receipt fails closed: a comment, an unterminated or escaped 
     receipt(s, text);
     assert.throws(() => M.receiptSpec(uvBin), /cannot carry/, text);
   }
-  // `python` is read only from [tool].
+  // A table the launcher does not know is refused too (round 9: refusing over parsing).
   receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n\n[other]\npython = "3.9"\n');
-  assert.equal(M.receiptSpec(uvBin).python, null);
+  assert.throws(() => M.receiptSpec(uvBin), /cannot carry/);
+});
+
+// Round 9.
+test('PC-178: any [tool.options] key but link-mode and compile-bytecode stops the upgrade, and so does an unknown [tool] key', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const uvBin = path.join(s.bin, 'uv');
+  for (const [text, name] of [
+    ['[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n\n[tool.options]\nindex = [{ url = "https://example.com/simple" }]\n', 'index'],
+    ['[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n\n[tool.options]\nfind-links = ["/wheels"]\n', 'find-links'],
+    ['[tool] # written by uv\nrequirements = [{ name = "obsidian-wiki" }]\nconstraints = [{ name = "numpy", specifier = "<2" }]\n', 'constraints'],
+    ['[tool]\nrequirements = [{ name = "obsidian-wiki" }]\nsomething-new = true\n', 'something-new'],
+    ['stray = 1\n[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n', 'before'],
+  ]) {
+    receipt(s, text);
+    assert.throws(() => M.receiptSpec(uvBin), new RegExp(name), text);
+  }
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\npython = "3.12"\nentrypoints = [{ name = "obsidian-wiki", install-path = "/x", from = "obsidian-wiki" }]\n\n[tool.options]\nlink-mode = "copy"\ncompile-bytecode = true\n');
+  assert.deepEqual(M.receiptSpec(uvBin), { requirement: `obsidian-wiki==${M.PIN}`, with: [], python: '3.12' });
+});
+
+test('PC-178: a hook script path is checked only where it can be: never a Git Bash path on Windows, never one with ~ or $', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: ['SessionStart'] });
+  for (const [command, env] of [
+    ['PATH="/c/Users/ada/.local/bin:$PATH" bash "/c/Users/ada/AppData/Roaming/uv/tools/obsidian-wiki/Lib/site-packages/obsidian_wiki/_data/hooks/wiki-session-recap.sh"', { PASSIONCODE_PLATFORM: 'win32' }],
+    ['bash "$HOME/gone/obsidian_wiki/_data/hooks/wiki-session-recap.sh"', {}],
+    ['bash "~/gone/obsidian_wiki/_data/hooks/wiki-session-recap.sh"', {}],
+  ]) {
+    Object.assign(process.env, env);
+    fs.writeFileSync(s.settings, JSON.stringify({ hooks: { SessionStart: [{ matcher: '', hooks: [{ type: 'command', command }] }] } }));
+    const h = s.rows().find((r) => r.id === 'memory.hooks');
+    assert.equal(h.state, 'ok', `${command}: ${JSON.stringify(h)}`);
+    delete process.env.PASSIONCODE_PLATFORM;
+  }
 });
