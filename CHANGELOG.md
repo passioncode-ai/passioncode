@@ -20,7 +20,10 @@
   `obsidian-wiki list` records the new version and keeps every other key of the config (`doctor --fix` too); a copy
   another tool put first on PATH is named, never replaced. Obsidian updates itself inside the app, so an older version is
   information and a working Obsidian is never replaced; an administrator's copy in `/Applications` is used as yours.
-  The run ends by naming the new vault to open in Obsidian. `--with` and `--without` take `obsidian`, `wiki` and
+  The run ends by naming the new vault to open in Obsidian (or Obsidian's download page where it is not installed).
+  A missing SessionStart hook is registered again only for the vault setup made, while the config still names it; a
+  memory part the run leaves out (`--without`, `--no-apps`) does not fail it; obsidian-wiki's own setup skill is never
+  handed out as a fix. `--with` and `--without` take `obsidian`, `wiki` and
   `memory`; `--no-apps` leaves the memory out, its upgrade included. obsidian-wiki's setup creates skills folders for
   agents that are not installed (`~/.codex/skills`, `~/.gemini/skills` and more), and the set's member skills are then
   linked into those folders as into any agent's.
