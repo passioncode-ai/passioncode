@@ -381,7 +381,7 @@
 - **Feature:** setup, doctor
 - **Entry point:** `npx @passioncode-ai/passioncode@latest setup` in a terminal or through the person's coding agent
 - **Preconditions:** uv is installed (https://docs.astral.sh/uv/getting-started/installation/); for the newcomer, no
-  obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`), no folder `~/Documents/Wiki`
+  obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`), no folder `~/.wiki`
   that holds files, no skill of their own with a name obsidian-wiki bundles in an agent's global skills folder, no
   XDG_CONFIG_HOME set to a relative path, and git
   (on a Mac, Apple's command line tools: `xcode-select -p` answers).
@@ -390,7 +390,7 @@
      memory (both default yes), then the repairs question if one is asked.
   2. Run `doctor` and read its `memory` section.
   3. Open the vault in Obsidian (Open folder as vault), as the steps say.
-- **Expected result:** obsidian-wiki 2026.11.4 is installed with uv; `~/Documents/Wiki` is a new vault and a Git
+- **Expected result:** obsidian-wiki 2026.11.4 is installed with uv; `~/.wiki` is a new vault and a Git
   repository; obsidian-wiki's setup added its skills to every agent's skills folder (making the folders of agents that
   are not installed); Claude Code starts the next session with the vault's recap (obsidian-wiki's SessionStart hook) and no
   Stop hook; on a Mac, Obsidian is in this user's `~/Applications`, its image matched GitHub's digest and the app carries
@@ -399,7 +399,7 @@
   Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
   `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
-  are (apart from the version keys obsidian-wiki's own refresh records after an upgrade, or an install over an existing config, every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
+  are (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
   `doctor --fix`), never with `obsidian-wiki setup`; a copy uv does not list (pipx, pip `--user`) is the person's to
   bring up. `--wiki-vault <dir>` puts a new vault elsewhere; `--without obsidian` leaves out the app, `--without wiki`
   obsidian-wiki, its vault, its upgrade and the hook repair, `--without memory` both, and `--no-apps` both too. A
@@ -436,7 +436,11 @@
   `memory.vault.config-form` names the key and its form, and the config is left byte for byte. An older
   `~/.obsidian-wiki` beside the XDG folder obsidian-wiki's commands read: the vault is made, but no SessionStart recap is
   registered (its script would read the older folder and recap another vault), and `memory.hooks` warns until the person
-  removes or merges it. An upgrade whose refresh refuses after the reinstall puts the previous version back. A memory check that fails in a way nobody foresaw is one
+  removes or merges it. An upgrade whose refresh refuses after the reinstall puts the previous version back. A config
+  with Windows line endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same
+  way. A config whose `OBSIDIAN_WIKI_REPO` names an existing obsidian-wiki package outside uv's folder is the person's own
+  copy off this PATH: setup installs nothing over it, and `memory.wiki` names that package with the step to put its
+  command folder on PATH. A memory check that fails in a way nobody foresaw is one
   `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
@@ -444,7 +448,7 @@
   vault; any other vault's missing hook is the person's choice. The restart step follows a memory action that ran, a
   hook repair and a tool upgrade. A folder a failed vault step cannot remove is named with
   what to do. Memory rows of a part the run left out (`--without`, `--no-apps`) do not fail the run (a failing Obsidian
-  signature always fails it; the JSON names the parts in `leftOut`). A `~/Documents/Wiki` that holds files is never written: the steps name
+  signature always fails it; the JSON names the parts in `leftOut`). A `~/.wiki` that holds files is never written: the steps name
   `--wiki-vault`. An Obsidian image that differs from GitHub's digest, carries another team (PassionCode.ai's own
   included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
   failure with its check names, and the session-start line then names `doctor`, not `setup`, which cannot repair it; a
@@ -452,9 +456,9 @@
   (a hand edit; obsidian-wiki never writes Claude Code's settings file, which keeps its permission bits). A skill of the
   person's that shares a name with one of obsidian-wiki's (in any agent's global skills folder, `skill-creator` for
   one) stops the install of obsidian-wiki, the vault step and the upgrade: obsidian-wiki's setup and its version refresh would delete or replace it,
-  so the step is named unavailable with each entry, `doctor` shows `memory.wiki.clash`, and the person moves or renames
+  so the step is named unavailable with the first five entries and how many more (`doctor --json` lists every one), `doctor` shows `memory.wiki.clash`, and the person moves or renames
   them, then runs setup again. No fix ever names `obsidian-wiki setup` over a config: after an upgrade,
   or an install over an existing config, the version setup recorded is refreshed by `obsidian-wiki list`, keeping every other key.
 - **Status:** implemented
-- **Coverage:** `test/setup.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`, `test/catalog.test.js` test beginning `PC-178: an administrator`, `test/self-update.test.js` test beginning `session start names the failures`.
+- **Coverage:** `test/setup.test.js` and `test/memory.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`, `test/catalog.test.js` test beginning `PC-178: an administrator`, `test/self-update.test.js` test beginning `session start names the failures`.
 - **Product:** unobserved

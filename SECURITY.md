@@ -51,8 +51,9 @@ its notice marker, the shared `PassionCode/installation.json` created once if ab
 `https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
 it reads Obsidian's `Info.plist` and signature like an app's and the names of the `obsidian-<version>.asar` files in
 `~/Library/Application Support/obsidian` (the version Obsidian updated itself to) and obsidian-wiki's config file (only
-its managed keys, `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` and `OBSIDIAN_WIKI_VERSION`, and how each is written; a finding names only the key), runs `uv --version`, `uv tool list` (a copy counts as uv's only when uv lists it), and, when uv holds an obsidian-wiki
-that does not run, `uv tool dir` and reads its `uv-receipt.toml` and `pyvenv.cfg` (to name the person's reinstall),
+its managed keys, `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` and `OBSIDIAN_WIKI_VERSION`, and how each is written; a finding names only the key), runs `uv --version`, `uv tool list` (a copy counts as uv's only when uv lists it), and `uv tool dir` with its
+`uv-receipt.toml` (the command it installed) whenever a copy sits in uv's tool folder and uv lists it, so on every healthy
+run; when uv holds an obsidian-wiki that does not run, the same receipt and `pyvenv.cfg` (to name the person's reinstall);
 and `brew --prefix`
 (Homebrew counts only where this user can write its `bin`), and runs `obsidian-wiki --version`, `obsidian-wiki doctor
 --json` and `obsidian-wiki hooks status --json`, which read the
@@ -87,14 +88,14 @@ descriptor names launchd and that does not answer, and opens the apps it install
 (PC-178) it installs Obsidian like an app, verified by its own chain (the image against GitHub's digest, then Developer
 ID team `6JSW4SJWN9`, the stapled ticket and Gatekeeper: Obsidian publishes no signed checksums); runs
 `uv tool install obsidian-wiki==<pin>` (or `--force` to bring an older copy uv lists up to the pin), which takes the
-package from PyPI; asks `xcode-select -p` (on macOS, first, so no install dialog opens) and `git --version` before a vault
-step; and, for a user with no obsidian-wiki config, makes the vault folder (`~/Documents/Wiki` or
+package from PyPI (an upgrade whose refresh refuses may reinstall the previous version from PyPI with what uv recorded); asks `xcode-select -p` (on macOS, first, so no install dialog opens) and `git --version` before a vault
+step; and, for a user with no obsidian-wiki config, makes the vault folder (`~/.wiki` or
 `--wiki-vault`, never one that holds files), runs `git init -b main` in it, `obsidian-wiki setup --no-hooks --vault <dir>`
 with no terminal (which writes `~/.config/obsidian-wiki/config` and its writing profile `WRITING.md` beside it, and links obsidian-wiki's own skills into each agent's
 skills folder, creating that folder for agents that are not installed too, where the set's own skills are then linked
 like any agent's skills folder; that setup, and obsidian-wiki's version refresh after an upgrade or an install over an existing config, delete or replace a
 skill of the same name as one of its 40 bundled ones in every agent's global skills folder, so neither runs, and obsidian-wiki is not installed, while such a
-skill of the person's is there: the step is named unavailable with each clashing entry, and the launcher never moves or
+skill of the person's is there: the step is named unavailable with the first five clashing entries and how many more (`doctor --json` lists every one), and the launcher never moves or
 deletes them) and, where Claude Code is installed, its SessionStart recap: one entry in the literal
 `~/.claude/settings.json`, whatever `CLAUDE_CONFIG_DIR` names (where Claude Code reads another folder the hook is not
 registered and `doctor` says so). obsidian-wiki never writes that file: `obsidian-wiki hooks install --only SessionStart`

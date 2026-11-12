@@ -139,15 +139,16 @@ is, else uv's installer, which you run), and, on a Mac, Obsidian, where you read
 checksums, so its image must match GitHub's digest and the app must carry Obsidian's own Developer ID team `6JSW4SJWN9`,
 its notarization ticket and Gatekeeper's yes. Obsidian updates itself inside the app, so setup never replaces a working
 copy for its version, only a damaged one of yours; a copy in `/Applications` that root owns (a package or MDM install) counts as yours, while one another user dragged in stays theirs and you get your own. When you have no
-obsidian-wiki config yet, setup makes a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names; never one
+obsidian-wiki config yet, setup makes a new vault in the hidden folder `~/.wiki`, whose full path setup names since
+Obsidian's folder picker does not show it (or the folder `--wiki-vault` names; never one
 that already holds files, never while XDG_CONFIG_HOME is a relative path, which obsidian-wiki reads from the folder it
 runs in (setup then installs no obsidian-wiki either, and `doctor` shows `memory.config`), and never while a skill of
-yours shares a name with one of obsidian-wiki's, since its setup would replace it: setup names each one for you to move
+yours shares a name with one of obsidian-wiki's, since its setup would replace it: setup names the first five and how many more for you to move
 or rename, and installs no obsidian-wiki while one is there; and only where git is, on a Mac Apple's command line
 tools, which setup names as a step), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` (which adds obsidian-wiki's
 skills to every agent's skills folder, making the folders of agents that are not installed) and registers only the
 SessionStart recap for Claude Code (only where Claude Code reads `~/.claude`; obsidian-wiki writes nowhere else). The run
-ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records after an upgrade, or an install over an existing config, every other key kept), and the Stop hook (which asks
+ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, every other key kept), and the Stop hook (which asks
 every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
 someone did. `--without` leaves a part out: `obsidian` the app; `wiki` obsidian-wiki, its vault, its upgrade and the
 hook repair; `memory` both.
