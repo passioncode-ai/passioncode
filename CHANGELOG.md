@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Added
+
+- **`setup` installs the agents' wiki memory** (PC-178, the operator's request of 2026-11-12, ADR-0006): the
+  open-source obsidian-wiki (github.com/Ar9av/obsidian-wiki, MIT) at the version this launcher pins, 2026.11.4, with
+  `uv tool install`, and, on a Mac, Obsidian, where a person reads the memory. Obsidian publishes no signed checksums, so
+  its image must match GitHub's digest and the app must carry Obsidian's own Developer ID team `6JSW4SJWN9`, a stapled
+  ticket and Gatekeeper's yes; it goes into `~/Applications` like the other apps. A user with no obsidian-wiki config
+  gets a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
+  repository, set up with `obsidian-wiki setup --no-hooks` and given only the SessionStart recap for Claude Code. An
+  existing config, vault or hook is left exactly as it is, and obsidian-wiki's Stop hook (it asks every session in every
+  project to write into the vault after every turn) is never registered. Without uv the steps name its page; an older
+  obsidian-wiki uv installed is brought up to the pin with `uv tool install --force` (`doctor --fix` too). `--with` and
+  `--without` take `obsidian`, `wiki` and `memory`; `--no-apps` leaves the memory out.
+- **`doctor` has a `memory` section** (PC-178): Obsidian's version, signature and team; obsidian-wiki against the pin
+  and whether it is on PATH; the vault, read with `obsidian-wiki doctor --json`; the SessionStart hook; and, as
+  information, a Stop hook someone registered, with its effect and how to remove it.
+- An agent folder that holds only skill folders (obsidian-wiki's setup makes `~/.codex/skills`, `~/.gemini/skills` and
+  more) no longer counts as that agent, so no MCP server is registered for an agent that is not installed (PC-178).
+
+This ships in the release after 0.2.76, whose publication is held (PC-123).
+
 ### Changed
 
 - **Observatory Log 0.35.12** (PC-176, project-observatory's board request `7809e7a1`, 2026-11-11): the set pins
