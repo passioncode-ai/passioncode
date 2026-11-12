@@ -442,7 +442,9 @@
   with Windows line endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same
   way. A config whose `OBSIDIAN_WIKI_REPO` names an existing obsidian-wiki package outside uv's folder is the person's own
   copy off this PATH: setup installs nothing over it, and `memory.wiki` names that package with the step to put its
-  command folder on PATH. A memory check that fails in a way nobody foresaw is one
+  command folder on PATH. A config that is not saved as UTF-8 is refused the same way, a relative `OBSIDIAN_WIKI_REPO`
+  asks to remove that line or write it as an absolute path, and a vault path with a double quote or a line break is
+  refused. A memory check that fails in a way nobody foresaw is one
   `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
