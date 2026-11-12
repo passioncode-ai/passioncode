@@ -149,12 +149,18 @@ project, after every turn, to write into the vault. On the operator's machine th
     out: it is not installed or upgraded, no vault is made and no SessionStart hook is registered (the `tool` and `hook`
     repairs included); Obsidian and the apps are set up as usual, and `doctor` shows it as `memory.config`.
 13. **What cannot be read is refused, never a crash (round 11).** A skills folder or entry `lstat` cannot read (a looped
-    link, ELOOP; a folder this user may not read, EACCES) counts as a clash, named "could not be read: <code>": the
+    link, ELOOP; a folder this user may not read, EACCES) counts as a clash, named on its own (round 12: "<folder> could not be read (<code>)", with the fix to repair the
+    link or the permissions, never as a skill of the person's to move): the
     install, the vault step and the upgrade do not run over it, since obsidian-wiki's setup would meet it too. An
     obsidian-wiki uv holds that does not run is the person's to reinstall with what uv recorded: setup never runs a plain
     `uv tool install` over it (it would drop the extras or take back a newer version) and never uninstalls it. A memory
     check that throws anyway is one `memory.error` warning in `doctor` and a memory item left out of `setup` with that
-    note.
+    note. Round 12: that reinstall keeps the person's own version specifier (never the pin) and single-quotes each value;
+    a config that writes `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` or `OBSIDIAN_WIKI_VERSION` with spaces around `=`
+    stops every `obsidian-wiki list` (seen with the real 2026.11.4: its refresh empties such a key), named in
+    `memory.vault.spaced`; the upgrade passes the venv's own Python (`pyvenv.cfg`) when uv's record names none; a quoted
+    key in uv's record is refused; a hook entry counts only with `type: "command"`, as obsidian-wiki's `is_registered`
+    reads it.
 
 ## Consequences
 
