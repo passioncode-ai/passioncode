@@ -56,7 +56,9 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   running, a stopped service its supervisor owns), checks again and returns JSON.
 - A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe. A
   machine without uv reports `skipped: ["the wiki memory"]` until the person installs uv: healthy otherwise, and say so.
-- Exit 0: no step and no check failed; 1: a step or a check failed; 2: bad arguments. A plan
+- Exit 0: nothing failed in what the run covered; 1: a step or a check failed; 2: bad arguments. The `memory.*`
+  rows of a part named in `leftOut` (the wiki memory left out with `--without`, or by `--no-apps`) do not count,
+  except a failing Obsidian signature, which always does: report those rows from `after.checks` all the same. A plan
   (`planOnly: true`: `--dry-run`, or a run without `--yes` that would change something, since a
   `--json` run never asks; a declined terminal run is not a plan and exits by its checks, and when it
   declined a named train it carries `planOnly` together with `declined: true`) changes nothing and exits 0 even
@@ -70,7 +72,10 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   without them it is offered, not installed; say so.
 - The agents' wiki memory (PC-178) comes with the apps: obsidian-wiki at the launcher's pin, installed with uv, a
   new vault in `~/Documents/Wiki` (or `--wiki-vault <dir>`) when the person has no obsidian-wiki config, and Obsidian on
-  a Mac. Never run `obsidian-wiki setup` or `obsidian-wiki hooks install` yourself: setup registers only the
+  a Mac. Never run `obsidian-wiki setup` or a bare `obsidian-wiki hooks install` yourself; the hooks commands a doctor row
+  may name are `obsidian-wiki hooks install --only SessionStart` and, as the person's choice on a Stop hook,
+  `obsidian-wiki hooks uninstall --only Stop`, and only where `~/.claude/settings.json` is not a link (a link: setup adds
+  the entry where it points, since obsidian-wiki's writer would replace the link with a plain file). Setup registers only the
   SessionStart recap and leaves an existing config or vault as it is. A `memory` plan item that is `unavailable` names
   why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
   person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
