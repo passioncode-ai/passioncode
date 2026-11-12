@@ -48,6 +48,8 @@ function setup() {
   fs.symlinkSync(path.join(home, '.agents/skills/example-agent'), path.join(home, '.claude/skills/example-agent'));
   fs.mkdirSync(path.join(home, '.cursor/skills'), { recursive: true });
   fs.mkdirSync(path.join(home, '.codex/skills/creating-fabric-agents'), { recursive: true }); // a plain copy
+  // Codex has run here (its sessions folder): a folder that holds only skills is another tool's, not Codex (PC-178).
+  fs.mkdirSync(path.join(home, '.codex/sessions'), { recursive: true });
   return { home, payload, members };
 }
 
@@ -1088,6 +1090,25 @@ test('an agent that is not on the machine gets no registration and no invented c
   assert.equal(fs.existsSync(path.join(env.home, '.gemini', 'settings.json')), false);
   assert.equal(fs.existsSync(path.join(env.home, '.kimi-code')), false);
   assert.ok(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8').includes('["mcp_servers"."fabric-dashboards"]'));
+});
+
+test('PC-178: an agent folder that holds only skill folders is not that agent, so nothing is registered for it', () => {
+  const env = setup();
+  withFakeMcp(env);
+  env.extra.PASSIONCODE_CLAUDE = path.join(env.home, 'no-claude');
+  // What obsidian-wiki's setup leaves for agents it knows and that are not here.
+  fs.mkdirSync(path.join(env.home, '.gemini/skills'), { recursive: true });
+  fs.mkdirSync(path.join(env.home, '.gemini/antigravity/skills'), { recursive: true });
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const gemini = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.startsWith('Gemini CLI not found'));
+  assert.ok(gemini.length >= 1, r.stdout);
+  assert.equal(fs.existsSync(path.join(env.home, '.gemini', 'settings.json')), false);
+  const L = require('../lib/launcher');
+  assert.equal(L.agentFolder(path.join(env.home, '.gemini')), false);
+  assert.equal(L.agentFolder(path.join(env.home, '.codex')), true, 'a folder with more than skills is the agent');
+  fs.mkdirSync(path.join(env.home, '.empty-agent'));
+  assert.equal(L.agentFolder(path.join(env.home, '.empty-agent')), true, 'an empty folder still counts');
 });
 
 test('restore removes the MCP registrations the last update added', () => {
