@@ -48,7 +48,11 @@ printed or sent), and the GitHub releases API. It starts each registered stdio M
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
 release cache, apart from the anonymous counts below that every command sends while they are on (`~/.passioncode/analytics.json`,
 its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to
-`https://analytics.passioncode.ai`).
+`https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
+it reads Obsidian's `Info.plist` and signature like an app's, runs `uv --version` and `uv tool list`, and runs
+`obsidian-wiki --version`, `obsidian-wiki doctor --json` and `obsidian-wiki hooks status --json`, which read the
+person's obsidian-wiki config, vault and Claude Code hooks and change nothing; doctor prints only check names, states,
+details and hints, never a page of the vault.
 
 `setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`; a train
 changes which release is downloaded (the pinned tag instead of the latest), never how it is verified.
@@ -69,7 +73,17 @@ program, a quote, substitution, separator or redirection, a wildcard too early, 
 interpreter or a program whose options run other code, and any wildcard over a program not installed in the person's
 home folder; `docs/reference/cli.md` lists them, PC-119), records every rule it added in a private ledger when it can write it (the rules stand without it)
 (`~/.passioncode/permissions.json`: the rule, who declared it, from where and when, PC-125), runs `launchctl kickstart gui/<uid>/<label>` for a family service whose
-descriptor names launchd and that does not answer, and opens the apps it installed. It never
+descriptor names launchd and that does not answer, and opens the apps it installed. For the agents' wiki memory
+(PC-178) it installs Obsidian like an app, verified by its own chain (the image against GitHub's digest, then Developer
+ID team `6JSW4SJWN9`, the stapled ticket and Gatekeeper: Obsidian publishes no signed checksums); runs
+`uv tool install obsidian-wiki==<pin>` (or `--force` to bring an older copy uv installed up to the pin), which takes the
+package from PyPI; and, for a user with no obsidian-wiki config, makes the vault folder (`~/Documents/Wiki` or
+`--wiki-vault`, never one that holds files), runs `git init -b main` in it, `obsidian-wiki setup --no-hooks --vault <dir>`
+with no terminal (which writes `~/.config/obsidian-wiki/config` and links obsidian-wiki's own skills into each agent's
+skills folder) and, where `~/.claude` exists, `obsidian-wiki hooks install --only SessionStart` (one entry in
+`~/.claude/settings.json`). It never registers or removes obsidian-wiki's Stop hook, never runs `obsidian-wiki setup` over
+an existing config, and never runs an installer script from the network (no uv on the machine is a step for the person
+or their agent). `uninstall` and `restore` leave the memory as it is. It never
 stops or kills a process, never replaces an app that is running for this user (another user's process running from
 this user's copy does not count, PC-151; that user restarts it, PC-149), never asks for or stores a secret, and
 never installs a byte whose signature, checksum, team or notarization does not verify. The trust

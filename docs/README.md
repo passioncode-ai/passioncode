@@ -12,7 +12,7 @@
 | User paths and wording | [Scenarios](ux/scenarios.md), [copy pack](brand/README.md) | Named regression coverage and CLI source |
 | Coordinate work | [Generated coordination snapshot](AGENT_SYNC.md) | `.claude/agent-sync.json` and the live tool |
 | Resume the latest audit | [Audit handoff](handoffs/2026-10-01-launcher-audit.md) | Exact source commits and command receipts |
-| Understand architecture decisions | [Launcher shape](adr/0001-launcher-shape.md), [publisher trust](adr/0002-self-update-trusts-named-publishers.md), [MCP registration](adr/0003-fabric-dashboards-mcp-registration.md), [setup and doctor](adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md) | Append-only historical decisions |
+| Understand architecture decisions | [Launcher shape](adr/0001-launcher-shape.md), [publisher trust](adr/0002-self-update-trusts-named-publishers.md), [MCP registration](adr/0003-fabric-dashboards-mcp-registration.md), [setup and doctor](adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md), [self-update signature and provenance](adr/0005-self-update-verifies-registry-signature-and-provenance.md), [the agents' wiki memory](adr/0006-setup-installs-the-agents-wiki-memory.md) | Append-only historical decisions |
 
 Current operational docs are README, SECURITY, CONTRIBUTING, this index and the
 CLI contract. Historical ADRs and dated handoffs describe the state at their

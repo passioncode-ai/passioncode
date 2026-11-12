@@ -3,7 +3,9 @@
 The **PassionCode.ai launcher** (`@passioncode-ai/passioncode` on npm) sets up PassionCode.ai on a
 computer with one command: the apps (Fabric, Fabric Switchboard, Fabric Dashboards, Fabric Inbox,
 Project Observatory) from their signed releases, their MCP servers for every coding agent on it,
-and the PassionCode.ai skills listed in [`family.json`](family.json). Run the same command on a
+the PassionCode.ai skills listed in [`family.json`](family.json), and the agents' wiki memory
+(the open-source [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) with a vault of its own, and
+Obsidian to read it in). Run the same command on a
 computer that is already set up, and it checks everything, repairs what is wrong and tells you
 what changed.
 
@@ -119,6 +121,18 @@ reinstalled only when it is not running and you may replace it; the old one goes
 for you: on a Mac with several users only your own processes count, so a copy of yours that another user has open, or runs an MCP server from (an entry they set by hand: the launcher's own follow each user's copy, PC-149), is still replaced and goes to your Trash; that user restarts it, PC-151). One you cannot replace
 (another user's, or in a folder you cannot write) is named, never reinstalled. A family service that
 does not answer is started through launchd (`launchctl kickstart`, never a kill).
+
+**The agents' wiki memory** (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md)). `setup` also
+installs [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) (MIT), the tool your agents read and write their
+memory with, at the version this launcher pins (`uv tool install obsidian-wiki==2026.11.4`; with no
+[uv](https://docs.astral.sh/uv/getting-started/installation/) it names that step instead), and, on a Mac, Obsidian, where
+you read that memory. Obsidian publishes no signed checksums, so its image must match GitHub's digest and the app must
+carry Obsidian's own Developer ID team `6JSW4SJWN9`, its notarization ticket and Gatekeeper's yes. When you have no
+obsidian-wiki config yet, setup makes a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names; never one
+that already holds files), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` and registers only the
+SessionStart recap for Claude Code. An existing config or vault is left exactly as it is, and the Stop hook (which asks
+every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
+someone did. `--without memory` (or `obsidian`, `wiki`) leaves it out.
 
 `doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of

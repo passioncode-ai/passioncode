@@ -74,7 +74,9 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
 
 ## Local rules
 
-- One channel per agent: nothing is ever written to `~/.claude/skills`.
+- One channel per agent: nothing is ever written to `~/.claude/skills`. (The agents' wiki memory, PC-178: setup runs
+  `obsidian-wiki setup`, which links obsidian-wiki's own skills into each agent's skills folder; that is obsidian-wiki's
+  channel for its own skills, never a copy of the set's.)
 - Nothing of the person's is deleted: every move goes to `~/.passioncode/quarantine/` and is undone by
   `passioncode restore`.
   The one exception is the launcher's own output: an update keeps the release it installed and
@@ -133,7 +135,7 @@ or resident process. Everything it runs is started by a person or by Claude Code
 
 | What | Started by | Cadence | Cost | With no window | Stopped by |
 |---|---|---|---|---|---|
-| `passioncode setup / doctor` | a person or their coding agent | on demand | doctor: one short-lived process per registered MCP server (20 s cap), one GitHub API call per app (cached 30 min); setup: downloads, `codesign`/`spctl`, `ditto`, `launchctl kickstart`, `open` only for apps it installed; and, while the anonymous counts are on, one request to analytics.passioncode.ai at the end (2 s cap), `~/.passioncode/analytics.json`, its notice marker and, once, the shared `PassionCode/installation.json` | nothing | exits; the MCP servers it started are stopped when their proving call returns |
+| `passioncode setup / doctor` | a person or their coding agent | on demand | doctor: one short-lived process per registered MCP server (20 s cap), one GitHub API call per app (cached 30 min); setup: downloads, `codesign`/`spctl`, `ditto`, `launchctl kickstart`, `open` only for apps it installed, and for the wiki memory `uv tool install`, `git init` and `obsidian-wiki setup`/`hooks install` (no terminal, each with a time cap; doctor runs `obsidian-wiki doctor --json` and `hooks status --json`, PC-178); and, while the anonymous counts are on, one request to analytics.passioncode.ai at the end (2 s cap), `~/.passioncode/analytics.json`, its notice marker and, once, the shared `PassionCode/installation.json` | nothing | exits; the MCP servers it started are stopped when their proving call returns |
 | `passioncode update / restore / uninstall` | a person, or the background update below | on demand | one `claude plugin` call per member (180 s cap each); and, while the anonymous counts are on, one request to analytics.passioncode.ai at the end (2 s cap), `~/.passioncode/analytics.json`, its notice marker and, once, the shared `PassionCode/installation.json` | nothing | exits; `~/.passioncode/update.lock` keeps one at a time (`test/lifecycle.test.js`) |
 | `passioncode status / config / permissions / analytics / help` | a person or their coding agent | on demand | the command's own reads; and, while the anonymous counts are on, one request to analytics.passioncode.ai at the end (2 s cap), `~/.passioncode/analytics.json`, its notice marker and, once, the shared `PassionCode/installation.json` | nothing | exits |
 | SessionStart hook `plugin/passioncode/hooks/session-start.js` | Claude Code, matcher `startup` only (not resume, clear or compact) | once per new session | 0.11–0.19 s, 2 processes (node + `git remote get-url`, 2 s cap), 5 s hook timeout; measured 2026-10-03 (lifecycle audit, passioncode-adapter §4) | nothing | exits |

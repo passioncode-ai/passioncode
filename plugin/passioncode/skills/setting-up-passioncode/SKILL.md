@@ -61,9 +61,17 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   `after.summary` and `plan`, not the exit code alone. Exit 1 with no JSON on stdout is a runtime
   error: report its stderr line and the exit code.
 - Use `--with <ids>` / `--without <ids>` for a subset (`switchboard`, `dashboards`,
-  `observatory`, `inbox`, `fabric`), `--no-apps` for skills and MCP only, `--dry-run` to show
+  `observatory`, `inbox`, `fabric`; the agents' wiki memory: `obsidian`, `wiki`, or `memory` for
+  both), `--no-apps` for skills and MCP only, `--dry-run` to show
   the plan first. Fabric is an early preview and needs Docker (or OrbStack) and the Supabase CLI;
   without them it is offered, not installed; say so.
+- The agents' wiki memory (PC-178) comes with the apps: obsidian-wiki at the launcher's pin, installed with uv, a
+  new vault in `~/Documents/Wiki` (or `--wiki-vault <dir>`) when the person has no obsidian-wiki config, and Obsidian on
+  a Mac. Never run `obsidian-wiki setup` or `obsidian-wiki hooks install` yourself: setup registers only the
+  SessionStart recap and leaves an existing config or vault as it is. A `memory` plan item that is `unavailable` names
+  why in `note` (no uv: install it from the page the note names, then run setup again; a folder that holds files: ask
+  the person for another and pass `--wiki-vault`). A `memory.hooks.stop` row is the person's choice: report it, never
+  remove it without their word.
 - Only checking? `npx --yes @passioncode-ai/passioncode@latest doctor --json` changes nothing (apart from the launcher's
   anonymous counts).
   Exit 0: no check failed; 1: at least one did; 2: bad arguments.

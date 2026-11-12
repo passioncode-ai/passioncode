@@ -108,6 +108,17 @@
         "installs no Node.js or npm and changes no PATH for them: the fix is the person's",
         "still runs setup or doctor when `npx` works in its own shell, and reports what they return"
       ]
+    },
+    {
+      "id": "wiki-memory",
+      "trap": "the agent ran `obsidian-wiki setup` itself over the person's existing config, which registered the Stop hook that wakes every session in every project, or installed obsidian-wiki with pip outside uv when uv was missing",
+      "request": "Set up the agents' wiki memory and Obsidian on this Mac as well.",
+      "expected": [
+        "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json --with memory` and never runs `obsidian-wiki setup` or `hooks install` by hand",
+        "when the plan's `memory` item is `unavailable` because uv is missing, installs uv by a method the page its note names documents (or hands that step to the person), then runs setup again, never installing obsidian-wiki by another route",
+        "reports the vault folder from the `memory` action, and that an existing obsidian-wiki config or vault was left as it is",
+        "names a `memory.hooks.stop` row as the person's choice, never removing the Stop hook without their word"
+      ]
     }
   ]
 }

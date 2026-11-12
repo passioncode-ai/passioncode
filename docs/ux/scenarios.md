@@ -23,6 +23,7 @@
 | SCN-015 | See and change what Claude Code may do without asking | permissions | Operator | PC-125 | implemented | 2026-11-04 |
 | SCN-016 | Know about and turn off the anonymous usage counts | analytics | Operator | PC-123 | implemented | 2026-11-04 |
 | SCN-017 | Set up a second macOS user on a Mac where another user installed the apps | setup, doctor | Newcomer | PC-145, PC-146, PC-147 | implemented | 2026-11-06 |
+| SCN-018 | Get the agents' wiki memory and Obsidian with the same setup | setup, doctor | Newcomer, Operator | PC-178 | implemented | 2026-11-12 |
 
 ## Personas
 
@@ -373,3 +374,37 @@
 - **Coverage:** `test/catalog.test.js` (where an app goes, the note for another user's or an administrator's copy), `test/setup.test.js` tests beginning `PC-145, PC-146` and `PC-147`, `test/self-update.test.js` test beginning `session start names the failures`.
 - **Product:** unobserved
 
+### SCN-018: Get the agents' wiki memory and Obsidian with the same setup
+
+- **Persona:** Newcomer (a new Mac or a new macOS user in a Studio space); Operator (a machine that already has a wiki)
+- **Feature:** setup, doctor
+- **Entry point:** `npx @passioncode-ai/passioncode@latest setup` in a terminal or through the person's coding agent
+- **Preconditions:** uv is installed (https://docs.astral.sh/uv/getting-started/installation/); for the newcomer, no
+  obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`) and no folder `~/Documents/Wiki`
+  that holds files.
+- **Steps:**
+  1. Run `setup` (or `setup --yes`). In a terminal, answer the question about the agents' wiki memory and the one about
+     Obsidian (both default yes).
+  2. Run `doctor` and read its `memory` section.
+  3. Open the vault in Obsidian (Open folder as vault), as the steps say.
+- **Expected result:** obsidian-wiki 2026.11.4 is installed with uv; `~/Documents/Wiki` is a new vault and a Git
+  repository; Claude Code starts the next session with the vault's recap (obsidian-wiki's SessionStart hook) and no
+  Stop hook; on a Mac, Obsidian is in this user's `~/Applications`, its image matched GitHub's digest and the app carries
+  team `6JSW4SJWN9`, its ticket and Gatekeeper's yes; the steps name the restart and the vault to open. `doctor`'s
+  `memory` rows read ok.
+- **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
+  are; an older obsidian-wiki that uv installed is brought up to the pin with `uv tool install --force` (also by
+  `doctor --fix`), never with `obsidian-wiki setup`. `--wiki-vault <dir>` puts a new vault elsewhere; `--without memory`
+  (or `obsidian`, `wiki`) and `--no-apps` leave it out. On Linux and Windows setup installs no Obsidian and `doctor`
+  names its download page; obsidian-wiki is still installed where uv is.
+- **UI elements:** the plan's `memory` and Obsidian `install` lines, the memory question, `doctor`'s `memory` section
+- **States covered:** empty, success, partial, error
+- **Errors & recovery:** No uv: the memory is not offered and the steps name uv's page ("The wiki memory: needs uv:
+  ..."); everything else is set up. A `~/Documents/Wiki` that holds files is never written: the steps name
+  `--wiki-vault`. An Obsidian image that differs from GitHub's digest, carries another team (PassionCode.ai's own
+  included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
+  failure with its check names; a Stop hook someone registered is an information row naming its effect on every session,
+  removed only by the person (`obsidian-wiki hooks uninstall --only Stop`).
+- **Status:** implemented
+- **Coverage:** `test/setup.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`.
+- **Product:** unobserved

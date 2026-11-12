@@ -18,7 +18,7 @@ The launcher needs Node 18 or newer; it has no runtime dependencies.
 
 | Command | Accepted options | Successful JSON result | Effect |
 |---|---|---|---|
-| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
+| `setup` (alias `onboard`) | `--yes`/`-y`, `--with <ids>`, `--without <ids>`, `--train <name>`/`none`, `--wiki-vault <dir>`, `--no-apps`, `--no-open`, `--dry-run`, `--allow-tools`, `--allow-commands`, `--offline`, `--json` | Setup result described below | Check, install absent apps, repair, check again ([ADR-0004](../adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)) |
 | `doctor` | `--fix`, `--offline`, `--json` | Doctor result described below; with `--fix`, a setup result | Check of everything that changes nothing but the [anonymous counts](#anonymous-usage-counts); `--fix` runs setup's repairs without new apps |
 | `update` (alias `install`) | `--dry-run`, `--quiet`, `--json` | `{ version, steps, moved }` (a `moved` entry with `failedAt` is a registration that was never written, not a recovery entry) | Install the bundled payload and the apps' MCP registrations; preserve displaced files in quarantine |
 | `status` | `--json` | Status object described below | Read local installation and cached npm observation |
@@ -76,13 +76,13 @@ values still do not prove registry freshness. Sources: `status()` in
 
 `doctor` returns `{ version, platform, at, checks, summary, ok }`. Each check is
 `{ id, area, product, state, detail, fix, repair, gate }`: `area` is `prerequisites`,
-`skills`, `apps`, `mcp` or `services`; `state` is `ok`, `warn`, `fail` or `info`;
+`skills`, `apps`, `memory` (PC-178), `mcp` or `services`; `state` is `ok`, `warn`, `fail` or `info`;
 `fix` is the command or step that resolves it; `repair` names what `setup` may do
-about it (`update`, `replace`, `kickstart`) or is null. `gate` (PC-171) says which of a person's own acts
+about it (`update`, `replace`, `kickstart`, `tool`) or is null. `gate` (PC-171) says which of a person's own acts
 the `fix` needs, the first one they meet: `sign-in`, `code` (a one-time code), `consent`, `payment` or `secret` (a
 value only a person types, an administrator's password included); null when an agent can carry the fix out, and always
 null on a check without a fix. Today: `consent` for `skills.auto-update`, for a `sessions.on-demand` row that lacks
-Claude Code's tool rules and for a service port another OS account holds; `secret` for a service that waits for setup
+Claude Code's tool rules, for a service port another OS account holds and for obsidian-wiki's Stop hook (`memory.hooks.stop`, PC-178); `secret` for a service that waits for setup
 (DEC-0044 says only that a key is not entered or a model not chosen, so the key names it), for a missing
 `observatory` or `fabric-inbox` MCP server or service descriptor (their onboarding asks for a key first) and for a
 `blocked` row whose folder an administrator must open; `sign-in` for Fabric Switchboard's onboarding. Readers that do
@@ -101,6 +101,7 @@ marker, the shared `installation.json` created once, and one request to `https:/
 | apps (macOS) | this user's copy of each app (the per-user rule of `PASSIONCODE_APPLICATIONS` below), with an information row `app.<id>.shared` for a copy in `/Applications` left as it is; each installed app's version against its latest release; `codesign --verify --strict`, team `KJ35UYYL22`, `xcrun stapler validate`; running or not | the signature, team or ticket does not hold (an outdated app is a warning) |
 | mcp | each present agent's entry for each installed app's server; one proving call per distinct registered command (never Fabric's: it enrols a session as it starts, so its entry and binary are checked) | a bundled server is not registered, points at a missing file, or its proving call fails (an Observatory or Inbox server not yet added by its own onboarding is a warning; an entry that runs from a copy in `/Applications` this user does not use, while their own copy is installed, is a warning: one the launcher set and nobody changed since gets the fix `setup`, which points it at this user's copy (PC-149); one the person set says the launcher did not set it, and its fix removes it (for Claude Code `claude mcp remove --scope user <name>`) and runs `doctor --fix`, PC-146) |
 | services | each family Fabric service descriptor's `/.well-known/fabric-service` on loopback, read only after the server end of doctor's own open connection to it is this OS account's (PC-152, PC-163, the contract's HA-2 and CT-254: macOS `netstat -anv -p tcp` and `ps`, Linux `/proc/net/tcp` and `tcp6` with the listener on `127.0.0.1` before a wildcard while the connection is not yet accepted, Windows `Get-NetTCPConnection` and the process's owner SID) | the service does not answer (degraded is a warning; one degraded only by slots waiting for a person, the contract's DEC-0149 `setup: true` entries, reads «waits for setup» with the slots and the setup to finish, PC-164); the port belongs to another OS account, or its owner cannot be told: doctor sends that listener nothing, reads nothing from it and offers no `kickstart`; a socket table this system cuts short (some macOS releases show a reader only its own sockets) is a warning that names the port and the service's own doctor, never another account |
+| memory (PC-178, [ADR-0006](../adr/0006-setup-installs-the-agents-wiki-memory.md)) | `memory.obsidian`: Obsidian on macOS (this user's copy by the same per-user rule as the apps, `memory.obsidian.shared` for a copy in `/Applications` left as it is), its version against its latest release (a warning when one is out; the repair `replace` when nothing runs from it), `memory.obsidian.signature`: `codesign --verify --strict`, team `6JSW4SJWN9`, `xcrun stapler validate`; on other systems an information row naming https://obsidian.md/download. `memory.wiki`: obsidian-wiki found by name on PATH, else where uv puts it (`UV_TOOL_BIN_DIR`, `XDG_BIN_HOME`, `~/.local/bin`), its version against the launcher's pin (2026.11.4): absent is information (its fix names `setup --with wiki`, or installing uv first), older a warning whose repair is `tool` when `uv tool list` shows uv installed it, newer left alone; `memory.wiki.path`, a warning when it is not on PATH (fix `uv tool update-shell`). `memory.vault`: information while obsidian-wiki has no config (`~/.obsidian-wiki/config`, `$XDG_CONFIG_HOME/obsidian-wiki/config`); else `obsidian-wiki doctor --json` read as `ok`, `warn` or `fail` with the names and details of its checks that are not passing, and their hints as the fix (`obsidian-wiki setup` given `--no-hooks`, `hooks install` given `--only SessionStart`). `memory.hooks` (where `~/.claude` exists and a config does): the SessionStart recap registered (`ok`) or not (information, fix `obsidian-wiki hooks install --only SessionStart`), registered but unreachable (a warning); `memory.hooks.stop`, information when obsidian-wiki's Stop hook is registered, naming its effect on every session (gate `consent`, fix `obsidian-wiki hooks uninstall --only Stop`) | Obsidian's signature, team or ticket does not hold; `obsidian-wiki doctor` reports a failing check |
 | services | `sessions.on-demand`: what a session Fabric starts on a board request needs, with Claude Code as the default agent (Fabric Switchboard installed, Fabric's MCP server registered in Claude Code, the skill set, Claude Code's rules for PassionCode's own tools); `info` while Fabric is not installed, on Linux, where doctor checks no app, and when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing (the person's choice; Switchboard's default agent may be another) ([session chain](session-chain.md), PC-124) | another part is missing (a warning; its fix names what repairs each part) |
 
 `setup` returns `{ version, platform, mode, plan, actions, before, after,
@@ -115,8 +116,11 @@ nothing (`--yes`, or no terminal, which includes every `--json` run), changed no
 false) names the install offers it skipped by default in `skipped`; their notes are among `humanSteps`. A plan shows the
 same apps as `install` items with `selected` false and their note. A run that changes the
 saved train lists it in `actions` (kind `train`). `mode` is `new` (no skill set and no
-app) or `existing`. `plan` items are `install` (an absent app; `selected` false
-for Fabric without its prerequisites unless `--with fabric`), `update`,
+app) or `existing`. `plan` items are `install` (an absent app, Obsidian included on macOS; `selected` false
+for Fabric without its prerequisites unless `--with fabric`), `memory` (PC-178: obsidian-wiki to install at the pin with
+uv and, for a user with no obsidian-wiki config, a vault to make, named in `vault`; `selected` false and `unavailable`
+true, never asked, with the reason in `note`, when uv is missing or the vault folder already holds files), `tool` (an
+older obsidian-wiki uv installed, brought up to the pin with `uv tool install --force`), `update`,
 `replace` (an outdated or damaged app nothing runs from: not the app, not an agent's MCP server from its bundle; only this user's processes count, matched on the bundle's whole path, PC-151; a `pgrep` that cannot answer counts as in use) and `kickstart` (a
 launchd service that does not answer), each with the check ids that caused it. An `install` or `replace` whose
 folder (or, for a replace, the app itself) this user cannot write is `blocked: true`, `selected` false and never asked
@@ -137,7 +141,7 @@ none: its items carry their notes, and nothing ran. A declined run that named a 
 the person's answer, not a plan (`declined` true, and it exits by its checks): its steps name `setup --train <name>` when its checks call for `setup`.
 
 Questions are asked only on a terminal: one per absent app (on macOS, naming the folder it goes into; one whose folder
-this user cannot write is named, never asked, PC-147), one for the
+this user cannot write is named, never asked, PC-147), one for the agents' wiki memory when it is offered (PC-178), one for the
 repairs, if any are left after the installs (see PC-112 below), and one for Claude Code's rules for PassionCode's own
 tools where Claude Code is and they are missing (default no; see PC-117 below), and one for the rules for shell commands
 where Claude Code is and one of them is missing (default no; see PC-119 below). With `--dry-run`, or without a terminal and without `--yes` when the run would change
@@ -149,6 +153,20 @@ to change runs as `setup` does and exits by its checks.
 repairs. A terminal run that declined every offer (PC-91) exits by its checks the
 same way, 1 when a check still fails, whether or not it named a train (PC-93). `doctor --fix` is `setup --yes` with no `install` items and nothing
 opened.
+
+The agents' wiki memory (PC-178, [ADR-0006](../adr/0006-setup-installs-the-agents-wiki-memory.md)) is offered with the
+apps and taken by `--yes`. `--with` and `--without` take `obsidian` (the app, macOS only), `wiki` (obsidian-wiki and its
+vault) and `memory` for both; `--no-apps`, and a saved release train this launcher cannot use, leave both out;
+`doctor --fix` never installs obsidian-wiki or makes a vault, and runs only the `tool` repair. A `memory` action runs, in
+order and each with no terminal: `uv tool install obsidian-wiki==2026.11.4` when obsidian-wiki is absent; when this user
+has no obsidian-wiki config, makes the vault folder (`--wiki-vault <dir>`, an absolute folder or one under `~/`, else
+`~/Documents/Wiki`), `git init -b main` in it unless it has `.git`, `obsidian-wiki setup --no-hooks --vault <dir>`, and,
+where `~/.claude` exists, `obsidian-wiki hooks install --only SessionStart`. The first step that fails fails the action
+(exit 1), and a folder it made stays only if a step wrote into it. A vault folder that holds files is never used: the
+plan names it and `--wiki-vault`. An existing config, vault or hook is never changed, and obsidian-wiki's Stop hook is
+never registered or removed. A run that leaves the memory out because uv is missing or the folder holds files names it
+among `humanSteps` ("The wiki memory: ...") and in `skipped` or `notTaken` as "the wiki memory"; a `memory` action
+that ran adds the restart step. `--wiki-vault` without a value, or with a relative one, is exit 2.
 
 Claude Code's rules for PassionCode's own tools (PC-117; fabric-workspace `knowledge/agents-first.md`, "When Claude
 Code's auto mode refuses..."): `setup` offers to add `mcp__fabric`, `mcp__fabric-dashboards`, `mcp__switchboard`,
