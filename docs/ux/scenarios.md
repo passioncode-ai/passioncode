@@ -252,7 +252,7 @@
   1. Paste the prompt.
   2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor` (the README prompt, whose plain `doctor` shows the notice) or `analytics status` once without `--json` (the skill), and reports.
 - **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; the launcher's anonymous-counts notice word for word, or the status line it printed (SCN-016); no secret is asked for in the chat.
-- **Alt paths:** "Don't change anything" → the agent runs doctor only, and names the counts and `analytics off` without running `analytics status` or another command to show the notice (its `doctor --json` counts only where the notice was shown before).
+- **Alt paths:** "Don't change anything" → the agent runs doctor only, and names the counts and `analytics off` without running `analytics status` or another command to show the notice (its `doctor --json` counts only where the notice was shown before). When the wiki memory's note names `brew install uv`, the agent runs it and then `setup` again; nothing else is installed by hand, and uv's installer stays the person's step (SCN-018).
 - **UI elements:** The agent's reply.
 - **States covered:** success, error
 - **Errors & recovery:** The agent reports a failed command with its exit code and does not fall back to manual installs.
@@ -268,7 +268,7 @@
 - **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run.
 - **Steps:**
   1. Start a session.
-- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), or one no setup run repairs (`manual`, SCN-018), the line names `doctor`, which shows that folder, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
+- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), or one no setup run repairs (`manual`, SCN-018), the line names `doctor`, which shows that folder, or the checks no setup run repairs, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
 - **Alt paths:** No failures or no file: silent.
 - **UI elements:** One hook line.
 - **States covered:** empty, error
@@ -408,8 +408,8 @@
 - **Errors & recovery:** No uv: the memory is not offered and the steps name how to get it ("The wiki memory: needs uv:
   brew install uv, ..." where Homebrew is, else "a person installs it with the installer its page names"); no git: the
   same, naming Apple's command line tools on a Mac (`xcode-select -p` is asked first, so no install dialog opens);
-  everything else is set up. A vault step that fails (uv, git or obsidian-wiki's own setup) fails the run and leaves
-  nothing the launcher made, so the next `setup` starts again. On a new Mac uv's `~/.local/bin` may not be on the
+  everything else is set up. A vault step that fails (git or obsidian-wiki's own setup) fails the run and leaves nothing
+  of the vault; obsidian-wiki stays installed at the pin, so the next `setup` makes only the vault. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
   vault the launcher made is registered again by the next `setup` or `doctor --fix`, while the config still names that

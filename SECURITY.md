@@ -50,8 +50,8 @@ release cache, apart from the anonymous counts below that every command sends wh
 its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to
 `https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
 it reads Obsidian's `Info.plist` and signature like an app's and the names of the `obsidian-<version>.asar` files in
-`~/Library/Application Support/obsidian` (the version Obsidian updated itself to), runs `uv --version`,
-`brew --prefix` (Homebrew counts only where this user can write that folder) and, on macOS, `xcode-select -p`, and runs
+`~/Library/Application Support/obsidian` (the version Obsidian updated itself to) and obsidian-wiki's config file (only
+its vault path), runs `uv --version` and `brew --prefix` (Homebrew counts only where this user can write its `bin`), and runs
 `obsidian-wiki --version`, `obsidian-wiki doctor --json` and `obsidian-wiki hooks status --json`, which read the
 person's obsidian-wiki config, vault and Claude Code hooks and change nothing; doctor prints only check names, states,
 details and hints, never a page of the vault.
@@ -80,7 +80,8 @@ descriptor names launchd and that does not answer, and opens the apps it install
 (PC-178) it installs Obsidian like an app, verified by its own chain (the image against GitHub's digest, then Developer
 ID team `6JSW4SJWN9`, the stapled ticket and Gatekeeper: Obsidian publishes no signed checksums); runs
 `uv tool install obsidian-wiki==<pin>` (or `--force` to bring an older copy uv installed up to the pin), which takes the
-package from PyPI; and, for a user with no obsidian-wiki config, makes the vault folder (`~/Documents/Wiki` or
+package from PyPI; asks `xcode-select -p` (on macOS, first, so no install dialog opens) and `git --version` before a vault
+step; and, for a user with no obsidian-wiki config, makes the vault folder (`~/Documents/Wiki` or
 `--wiki-vault`, never one that holds files), runs `git init -b main` in it, `obsidian-wiki setup --no-hooks --vault <dir>`
 with no terminal (which writes `~/.config/obsidian-wiki/config` and links obsidian-wiki's own skills into each agent's
 skills folder, creating that folder for agents that are not installed too, where the set's own skills are then linked

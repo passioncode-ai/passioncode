@@ -114,11 +114,13 @@ an administrator), and restarting your agent.
 
 `setup` checks first, then installs the absent apps you chose, repairs what the checks found,
 checks again and prints a before → after table and the steps that stay yours. On a healthy
-computer it changes nothing (apart from the anonymous counts) and exits 0. An app is installed only after its release's
+computer it changes nothing (apart from the anonymous counts) and exits 0. A PassionCode.ai app is installed only after its release's
 `SHA256SUMS.asc` verifies against the PassionCode.ai release key bundled in this package
 (fingerprint `63B3 0DC3 24BD 6974 87AA 3194 4FAF B8AE C803 B6A7`), the file matches the signed
 checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35UYYL22`, has its
-notarization ticket stapled and is accepted by Gatekeeper. Apps go into your own `~/Applications` (made on the first
+notarization ticket stapled and is accepted by Gatekeeper. Obsidian, which publishes no signed checksums, is checked by
+its own chain instead: the image against GitHub's digest, then team `6JSW4SJWN9`, the stapled ticket and Gatekeeper
+([ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md)). Apps go into your own `~/Applications` (made on the first
 install); a copy in `/Applications` that is yours and that you may replace stays there. An outdated or damaged app is
 reinstalled only when it is not running and you may replace it; the old one goes to the Trash ("running" means running
 for you: on a Mac with several users only your own processes count, so a copy of yours that another user has open, or runs an MCP server from (an entry they set by hand: the launcher's own follow each user's copy, PC-149), is still replaced and goes to your Trash; that user restarts it, PC-151). One you cannot replace
