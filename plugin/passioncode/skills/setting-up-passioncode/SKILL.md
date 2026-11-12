@@ -57,7 +57,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 - A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe. A
   machine without uv or git, with XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs
   in), with a skill of the person's that shares a name with one of obsidian-wiki's, with an obsidian-wiki uv holds that
-  does not run, with a memory check that could not run ("could not be checked"), or with a `~/Documents/Wiki` that
+  does not run, with a config line obsidian-wiki's refresh would rewrite (`memory.vault.config-form`: the person rewrites
+  the line, gate `consent`), with a memory check that could not run ("could not be checked"), or with a `~/Documents/Wiki` that
   holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
   (or unsets it), moves that skill, reinstalls obsidian-wiki as the note names, fixes what the note names, or names
   another folder: on a run that changes nothing else, `skipped` names the
@@ -118,7 +119,7 @@ reference names the format); never write one there for them.
   steps that need them in person (sign-ins, consents, secrets in hidden prompts). It is never empty after a
   first install: sign-ins and consents always remain.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
-  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a memory check could not run, or `~/Documents/Wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
+  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, or `~/Documents/Wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its
