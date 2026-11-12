@@ -2877,3 +2877,138 @@ test('PC-178: with Homebrew the missing uv is one brew step; without it a person
   assert.equal(b.gate, 'consent');
   assert.match(b.fix, /^a person installs uv with the installer its page names \(https:\/\/docs\.astral\.sh\/uv\/getting-started\/installation\/\), then /);
 });
+
+// PC-178, round 3 (readings of 5f7f245).
+function wikiDoctor(m, checks) {
+  const report = path.join(m.home, 'wiki-doctor.json');
+  fs.writeFileSync(report, JSON.stringify({ status: 'warn', checks }));
+  m.env = { ...(m.env || {}), FAKE_WIKI_DOCTOR: report };
+}
+
+test('PC-178: a hint that names the wiki setup skill is never passed on; missing vault files are named instead', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  const vault = path.join(m.home, 'Notes');
+  giveWiki(m, PIN, { vault, hooks: ['SessionStart'] });
+  wikiDoctor(m, [{ name: 'vault-config', status: 'pass', detail: vault, hint: '' },
+    { name: 'vault-core-files', status: 'warn', detail: 'missing: index.md, log.md', hint: 'run the wiki setup skill or create the missing files' },
+    { name: 'other', status: 'warn', detail: 'x', hint: 'use the wiki-setup skill' }]);
+  const r = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.vault');
+  assert.equal(r.fix, 'create the missing files: missing: index.md, log.md');
+});
+
+test('PC-178: the hook repair is only for the vault the launcher made and the config still names; another vault\'s missing hook is the person\'s choice', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  assert.equal((await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki')).status, 0);
+  fs.writeFileSync(path.join(m.home, 'fake-wiki', 'hooks.json'), '[]');
+  const mine = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.hooks');
+  assert.deepEqual([mine.repair, mine.gate], [{ kind: 'hook', product: 'wiki' }, null]);
+  // The person points the config at another vault: no repair, and adding the hook is their choice.
+  const elsewhere = path.join(m.home, 'Elsewhere');
+  fs.mkdirSync(elsewhere);
+  fs.writeFileSync(wikiConfig(m), fs.readFileSync(wikiConfig(m), 'utf8').replace(/OBSIDIAN_VAULT_PATH="[^"]*"/, `OBSIDIAN_VAULT_PATH="${elsewhere}"`));
+  const theirs = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.hooks');
+  assert.deepEqual([theirs.repair, theirs.gate, theirs.fix], [null, 'consent', 'obsidian-wiki hooks install --only SessionStart']);
+});
+
+test('PC-178: memory rows left out of the run do not fail setup', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, PIN, { vault: path.join(m.home, 'Notes'), hooks: ['SessionStart'] });
+  wikiDoctor(m, [{ name: 'vault-path', status: 'fail', detail: 'vault directory missing', hint: '' }]);
+  for (const args of [['--without', 'memory'], ['--without', 'wiki'], ['--no-apps']]) {
+    const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--offline', ...args);
+    assert.equal(row(r, 'memory.vault').state, 'fail');
+    assert.ok(!r.json.actions.some((a) => a.outcome === 'failed'), JSON.stringify(r.json.actions));
+    assert.equal(r.json.ok, true, args.join(' '));
+  }
+  assert.equal((await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--offline', '--with', 'wiki')).status, 1, 'with the memory in the run it fails');
+});
+
+test('PC-178: where Claude Code reads another folder, the row says the wiki skills are only in ~/.claude/skills too', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  m.configDir = path.join(m.home, 'claude-config');
+  fs.mkdirSync(m.configDir);
+  giveWiki(m, PIN, { vault: path.join(m.home, 'Notes'), hooks: [] });
+  const h = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.hooks');
+  assert.match(h.detail, /obsidian-wiki's skills are likewise only in .*\.claude.skills$/);
+});
+
+test('PC-178: an older uv copy is brought up to the pin before the vault is made', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, '2026.10.2');
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
+  assert.equal(r.status, 0, r.stdout);
+  const log = toolLog(m);
+  const up = log.indexOf(`uv tool install --force obsidian-wiki==${PIN}`);
+  const made = log.findIndex((l) => /^obsidian-wiki setup --no-hooks/.test(l));
+  assert.ok(up >= 0 && made > up, log.join('\n'));
+});
+
+test('PC-178: a vault folder the launcher cannot remove after a failure is named, with what to do', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  const parent = path.join(m.home, 'Locked');
+  fs.mkdirSync(parent);
+  t.after(() => fs.chmodSync(parent, 0o755));
+  m.env = { FAKE_WIKI_SETUP_FAIL: '1', FAKE_WIKI_LOCK_PARENT: '1' };
+  const vault = path.join(parent, 'Wiki');
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki', '--wiki-vault', vault);
+  const a = r.json.actions.find((x) => x.kind === 'memory');
+  assert.equal(a.outcome, 'failed');
+  assert.match(a.error, new RegExp(`removing ${vault.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} failed \\(EACCES\\): remove it, then run setup again$`));
+  assert.doesNotMatch(a.error, /nothing of the vault step was kept/);
+});
+
+test('PC-178: uv\'s folder follows XDG_DATA_HOME; a version this launcher cannot compare is never ahead', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: [...TOOLS, 'uv'], memory: true });
+  const data = path.join(m.home, 'xdg', 'share');
+  const bin = path.join(m.home, 'xdg', 'bin');
+  giveWiki(m, PIN, { vault: path.join(m.home, 'Notes'), dir: bin });
+  m.env = { UV_TOOL_BIN_DIR: '', XDG_DATA_HOME: data };
+  const p = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.wiki.path');
+  assert.ok(p && p.detail.startsWith(`obsidian-wiki is in ${bin},`), JSON.stringify(p));
+  fs.writeFileSync(path.join(m.home, 'fake-wiki', 'version'), '2026.10.2.post1');
+  const w = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.wiki');
+  assert.equal(w.state, 'warn');
+  assert.match(w.detail, /2026\.10\.2\.post1 \(not a version this launcher compares\); this launcher pins/);
+});
+
+test('PC-178: Homebrew this user cannot write is not a route to uv', { skip: MAC_SIM || (process.getuid?.() === 0 && 'root writes anyway') }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: [...TOOLS, 'brew'], memory: true });
+  const prefix = path.join(m.home, 'admins-homebrew');
+  fs.mkdirSync(prefix, { mode: 0o555 });
+  t.after(() => fs.chmodSync(prefix, 0o755));
+  m.env = { FAKE_BREW_PREFIX: prefix };
+  const w = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.wiki');
+  assert.equal(w.gate, 'consent');
+  assert.match(w.fix, /^a person installs uv with the installer its page names/);
+});
+
+test('PC-178: a relative --wiki-vault is refused with its own message; the help says how', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  const r = await cli(m, api, 'setup', '--dry-run', '--wiki-vault', 'Wiki');
+  assert.equal(r.status, 2);
+  assert.equal(r.stderr.trim(), 'passioncode: --wiki-vault takes an absolute folder, or one that starts with ~/ (not Wiki).');
+  const help = await cli(m, api, 'help');
+  assert.doesNotMatch(help.stdout, /App ids/);
+  assert.match(help.stdout.replace(/\s+/g, ' '), /--wiki-vault names an absolute folder or one that starts with ~\//);
+});
+
+test('PC-178: where Obsidian is not installed, the vault step names its download page', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  for (const [env, args] of [[{ PASSIONCODE_PLATFORM: 'linux' }, []], [{}, ['--without', 'obsidian']]]) {
+    const m = withMemory();
+    m.env = env;
+    const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', ...args);
+    assert.equal(r.status, 0, r.stdout);
+    assert.ok(r.json.humanSteps.includes(`Obsidian is where you read the wiki vault ${vaultOf(m)}: download it from ${OB.page}, then open the vault in it (Open folder as vault).`), JSON.stringify(r.json.humanSteps));
+    assert.ok(!r.json.humanSteps.some((s) => s.startsWith('Open the wiki vault')), JSON.stringify(r.json.humanSteps));
+  }
+});

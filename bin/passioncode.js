@@ -44,9 +44,9 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
 onboard is another name for setup, install for update. --offline skips the check for newer app
 releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
 PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes
-never does either). App ids: switchboard, dashboards, observatory, inbox, fabric; the agents'
-wiki memory: obsidian, wiki, or memory for both (a new vault goes in ~/Documents/Wiki, or the
-folder --wiki-vault names). Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
+never does either). Ids for --with and --without: switchboard, dashboards, observatory, inbox,
+fabric (the apps); obsidian, wiki, or memory for both (the agents' wiki memory). A new vault goes
+in ~/Documents/Wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
 or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode"
 marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after
 a change.`;
@@ -67,7 +67,7 @@ function parseSetupArgs(cmd, rest) {
       let value = wv[1] !== undefined ? wv[1] : rest[++i];
       if (!value || o.wikiVault) return null;
       if (value === '~' || value.startsWith('~/')) value = require('path').join(require('os').homedir(), value.slice(1));
-      if (!require('path').isAbsolute(value)) return null;
+      if (!require('path').isAbsolute(value)) return { usage: `--wiki-vault takes an absolute folder, or one that starts with ~/ (not ${value})` };
       o.wikiVault = require('path').normalize(value);
     } else if (tr && cmd !== 'doctor') {
       const value = tr[1] !== undefined ? tr[1] : rest[++i];
@@ -95,8 +95,9 @@ function asker() {
 
 async function setupOrDoctor(cmd, rest) {
   const o = parseSetupArgs(cmd, rest);
+  if (o && o.usage) { process.stderr.write(`passioncode: ${o.usage}.\n`); return 2; } // PC-178: a relative --wiki-vault
   if (!o) {
-    process.stderr.write(`passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}.\n`);
+    process.stderr.write(`passioncode: unsupported arguments for ${cmd}; run passioncode help. Ids: ${IDS.join(', ')}.\n`);
     return 2;
   }
   if (o.train) {

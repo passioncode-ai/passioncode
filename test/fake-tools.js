@@ -131,6 +131,8 @@ switch (tool) {
       if (process.env.FAKE_WIKI_SETUP_FAIL === 'quiet') process.exit(0);
       fs.mkdirSync(vault, { recursive: true });
       fs.writeFileSync(path.join(vault, 'index.md'), '---\ntitle: Wiki Index\n---\n');
+      // $FAKE_WIKI_LOCK_PARENT: the vault's parent folder turns read-only before the failure, so it cannot be removed.
+      if (process.env.FAKE_WIKI_LOCK_PARENT) fs.chmodSync(path.dirname(vault), 0o555);
       if (process.env.FAKE_WIKI_SETUP_FAIL && process.env.FAKE_WIKI_SETUP_FAIL !== 'late') { err('error: setup failed'); process.exit(1); }
       fs.mkdirSync(path.dirname(config), { recursive: true });
       fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
@@ -157,7 +159,11 @@ switch (tool) {
     }
     process.exit(2);
   }
-  case 'brew': out('Homebrew 4.6.0'); process.exit(0);
+  case 'brew': {
+    // `brew --prefix`: $FAKE_BREW_PREFIX, else a folder of this home's (made, writable).
+    if (args[0] === '--prefix') { const at = process.env.FAKE_BREW_PREFIX || path.join(home, 'homebrew'); fs.mkdirSync(at, { recursive: true }); out(at); process.exit(0); }
+    out('Homebrew 4.6.0'); process.exit(0);
+  }
   case 'xcode-select': out('/Library/Developer/CommandLineTools'); process.exit(0);
   default: err(`fake-tools: unknown ${tool}`); process.exit(127);
 }
