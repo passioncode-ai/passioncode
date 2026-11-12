@@ -219,3 +219,13 @@ test('PC-171: a product whose guide needs a person names the first gate it meets
   assert.equal(C.byId('inbox').guideGate, 'secret');
   assert.equal(C.byId('dashboards').guideGate, undefined);
 });
+
+test('PC-178: an administrator\'s Obsidian in /Applications is this user\'s Obsidian; a PassionCode.ai app\'s is not', { skip: (process.platform !== 'darwin' && 'a root-owned bundle macOS ships') || (me === 0 && 'root owns it') }, () => {
+  const w = world();
+  const obsidian = { ...C.OBSIDIAN, app: 'Calculator.app' }; // a bundle root owns, as an administrator's install is
+  assert.equal(C.adminCopy(obsidian, { home: w.home, shared: '/System/Applications', uid: me }), '/System/Applications/Calculator.app');
+  assert.equal(C.adminCopy({ ...fabric, app: 'Calculator.app' }, { home: w.home, shared: '/System/Applications', uid: me }), null);
+  fs.mkdirSync(path.join(w.home, 'Applications', 'Calculator.app'), { recursive: true });
+  assert.equal(C.adminCopy(obsidian, { home: w.home, shared: '/System/Applications', uid: me }), null, 'a copy of their own wins');
+});
+

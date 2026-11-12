@@ -31,42 +31,42 @@ Contract: brand-contract v1
 | hook.state-unwritable | [passioncode] ${shown(STATE)} cannot be written, so no background update starts; make it and its folder writable and it is tried again next session. | plugin/passioncode/hooks/session-start.js:93 | SCN-006 | proposed | copy |
 | update.failed | ${failed.length} step(s) failed. Completed steps remain applied. Fix the cause and retry${saved ? '; use passioncode restore for displaced files' : ''}. | bin/passioncode.js:292 | SCN-003 | proposed | copy |
 | update.done | PassionCode.ai ${r.version}: done. Restart your agent: skills load at session start. | bin/passioncode.js:292 | SCN-003 | proposed | copy |
-| setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr, { home }))}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:239 | SCN-008 | proposed | copy |
-| setup.install-question.preview | (early preview) | lib/setup.js:239 | SCN-008 | proposed | copy |
-| setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:247 | SCN-008, SCN-009 | proposed | copy |
-| setup.repair-update | install or refresh the skill set and register the apps\' MCP servers for every agent | lib/setup.js:121 | SCN-008, SCN-009 | proposed | copy |
-| setup.repair-replace | reinstall ${pr.name} from ${from(pr)}${blocked ? '' : ' (the current one goes to the Trash)'} | lib/setup.js:122 | SCN-009, SCN-014 | proposed | copy |
-| setup.repair-kickstart | start the ${r.label} service through launchd | lib/setup.js:124 | SCN-009 | proposed | copy |
-| setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr, { home }))} from ${from(pr)} | lib/setup.js:80 | SCN-008 | proposed | copy |
-| setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:82 | SCN-008, SCN-014 | proposed | copy |
-| setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:454 | SCN-009, SCN-014 | proposed | copy |
-| setup.install-note.train | ${setupStep} --with | lib/setup.js:453 | SCN-014 | proposed | copy |
+| setup.install-question | Install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr, { home }))}${i.note ? `: ${i.note}` : ''}? | lib/setup.js:245 | SCN-008 | proposed | copy |
+| setup.install-question.preview | (early preview) | lib/setup.js:245 | SCN-008 | proposed | copy |
+| setup.repairs-question | Apply ${repairs.length} repair(s): ${repairs.map((r) => r.detail).join('; ')}? | lib/setup.js:253 | SCN-008, SCN-009 | proposed | copy |
+| setup.repair-update | install or refresh the skill set and register the apps\' MCP servers for every agent | lib/setup.js:126 | SCN-008, SCN-009 | proposed | copy |
+| setup.repair-replace | reinstall ${pr.name} from ${from(pr)}${blocked ? '' : ' (the current one goes to the Trash)'} | lib/setup.js:127 | SCN-009, SCN-014 | proposed | copy |
+| setup.repair-kickstart | start the ${r.label} service through launchd | lib/setup.js:130 | SCN-009 | proposed | copy |
+| setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr, { home }))} from ${from(pr)} | lib/setup.js:86 | SCN-008 | proposed | copy |
+| setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:88 | SCN-008, SCN-014 | proposed | copy |
+| setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:470 | SCN-009, SCN-014 | proposed | copy |
+| setup.install-note.train | ${setupStep} --with | lib/setup.js:469 | SCN-014 | proposed | copy |
 | doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:250 | SCN-009, SCN-010 | proposed | layout |
-| setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:492 | SCN-009 | proposed | copy |
-| setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:493 | SCN-009 | proposed | copy |
-| setup.declined | You declined every offer; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:489 | SCN-008, SCN-009 | proposed | copy |
-| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:488 | SCN-008, SCN-009 | proposed | copy |
-| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:574 | SCN-009 | proposed | copy |
-| setup.in-place.tools | Everything else this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:573 | SCN-009 | proposed | copy |
-| setup.checks-stand |  The checks below still stand. | lib/setup.js:506 | SCN-008, SCN-009 | proposed | copy |
-| setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:537 | SCN-008 | proposed | copy |
-| setup.asked-step-fails | Nothing was changed: the step you asked for cannot run until Claude Code's settings are fixed.${stand(a)} | lib/setup.js:537 | SCN-008 | proposed | copy |
-| setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:494 | SCN-008 | proposed | copy |
-| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:565 | SCN-008 | proposed | copy |
-| setup.plan-footer.dry-run | Run it without --dry-run (with --yes, or in a terminal) to apply. | lib/setup.js:564 | SCN-008 | proposed | copy |
-| setup.plan-footer.dry-run.asks | Run it without --dry-run, in a terminal or with ${untaken.join(' and ')}, to apply. | lib/setup.js:564 | SCN-008 | proposed | copy |
-| setup.plan-footer.train | Run it with --yes, or in a terminal, to apply. | lib/setup.js:565 | SCN-008, SCN-014 | proposed | copy |
-| setup.plan-header | Plan (nothing was changed): | lib/setup.js:535 | SCN-008 | proposed | copy |
-| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved. | lib/setup.js:556 | SCN-008 | proposed | copy |
-| setup.plan-forget-train | forget the saved release train | lib/setup.js:516 | SCN-008 | proposed | copy |
-| setup.plan-train | save release train ${t} | lib/setup.js:516 | SCN-008 | proposed | copy |
-| setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:556 | SCN-008 | proposed | copy |
-| setup.open-now | Open now: | lib/setup.js:620 | SCN-008 | proposed | layout |
-| setup.still-open | Still open: | lib/setup.js:620 | SCN-009 | proposed | layout |
-| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:624 | SCN-008 | proposed | copy |
-| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:628 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: ${D.NPX} doctor | lib/setup.js:629 | SCN-008, SCN-009 | proposed | copy |
-| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: ${D.NPX} doctor | lib/setup.js:630 | SCN-008, SCN-009 | proposed | copy |
+| setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:511 | SCN-009 | proposed | copy |
+| setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:512 | SCN-009 | proposed | copy |
+| setup.declined | You declined every offer; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:508 | SCN-008, SCN-009 | proposed | copy |
+| setup.declined-not-taken | You declined every other offer, and ${were(r.notTaken)} not installed; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:507 | SCN-008, SCN-009 | proposed | copy |
+| setup.in-place | Everything this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:593 | SCN-009 | proposed | copy |
+| setup.in-place.tools | Everything else this command can set up is in place; nothing was changed.${stand(a)} | lib/setup.js:592 | SCN-009 | proposed | copy |
+| setup.checks-stand |  The checks below still stand. | lib/setup.js:525 | SCN-008, SCN-009 | proposed | copy |
+| setup.nothing-to-do | Nothing to do.${stand(a)} | lib/setup.js:556 | SCN-008 | proposed | copy |
+| setup.asked-step-fails | Nothing was changed: the step you asked for cannot run until Claude Code's settings are fixed.${stand(a)} | lib/setup.js:556 | SCN-008 | proposed | copy |
+| setup.would-skip | Nothing would change: ${names.join(' and ')} would not be installed (see the plan below).${stand(a)} | lib/setup.js:513 | SCN-008 | proposed | copy |
+| setup.plan-footer | Run it with --yes to apply, or in a terminal to answer its questions. | lib/setup.js:584 | SCN-008 | proposed | copy |
+| setup.plan-footer.dry-run | Run it without --dry-run (with --yes, or in a terminal) to apply. | lib/setup.js:583 | SCN-008 | proposed | copy |
+| setup.plan-footer.dry-run.asks | Run it without --dry-run, in a terminal or with ${untaken.join(' and ')}, to apply. | lib/setup.js:583 | SCN-008 | proposed | copy |
+| setup.plan-footer.train | Run it with --yes, or in a terminal, to apply. | lib/setup.js:584 | SCN-008, SCN-014 | proposed | copy |
+| setup.plan-header | Plan (nothing was changed): | lib/setup.js:554 | SCN-008 | proposed | copy |
+| setup.train-not-saved | The release train (${result.trainNotSaved}) was not saved. | lib/setup.js:575 | SCN-008 | proposed | copy |
+| setup.plan-forget-train | forget the saved release train | lib/setup.js:535 | SCN-008 | proposed | copy |
+| setup.plan-train | save release train ${t} | lib/setup.js:535 | SCN-008 | proposed | copy |
+| setup.train-not-forgotten | The saved release train was not forgotten. | lib/setup.js:575 | SCN-008 | proposed | copy |
+| setup.open-now | Open now: | lib/setup.js:639 | SCN-008 | proposed | layout |
+| setup.still-open | Still open: | lib/setup.js:639 | SCN-009 | proposed | layout |
+| setup.steps-header | Your steps (sign-ins, consents and secrets in hidden prompts need you in person): | lib/setup.js:643 | SCN-008 | proposed | copy |
+| setup.closing.warnings | , ${a.warn} warning(s) | lib/setup.js:647 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.now | ${a.fail ? `${a.fail} problem(s)` : 'No problems'}${warned}. Check again any time: ${D.NPX} doctor | lib/setup.js:648 | SCN-008, SCN-009 | proposed | copy |
+| setup.closing.after | ${a.fail ? `${a.fail} problem(s) remain` : 'No problems remain'} (before: ${b.fail})${warned}. Check again any time: ${D.NPX} doctor | lib/setup.js:649 | SCN-008, SCN-009 | proposed | copy |
 | setup.refuse-root | passioncode: run ${cmd === 'doctor' ? 'doctor --fix' : 'setup'} as yourself, without sudo: it installs into your own home folder, and what root installs there you could not replace. | bin/passioncode.js:117 | SCN-008 | proposed | error |
 | trains.not-a-name | "${id}" is not a release train name | lib/trains.js:19 | SCN-014 | proposed | copy |
 | trains.unknown | no release train "${id}" in this launcher (known: ${list().join(', ')}) | lib/trains.js:22 | SCN-014 | proposed | copy |
@@ -76,12 +76,12 @@ Contract: brand-contract v1
 | trains.no-pin | release train "${id}" pins no app | lib/trains.js:27 | SCN-014 | proposed | copy |
 | trains.unknown-app | release train "${id}" pins an unknown app "${app}" | lib/trains.js:29 | SCN-014 | proposed | copy |
 | trains.bad-version | release train "${id}" pins ${app} at "${version}", not a version | lib/trains.js:30 | SCN-014 | proposed | copy |
-| setup.tools-question | Let Claude Code use PassionCode's own tools without asking (allow ${result.permissions.rules.join(', ')})? | lib/setup.js:251 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-pending | allow ${result.permissions.rules.join(', ') \|\| "PassionCode's own tools"} in ${file} | lib/setup.js:373 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins) | lib/setup.js:378 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:379 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-question | Let Claude Code use PassionCode's own tools without asking (allow ${result.permissions.rules.join(', ')})? | lib/setup.js:257 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-pending | allow ${result.permissions.rules.join(', ') \|\| "PassionCode's own tools"} in ${file} | lib/setup.js:389 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins) | lib/setup.js:394 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:395 | SCN-008, SCN-009 | proposed | copy |
 | permissions.link-loop | ${file}: too many levels of links | lib/permissions.js:224 | SCN-008, SCN-009 | proposed | error |
-| setup.kept-out | Left out, because you removed ${names.length === 1 ? 'it' : 'them'} with permissions remove: ${names.join(', ')}. To add one back: ${D.NPX} permissions allow <rule> | lib/setup.js:589 | SCN-008, SCN-015 | proposed | copy |
+| setup.kept-out | Left out, because you removed ${names.length === 1 ? 'it' : 'them'} with permissions remove: ${names.join(', ')}. To add one back: ${D.NPX} permissions allow <rule> | lib/setup.js:608 | SCN-008, SCN-015 | proposed | copy |
 | permissions.bypass-needs-yes | bypassPermissions lets Claude Code use every tool and run every command without asking you; set it in a terminal, or add --confirm-bypass | bin/passioncode.js:183 | SCN-015 | proposed | error |
 | permissions.bypass-question | bypassPermissions lets Claude Code use every tool and run every command without asking you. Set it as Claude Code's default mode? [y/N] | bin/passioncode.js:184 | SCN-015 | proposed | copy |
 | permissions.bypass-declined | passioncode: the default mode was not changed. | bin/passioncode.js:185 | SCN-015 | proposed | copy |
@@ -91,23 +91,23 @@ Contract: brand-contract v1
 | permissions.not-object | ${file} does not hold a settings object | lib/permissions.js:195 | SCN-008, SCN-009 | proposed | error |
 | permissions.permissions-shape | ${file}: "permissions" is not an object | lib/permissions.js:197 | SCN-008, SCN-009 | proposed | error |
 | permissions.list-shape | ${file}: "permissions.${list}" is not a list | lib/permissions.js:199 | SCN-008, SCN-009 | proposed | error |
-| setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:515 | SCN-008 | proposed | copy |
-| setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:545 | SCN-008 | proposed | copy |
-| setup.tools-fails | A run with ${failing.join(' or ')} fails until that is fixed. | lib/setup.js:584 | SCN-008 | proposed | copy |
-| setup.tools-unreadable | Claude Code's settings were not changed: ${tools.error} | lib/setup.js:582 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-hint | Claude Code still asks before it uses PassionCode's own tools. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:595 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-question | Let Claude Code run these commands without asking: ${result.commands.rules.map(commandLine).join('; ')}${wild}? | lib/setup.js:255 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-question.wild | ; a rule ending in * allows any arguments after its words | lib/setup.js:254 | SCN-008 | proposed | copy |
-| setup.commands-rule | ${r.rule} (${r.why}${r.by ? `; declared by ${r.by}` : ''}) | lib/setup.js:514 | SCN-008 | proposed | copy |
-| setup.commands-plan | let Claude Code run these commands without asking (asked in a terminal, or --allow-commands): | lib/setup.js:548 | SCN-008 | proposed | copy |
-| setup.commands-plan.wild | (a rule ending in * allows any arguments after its words, options included) | lib/setup.js:550 | SCN-008 | proposed | copy |
-| setup.commands-pending | allow ${result.commands.rules.map((r) => r.rule).join(', ') \|\| 'the rules for commands'} in ${file} | lib/setup.js:388 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins${added.some(wildcard) ? '; a rule ending in * allows any arguments after its words' : ''}) | lib/setup.js:395 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:379 | SCN-008, SCN-009 | proposed | copy |
-| setup.commands-hint | Claude Code still asks before it runs ${cmds.rules.map((r) => r.rule).join(', ')}. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:600 | SCN-008, SCN-009 | proposed | copy |
-| setup.tools-hint-quiet | Claude Code's allow rules do not include PassionCode's own tools; its default mode in your user settings, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:594 | SCN-008 | proposed | copy |
-| setup.commands-hint-quiet | Claude Code's allow rules do not include ${cmds.rules.map((r) => r.rule).join(', ')}; its default mode in your user settings, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:598 | SCN-008 | proposed | copy |
-| setup.commands-refused | Rules declared on this machine and not offered as declared: | lib/setup.js:603 | SCN-008 | proposed | copy |
+| setup.tools-plan | let Claude Code use PassionCode's own tools without asking: allow ${rules.join(', ')} | lib/setup.js:534 | SCN-008 | proposed | copy |
+| setup.tools-plan.how | (asked in a terminal, or --allow-tools) | lib/setup.js:564 | SCN-008 | proposed | copy |
+| setup.tools-fails | A run with ${failing.join(' or ')} fails until that is fixed. | lib/setup.js:603 | SCN-008 | proposed | copy |
+| setup.tools-unreadable | Claude Code's settings were not changed: ${tools.error} | lib/setup.js:601 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-hint | Claude Code still asks before it uses PassionCode's own tools. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:614 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-question | Let Claude Code run these commands without asking: ${result.commands.rules.map(commandLine).join('; ')}${wild}? | lib/setup.js:261 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-question.wild | ; a rule ending in * allows any arguments after its words | lib/setup.js:260 | SCN-008 | proposed | copy |
+| setup.commands-rule | ${r.rule} (${r.why}${r.by ? `; declared by ${r.by}` : ''}) | lib/setup.js:533 | SCN-008 | proposed | copy |
+| setup.commands-plan | let Claude Code run these commands without asking (asked in a terminal, or --allow-commands): | lib/setup.js:567 | SCN-008 | proposed | copy |
+| setup.commands-plan.wild | (a rule ending in * allows any arguments after its words, options included) | lib/setup.js:569 | SCN-008 | proposed | copy |
+| setup.commands-pending | allow ${result.commands.rules.map((r) => r.rule).join(', ') \|\| 'the rules for commands'} in ${file} | lib/setup.js:404 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-done | allowed ${added.join(', ')} in ${file} (an ask or deny rule for them still wins${added.some(wildcard) ? '; a rule ending in * allows any arguments after its words' : ''}) | lib/setup.js:411 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-already | nothing to add in ${file}: each rule is already allowed, asked about or denied there | lib/setup.js:395 | SCN-008, SCN-009 | proposed | copy |
+| setup.commands-hint | Claude Code still asks before it runs ${cmds.rules.map((r) => r.rule).join(', ')}. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:619 | SCN-008, SCN-009 | proposed | copy |
+| setup.tools-hint-quiet | Claude Code's allow rules do not include PassionCode's own tools; its default mode in your user settings, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-tools | lib/setup.js:613 | SCN-008 | proposed | copy |
+| setup.commands-hint-quiet | Claude Code's allow rules do not include ${cmds.rules.map((r) => r.rule).join(', ')}; its default mode in your user settings, ${quiet}, decides what it does without them. To allow them: ${D.NPX} setup --allow-commands${cmds.rules.some((r) => wildcard(r.rule)) ? ' (a rule ending in * allows any arguments after its words)' : ''} | lib/setup.js:617 | SCN-008 | proposed | copy |
+| setup.commands-refused | Rules declared on this machine and not offered as declared: | lib/setup.js:622 | SCN-008 | proposed | copy |
 | permissions.gh-merge | merge a pull request with the GitHub CLI; the rule cannot be limited to your repositories | lib/permissions.js:17 | SCN-008 | proposed | copy |
 | permissions.rule-not-text | a rule is not text | lib/permissions.js:63 | SCN-008 | proposed | error |
 | permissions.rule-mcp | ${rule}: a declared rule names a command; an MCP server's tools are not offered here | lib/permissions.js:64 | SCN-008 | proposed | error |
@@ -144,10 +144,10 @@ Contract: brand-contract v1
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:228 | SCN-015 | proposed | copy |
 | doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:237 | SCN-010 | proposed | copy |
 | doctor.skills-shadowed | shadowed by ${path.join(skillsDir, m.shadows.join(', '))} | lib/doctor.js:230 | SCN-010 | proposed | copy |
-| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:520 | SCN-010 | proposed | copy |
-| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:522 | SCN-010 | proposed | copy |
-| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:554 | SCN-010 | proposed | copy |
-| doctor.app-shared | ${label}: the copy in ${copy.path} is ${whose}, left as it is${links} | lib/catalog.js:193 | SCN-017 | proposed | layout |
+| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:533 | SCN-010 | proposed | copy |
+| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:535 | SCN-010 | proposed | copy |
+| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:567 | SCN-010 | proposed | copy |
+| doctor.app-shared | ${label}: the copy in ${copy.path} is ${whose}, left as it is${links} | lib/catalog.js:207 | SCN-017 | proposed | layout |
 | doctor.mcp-shared | ${agent.name}: ${m.name} runs from ${other.path}, not from your copy in ${path.dirname(at)} | lib/doctor.js:375 | SCN-017 | proposed | layout |
 | doctor.mcp-shared-launcher | ${runs}; setup points it at yours | lib/doctor.js:376 | SCN-017 | proposed | layout |
 | doctor.mcp-shared-person | ${runs}; the launcher did not set this entry | lib/doctor.js:379 | SCN-017 | proposed | layout |
@@ -155,11 +155,11 @@ Contract: brand-contract v1
 | doctor.service-foreign-user | port ${port} belongs to another OS account (${owner.owner}); doctor sent it nothing and did not read its answer | lib/doctor.js:130 | SCN-017 | proposed | copy |
 | doctor.service-owner-untold | the owner of port ${port} cannot be told (${owner.reason || 'no owner in the socket table'}); doctor sent it nothing and did not read its answer | lib/doctor.js:130 | SCN-017 | proposed | copy |
 | doctor.service-down | nothing listens on port ${port} | lib/doctor.js:125 | SCN-017 | proposed | copy |
-| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:504 | SCN-017 | proposed | copy |
-| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:504 | SCN-017 | proposed | copy |
-| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:504 | SCN-017 | proposed | copy |
-| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:497 | SCN-009 | proposed | copy |
-| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:504 | SCN-009 | proposed | copy |
+| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:517 | SCN-017 | proposed | copy |
+| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:517 | SCN-017 | proposed | copy |
+| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:517 | SCN-017 | proposed | copy |
+| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:510 | SCN-009 | proposed | copy |
+| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:517 | SCN-009 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: ${require('./launcher').npxCommand()} analytics off (each PassionCode app has its own switch). | lib/analytics.js:31 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:245 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:243 | SCN-016 | proposed | copy |
@@ -194,18 +194,18 @@ Contract: brand-contract v1
 | ledger.unreadable | ${file} cannot be read: ${error.message} | lib/ledger.js:27 | SCN-015 | proposed | error |
 | ledger.schema | ${file} is not a ${SCHEMA} ledger | lib/ledger.js:31 | SCN-015 | proposed | error |
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
-| setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:511 | SCN-008, SCN-009, SCN-015 | proposed | error |
+| setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:530 | SCN-008, SCN-009, SCN-015 | proposed | error |
 | setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:246 | SCN-011 | proposed | layout |
-| setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}${how} | lib/catalog.js:205 | SCN-017 | proposed | layout |
-| setup.blocked-folder.how | make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write) | lib/catalog.js:204 | SCN-017 | proposed | copy |
-| setup.blocked-folder.how-admin | ask an administrator to let you write it | lib/catalog.js:204 | SCN-017 | proposed | copy |
-| setup.blocked-foreign | ${where} is another user's copy, left as it is, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or set it to a folder of your own' : 'ask an administrator to move it'} | lib/catalog.js:201 | SCN-017 | proposed | layout |
-| setup.install-note.blocked-needs | ; it also needs ${missing.join(' and ')} | lib/setup.js:81 | SCN-017 | proposed | copy |
+| setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}${how} | lib/catalog.js:219 | SCN-017 | proposed | layout |
+| setup.blocked-folder.how | make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write) | lib/catalog.js:218 | SCN-017 | proposed | copy |
+| setup.blocked-folder.how-admin | ask an administrator to let you write it | lib/catalog.js:218 | SCN-017 | proposed | copy |
+| setup.blocked-foreign | ${where} is another user's copy, left as it is, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or set it to a folder of your own' : 'ask an administrator to move it'} | lib/catalog.js:215 | SCN-017 | proposed | layout |
+| setup.install-note.blocked-needs | ; it also needs ${missing.join(' and ')} | lib/setup.js:87 | SCN-017 | proposed | copy |
 | doctor.app-version-unknown.blocked | if its signature check fails too, setup cannot reinstall it: | lib/doctor.js:305 | SCN-017 | proposed | copy |
-| setup.blocked | Nothing was changed: ${need(result.blocked)} a folder you can write; the steps below say which.${stand(a)} | lib/setup.js:569 | SCN-017 | proposed | layout |
-| setup.would-block | Nothing would change: ${need(names)} a folder you can write (see the plan below).${stand(a)} | lib/setup.js:502 | SCN-017 | proposed | layout |
-| setup.left-blocked | Not installed or replaced: ${need(names)} a folder you can write; the steps below say which. | lib/setup.js:503 | SCN-017 | proposed | layout |
-| setup.declined-blocked | Not asked about: ${need(names)} a folder you can write; the steps below say which. | lib/setup.js:491 | SCN-017 | proposed | layout |
+| setup.blocked | Nothing was changed: ${need(result.blocked)} a folder you can write; the steps below say which.${stand(a)} | lib/setup.js:588 | SCN-017 | proposed | layout |
+| setup.would-block | Nothing would change: ${need(names)} a folder you can write (see the plan below).${stand(a)} | lib/setup.js:521 | SCN-017 | proposed | layout |
+| setup.left-blocked | Not installed or replaced: ${need(names)} a folder you can write; the steps below say which. | lib/setup.js:522 | SCN-017 | proposed | layout |
+| setup.declined-blocked | Not asked about: ${need(names)} a folder you can write; the steps below say which. | lib/setup.js:510 | SCN-017 | proposed | layout |
 | hook.unreadable-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but who published it could not be read, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:265 | SCN-006 | proposed | copy |
 | hook.untrusted-publisher | [passioncode] ${PACKAGE}@${latest} is on npm but published by ${[...new Set(untrusted)].join(', ')}, not a trusted PassionCode publisher, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:268 | SCN-006 | proposed | copy |
 | hook.unsigned | [passioncode] ${PACKAGE}@${latest} is on npm but its registry signature does not verify against the npm key pinned in this plugin, so it is not installed; ${keep()} | plugin/passioncode/hooks/update-check.js:273 | SCN-006 | proposed | copy |
@@ -222,46 +222,68 @@ Contract: brand-contract v1
 | status.npm.cause-npm-missing | no npm beside this Node | bin/passioncode.js:13 | SCN-001 | proposed | copy |
 | status.npm.cause-failed | last check failed | bin/passioncode.js:13 | SCN-001 | proposed | copy |
 | hook.manual | [passioncode] ${latest} is out (you have ${state.installed}): npx ${REGISTRY_ARGS.join(' ')} ${PACKAGE}@${latest} update | plugin/passioncode/hooks/update-check.js:288 | SCN-006 | proposed | copy |
-| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:205 | SCN-013 | proposed | copy |
-| setup.memory-install-vault | install ${catalog.WIKI.name} ${memory.PIN} with uv (the agents' wiki memory) and make its vault in ${vault} | lib/setup.js:98 | SCN-018 | proposed | copy |
-| setup.memory-install | install ${catalog.WIKI.name} ${memory.PIN} with uv (the agents' wiki memory); your wiki config stays as it is | lib/setup.js:99 | SCN-018 | proposed | copy |
-| setup.memory-vault | make the agents' wiki vault in ${vault} with obsidian-wiki setup --no-hooks | lib/setup.js:100 | SCN-018 | proposed | copy |
-| setup.memory-needs-uv | needs uv: install it (${memory.UV_PAGE}), then run setup again | lib/setup.js:101 | SCN-018 | proposed | copy |
-| setup.memory-folder-taken | ${vault} ${problem}; choose an empty or new folder with --wiki-vault <dir> | lib/setup.js:102 | SCN-018 | proposed | copy |
-| setup.memory-question | ${i.detail[0].toUpperCase()}${i.detail.slice(1)}? | lib/setup.js:237 | SCN-018 | proposed | layout |
-| setup.memory-step | The wiki memory: ${i.note} | lib/setup.js:458 | SCN-018 | proposed | layout |
-| setup.memory-name | the wiki memory | lib/setup.js:71 | SCN-018 | proposed | copy |
-| setup.repair-tool | bring ${catalog.WIKI.name} up to ${memory.PIN} with uv tool install --force (its config and vault stay as they are) | lib/setup.js:123 | SCN-018 | proposed | copy |
-| memory.vault-problem.not-folder | is not a folder | lib/memory.js:73 | SCN-018 | proposed | copy |
-| memory.vault-problem.holds-files | already holds files | lib/memory.js:76 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-absent | ${catalog.WIKI.name} (the agents' wiki memory): not installed | lib/memory.js:112 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-uv-step | install uv (${UV_PAGE}), then ${NPX} setup --with wiki | lib/memory.js:112 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-behind | ${catalog.WIKI.name} ${t.version}; this launcher pins ${PIN} | lib/memory.js:119 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-unread | ${catalog.WIKI.name} at ${t.bin}: its version could not be read; this launcher pins ${PIN} | lib/memory.js:119 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-other-tool | bring it to ${PIN} with the tool that installed it (uv did not) | lib/memory.js:122 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-pinned | ${catalog.WIKI.name} ${t.version} (pinned by this launcher) | lib/memory.js:126 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-ahead | ${catalog.WIKI.name} ${t.version}, ahead of this launcher's pin ${PIN}; never taken back | lib/memory.js:126 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-path | ${catalog.WIKI.name} is in ${path.dirname(t.bin)}, which is not on your PATH, so agents and its hooks cannot run it by name | lib/memory.js:129 | SCN-018 | proposed | copy |
-| doctor.memory-wiki-path-fix | uv tool update-shell, then open a new terminal | lib/memory.js:129 | SCN-018 | proposed | copy |
-| doctor.memory-vault-none | no wiki vault yet (obsidian-wiki has no config) | lib/memory.js:134 | SCN-018 | proposed | copy |
-| doctor.memory-vault-passes | obsidian-wiki doctor passes | lib/memory.js:149 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-none | Claude Code starts a session without a recap of the wiki (obsidian-wiki's SessionStart hook is not registered) | lib/memory.js:160 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-unreachable | obsidian-wiki's SessionStart hook is registered but cannot reach the package, so it ends silently | lib/memory.js:161 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-ok | Claude Code starts each session with a recap of the wiki (obsidian-wiki's SessionStart hook) | lib/memory.js:162 | SCN-018 | proposed | copy |
-| doctor.memory-hooks-stop | obsidian-wiki's Stop hook is registered: after every turn of every Claude Code session, in every project, it asks the agent to write into the wiki; the launcher never registers it | lib/memory.js:164 | SCN-018 | proposed | copy |
-| memory.done-installed | installed ${catalog.WIKI.name} ${PIN} | lib/memory.js:193 | SCN-018 | proposed | copy |
-| memory.done-vault | made the wiki vault ${vault} | lib/memory.js:208 | SCN-018 | proposed | copy |
-| memory.done-hook | registered its SessionStart recap for Claude Code | lib/memory.js:213 | SCN-018 | proposed | copy |
-| memory.done-upgrade | brought ${catalog.WIKI.name} ${before && before.version ? `${before.version} ` : ''}up to ${PIN}; its config and vault are as they were | lib/memory.js:228 | SCN-018 | proposed | copy |
-| memory.no-uv | uv is not installed (${UV_PAGE}); nothing was installed | lib/memory.js:188 | SCN-018 | proposed | copy |
-| memory.folder-taken | ${vault} ${problem}; no vault was made (choose another folder with --wiki-vault <dir>) | lib/memory.js:198 | SCN-018 | proposed | copy |
+| hook.setup-check | [passioncode] the setup check of ${when} found ${fails} problem(s) | plugin/passioncode/hooks/session-start.js:207 | SCN-013 | proposed | copy |
+| setup.memory-install-vault | install ${catalog.WIKI.name} ${memory.PIN} with uv (the agents' wiki memory) and make its vault in ${vault} | lib/setup.js:103 | SCN-018 | proposed | copy |
+| setup.memory-install | install ${catalog.WIKI.name} ${memory.PIN} with uv (the agents' wiki memory); your wiki config stays as it is | lib/setup.js:104 | SCN-018 | proposed | copy |
+| setup.memory-vault | make the agents' wiki vault in ${vault} with obsidian-wiki setup --no-hooks | lib/setup.js:105 | SCN-018 | proposed | copy |
+| setup.memory-folder-taken | ${vault} ${problem}; choose an empty or new folder with --wiki-vault <dir> | lib/setup.js:106 | SCN-018 | proposed | copy |
+| setup.memory-question | ${i.detail[0].toUpperCase()}${i.detail.slice(1)}? | lib/setup.js:243 | SCN-018 | proposed | layout |
+| setup.memory-step | The wiki memory: ${i.note} | lib/setup.js:474 | SCN-018 | proposed | layout |
+| setup.memory-name | the wiki memory | lib/setup.js:76 | SCN-018 | proposed | copy |
+| setup.repair-tool | bring ${catalog.WIKI.name} up to ${memory.PIN} with uv tool install --force (its config and vault stay as they are) | lib/setup.js:128 | SCN-018 | proposed | copy |
+| memory.vault-problem.not-folder | is not a folder | lib/memory.js:121 | SCN-018 | proposed | copy |
+| memory.vault-problem.holds-files | already holds files | lib/memory.js:124 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-absent | ${catalog.WIKI.name} (the agents' wiki memory): not installed | lib/memory.js:167 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-behind | ${catalog.WIKI.name} ${t.version}; this launcher pins ${PIN} | lib/memory.js:174 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-unread | ${catalog.WIKI.name} at ${t.bin}: its version could not be read; this launcher pins ${PIN} | lib/memory.js:174 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-other-tool | bring it to ${PIN} with the tool that installed it (uv did not) | lib/memory.js:177 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-pinned | ${catalog.WIKI.name} ${t.version} (pinned by this launcher) | lib/memory.js:182 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-ahead | ${catalog.WIKI.name} ${t.version}, ahead of this launcher's pin ${PIN}; never taken back | lib/memory.js:182 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-path | ${catalog.WIKI.name} is in ${path.dirname(t.bin)}, which is not on your PATH, so agents and its hooks cannot run it by name | lib/memory.js:188 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-path-fix | uv tool update-shell, then open a new terminal | lib/memory.js:188 | SCN-018 | proposed | copy |
+| doctor.memory-vault-none | no wiki vault yet (obsidian-wiki has no config) | lib/memory.js:193 | SCN-018 | proposed | copy |
+| doctor.memory-vault-passes | obsidian-wiki doctor passes | lib/memory.js:208 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-none | Claude Code starts a session without a recap of the wiki (obsidian-wiki's SessionStart hook is not registered) | lib/memory.js:228 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-unreachable | obsidian-wiki's SessionStart hook is registered but cannot reach the package, so it ends silently | lib/memory.js:230 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-ok | Claude Code starts each session with a recap of the wiki (obsidian-wiki's SessionStart hook) | lib/memory.js:231 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-stop | obsidian-wiki's Stop hook is registered: after every turn of every Claude Code session, in every project, it asks the agent to write into the wiki; the launcher never registers it | lib/memory.js:233 | SCN-018 | proposed | copy |
+| memory.done-installed | installed ${catalog.WIKI.name} ${PIN} | lib/memory.js:270 | SCN-018 | proposed | copy |
+| memory.done-vault | made the wiki vault ${vault} | lib/memory.js:294 | SCN-018 | proposed | copy |
+| memory.done-hook | registered its SessionStart recap for Claude Code | lib/memory.js:299 | SCN-018 | proposed | copy |
+| memory.no-uv | uv is not installed (${UV_PAGE}); nothing was installed | lib/memory.js:265 | SCN-018 | proposed | copy |
+| memory.folder-taken | ${vault} ${problem}; no vault was made (choose another folder with --wiki-vault <dir>) | lib/memory.js:275 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-other-system | ${ob.name}: setup installs it on macOS; on this system download it from ${ob.page} | lib/doctor.js:402 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-absent | ${ob.name} (where you read the agents' wiki memory): not installed | lib/doctor.js:410 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-team | (its Developer ID team is ${ob.team}) | lib/doctor.js:429 | SCN-018 | proposed | copy |
-| catalog.obsidian-guide | Obsidian: open the wiki vault in it once (Open folder as vault) to read what your agents remember; they write it without the app. | lib/catalog.js:94 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-absent | ${ob.name} (where you read the agents' wiki memory): not installed | lib/doctor.js:412 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-team | (its Developer ID team is ${ob.team}) | lib/doctor.js:435 | SCN-018 | proposed | copy |
+| catalog.obsidian-guide | Obsidian: open the wiki vault in it once (Open folder as vault) to read what your agents remember; they write it without the app. | lib/catalog.js:98 | SCN-018 | proposed | copy |
 | releases.obsidian-digest-ok | ${assetName}: SHA-256 matches GitHub's digest (${product.name} publishes no signed SHA256SUMS) | lib/releases.js:213 | SCN-018 | proposed | copy |
 | releases.obsidian-digest-differs | ${assetName}: SHA-256 ${got} differs from GitHub's digest ${asset.digest}; nothing was installed | lib/releases.js:212 | SCN-018 | proposed | copy |
 | releases.obsidian-no-digest | ${release.tag} publishes no SHA-256 digest for ${assetName}; nothing unverified is installed | lib/releases.js:201 | SCN-018 | proposed | copy |
+| setup.plan-install.vendor | its latest release, checked by ${pr.name}'s own Developer ID signature, its notarization and GitHub's digest | lib/setup.js:73 | SCN-018 | proposed | copy |
+| setup.repair-hook | register obsidian-wiki's SessionStart recap for Claude Code again (obsidian-wiki hooks install --only SessionStart) | lib/setup.js:129 | SCN-018 | proposed | copy |
+| setup.memory-open-vault | Open the wiki vault ${v} in Obsidian once (Open folder as vault) to read what your agents remember. | lib/setup.js:478 | SCN-018 | proposed | copy |
+| memory.needs-uv.brew | needs uv: brew install uv, then run setup again | lib/memory.js:100 | SCN-018 | proposed | copy |
+| memory.needs-uv.person | needs uv: a person installs it with the installer its page names (${UV_PAGE}), then runs setup again | lib/memory.js:101 | SCN-018 | proposed | copy |
+| memory.uv-step.person | a person installs uv with the installer its page names (${UV_PAGE}) | lib/memory.js:101 | SCN-018 | proposed | copy |
+| memory.needs-git.mac | needs git: install Apple's command line tools (xcode-select --install), then run setup again | lib/memory.js:110 | SCN-018 | proposed | copy |
+| memory.needs-git | needs git: install it (${GIT_PAGE}), then run setup again | lib/memory.js:112 | SCN-018 | proposed | copy |
+| memory.refresh | run: obsidian-wiki list (an ordinary command: it records the installed version and refreshes the skills, keeping every other key of the config) | lib/memory.js:27 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-shadow | ${t.bin} is found on PATH before uv's copy in ${path.dirname(t.uvCopy)}, so agents run that one | lib/memory.js:185 | SCN-018 | proposed | copy |
+| doctor.memory-wiki-shadow-fix | remove it with the tool that installed it (pip uninstall obsidian-wiki, or pipx uninstall obsidian-wiki) | lib/memory.js:185 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-elsewhere | obsidian-wiki's SessionStart hook is registered where this Claude Code does not read it: obsidian-wiki writes its hooks only to ${hooksFile(home)}; this Claude Code reads ${claude.settings} | lib/memory.js:225 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-elsewhere-none | obsidian-wiki writes its hooks only to ${hooksFile(home)}; this Claude Code reads ${claude.settings}, so it starts sessions without a recap of the wiki | lib/memory.js:226 | SCN-018 | proposed | copy |
+| doctor.memory-hooks-unreadable | obsidian-wiki's hooks could not be read (${h.error}) | lib/memory.js:220 | SCN-018 | proposed | copy |
+| doctor.memory-vault-unread | wiki vault: obsidian-wiki doctor could not be read (${(r.err \|\| r.out \|\| `exit ${r.code}`).trim().split('\n')[0]}) | lib/memory.js:199 | SCN-018 | proposed | copy |
+| memory.done-hook-repair | registered obsidian-wiki's SessionStart recap for Claude Code | lib/memory.js:311 | SCN-018 | proposed | copy |
+| memory.done-upgrade | brought ${catalog.WIKI.name} ${before && before.version ? `${before.version} ` : ''}up to ${PIN}; the vault is as it was, and the config's other keys too | lib/memory.js:330 | SCN-018 | proposed | copy |
+| memory.vault-step-failed | ${message}; nothing of the vault step was kept | lib/memory.js:286 | SCN-018 | proposed | copy |
+| memory.setup-no-config | obsidian-wiki setup --no-hooks --vault ${vault} wrote no config | lib/memory.js:293 | SCN-018 | proposed | copy |
+| memory.uv-installed-but | uv installed obsidian-wiki, but ${t ? `it reads ${t.version \|\| 'no version'}` : 'it does not answer'} | lib/memory.js:269 | SCN-018 | proposed | copy |
+| memory.list-failed | obsidian-wiki list (it records the new version): ${lastLine(l)} | lib/memory.js:328 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-outdated | ; ${latest.version} is out (Obsidian updates itself inside the app) | lib/doctor.js:427 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-admin |  (the copy an administrator installed in ${path.dirname(admin)}) | lib/doctor.js:424 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-admin-fix | an administrator reinstalls Obsidian from ${ob.page} | lib/doctor.js:436 | SCN-018 | proposed | copy |
+| doctor.train-unusable-fix | first make the release train usable: ${fix} | lib/doctor.js:460 | SCN-014, SCN-018 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further
 wording changes. Version values and timestamps remain verbatim observations.

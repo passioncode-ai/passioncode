@@ -13,7 +13,10 @@
 // PC-178: uv and obsidian-wiki keep their state in $HOME/fake-wiki: `version` (what `uv tool install` installed, its
 // command written into $UV_TOOL_BIN_DIR), `hooks.json` (the hooks registered in Claude Code). obsidian-wiki's config is
 // $XDG_CONFIG_HOME (else $HOME/.config)/obsidian-wiki/config; `doctor --json` prints $FAKE_WIKI_DOCTOR's file when set.
-// $FAKE_UV_FAIL and $FAKE_WIKI_SETUP_FAIL make those commands fail.
+// $FAKE_UV_FAIL and $FAKE_WIKI_SETUP_FAIL make those commands fail ($FAKE_WIKI_SETUP_FAIL=late writes the config, then
+// fails; =quiet exits 0 without a config). Like obsidian-wiki 2026.11.4, an ordinary command (`list`) whose config
+// records another version rewrites only that line (its stale refresh) and keeps every other key. brew and xcode-select
+// answer as installed ones do.
 const fs = require('fs');
 const path = require('path');
 const catalog = require('../lib/catalog');
@@ -117,14 +120,21 @@ switch (tool) {
     const saveHooks = (list) => fs.writeFileSync(hooksFile, JSON.stringify([...new Set(list)]));
     const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
     if (args[0] === '--version') { out(`obsidian-wiki ${version}`); process.exit(0); }
+    const recorded = () => { try { return (/OBSIDIAN_WIKI_VERSION="([^"]*)"/.exec(fs.readFileSync(config, 'utf8')) || [])[1] || null; } catch (_) { return null; } };
+    if (args[0] === 'list') {
+      if (recorded() && recorded() !== version) fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/OBSIDIAN_WIKI_VERSION="[^"]*"/, `OBSIDIAN_WIKI_VERSION="${version}"`));
+      out('wiki-update\nwiki-query'); process.exit(0);
+    }
     if (args[0] === 'setup') {
       if (process.stdin.isTTY) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki setup ran on a terminal\n');
-      if (process.env.FAKE_WIKI_SETUP_FAIL) { err('error: setup failed'); process.exit(1); }
       const vault = args[args.indexOf('--vault') + 1];
+      if (process.env.FAKE_WIKI_SETUP_FAIL === 'quiet') process.exit(0);
       fs.mkdirSync(vault, { recursive: true });
       fs.writeFileSync(path.join(vault, 'index.md'), '---\ntitle: Wiki Index\n---\n');
+      if (process.env.FAKE_WIKI_SETUP_FAIL && process.env.FAKE_WIKI_SETUP_FAIL !== 'late') { err('error: setup failed'); process.exit(1); }
       fs.mkdirSync(path.dirname(config), { recursive: true });
       fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${vault}"\nOBSIDIAN_WIKI_VERSION="${version}"\n`);
+      if (process.env.FAKE_WIKI_SETUP_FAIL === 'late') { err('error: setup failed after its config'); process.exit(1); }
       // Like obsidian-wiki's own setup, it makes a skills folder for every agent it knows.
       for (const d of ['.codex/skills', '.gemini/skills', '.gemini/antigravity/skills']) fs.mkdirSync(path.join(home, d), { recursive: true });
       if (!args.includes('--no-hooks')) saveHooks([...hooks, 'SessionStart', 'Stop']);
@@ -140,10 +150,14 @@ switch (tool) {
       if (process.env.FAKE_WIKI_DOCTOR) { out(fs.readFileSync(process.env.FAKE_WIKI_DOCTOR, 'utf8')); process.exit(0); }
       if (!fs.existsSync(config)) { out(JSON.stringify({ status: 'fail', checks: [{ name: 'global-config', status: 'fail', detail: `${config} missing`, hint: 'run: obsidian-wiki setup --vault /path/to/your/vault' }] })); process.exit(1); }
       const vault = /OBSIDIAN_VAULT_PATH="([^"]*)"/.exec(fs.readFileSync(config, 'utf8'))[1];
-      out(JSON.stringify({ status: 'pass', checks: [{ name: 'vault-config', status: 'pass', detail: vault, hint: '' }, { name: 'session-hooks', status: 'info', detail: 'not registered (optional)', hint: 'run: obsidian-wiki hooks install' }] }));
+      const lag = recorded() && recorded() !== version
+        ? [{ name: 'setup-version', status: 'warn', detail: `setup ran with ${recorded()}; installed package is ${version}`, hint: 'run: obsidian-wiki setup' }] : [];
+      out(JSON.stringify({ status: lag.length ? 'warn' : 'pass', checks: [{ name: 'vault-config', status: 'pass', detail: vault, hint: '' }, ...lag, { name: 'session-hooks', status: 'info', detail: 'not registered (optional)', hint: 'run: obsidian-wiki hooks install' }] }));
       process.exit(0);
     }
     process.exit(2);
   }
+  case 'brew': out('Homebrew 4.6.0'); process.exit(0);
+  case 'xcode-select': out('/Library/Developer/CommandLineTools'); process.exit(0);
   default: err(`fake-tools: unknown ${tool}`); process.exit(127);
 }
