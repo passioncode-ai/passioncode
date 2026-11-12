@@ -58,7 +58,7 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   machine without uv or git, with XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs
   in), with a skill of the person's that shares a name with one of obsidian-wiki's, with an obsidian-wiki uv holds that
   does not run, with a config line obsidian-wiki's refresh would rewrite (`memory.vault.config-form`: the person rewrites
-  the line, gate `consent`), with a memory check that could not run ("could not be checked"), or with a `~/Documents/Wiki` that
+  the line, gate `consent`), with a memory check that could not run ("could not be checked"), or with a `~/.wiki` that
   holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
   (or unsets it), moves that skill, reinstalls obsidian-wiki as the note names, fixes what the note names, or names
   another folder: on a run that changes nothing else, `skipped` names the
@@ -78,13 +78,13 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   the plan first. Fabric is an early preview and needs Docker (or OrbStack) and the Supabase CLI;
   without them it is offered, not installed; say so.
 - The agents' wiki memory (PC-178) comes with the apps: obsidian-wiki at the launcher's pin, installed with uv, a
-  new vault in `~/Documents/Wiki` (or `--wiki-vault <dir>`) when the person has no obsidian-wiki config, and Obsidian on
+  new vault in `~/.wiki` (or `--wiki-vault <dir>`) when the person has no obsidian-wiki config, and Obsidian on
   a Mac. Never run `obsidian-wiki setup`, any `obsidian-wiki hooks install` or `hooks uninstall`, or its wiki-setup
   skill yourself: obsidian-wiki's writer rewrites `~/.claude/settings.json` without its permission bits, so setup writes
   the SessionStart entry itself and a Stop entry is the person's hand edit. A `memory` item unavailable because a skill
   of the person's shares a name with one of obsidian-wiki's: pass the note on; never move or delete those skills
   yourself (obsidian-wiki's setup would delete them). Setup registers only the
-  SessionStart recap and leaves an existing vault as it is, and the config's keys other than the version. A `memory` plan item that is `unavailable` names
+  SessionStart recap and leaves an existing vault as it is, and the config's keys apart from the version and package path obsidian-wiki's refresh records. Any `doctor` row with a non-null `gate` is the person's step, never yours: pass it on (for one, the `memory.hooks` row asking to remove or merge an older `~/.obsidian-wiki`: never delete, move or edit that folder yourself). A `memory` plan item that is `unavailable` names
   why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
   person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
   note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files: ask the
@@ -119,7 +119,7 @@ reference names the format); never write one there for them.
   steps that need them in person (sign-ins, consents, secrets in hidden prompts). It is never empty after a
   first install: sign-ins and consents always remain.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
-  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, or `~/Documents/Wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
+  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, or `~/.wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its
