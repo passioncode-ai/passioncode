@@ -53,8 +53,16 @@ function setup() {
   return { home, payload, members };
 }
 
+// PC-178: doctor asks uv, obsidian-wiki and brew by name; stand-ins that answer as absent commands (exit 127) keep the
+// host's own out of these results.
+const NO_MEMORY_TOOLS = (() => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-no-memory-'));
+  for (const n of ['uv', 'obsidian-wiki', 'brew']) fs.writeFileSync(path.join(dir, n), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
+  return `${dir}${path.delimiter}${process.env.PATH}`;
+})();
+
 function run(env, ...args) {
-  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
+  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, PATH: NO_MEMORY_TOOLS, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
 }
 const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
@@ -123,7 +131,7 @@ test('PC-129: a relative CLAUDE_CONFIG_DIR means one folder to the launcher and 
   fs.renameSync(path.join(env.home, '.claude'), cfg);
   fs.renameSync(path.join(env.home, '.claude.json'), path.join(cfg, '.claude.json'));
   env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: 'claude-config' }; // relative: the CLI runs from ~/.passioncode, the launcher from home
-  const at = (...args) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', cwd: env.home, env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', ...env.extra } });
+  const at = (...args) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', cwd: env.home, env: { ...process.env, PATH: NO_MEMORY_TOOLS, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', ...env.extra } });
   const up = at('update', '--json');
   assert.equal(up.status, 0, up.stderr + up.stdout);
   const servers = () => JSON.parse(fs.readFileSync(path.join(cfg, '.claude.json'), 'utf8')).mcpServers;
