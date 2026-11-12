@@ -51,8 +51,9 @@ its notice marker, the shared `PassionCode/installation.json` created once if ab
 `https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
 it reads Obsidian's `Info.plist` and signature like an app's and the names of the `obsidian-<version>.asar` files in
 `~/Library/Application Support/obsidian` (the version Obsidian updated itself to) and obsidian-wiki's config file (only
-its vault path), runs `uv --version` and `brew --prefix` (Homebrew counts only where this user can write its `bin`), and runs
-`obsidian-wiki --version`, `obsidian-wiki doctor --json` and `obsidian-wiki hooks status --json`, which read the
+its vault path), runs `uv --version`, `uv tool list` (a copy counts as uv's only when uv lists it) and `brew --prefix`
+(Homebrew counts only where this user can write its `bin`), and runs `obsidian-wiki --version`, `obsidian-wiki doctor
+--json` and `obsidian-wiki hooks status --json`, which read the
 person's obsidian-wiki config, vault and Claude Code hooks and change nothing; doctor prints only check names, states,
 details and hints, never a page of the vault.
 
@@ -79,17 +80,21 @@ home folder; `docs/reference/cli.md` lists them, PC-119), records every rule it 
 descriptor names launchd and that does not answer, and opens the apps it installed. For the agents' wiki memory
 (PC-178) it installs Obsidian like an app, verified by its own chain (the image against GitHub's digest, then Developer
 ID team `6JSW4SJWN9`, the stapled ticket and Gatekeeper: Obsidian publishes no signed checksums); runs
-`uv tool install obsidian-wiki==<pin>` (or `--force` to bring an older copy uv installed up to the pin), which takes the
+`uv tool install obsidian-wiki==<pin>` (or `--force` to bring an older copy uv lists up to the pin), which takes the
 package from PyPI; asks `xcode-select -p` (on macOS, first, so no install dialog opens) and `git --version` before a vault
 step; and, for a user with no obsidian-wiki config, makes the vault folder (`~/Documents/Wiki` or
 `--wiki-vault`, never one that holds files), runs `git init -b main` in it, `obsidian-wiki setup --no-hooks --vault <dir>`
-with no terminal (which writes `~/.config/obsidian-wiki/config` and links obsidian-wiki's own skills into each agent's
+with no terminal (which writes `~/.config/obsidian-wiki/config` and its writing profile `WRITING.md` beside it, and links obsidian-wiki's own skills into each agent's
 skills folder, creating that folder for agents that are not installed too, where the set's own skills are then linked
 like any agent's skills folder) and, where Claude Code is installed, `obsidian-wiki hooks install --only SessionStart` (one
 entry in the literal `~/.claude/settings.json`, whatever `CLAUDE_CONFIG_DIR` names: where Claude Code reads another folder
-the hook is not registered and `doctor` says so). A vault step that fails removes what it made (the folder, its `.git`,
-the config). An older obsidian-wiki is brought up with `uv tool install --force` and then `obsidian-wiki list`, whose stale
-refresh records the new version and keeps every other key of the config. It never registers or removes obsidian-wiki's
+the hook is not registered and `doctor` says so; where that file is a link, obsidian-wiki writes the entry into a
+throwaway home and the launcher adds it where the link points, keeping the link, since obsidian-wiki's own writer would
+replace the link with a plain file). A vault step that fails removes what it made (the folder, its `.git`, and what the
+step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the folder when the step made it). An older
+obsidian-wiki is brought up with `uv tool install --force` and then `obsidian-wiki list` with its update check off
+(`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`), whose stale refresh records the new version and keeps every other key of the
+config; a `list` that asks for `obsidian-wiki setup` fails the step instead. It never registers or removes obsidian-wiki's
 Stop hook, never runs `obsidian-wiki setup` over an existing config (setup rewrites the config), never replaces a working
 Obsidian for its version, and never runs an installer script from the network (a missing uv is `brew install uv` where
 Homebrew is, else a person's step with uv's installer). `uninstall` and `restore` leave the memory as it is. It never

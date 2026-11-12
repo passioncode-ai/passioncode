@@ -395,9 +395,11 @@
   Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
   `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
-  are; an older obsidian-wiki that uv installed is brought up to the pin with `uv tool install --force` (also by
-  `doctor --fix`), never with `obsidian-wiki setup`. `--wiki-vault <dir>` puts a new vault elsewhere; `--without memory`
-  (or `obsidian`, `wiki`) and `--no-apps` leave it out, the upgrade included. On Linux and Windows setup installs no
+  are; an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
+  `doctor --fix`), never with `obsidian-wiki setup`; a copy uv does not list (pipx, pip `--user`) is the person's to
+  bring up. `--wiki-vault <dir>` puts a new vault elsewhere; `--without obsidian` leaves out the app, `--without wiki`
+  obsidian-wiki, its vault, its upgrade and the hook repair, `--without memory` both, and `--no-apps` both too. A
+  `~/.claude/settings.json` that is a link stays one: the SessionStart entry is added where it points. On Linux and Windows setup installs no
   Obsidian and `doctor` names its download page; obsidian-wiki is still installed where uv is. Obsidian updates itself
   inside the app: an older version is information, and setup never replaces a working copy for it (only a damaged copy
   of this user's own); a copy an administrator installed in `/Applications` is used as this user's, with no second copy.
@@ -414,7 +416,8 @@
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
   vault the launcher made is registered again by the next `setup` or `doctor --fix`, while the config still names that
   vault; any other vault's missing hook is the person's choice. A folder a failed vault step cannot remove is named with
-  what to do. Memory rows of a part the run left out (`--without`, `--no-apps`) do not fail the run. A `~/Documents/Wiki` that holds files is never written: the steps name
+  what to do. Memory rows of a part the run left out (`--without`, `--no-apps`) do not fail the run (a failing Obsidian
+  signature always fails it; the JSON names the parts in `leftOut`). A `~/Documents/Wiki` that holds files is never written: the steps name
   `--wiki-vault`. An Obsidian image that differs from GitHub's digest, carries another team (PassionCode.ai's own
   included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
   failure with its check names, and the session-start line then names `doctor`, not `setup`, which cannot repair it; a

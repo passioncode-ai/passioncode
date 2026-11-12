@@ -7,7 +7,8 @@ the PassionCode.ai skills listed in [`family.json`](family.json), and the agents
 (the open-source [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) with a vault of its own, and
 Obsidian to read it in). Run the same command on a
 computer that is already set up, and it checks everything, repairs what is wrong and tells you
-what changed.
+what changed; a computer set up before the wiki memory came gets it on its next `setup`, unless that run says
+`--without memory`.
 
 ```bash
 npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
@@ -45,7 +46,8 @@ Paste this into Claude Code, Codex or another coding agent:
 Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
 secret into a product's own hidden prompt, starting Docker for Fabric, unlocking a folder setup cannot write (or asking
-an administrator), and restarting your agent.
+an administrator), installing uv with its own installer where Homebrew is not yours (setup names the page), installing
+Apple's command line tools when setup asks for git, opening the wiki vault in Obsidian once, and restarting your agent.
 
 ## Quick start for a new teammate
 
@@ -140,12 +142,16 @@ that already holds files), makes it a Git repository, runs `obsidian-wiki setup 
 SessionStart recap for Claude Code (only where Claude Code reads `~/.claude`; obsidian-wiki writes nowhere else). The run
 ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is, and the Stop hook (which asks
 every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
-someone did. `--without memory` (or `obsidian`, `wiki`) leaves it out.
+someone did. `--without` leaves a part out: `obsidian` the app; `wiki` obsidian-wiki, its vault, its upgrade and the
+hook repair; `memory` both.
 
 `doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of
-the family; each line names its state and its fix. Exit codes: **0** no check failed (or `setup`
-only showed its plan), **1** a check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without
+the family, and the agents' wiki memory (`memory` lines: Obsidian and its signature, obsidian-wiki and its version,
+the vault as `obsidian-wiki doctor --json` reads it, and the Claude Code hooks); each line names its state and its fix.
+Exit codes: **0** nothing failed in what the run covered (the `memory` lines of a part named in `leftOut` do not count,
+except a failing Obsidian signature), or `setup` only showed its plan, **1** a check (or a setup step) failed, **2** bad
+arguments. `doctor --fix` runs setup's repairs without
 installing new apps. Details: the [CLI contract](docs/reference/cli.md#setup-and-doctor).
 
 **Release trains.** An organization's machines install one set of pinned app versions instead of
