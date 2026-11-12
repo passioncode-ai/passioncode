@@ -22,9 +22,12 @@
   you may not read) blocks the memory and is named on its own, with the fix to repair the link or the permissions; a
   memory check that fails in a way nobody foresaw is one `memory.error` warning in `doctor`, never a crash; an
   obsidian-wiki uv holds that does not run is never installed over or uninstalled, and `doctor` names your reinstall
-  from what uv recorded (your own version, each value quoted for the shell). A config key written with spaces around
-  `=`, which obsidian-wiki's version refresh would empty, stops every `obsidian-wiki list` and is named; the upgrade
-  keeps the Python obsidian-wiki's venv was made with. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
+  from what uv recorded (the version specifier uv recorded, none meaning PyPI's latest, never the pin; each value quoted
+  for the shell). A config line obsidian-wiki's version refresh would rewrite (a spaced, single-quoted, exported,
+  commented or repeated managed key, or an `OBSIDIAN_WIKI_REPO` outside its package) stops every `obsidian-wiki list` and
+  is named; the upgrade keeps the Python obsidian-wiki's venv was made with, and puts the previous version back when the
+  refresh refuses after the reinstall. Beside an older `~/.obsidian-wiki`, which obsidian-wiki's recap script reads
+  first, setup makes the vault but registers no SessionStart recap, and `doctor` says why. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
   With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual; `doctor` shows it as
   `memory.config`, and every other memory row that names `setup` asks for that step first. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,

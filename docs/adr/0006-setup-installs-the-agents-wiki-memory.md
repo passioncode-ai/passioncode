@@ -156,16 +156,25 @@ project, after every turn, to write into the vault. On the operator's machine th
     `uv tool install` over it (it would drop the extras or take back a newer version) and never uninstalls it. A memory
     check that throws anyway is one `memory.error` warning in `doctor` and a memory item left out of `setup` with that
     note. Round 12: that reinstall keeps the person's own version specifier (never the pin) and single-quotes each value;
-    a config that writes `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` or `OBSIDIAN_WIKI_VERSION` with spaces around `=`
-    stops every `obsidian-wiki list` (seen with the real 2026.11.4: its refresh empties such a key), named in
-    `memory.vault.spaced`; the upgrade passes the venv's own Python (`pyvenv.cfg`) when uv's record names none; a quoted
+    a config line obsidian-wiki's refresh would rewrite stops every `obsidian-wiki list` (round 13: measured with the
+    real 2026.11.4, it empties a spaced key, wraps a single-quoted value, appends to an `export` line, absorbs a trailing
+    comment and replaces a person's `OBSIDIAN_WIKI_REPO` with the package path; so each managed key must be exactly
+    `KEY="..."` or `KEY=value`, once, and `OBSIDIAN_WIKI_REPO` inside the package), named in
+    `memory.vault.config-form`; the upgrade passes the venv's own Python (`pyvenv.cfg`) when uv's record names none; a quoted
     key in uv's record is refused; a hook entry counts only with `type: "command"`, as obsidian-wiki's `is_registered`
     reads it.
+14. **The recap reads the folder it finds first (round 13).** obsidian-wiki's `wiki-session-recap.sh` reads
+    `~/.obsidian-wiki` whenever that folder exists, while its commands read the XDG folder when that exists: with both
+    there the recap would bring the older vault into every session. Setup then registers no SessionStart recap (the vault
+    is still made), offers no hook repair, and `doctor`'s `memory.hooks` is a warning naming both folders until the
+    person removes or merges the older one. An upgrade whose refresh refuses after the reinstall puts the previous
+    version back. Every obsidian-wiki command runs with the launcher's home as `HOME`, so what it reads is what the
+    launcher decided on.
 
 ## Consequences
 
-- One `setup` gives a new machine a working wiki memory, where uv and git are there, XDG_CONFIG_HOME is not a relative
-  path and no skill of the person's shares a name with one of obsidian-wiki's: the tool, its skills in each agent's own folder (written by
+- One `setup` gives a new machine a working wiki memory, unless one of the reasons `cli.md` lists for leaving it out
+  holds ([Setup and doctor](../reference/cli.md#setup-and-doctor)): the tool, its skills in each agent's own folder (written by
   obsidian-wiki's setup, its own channel, never by the launcher), a vault that is a Git repository, the session-start
   recap in Claude Code, and Obsidian to read it.
 - The launcher now has three trust roots. PassionCode.ai apps: the release key's signed `SHA256SUMS`, team
