@@ -12,7 +12,7 @@
   gets a new vault in `~/.wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
   repository, set up with `obsidian-wiki setup --no-hooks` and given only the SessionStart recap for Claude Code. An
   existing config, vault or hook is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records
-  after an upgrade, or an install over an existing config, every other key kept), and obsidian-wiki's Stop hook (it asks every session in every
+  after an upgrade, or an install over an existing config, every other key kept beside the version and package path), and obsidian-wiki's Stop hook (it asks every session in every
   project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
   Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
   leaves nothing it made, so the next run starts again; when the same run installed obsidian-wiki, a step that fails
@@ -33,7 +33,9 @@
   names it and the step to put its command folder on PATH. A new vault now goes in the hidden `~/.wiki`, never
   `~/Documents` (which iCloud may sync); the step to open it names Cmd+Shift+G in Obsidian's folder picker and the
   path. A config with any control character but tab and newline is refused like the line breaks above, and a relative
-  `OBSIDIAN_WIKI_REPO` is a config form. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
+  `OBSIDIAN_WIKI_REPO` is a config form whose step is to remove the line or write it as an absolute path; a config not saved
+  as UTF-8 is its own form, and a vault path with a double quote or a line break is refused. Every step that opens the
+  vault in Obsidian names its path and, on a Mac, Cmd+Shift+G. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
   With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual; `doctor` shows it as
   `memory.config`, and every other memory row that names `setup` asks for that step first. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,

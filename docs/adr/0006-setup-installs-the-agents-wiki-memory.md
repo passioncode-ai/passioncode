@@ -43,7 +43,7 @@ project, after every turn, to write into the vault. On the operator's machine th
    `~/.local/bin` too; a copy uv does not list is the person's to bring up, gate `consent`; a copy pip or pipx put first
    on PATH is named, `memory.wiki.shadow`, never replaced under it). Right after that upgrade setup runs
    `obsidian-wiki list` with its update check off (`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`): any ordinary command runs obsidian-wiki's stale refresh, which records the new version and package
-   path in the config and refreshes the skills it linked, keeping every other key (2026.11.4 `_check_stale`), so the setup-version
+   path in the config and refreshes the skills it linked, keeping every other key beside the version and package path (2026.11.4 `_check_stale`), so the setup-version
    warning never follows the launcher's own upgrade; a `list` whose stale check could not refresh and asks for
    `obsidian-wiki setup` fails the step with the fixed text below, never a "done". Versions compare by their leading x.y.z: above the pin is left
    alone, below it is upgraded, and the pin's own x.y.z with a suffix the launcher cannot order (or no version) is a
@@ -71,7 +71,7 @@ project, after every turn, to write into the vault. On the operator's machine th
    `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
    SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
    it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records
-   after an upgrade, or an install over an existing config, every other key kept): the launcher never runs
+   after an upgrade, or an install over an existing config, every other key kept beside the version and package path): the launcher never runs
    `obsidian-wiki setup` over a config, which rewrites the config.
 4. **The Stop hook is never the launcher's.** Setup never registers it and never removes one someone registered;
    `doctor` names it as information (`memory.hooks.stop`), with its machine-wide effect and the person's choice
@@ -182,7 +182,12 @@ project, after every turn, to write into the vault. On the operator's machine th
     through, and its refresh emptied it; U+2028 in a value was truncated) or a byte order mark is refused as a whole. A
     config whose `OBSIDIAN_WIKI_REPO` names an existing `obsidian_wiki/_data` outside uv's tool folder is the person's own
     obsidian-wiki, off this PATH: setup never installs uv's copy over it (its `list` would rewrite their config and
-    relink every skill, and the two would fight); `doctor` names its package. `hook()` and the hook repair also wait for
+    relink every skill, and the two would fight); `doctor` names its package. What the refresh may write (round 16,
+    measured with the real 2026.11.4): the version and the package path (`OBSIDIAN_WIKI_REPO`, added when absent), and
+    the quotes around a bare managed value (`OBSIDIAN_VAULT_PATH=/x` becomes `OBSIDIAN_VAULT_PATH="/x"`, the same
+    meaning); a config with no vault line gains `OBSIDIAN_VAULT_PATH=""`. Accepted: no value changes its meaning. A
+    config that is not UTF-8 stops its `list` (UnicodeDecodeError), so it is refused as its own form; a vault path with a
+    double quote or a line break is refused, since the config holds it between quotes on one line. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
