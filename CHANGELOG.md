@@ -9,9 +9,9 @@
   `uv tool install`, and, on a Mac, Obsidian, where a person reads the memory. Obsidian publishes no signed checksums, so
   its image must match GitHub's digest and the app must carry Obsidian's own Developer ID team `6JSW4SJWN9`, a stapled
   ticket and Gatekeeper's yes; it goes into `~/Applications` like the other apps. A user with no obsidian-wiki config
-  gets a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
+  gets a new vault in `~/.wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
   repository, set up with `obsidian-wiki setup --no-hooks` and given only the SessionStart recap for Claude Code. An
-  existing config, vault or hook is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records
+  existing config, vault or hook is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records
   after an upgrade, or an install over an existing config, every other key kept), and obsidian-wiki's Stop hook (it asks every session in every
   project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
   Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
@@ -27,7 +27,11 @@
   commented or repeated managed key, or an `OBSIDIAN_WIKI_REPO` outside its package) stops every `obsidian-wiki list` and
   is named; the upgrade keeps the Python obsidian-wiki's venv was made with, and puts the previous version back when the
   refresh refuses after the reinstall. Beside an older `~/.obsidian-wiki`, which obsidian-wiki's recap script reads
-  first, setup makes the vault but registers no SessionStart recap, and `doctor` says why. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
+  first, setup makes the vault but registers no SessionStart recap, and `doctor` says why. A config with Windows line
+  endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same way. Your own
+  obsidian-wiki off the PATH (its package named in the config, outside uv's folder) is never installed over: `doctor`
+  names it and the step to put its command folder on PATH. A new vault now goes in the hidden `~/.wiki`, never
+  `~/Documents` (which iCloud may sync). A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
   With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual; `doctor` shows it as
   `memory.config`, and every other memory row that names `setup` asks for that step first. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
@@ -46,7 +50,7 @@
   does not hide an older `~/.obsidian-wiki` config. obsidian-wiki's setup and its version refresh replace a skill of
   the same name as one of theirs in every agent's global skills folder (it deleted a `skill-creator` on a real Mac), so
   neither runs while a skill of yours shares a name, nor does installing obsidian-wiki over an existing config: setup
-  names each one for you to move or rename, and `doctor` shows it. obsidian-wiki never writes Claude Code's settings file (its writer made it world-readable): the launcher adds the
+  names the first five and how many more for you to move or rename, and `doctor` shows it (its JSON lists every one). obsidian-wiki never writes Claude Code's settings file (its writer made it world-readable): the launcher adds the
   SessionStart entry, keeping the file private. The upgrade keeps the extras, requirements and Python uv recorded, and stops, naming it, on anything else uv
   recorded (a requirement given as a URL, path, Git source or editable; an unknown key or table), for the person to bring
   it up with uv. A registered SessionStart entry whose script is gone is a `doctor` warning (gate `consent`): remove the
