@@ -42,7 +42,7 @@ returns a nonzero exit code. See the [CLI recovery contract](docs/reference/cli.
 `~/.kimi-code/mcp.json` (entry names, commands and arguments; environment values are passed to
 the server it starts and never printed), the Fabric service descriptors (never their token
 files), the apps' `Info.plist` (on Windows, the apps' uninstall entries through `reg query` and their install folders),
-the launcher's own `trains/<name>.json` and the `train` it saved in `~/.passioncode/state.json`,
+the launcher's own `trains/<name>.json` and the `train` and `wiki` (the vault it made, PC-178) it saved in `~/.passioncode/state.json`,
 Claude Code's `~/.claude/settings.json` (only its `permissions` rules, for the `sessions.on-demand` row; nothing in it is
 printed or sent), and the GitHub releases API. It starts each registered stdio MCP
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
@@ -50,13 +50,14 @@ release cache, apart from the anonymous counts below that every command sends wh
 its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to
 `https://analytics.passioncode.ai`). For the agents' wiki memory (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
 it reads Obsidian's `Info.plist` and signature like an app's and the names of the `obsidian-<version>.asar` files in
-`~/Library/Application Support/obsidian` (the version Obsidian updated itself to), runs `uv --version` and
-`brew --version`, and runs
+`~/Library/Application Support/obsidian` (the version Obsidian updated itself to), runs `uv --version`,
+`brew --prefix` (Homebrew counts only where this user can write that folder) and, on macOS, `xcode-select -p`, and runs
 `obsidian-wiki --version`, `obsidian-wiki doctor --json` and `obsidian-wiki hooks status --json`, which read the
 person's obsidian-wiki config, vault and Claude Code hooks and change nothing; doctor prints only check names, states,
 details and hints, never a page of the vault.
 
-`setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`; a train
+`setup --train <name>` (or `none`) also writes that name into `~/.passioncode/state.json`, and a vault setup made is
+written there as `wiki` (its path and time, PC-178), the only vault whose missing SessionStart hook setup registers again; a train
 changes which release is downloaded (the pinned tag instead of the latest), never how it is verified.
 `setup` also downloads releases from GitHub into `~/.passioncode/downloads/` (removed after
 each app), copies a verified app into the person's own `~/Applications` (made when absent; a copy in `/Applications` the
@@ -99,7 +100,7 @@ root is the release key bundled at `lib/release-key.asc`, pinned by fingerprint 
 [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md)): Obsidian is trusted through its Developer ID team
 `6JSW4SJWN9` and Apple's notarization, with GitHub's asset digest guarding only the transfer (whoever publishes the
 release sets it); obsidian-wiki comes from PyPI through uv, pinned by version, not by hash, and uv may fetch a Python to
-run it. `PASSIONCODE_RELEASE_KEY` replaces it for
+run it. `PASSIONCODE_RELEASE_KEY` replaces the release key for
 tests and is named in setup's output whenever it is set.
 
 ## What `permissions` changes

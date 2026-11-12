@@ -43,7 +43,7 @@ project, after every turn, to write into the vault. On the operator's machine th
    `obsidian-wiki list`: any ordinary command runs obsidian-wiki's stale refresh, which records the new version in the
    config and refreshes the skills it linked, keeping every other key (2026.11.4 `_check_stale`), so the setup-version
    warning never follows the launcher's own upgrade. A newer one is left alone. Without uv, setup names a step: with
-   Homebrew, `brew install uv` (an agent runs it; the launcher does not); without, a person runs the installer uv's page
+   Homebrew this user can write (`brew --prefix`), `brew install uv` (an agent runs it; the launcher does not); without, a person runs the installer uv's page
    names (https://docs.astral.sh/uv/getting-started/installation/), never piped into a shell by an agent. Without git
    (on macOS `xcode-select -p` is asked first, so no install dialog opens), the vault is not offered either.
 3. **A vault only for a user who has none.** When neither `~/.obsidian-wiki/config` nor
@@ -55,8 +55,9 @@ project, after every turn, to write into the vault. On the operator's machine th
    writes its hooks only to that literal file; where `CLAUDE_CONFIG_DIR` names another folder no hook is registered and
    `doctor` says so as information. A vault step that fails removes what the launcher made (a folder it made, the `.git`
    it made, a config the failed step wrote; a folder that was there, empty, stays as it was), so the next run starts
-   again. The vault the launcher made is remembered in `~/.passioncode/state.json` (`wiki`), and only for it does setup
-   register a missing SessionStart hook again. A folder that already holds files is never made a vault: the plan names
+   again (a part it cannot remove is named, with what to do). The vault the launcher made is remembered in
+   `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
+   SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
    it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is: the launcher never runs
    `obsidian-wiki setup` over a config, which rewrites the config.
 4. **The Stop hook is never the launcher's.** Setup never registers it and never removes one someone registered;
@@ -75,7 +76,8 @@ project, after every turn, to write into the vault. On the operator's machine th
 6. **Selection.** The memory is offered by default with the apps (`--yes` takes it); `--with` and `--without` take
    `obsidian`, `wiki`, and `memory` for both; `--no-apps` leaves the memory out too, and so does a saved release train
    this launcher cannot use (setup installs nothing new until the train is usable): under them setup runs no memory
-   action at all, the upgrade and the hook included. `doctor --fix` never makes a vault or installs obsidian-wiki; it
+   action at all, the upgrade and the hook included, and the memory rows of a part the run leaves out do not fail it.
+   `doctor --fix` never makes a vault or installs obsidian-wiki; it
    brings an older one up to the pin and registers a missing hook of the vault the launcher made.
 7. **An agent folder that holds only skill folders is not that agent.** `obsidian-wiki setup` makes `skills` folders for
    every agent it knows (`~/.codex/skills`, `~/.gemini/skills`, and more), so the launcher no longer counts a folder that

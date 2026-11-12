@@ -116,7 +116,7 @@
   2. Fix any reported plugin failure and retry.
   3. Inspect status (it does not list an MCP entry an incomplete uninstall kept; the uninstall's error names it); optionally restore displaced files.
 - **Expected result:** Success clears the active installation, so nothing updates itself while nothing is installed; the update switch stays as the person set it (LC-16, PC-131), and `status` still shows it (on by default) although nothing installed updates (an update the session hook had already started still finishes, which can take several minutes: once `~/.passioncode/logs/update.log` shows it ended, run status, and if it shows a version run uninstall again); the session hook's update folders (`~/.passioncode/run/`) are removed with it unless an update recorded in the last hour may still run from them, when the hook's own sweep removes them later (LC-12, PC-143); recovery copies remain. Repeating uninstall is safe (with more than one Claude Code folder, only the first uninstall acts; docs/reference/cli.md gives the manual commands for the others, PC-129).
-- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later the person's own folder `SWITCHBOARD_CLAUDE_SOURCE_DIR` names, else `~/.claude`, never the home's rebuilt copy, PC-129), the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
+- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later the person's own folder `SWITCHBOARD_CLAUDE_SOURCE_DIR` names, else `~/.claude`, never the home's rebuilt copy, PC-129), the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; uninstall and restore leave the agents' wiki memory too (obsidian-wiki, its vault and SessionStart hook, and Obsidian, ADR-0006, SCN-018); the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
 - **UI elements:** Removed list, errors, status.
 - **States covered:** empty, error, success
 - **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. An MCP entry whose file the system cannot open now (a link into a locked folder) does not stop the rest: uninstall finishes and lists what it removed, exits 1 naming the file and keeps the entry recorded, and a retry once the file and its folder are readable and writable removes it (PC-127). `config.toml` is read as text: a launcher table edited since (a key or comment added inside it included) or a server declared another way is reported as kept; an entry no longer declared is taken as gone; an entry kept because it was changed is no longer tracked, so a retry leaves it (PC-127). A reinstall keeps the update switch as it was; an uninstall by 0.2.75 or earlier wrote it off, and `config set update.auto on` turns it back on.
@@ -268,7 +268,7 @@
 - **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run.
 - **Steps:**
   1. Start a session.
-- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), the line names `doctor`, which shows that folder, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
+- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), or one no setup run repairs (`manual`, SCN-018), the line names `doctor`, which shows that folder, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
 - **Alt paths:** No failures or no file: silent.
 - **UI elements:** One hook line.
 - **States covered:** empty, error
@@ -391,7 +391,8 @@
   repository; Claude Code starts the next session with the vault's recap (obsidian-wiki's SessionStart hook) and no
   Stop hook; on a Mac, Obsidian is in this user's `~/Applications`, its image matched GitHub's digest and the app carries
   team `6JSW4SJWN9`, its ticket and Gatekeeper's yes; the steps name the restart and the vault to open in Obsidian
-  ("Open the wiki vault <dir> in Obsidian once (Open folder as vault) ..."), also when Obsidian was installed before.
+  ("Open the wiki vault <dir> in Obsidian once (Open folder as vault) ..."), also when Obsidian was installed before; where
+  Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
   `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
   are; an older obsidian-wiki that uv installed is brought up to the pin with `uv tool install --force` (also by
@@ -411,7 +412,9 @@
   nothing the launcher made, so the next `setup` starts again. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
-  vault the launcher made is registered again by the next `setup` or `doctor --fix`. A `~/Documents/Wiki` that holds files is never written: the steps name
+  vault the launcher made is registered again by the next `setup` or `doctor --fix`, while the config still names that
+  vault; any other vault's missing hook is the person's choice. A folder a failed vault step cannot remove is named with
+  what to do. Memory rows of a part the run left out (`--without`, `--no-apps`) do not fail the run. A `~/Documents/Wiki` that holds files is never written: the steps name
   `--wiki-vault`. An Obsidian image that differs from GitHub's digest, carries another team (PassionCode.ai's own
   included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
   failure with its check names, and the session-start line then names `doctor`, not `setup`, which cannot repair it; a

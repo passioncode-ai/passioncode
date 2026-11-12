@@ -29,9 +29,10 @@ Paste this into Claude Code, Codex or another coding agent:
 
 > Set up PassionCode.ai on this computer, or check and repair it if it is already set up. Run
 > `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` (it needs Node 18 or newer)
-> and read its JSON: it installs the missing apps from their signed releases, the skills and
-> every MCP server, repairs whatever is wrong, and checks everything again. Do not download or
-> install anything by hand, and never stop or kill a running app. Then run each product
+> and read its JSON: it installs the missing PassionCode.ai apps from their signed releases (and
+> Obsidian, checked by its own signature and notarization), the skills, every MCP server and the
+> agents' wiki memory, repairs whatever is wrong, and checks everything again. Do not download or
+> install anything by hand, except `brew install uv` when a step names it, and never stop or kill a running app. Then run each product
 > onboarding step it lists that an agent may run, never ask me for a key or password in the
 > chat (the tools open their own hidden prompts), and finish with
 > `npx --yes @passioncode-ai/passioncode@latest doctor`. Tell me briefly what you set up or
@@ -103,7 +104,9 @@ an administrator), and restarting your agent.
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
   is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
   tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later, your own Claude folder, and with an earlier one `~/.claude`, [docs/reference/cli.md](docs/reference/cli.md)), and agents' declarations in
-  `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay)
+  `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay;
+  so does the agents' wiki memory: obsidian-wiki, its vault and SessionStart hook, and Obsidian,
+  [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
   ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
   [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
 
