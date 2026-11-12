@@ -82,7 +82,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   a Mac. Never run `obsidian-wiki setup`, any `obsidian-wiki hooks install` or `hooks uninstall`, or its wiki-setup
   skill yourself: obsidian-wiki's writer rewrites `~/.claude/settings.json` without its permission bits, so setup writes
   the SessionStart entry itself and a Stop entry is the person's hand edit. A `memory` item unavailable because a skill
-  of the person's shares a name with one of obsidian-wiki's: pass the note on; never move or delete those skills
+  of the person's shares a name with one of obsidian-wiki's: read the whole list from the `entries` of the
+  `memory.wiki.clash` row in `doctor --json` (the note and the detail print only the first five) and pass it on; never move or delete those skills
   yourself (obsidian-wiki's setup would delete them). Setup registers only the
   SessionStart recap and leaves an existing vault as it is, and the config's keys apart from the version and package path obsidian-wiki's refresh records. Any `doctor` row with a non-null `gate` is the person's step, never yours: pass it on (for one, the `memory.hooks` row asking to remove or merge an older `~/.obsidian-wiki`: never delete, move or edit that folder yourself). A `memory` plan item that is `unavailable` names
   why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
