@@ -10,9 +10,14 @@
 // ps answers `-o uid= -p <pid>` from $FAKE_PS_UIDS and $FAKE_PS_UIDS_EXTRA (`pid=uid,pid=uid`), else fails.
 // A release "archive" is JSON { app, version, broken?, team? }; ditto and hdiutil unpack it into a
 // bundle whose MCP binary (catalog `mcp.bin`) is test/fake-mcp.js.
-// PC-178: uv and obsidian-wiki keep their state in $HOME/fake-wiki: `version` (what `uv tool install` installed, its
-// command written into $UV_TOOL_BIN_DIR), `hooks.json` (the hooks registered in Claude Code). obsidian-wiki's config is
-// $XDG_CONFIG_HOME (else $HOME/.config)/obsidian-wiki/config; `doctor --json` prints $FAKE_WIKI_DOCTOR's file when set.
+// PC-178: uv and obsidian-wiki keep their state in $FAKE_WIKI_STATE (else $HOME/fake-wiki): `version` (what `uv tool
+// install` installed, its command written into $UV_TOOL_BIN_DIR). Like obsidian-wiki 2026.11.4's hooks.py, the hooks
+// live in $HOME/.claude/settings.json (a command per script, matched by its name), written to a temporary file that
+// then replaces the settings file (so a link there becomes a plain file), and `hooks status` exits 1 while SessionStart
+// or Stop is not registered. obsidian-wiki's config is $XDG_CONFIG_HOME (else $HOME/.config)/obsidian-wiki/config;
+// `doctor --json` prints $FAKE_WIKI_DOCTOR's file when set. $FAKE_UV_LIST_EMPTY: `uv tool list` names nothing.
+// $FAKE_WIKI_LIST_ASKS_SETUP: `list` says on stderr what obsidian-wiki's stale check says when it cannot refresh.
+// $FAKE_WIKI_HOOKS_BROKEN: `hooks status` answers no report. $FAKE_TOOLS_QUIET: nothing is logged (a test's arrangement).
 // $FAKE_UV_FAIL and $FAKE_WIKI_SETUP_FAIL make those commands fail ($FAKE_WIKI_SETUP_FAIL=late writes the config, then
 // fails; =quiet exits 0 without a config). Like obsidian-wiki 2026.11.4, an ordinary command (`list`) whose config
 // records another version rewrites only that line (its stale refresh) and keeps every other key. brew and xcode-select
@@ -23,7 +28,7 @@ const catalog = require('../lib/catalog');
 
 const [tool, ...args] = process.argv.slice(2);
 const home = process.env.HOME;
-try { fs.appendFileSync(path.join(home, 'fake-tools.log'), `${tool} ${args.join(' ')}\n`); } catch (_) { /* no home */ }
+if (!process.env.FAKE_TOOLS_QUIET) { try { fs.appendFileSync(path.join(home, 'fake-tools.log'), `${tool} ${args.join(' ')}\n`); } catch (_) { /* no home */ } } // a test's own arrangement is not logged
 const out = (s) => process.stdout.write(`${s}\n`);
 const err = (s) => process.stderr.write(`${s}\n`);
 const has = (app, f) => fs.existsSync(path.join(app, f));
@@ -95,8 +100,8 @@ switch (tool) {
   }
   case 'uv': {
     if (args[0] === '--version') { out('uv 0.9.0'); process.exit(0); }
-    const state = path.join(home, 'fake-wiki');
-    if (args[0] === 'tool' && args[1] === 'list') { if (fs.existsSync(path.join(state, 'version'))) out(`obsidian-wiki v${fs.readFileSync(path.join(state, 'version'), 'utf8').trim()}\n- obsidian-wiki`); process.exit(0); }
+    const state = process.env.FAKE_WIKI_STATE || path.join(home, 'fake-wiki');
+    if (args[0] === 'tool' && args[1] === 'list') { if (fs.existsSync(path.join(state, 'version')) && !process.env.FAKE_UV_LIST_EMPTY) out(`obsidian-wiki v${fs.readFileSync(path.join(state, 'version'), 'utf8').trim()}\n- obsidian-wiki`); process.exit(0); }
     if (args[0] === 'tool' && args[1] === 'install') {
       if (process.env.FAKE_UV_FAIL) { err('error: Failed to download obsidian-wiki'); process.exit(2); }
       const spec = args.find((a) => a.startsWith('obsidian-wiki=='));
@@ -111,17 +116,42 @@ switch (tool) {
     process.exit(2);
   }
   case 'obsidian-wiki': {
-    const state = path.join(home, 'fake-wiki');
+    const state = process.env.FAKE_WIKI_STATE || path.join(home, 'fake-wiki');
     const version = (() => { try { return fs.readFileSync(path.join(state, 'version'), 'utf8').trim(); } catch (_) { return null; } })();
     if (!version) process.exit(127); // not installed: the stub on PATH answers as a missing command does
-    const config = path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'obsidian-wiki', 'config');
-    const hooksFile = path.join(state, 'hooks.json');
-    const hooks = (() => { try { return JSON.parse(fs.readFileSync(hooksFile, 'utf8')); } catch (_) { return []; } })();
-    const saveHooks = (list) => fs.writeFileSync(hooksFile, JSON.stringify([...new Set(list)]));
+    // As obsidian-wiki 2026.11.4 resolves it (cli.py _resolve_global_config_dir): ~/.obsidian-wiki only while it is a
+    // folder and the XDG folder does not exist (Path.exists follows a link: a link to nothing does not exist).
+    const xdgDir = path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'obsidian-wiki');
+    const legacyDir = path.join(home, '.obsidian-wiki');
+    const config = path.join((() => { try { return fs.statSync(legacyDir).isDirectory(); } catch (_) { return false; } })() && !fs.existsSync(xdgDir) ? legacyDir : xdgDir, 'config');
+    const settings = path.join(home, '.claude', 'settings.json');
+    const SCRIPTS = { SessionStart: 'wiki-session-recap.sh', UserPromptSubmit: 'wiki-prompt-recall.sh', Stop: 'wiki-stop-capture.sh' };
+    const readSettings = () => { try { return JSON.parse(fs.readFileSync(settings, 'utf8')); } catch (_) { return {}; } };
+    const commands = (doc, ev) => (((doc.hooks || {})[ev]) || []).flatMap((g) => (g && g.hooks) || []).map((e) => String((e && e.command) || ''));
+    const registered = (doc, ev) => commands(doc, ev).some((c) => c.includes(SCRIPTS[ev]));
+    const hooks = Object.keys(SCRIPTS).filter((ev) => registered(readSettings(), ev));
+    const writeSettings = (doc) => { // like hooks.py _write: a temporary file, then os.replace over the settings file
+      fs.mkdirSync(path.dirname(settings), { recursive: true });
+      const tmp = path.join(path.dirname(settings), `.settings.json.${process.pid}.tmp`);
+      fs.writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+      fs.renameSync(tmp, settings);
+    };
+    const saveHooks = (list) => {
+      const doc = readSettings();
+      doc.hooks = doc.hooks || {};
+      for (const ev of Object.keys(SCRIPTS)) {
+        const groups = (doc.hooks[ev] || []).map((g) => ({ ...g, hooks: ((g && g.hooks) || []).filter((e) => !String((e && e.command) || '').includes(SCRIPTS[ev])) })).filter((g) => g.hooks.length);
+        if (list.includes(ev)) groups.push({ matcher: '', hooks: [{ type: 'command', command: `PATH="${path.join(state, 'bin')}:$PATH" bash "${path.join(state, 'hooks', SCRIPTS[ev])}"` }] });
+        if (groups.length) doc.hooks[ev] = groups; else delete doc.hooks[ev];
+      }
+      writeSettings(doc);
+    };
     const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
     if (args[0] === '--version') { out(`obsidian-wiki ${version}`); process.exit(0); }
     const recorded = () => { try { return (/OBSIDIAN_WIKI_VERSION="([^"]*)"/.exec(fs.readFileSync(config, 'utf8')) || [])[1] || null; } catch (_) { return null; } };
     if (args[0] === 'list') {
+      if (process.env.OBSIDIAN_WIKI_NO_UPDATE_CHECK) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki list ran with its update check off\n');
+      if (process.env.FAKE_WIKI_LIST_ASKS_SETUP) { err(`obsidian-wiki upgraded ${recorded()} to ${version} but the skills could not be refreshed (fake).\n   Run: obsidian-wiki setup`); out('wiki-update'); process.exit(0); }
       if (recorded() && recorded() !== version) fs.writeFileSync(config, fs.readFileSync(config, 'utf8').replace(/OBSIDIAN_WIKI_VERSION="[^"]*"/, `OBSIDIAN_WIKI_VERSION="${version}"`));
       out('wiki-update\nwiki-query'); process.exit(0);
     }
@@ -142,11 +172,16 @@ switch (tool) {
       if (!args.includes('--no-hooks')) saveHooks([...hooks, 'SessionStart', 'Stop']);
       out('Setup complete!'); process.exit(0);
     }
-    if (args[0] === 'hooks' && args[1] === 'install') { saveHooks([...hooks, ...(only ? [only] : ['SessionStart', 'Stop'])]); process.exit(0); }
-    if (args[0] === 'hooks' && args[1] === 'uninstall') { saveHooks(hooks.filter((h) => only && h !== only)); process.exit(0); }
+    if (args[0] === 'hooks' && args[1] === 'install') {
+      const add = (only ? [only] : ['SessionStart', 'Stop']).filter((ev) => !hooks.includes(ev));
+      if (add.length) saveHooks([...hooks, ...add]);
+      out(`settings: ${settings}`); process.exit(0);
+    }
+    if (args[0] === 'hooks' && args[1] === 'uninstall') { const keep = hooks.filter((h) => only && h !== only); if (keep.length !== hooks.length) saveHooks(keep); process.exit(0); }
     if (args[0] === 'hooks' && args[1] === 'status') {
-      out(JSON.stringify({ hooks: ['SessionStart', 'UserPromptSubmit', 'Stop'].map((event) => ({ event, registered: hooks.includes(event) })), reachability: { reachable: true, hint: '' } }));
-      process.exit(0);
+      if (process.env.FAKE_WIKI_HOOKS_BROKEN) { err(`error: ${settings} is not valid JSON`); process.exit(1); }
+      out(JSON.stringify({ hooks: Object.keys(SCRIPTS).map((event) => ({ event, script: SCRIPTS[event], registered: hooks.includes(event) })), reachability: { reachable: true, hint: '' } }));
+      process.exit(hooks.includes('SessionStart') && hooks.includes('Stop') ? 0 : 1); // as obsidian-wiki: the required hooks are SessionStart and Stop
     }
     if (args[0] === 'doctor') {
       if (process.env.FAKE_WIKI_DOCTOR) { out(fs.readFileSync(process.env.FAKE_WIKI_DOCTOR, 'utf8')); process.exit(0); }
