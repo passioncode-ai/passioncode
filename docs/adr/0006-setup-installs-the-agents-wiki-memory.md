@@ -116,6 +116,9 @@ project, after every turn, to write into the vault. On the operator's machine th
    `SKILL.md`, another `LICENSE.txt`). With any clash the step does not run: the `memory` plan item is unavailable, or the `tool`
    repair is not offered, with a note naming each entry, gate `consent`, and the fix to move or rename them, then run
    setup again; `doctor` shows `memory.wiki.clash` (a warning). The launcher never moves, quarantines or deletes them.
+   Round 8: the same holds for installing obsidian-wiki over an existing config (its first ordinary command runs the
+   version refresh), checked in the plan and right before `uv tool install`; an install over a config is then followed
+   by the upgrade's refresh, checked again right before `obsidian-wiki list`.
 9. **obsidian-wiki never writes Claude Code's settings file (round 6).** Its writer (`Path.write_text` and `os.replace`)
    makes `~/.claude/settings.json` `0644` and replaces a link with a plain file. `hook` always runs `obsidian-wiki hooks
    install --only SessionStart` with a throwaway home and adds exactly the entry it wrote with the launcher's own writer
