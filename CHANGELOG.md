@@ -12,13 +12,16 @@
   gets a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
   repository, set up with `obsidian-wiki setup --no-hooks` and given only the SessionStart recap for Claude Code. An
   existing config, vault or hook is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records
-  after an upgrade, every other key kept), and obsidian-wiki's Stop hook (it asks every session in every
+  after an upgrade, or an install over an existing config, every other key kept), and obsidian-wiki's Stop hook (it asks every session in every
   project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
   Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
-  leaves nothing it made, so the next run starts again. Without uv the steps name `brew install uv` where Homebrew is,
+  leaves nothing it made, so the next run starts again; when the same run installed obsidian-wiki, a failed step after
+  the install uninstalls it again (`uv tool uninstall obsidian-wiki`) and says so, or names the uninstall that failed.
+  With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) the wiki memory is
+  not offered and nothing is installed; `doctor` shows it as `memory.config`. Without uv the steps name `brew install uv` where Homebrew is,
   else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
   so no dialog opens). An older obsidian-wiki uv lists is brought up to the pin with `uv tool install --force`, then
-  `obsidian-wiki list` records the new version and keeps every other key of the config (`doctor --fix` too); a copy
+  `obsidian-wiki list` (also right after installing obsidian-wiki over an existing config) records the new version and keeps every other key of the config (`doctor --fix` too); a copy
   another tool put first on PATH is named, never replaced. Obsidian updates itself inside the app, so an older version is
   information and a working Obsidian is never replaced; a copy in `/Applications` that root owns (a package or MDM
   install) counts as yours, while one another user dragged in stays theirs and you get your own.

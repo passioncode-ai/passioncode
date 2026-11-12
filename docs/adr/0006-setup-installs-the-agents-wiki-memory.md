@@ -71,13 +71,15 @@ project, after every turn, to write into the vault. On the operator's machine th
    `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
    SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
    it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is (apart from the version keys obsidian-wiki's own refresh records
-   after an upgrade, every other key kept): the launcher never runs
+   after an upgrade, or an install over an existing config, every other key kept): the launcher never runs
    `obsidian-wiki setup` over a config, which rewrites the config.
 4. **The Stop hook is never the launcher's.** Setup never registers it and never removes one someone registered;
    `doctor` names it as information (`memory.hooks.stop`), with its machine-wide effect and the person's choice
    (`gate: consent`) to remove its entry by hand (decision 9). Hints `doctor` passes on from
    `obsidian-wiki doctor` are never relayed (round 4, 2026-11-12): a memory row's fix names only `obsidian-wiki list`
-   (the stale refresh, for the version setup recorded), `obsidian-wiki hooks status --json`, `obsidian-wiki doctor
+   (the stale refresh, for the version setup recorded; round 9: withheld below the pin, where the fix is to bring
+   obsidian-wiki up to the pin first, since its upgrade records the version, and for a version the launcher cannot order
+   against its pin, which is left to the person), `obsidian-wiki hooks status --json`, `obsidian-wiki doctor
    --json`, `uv tool update-shell`, `brew install uv`, the launcher's own `setup --with wiki` and `doctor`, and the
    pip/pipx note (round 6: no hooks writer, decision 9);
    every other check gets a fixed text that names what obsidian-wiki reports and the safe route, and says never
@@ -130,12 +132,26 @@ project, after every turn, to write into the vault. On the operator's machine th
     requirements; the launcher reads `uv-receipt.toml` in uv's tool folder (`uv tool dir`) and carries the extras and
     requirements given by name, specifier and marker into the reinstall; one given as a URL, a path, a Git source or
     editable stops the upgrade with its name. After `list`, the version the config records decides: anything but the pin
-    fails the step with the fixed text, while obsidian-wiki's missing-skills line does not.
+    fails the step with the fixed text, while obsidian-wiki's missing-skills line does not. Round 9: refusing over
+    parsing. Anything else the receipt holds stops the upgrade, named: a `[tool]` key other than `requirements`,
+    `entrypoints` and `python`, a `[tool.options]` key other than `link-mode` and `compile-bytecode`, another table, or
+    text before its first table.
+11. **obsidian-wiki's own update notice stays the person's (round 9).** The launcher pins obsidian-wiki to its release
+    and runs every command of it with the update check off (`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`); it does not suppress the
+    notice obsidian-wiki prints to a person in a terminal. A by-hand `uv tool upgrade obsidian-wiki` is the person's, and
+    it can refresh skills with newer names than the pin bundles; the launcher never undoes it (a newer obsidian-wiki is
+    left alone), and `doctor` names any clash that results as `memory.wiki.clash`.
+12. **A failed step uninstalls what the same run installed (round 9).** When `setup` installed obsidian-wiki and a later
+    step of the same action fails (the refresh over an existing config, or the vault step before the vault stands), the
+    launcher runs `uv tool uninstall obsidian-wiki` and says so, or names the uninstall that failed for the person to
+    run: a tool left with no config, or with an old recorded version, answers every agent's next command with "Run:
+    obsidian-wiki setup". A relative XDG_CONFIG_HOME, which obsidian-wiki reads from the folder it runs in, makes the
+    whole memory item unavailable (no install either), and `doctor` shows it as `memory.config`.
 
 ## Consequences
 
-- One `setup` gives a new machine a working wiki memory, where uv and git are there and no skill of the person's
-  shares a name with one of obsidian-wiki's: the tool, its skills in each agent's own folder (written by
+- One `setup` gives a new machine a working wiki memory, where uv and git are there, XDG_CONFIG_HOME is not a relative
+  path and no skill of the person's shares a name with one of obsidian-wiki's: the tool, its skills in each agent's own folder (written by
   obsidian-wiki's setup, its own channel, never by the launcher), a vault that is a Git repository, the session-start
   recap in Claude Code, and Obsidian to read it.
 - The launcher now has three trust roots. PassionCode.ai apps: the release key's signed `SHA256SUMS`, team
