@@ -6,7 +6,7 @@ description: >-
   "check my setup", «установи PassionCode», «проверь мою установку». NOT for working in a
   passioncode-ai repository (working-in-passioncode).
 license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
-compatibility: Needs Node 18+ and network access to npm and GitHub; it reaches analytics.passioncode.ai when it can (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills and MCP servers and names each app's download page.
+compatibility: Needs Node 18+ and network access to npm and GitHub, and to PyPI through uv for the agents' wiki memory (uv may fetch a Python); it reaches analytics.passioncode.ai when it can (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills, the MCP servers and obsidian-wiki, and names each app's download page.
 metadata:
   author: PassionCode.ai
 ---
@@ -54,7 +54,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   for the wiki memory, checked by its own signature and notarization),
   repairs what is wrong (skills, MCP registrations, an outdated or damaged app that is not
   running, a stopped service its supervisor owns), checks again and returns JSON.
-- A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe.
+- A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe. A
+  machine without uv reports `skipped: ["the wiki memory"]` until the person installs uv: healthy otherwise, and say so.
 - Exit 0: no step and no check failed; 1: a step or a check failed; 2: bad arguments. A plan
   (`planOnly: true`: `--dry-run`, or a run without `--yes` that would change something, since a
   `--json` run never asks; a declined terminal run is not a plan and exits by its checks, and when it
@@ -105,7 +106,7 @@ reference names the format); never write one there for them.
   steps that need them in person (sign-ins, consents, secrets in hidden prompts). It is never empty after a
   first install: sign-ins and consents always remain.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
-  (Fabric without Docker); each one's reason is in `humanSteps`. Tell the person, never call the
+  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing; each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its
