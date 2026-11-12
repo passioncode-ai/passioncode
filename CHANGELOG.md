@@ -12,12 +12,22 @@
   gets a new vault in `~/Documents/Wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
   repository, set up with `obsidian-wiki setup --no-hooks` and given only the SessionStart recap for Claude Code. An
   existing config, vault or hook is left exactly as it is, and obsidian-wiki's Stop hook (it asks every session in every
-  project to write into the vault after every turn) is never registered. Without uv the steps name its page; an older
-  obsidian-wiki uv installed is brought up to the pin with `uv tool install --force` (`doctor --fix` too). `--with` and
-  `--without` take `obsidian`, `wiki` and `memory`; `--no-apps` leaves the memory out.
+  project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
+  Code is installed and reads `~/.claude/settings.json` (obsidian-wiki writes nowhere else). A vault step that fails
+  leaves nothing it made, so the next run starts again. Without uv the steps name `brew install uv` where Homebrew is,
+  else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
+  so no dialog opens). An older obsidian-wiki uv installed is brought up to the pin with `uv tool install --force`, then
+  `obsidian-wiki list` records the new version and keeps every other key of the config (`doctor --fix` too); a copy
+  another tool put first on PATH is named, never replaced. Obsidian updates itself inside the app, so an older version is
+  information and a working Obsidian is never replaced; an administrator's copy in `/Applications` is used as yours.
+  The run ends by naming the new vault to open in Obsidian. `--with` and `--without` take `obsidian`, `wiki` and
+  `memory`; `--no-apps` leaves the memory out, its upgrade included. obsidian-wiki's setup creates skills folders for
+  agents that are not installed (`~/.codex/skills`, `~/.gemini/skills` and more), and the set's member skills are then
+  linked into those folders as into any agent's.
 - **`doctor` has a `memory` section** (PC-178): Obsidian's version, signature and team; obsidian-wiki against the pin
   and whether it is on PATH; the vault, read with `obsidian-wiki doctor --json`; the SessionStart hook; and, as
-  information, a Stop hook someone registered, with its effect and how to remove it.
+  information, a Stop hook someone registered, with its effect and how to remove it. A memory failure no setup run
+  repairs (a failing vault) is listed in `doctor.json` as `manual`, and the session-start line names `doctor` for it.
 - An agent folder that holds only skill folders (obsidian-wiki's setup makes `~/.codex/skills`, `~/.gemini/skills` and
   more) no longer counts as that agent, so no MCP server is registered for an agent that is not installed (PC-178).
 
