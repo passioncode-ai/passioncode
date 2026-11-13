@@ -55,7 +55,7 @@ project, after every turn, to write into the vault. On the operator's machine th
    finds it: `~/.obsidian-wiki` only while `$XDG_CONFIG_HOME/obsidian-wiki`, default `~/.config/obsidian-wiki`, does not
    exist as `Path.exists()` sees it, so a folder that is a link to nothing does not; the config file itself that is a link
    to nothing still counts as a config),
-   setup makes the vault: `~/.wiki`, or the folder `--wiki-vault` names (absolute); `git init -b main` in it
+   setup makes the vault: `~/.wiki`, or the folder `--wiki-vault` names (absolute, or starting with `~/` read as the home); `git init -b main` in it
    when it has no `.git`; `obsidian-wiki setup --no-hooks --vault <dir>` with no terminal (its own questions are skipped);
    then, where Claude Code is installed (its CLI answers, as `doctor` finds it) and reads `~/.claude/settings.json`,
    the SessionStart recap (the entry `obsidian-wiki hooks install --only SessionStart` writes, written by the launcher
@@ -182,9 +182,9 @@ project, after every turn, to write into the vault. On the operator's machine th
     outside `~/.passioncode`, so `passioncode uninstall` never reaches it. Obsidian's folder
     picker hides dot folders, so the plan line names the full path and the step names the route (round 15): choose
     Open folder as vault, press Cmd+Shift+G and paste the path. Round 25 (the operator's «ничего» read as it stands): a
-    `--wiki-vault` the person chose inside `~/Documents`, or `~/Documents` itself, is refused too, as written or through
-    a link, with the step "choose a folder outside ~/Documents (iCloud may sync Documents, and a Git repository in a
-    synced folder breaks)".
+    `--wiki-vault` the person chose inside `~/Documents`, or `~/Documents` itself, is refused too, as written, or an
+    existing folder reached through a link (a new folder through a link is PC-211), with the step "choose a folder
+    outside ~/Documents (iCloud may sync Documents, and a Git repository in a synced folder breaks)".
 16. **What the refresh would rewrite, and a copy of the person's own, are left alone (round 14).** A config with a line
     break Python's `splitlines()` reads besides `\n` (measured with the real 2026.11.4: `\r` before a key let a spaced key
     through, and its refresh emptied it; U+2028 in a value was truncated) or a byte order mark is refused as a whole. A
