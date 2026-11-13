@@ -438,7 +438,7 @@
   `memory.vault.config-form` names the key and its form, and the config is left byte for byte. An older
   `~/.obsidian-wiki` beside the XDG folder obsidian-wiki's commands read: the vault is made, but no SessionStart recap is
   registered (its script would read the older folder and recap another vault), and `memory.hooks` warns until the person
-  removes or merges it. An upgrade whose refresh refuses after the reinstall puts the previous version back. A config
+  removes it (the config the commands read stays; only files it lacks are copied in, never the old config over it). An upgrade whose refresh refuses after the reinstall puts the previous version back. A config
   with Windows line endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same
   way. A config whose `OBSIDIAN_WIKI_REPO` names an existing obsidian-wiki package outside uv's folder is the person's own
   copy off this PATH: setup installs nothing over it, and `memory.wiki` names that package with the step to put its
@@ -456,8 +456,8 @@
   `doctor` row carries in every branch) and points at that row's step, printed once above it, never a path and never a
   setup step. With obsidian-wiki installed, a config that is a folder or names no vault stays a `doctor` failure
   (`manual`), and a registered SessionStart hook then reads as recapping nothing; an `XDG_CONFIG_HOME` that starts with
-  `~` is named like a relative one; an older `~/.obsidian-wiki` asks to move what it holds into the XDG folder and
-  remove it. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
+  `~` is named like a relative one; an older `~/.obsidian-wiki` asks to remove it while the XDG config stays (only files it
+  lacks are copied in, never the old config over it, which would switch the vault). A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
   run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory`
   for a person who declined it. On Windows without the right to make links obsidian-wiki copies its skills: the first
   vault is made, and afterwards `doctor`'s `memory.wiki.clash` names obsidian-wiki's own copies as the person's skills

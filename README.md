@@ -106,7 +106,7 @@ renaming a skill of yours, rewriting a config line, setting XDG_CONFIG_HOME; the
   for every agent that is present: Claude Code (through `claude mcp add --scope user`), Codex CLI
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
-  is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
+  is reported and kept. `restore` and `uninstall` remove the parts the launcher added (the Claude Code
   tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later, your own Claude folder, and with an earlier one `~/.claude`, [docs/reference/cli.md](docs/reference/cli.md)), and agents' declarations in
   `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay;
   so does the agents' wiki memory: obsidian-wiki, its vault and SessionStart hook, and Obsidian,
@@ -142,7 +142,7 @@ copy for its version, only a damaged one of yours; a copy in `/Applications` tha
 obsidian-wiki config yet, setup makes a new vault in the hidden folder `~/.wiki`, whose full path setup names since
 Obsidian's folder picker does not show it (or the folder `--wiki-vault` names; never one
 that already holds files, never while XDG_CONFIG_HOME is a relative path, which obsidian-wiki reads from the folder it
-runs in (setup then installs no obsidian-wiki either, and `doctor` shows `memory.config`), and never while a skill of
+runs in, or starts with ~, which its SessionStart recap reads as written (setup then installs no obsidian-wiki either, and `doctor` shows `memory.config`), and never while a skill of
 yours shares a name with one of obsidian-wiki's, since its setup would replace it: setup names the first five and how many more for you to move
 or rename, and installs no obsidian-wiki while one is there; and only where git is, on a Mac Apple's command line
 tools, which setup names as a step), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` (which adds obsidian-wiki's
@@ -157,7 +157,9 @@ installs it again (a terminal run asks again; PC-205 would remember the choice).
 `doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of
 the family, and the agents' wiki memory (`memory` lines: Obsidian and its signature, obsidian-wiki and its version,
-the vault as `obsidian-wiki doctor --json` reads it, and the Claude Code hooks); each line names its state and its fix.
+the vault as `obsidian-wiki doctor --json` reads it, or why the config names no usable vault, a failure while obsidian-wiki is
+installed and the config is a folder, a link to nothing, unreadable or names no vault, and the Claude Code hooks); each
+line names its state and its fix.
 Exit codes: **0** nothing failed in what the run covered (the `memory` lines of a part named in `leftOut` do not count,
 except a failing Obsidian signature), or `setup` only showed its plan, **1** a check (or a setup step) failed, **2** bad
 arguments. `doctor --fix` runs setup's repairs without

@@ -112,7 +112,7 @@ or an empty vault line where there was none) and keeps every other key of the co
 `obsidian-wiki setup` fails the step instead. It never registers or removes obsidian-wiki's
 Stop hook, never runs `obsidian-wiki setup` over an existing config (setup rewrites the config), never replaces a working
 Obsidian for its version, and never runs an installer script from the network (a missing uv is `brew install uv` where
-Homebrew is, else a person's step with uv's installer). `uninstall` and `restore` leave the memory as it is. It never
+Homebrew is and this user can write its bin folder, else a person's step with uv's installer). `uninstall` and `restore` leave the memory as it is. It never
 stops or kills a process, never replaces an app that is running for this user (another user's process running from
 this user's copy does not count, PC-151; that user restarts it, PC-149), never asks for or stores a secret, and
 never installs a PassionCode.ai app whose signature, checksum, team or notarization does not verify. Their trust
