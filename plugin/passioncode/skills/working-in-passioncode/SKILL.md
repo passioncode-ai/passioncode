@@ -82,7 +82,9 @@ another agent's owner by hand.
 Wherever the session runs (PassionCode, Appvillis, the operator's personal organization, a client),
 sort an issue before you route it (decision PM-D19, passioncode-pm-agent
 [docs/decisions.md](https://github.com/passioncode-ai/passioncode-pm-agent/blob/main/docs/decisions.md),
-2026-11-12; `knowledge/team.md` carries it once fabric-workspace lands it):
+2026-11-12; the knowledge base's
+[team.md §6](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/team.md#6-platform-issues-and-the-report-of-client-organizations-pm-d19)
+owns it):
 
 - **An issue of one agent** (its own code, prompt, data or keys) goes the usual way: that agent's
   repository and owner, then the organization's architect and owners.
@@ -93,8 +95,8 @@ sort an issue before you route it (decision PM-D19, passioncode-pm-agent
   base. File it with its evidence (what failed, the version, the command and its output, no personal
   data or secret) on the board to the part's owning Project (`com.submit`) and to Kira, the
   passioncode-pm-agent Project, which carries it to the owners. A client organization's PM agent
-  also sends it, with its usage, to PassionCode's client-tracking agent (`gtm-deal-desk`) once that
-  agent has the receiving tool.
+  also sends it, with its usage, to PassionCode's client-tracking agent (`gtm-deal-desk`, tool
+  `tracking.report.add`, one client key per reporting agent).
 
 ## 1. Before the first edit
 

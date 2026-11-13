@@ -10,7 +10,8 @@
   Observatory, the launcher and skills, the adapter and contract, studio-agent and the Studio spaces, the board, the
   templates base). A platform issue goes, from every organization, on the board to the part's owning Project and to
   Kira (passioncode-pm-agent) for the operator and the partner, with evidence and no personal data; a client
-  organization's PM agent also reports it with its usage to `gtm-deal-desk` once that tool exists. New eval scenario
+  organization's PM agent also reports it with its usage to `gtm-deal-desk` (`tracking.report.add`); the skill
+  points to the knowledge base's `team.md` §6, which owns the rule. New eval scenario
   `platform-issue-to-passioncode-owners` and one trigger query.
 - **The course check in every passioncode-ai repository** (PC-186, fabric-workspace's board request `5c460b82`,
   2026-11-12; the source is fabric-workspace `knowledge/rules.md` §0): `working-in-passioncode` §0 now starts with the
