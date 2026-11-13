@@ -58,8 +58,8 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   machine without uv or git, with XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs
   in), with a skill of the person's that shares a name with one of obsidian-wiki's, with an obsidian-wiki uv holds that
   does not run, with a config line obsidian-wiki's refresh would rewrite (`memory.vault.config-form`: the person rewrites
-  the line, gate `consent`), with a memory check that could not run ("could not be checked"), or with a `~/.wiki` that
-  holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
+  the line, gate `consent`), with a memory check that could not run ("could not be checked"), with a vault path that holds
+  a double quote, a line break or a control character other than tab, or with a `~/.wiki` that holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
   (or unsets it), moves that skill, reinstalls obsidian-wiki as the note names, fixes what the note names, or names
   another folder: on a run that changes nothing else, `skipped` names the
   wiki memory; in any run, `humanSteps` carries the reason. Healthy otherwise, and say so.
@@ -85,11 +85,11 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   of the person's shares a name with one of obsidian-wiki's: read the whole list from the `entries` of the
   `memory.wiki.clash` row in `doctor --json` (the note and the detail print only the first five) and pass it on; never move or delete those skills
   yourself (obsidian-wiki's setup would delete them). Setup registers only the
-  SessionStart recap and leaves an existing vault as it is, and the config's keys apart from the version and package path obsidian-wiki's refresh records. Any `doctor` row with a non-null `gate` is the person's step, never yours: pass it on (for one, the `memory.hooks` row asking to remove or merge an older `~/.obsidian-wiki`: never delete, move or edit that folder yourself). A `memory` plan item that is `unavailable` names
+  SessionStart recap and leaves an existing vault as it is, and the config's keys apart from the version and package path obsidian-wiki's refresh records, and, with the same meaning, quotes around a bare value or an empty vault line where there was none. Any `doctor` row with a non-null `gate` is the person's step, never yours: pass it on (for one, the `memory.hooks` row asking to remove or merge an older `~/.obsidian-wiki`: never delete, move or edit that folder yourself). A `memory` plan item that is `unavailable` names
   why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
   person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
-  note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files: ask the
-  person for another and pass `--wiki-vault`. A `memory.hooks.stop` row is the person's choice: report it, never
+  note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files, or a vault path with
+  a double quote, a line break or a control character: ask the person for another and pass `--wiki-vault`. A `memory.hooks.stop` row is the person's choice: report it, never
   remove it without their word.
 - For the wiki memory's setup, repair or hooks, use this launcher's `setup` and `doctor`, never obsidian-wiki's own
   `wiki-setup` skill: that skill runs `obsidian-wiki setup` (which rewrites an existing config) and offers the Stop hook.
@@ -120,7 +120,7 @@ reference names the format); never write one there for them.
   steps that need them in person (sign-ins, consents, secrets in hidden prompts). It is never empty after a
   first install: sign-ins and consents always remain.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
-  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, or `~/.wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
+  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, the vault path holds a double quote, a line break or a control character other than tab, or `~/.wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its

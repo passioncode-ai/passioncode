@@ -116,7 +116,7 @@
       "expected": [
         "runs `npx --yes @passioncode-ai/passioncode@latest setup --yes --json --with memory` and never runs `obsidian-wiki setup` or `hooks install` by hand",
         "when the plan's `memory` item is `unavailable` because uv is missing, runs `brew install uv` only when the note names it and then setup again; otherwise passes the note on as the person's step, never piping uv's installer into a shell and never installing obsidian-wiki by another route",
-        "reports the vault folder from the `memory` action, and that an existing vault was left as it is, and the config's keys apart from the version and package path obsidian-wiki's refresh records",
+        "reports the vault folder from the `memory` action, and that an existing vault was left as it is, and the config's keys apart from the version and package path obsidian-wiki's refresh records, and, with the same meaning, quotes around a bare value or an empty vault line where there was none",
         "names a `memory.hooks.stop` row as the person's choice, never removing the Stop hook without their word, and uses the launcher's `setup` and `doctor` for the wiki, never obsidian-wiki's own `wiki-setup` skill"
       ]
     },
