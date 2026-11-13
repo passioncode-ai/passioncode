@@ -125,6 +125,27 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   reserved yet; a register that gains one is declared under `idRegisters` and taken with
   `agent_sync.py reserve <REG>`.
 
+## Agents close questions themselves, by access level
+
+The operator's standing rule of 2026-11-13 ([authority](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/authority.md#agents-close-questions-themselves-by-access-level-operator-2026-11-13),
+fabric-workspace `4e2a1491`): a question an agent would put to the operator is decided by the agent, by the access
+levels below, the operator's recorded decisions (`docs/adr/`, the backlog rows) and this repository's goal, then the
+safest reversible option. Write the decision and its reason where the work lives (the backlog row, an ADR, the
+handoff) and go on at once. Trust comes from the checks (`npm test`, `claude plugin validate --strict`, the architect's
+audit before a publication, the published package read back), not from a person. Ask only at a human gate: a sign-in,
+a one-time code, a consent screen, a typed secret, a payment, spend above a limit, a send to people outside the estate,
+or access wider than the act needs; name the gate once and continue other work.
+
+| Scope | Who decides |
+|---|---|
+| this repository, its backlog, `family.json`, `trust.json` and its releases (PassionCode) | the operator and the partner, equally; an agent acts for them |
+| a person's own computer, where `setup`, `doctor` and `update` run | that person only: the launcher changes nothing there they did not run |
+| the operator's personal agents, keys and data | the operator only; never a member of the set (Local rules) |
+
+A level not written here: take the narrowest access that lets the act happen and record the open point on the row,
+never stop on it. A board run with no person in the session still stops before an npm publication or any other
+production step and hands that step to a session with a person.
+
 ## Platforms
 
 The organization's rule is every product on Mac, Windows and Linux
