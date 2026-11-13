@@ -11,6 +11,16 @@
    the [North Star](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/north-star.md) metric and
    gaps, and the [one plan in waves](https://github.com/passioncode-ai/fabric-workspace/blob/main/docs/plans/2026-11-11-unified/README.md).
    Name the track, plan row or gap the change serves; work that serves none goes to the board first.
+1b. **The North Star sections this repository serves** (operator, 2026-11-13; [North Star §6](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/north-star.md#merged-with-the-north-star-validated-by-the-architect-operator-2026-11-13)
+   «Merged with the North Star, validated by the architect»): [S4.1](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/system/prompt-onboarding.md)
+   step 7 (each person's machine: `setup` and its doctor); §4 «One system, not a pile of tools» (`setup` installs the
+   system's apps and registers their MCP as one set, [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md));
+   §10 «Deployment and continuity» (each agent from its installer; the set stays current with `update`); §13 step 6
+   (PassionCode's agents update skills); gap G14 (rows PC-153, PC-154). When the launcher's state changes against
+   them (a release, a gap closed or opened, a «where we stand» fact), write fabric-workspace a board message naming
+   the section and the evidence. Before each npm publication the architect's audit runs on this checkout
+   (fabric-agents-database `tools/audit.py scan`, then `start`, judged by `playbooks/audit-agent.md`); a blocking gap
+   holds the release (PC-200).
 2. The PassionCode.ai knowledge base — `fabric-workspace/knowledge/` in your clone (org-index
    `scripts/clone_all.sh` makes it) or https://wiki.passioncode.ai/knowledge — at least its
    [README](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/README.md),

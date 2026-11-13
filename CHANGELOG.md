@@ -4,6 +4,9 @@
 
 ### Changed
 
+- **The North Star sections the launcher serves** (PC-200, Fabric's announcement `d4404828`, 2026-11-13): `AGENTS.md`
+  item 1b names S4.1 step 7, North Star §4, §10, §13 step 6 and gap G14, says when to write fabric-workspace about a
+  change against them, and runs the architect's audit before each npm publication.
 - **A platform issue goes to PassionCode's owners** (PC-187, Kira's board message `77168f19`, 2026-11-12; decision
   PM-D19 of passioncode-pm-agent): `working-in-passioncode` §0 gains a section that sorts an issue of one agent (its
   owner, then the organization's architect and owners) from an issue of the platform (Fabric and its tools, Project
