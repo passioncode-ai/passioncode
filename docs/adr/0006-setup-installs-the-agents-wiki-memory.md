@@ -71,7 +71,8 @@ project, after every turn, to write into the vault. On the operator's machine th
    `~/.passioncode/state.json` (`wiki`), and only for it, while the config still names it, does setup register a missing
    SessionStart hook again; any other vault's missing hook is the person's choice (`gate: consent`). A folder that already holds files is never made a vault: the plan names
    it and asks for `--wiki-vault`. An existing config or vault is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records
-   after an upgrade, or an install over an existing config, every other key kept beside the version and package path): the launcher never runs
+   after an upgrade, or an install over an existing config, and, with the same meaning, quotes around a bare value or an
+   empty vault line where there was none (decision 16), every other key kept beside the version and package path): the launcher never runs
    `obsidian-wiki setup` over a config, which rewrites the config.
 4. **The Stop hook is never the launcher's.** Setup never registers it and never removes one someone registered;
    `doctor` names it as information (`memory.hooks.stop`), with its machine-wide effect and the person's choice
@@ -187,7 +188,15 @@ project, after every turn, to write into the vault. On the operator's machine th
     the quotes around a bare managed value (`OBSIDIAN_VAULT_PATH=/x` becomes `OBSIDIAN_VAULT_PATH="/x"`, the same
     meaning); a config with no vault line gains `OBSIDIAN_VAULT_PATH=""`. Accepted: no value changes its meaning. A
     config that is not UTF-8 stops its `list` (UnicodeDecodeError), so it is refused as its own form; a vault path with a
-    double quote or a line break is refused, since the config holds it between quotes on one line. `hook()` and the hook repair also wait for
+    double quote, a line break or a control character is refused, since the config holds it between quotes on one line.
+    Round 17: one rule (`cannotHold`, `CONFIG_BREAKS`) names the characters the config cannot hold in a value: the double
+    quote, any C0 control but tab, `\x85`, U+2028 and U+2029 (every break Python's `splitlines()` reads, and the quote);
+    the vault path and `configForm` both read it. One reader (`configuredVault`) gives the vault the config names, as
+    obsidian-wiki's `_read_config_value` reads it, for `doctor` and for Obsidian's step, and none for a config form or an
+    empty line. Every form `configForm` returns is in `CONFIG_FORMS`, and a test applies each printed step to each form and
+    finds it gone: the package check comes before the relative check (a relative value naming no `obsidian_wiki/_data`
+    folder only asks to remove the line), and a managed value with a double quote is its own form (the vault: move it to a
+    folder whose path has no double quote, then write the line once). `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
