@@ -100,6 +100,9 @@ project, after every turn, to write into the vault. On the operator's machine th
    `obsidian`, `wiki`, and `memory` for both; `--no-apps` leaves the memory out too, and so does a saved release train
    this launcher cannot use (setup installs nothing new until the train is usable): under them setup runs no memory
    action at all, the upgrade and the hook included, and the memory rows of a part the run leaves out do not fail it.
+   Declining the memory (`--without memory`, or a "no" to its question) lasts that run only: the next `setup --yes`
+   installs it again (a terminal run asks again), so an agent passes `--without memory` for a person who declined it; the
+   coordinator decided this for PR #329 (2026-11-13), and PC-205 would remember the choice in `state.json`.
    `doctor --fix` never makes a vault or installs obsidian-wiki; it
    brings an older one up to the pin and registers a missing hook of the vault the launcher made.
 7. **An agent folder that holds only skill folders is not that agent.** `obsidian-wiki setup` makes `skills` folders for
@@ -206,14 +209,20 @@ project, after every turn, to write into the vault. On the operator's machine th
     "first <step>; then setup" for the launcher's vault even when obsidian-wiki's doctor ends with a traceback (a config
     not saved as UTF-8). Obsidian's step: the no-vault guide only with no obsidian-wiki config at all; a config that names
     no vault the launcher can use (a form, an empty line, a config that cannot be read, or one an older `~/.obsidian-wiki`
-    shadows) gets a step that names the config and `doctor`, since setup makes no vault over an existing config.
+    shadows) gets a step that prints why and the person's step (round 20: `vaultWhy`, one text that a doctor row also carries in every branch), since setup makes no vault over an existing config.
     Round 19: every "doctor says why" is answered: `memory.legacy` names an older `~/.obsidian-wiki` wherever
     `memory.hooks` does not, and with obsidian-wiki not installed a config that names no usable vault is a `memory.vault`
     row. A vault value with an apostrophe at either end is a form (the recap's `read_var` strips one and reads another
     folder), and a `--wiki-vault` path that starts or ends with one is refused; a break after the vault line's closing
     quote is the whole config's form. A relative vault line, which obsidian-wiki's own setup writes verbatim, names the
     folder that setup ran in. `~\` is the home on Windows too (`expandHome`). Obsidian's catalog guide had no reader and
-    is gone. `hook()` and the hook repair also wait for
+    is gone.
+    Round 20: setup's Obsidian step no longer sends the person to `doctor`; it prints the reason and the step
+    (`vaultWhy`: a relative `XDG_CONFIG_HOME`, an older `~/.obsidian-wiki`, a config that is a link to nothing, a folder
+    or a file that cannot be read, a config form, an empty or missing vault line), and `doctor` carries the same text in
+    every branch. `memory.legacy` is a warning made through `add()`, hidden only by a `memory.hooks` row with the same
+    text. A relative vault line's step carries its value. One `~` rule (`expandHome`) for the config folder, XDG,
+    `HERMES_HOME` and the fake doctor. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
