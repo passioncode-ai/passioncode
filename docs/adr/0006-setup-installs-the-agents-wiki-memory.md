@@ -234,15 +234,21 @@ project, after every turn, to write into the vault. On the operator's machine th
     copied in): moving its files in would overwrite that config (the same names) and switch the vault. A crash of
     obsidian-wiki's own doctor on the config (a config that cannot be read ends it with a traceback) counts as its
     failure, so with obsidian-wiki installed a link to nothing, a folder, an unreadable config and an empty vault line are
-    all a `memory.vault` failure (`manual`, gate `consent`). `memory.hooks` reads `ok` only when the recap reads the vault
-    the commands read (`recapReadsVault`: no reason `vaultWhy` names). The XDG step is printed once, in `memory.config`;
+    all a `memory.vault` failure (`manual`, gate `consent`). (Replaced in round 24: `memory.hooks` reads `ok` by
+    `recapCheck`, below; the round-22 `recapReadsVault` is gone.) The XDG step is printed once, in `memory.config`;
     other rows point at it.
     Round 23: the older folder's step copies first, then removes (the round-22 order removed the files it meant to
     copy), and says the XDG config stays only where it is a readable file. `memory.hooks` models the recap script itself
     (`recapVault`: the folder it picks, the last vault line, its quote stripping, `~` as the home; checked against the
     real 2026.11.4 script on eight configs), so a repo outside the package, a single-quoted vault and a repeated version
     line read `ok`. A config obsidian-wiki cannot read stops the tool repair, the upgrade and the install over it, as its
-    own `list` crashes on it. No row id is printed in a step. `hook()` and the hook repair also wait for
+    own `list` crashes on it. No row id is printed in a step.
+    Round 24: `memory.hooks` is `ok` iff the recap (`recapVault`) and obsidian-wiki's commands (`commandsVault`, as
+    `cli.py` reads the first exact vault line: whitespace and double quotes stripped, no `~` expansion) read the same
+    existing folder, and never while `XDG_CONFIG_HOME` is relative or starts with `~`. Steps that depend on another name
+    it in order-free words ("as its own step says"), since Fabric Dashboards lists failures first. One predicate for an
+    unreadable config (`unreadConfig`, a link to nothing included). From this round the coordinator's finish line applies:
+    a state a person plausibly reaches, or one that harms, is fixed here; states built only to probe go to the backlog. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 

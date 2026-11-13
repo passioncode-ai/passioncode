@@ -454,13 +454,16 @@
   its path; with no obsidian-wiki config, its guide says the vault comes with the wiki memory's setup step; with a config
   that names no vault the launcher can use (a config form, an empty vault line, a config that cannot be read, a link to
   nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that prints the reason (the same text a
-  `doctor` row carries in every branch) and points at that row's step, printed once above it, never a path and never a
-  setup step. With obsidian-wiki installed, a config that is a link to nothing, a folder, a file that cannot be read or names no vault stays a `doctor` failure
+  `doctor` row carries in every branch), never a path and never a setup step, in one of three texts: it names the wiki
+  memory step that carries the reason where a printed row does, names `doctor` where none does, and says the config
+  could not be checked where the reason itself could not be read. With obsidian-wiki installed, a config that is a link to nothing, a folder, a file that cannot be read or names no vault stays a `doctor` failure
   (`manual`), and a registered SessionStart hook then reads as recapping nothing; an `XDG_CONFIG_HOME` that starts with
   `~` is named like a relative one; an older `~/.obsidian-wiki` asks to copy into the XDG folder the files of the older one it
   lacks (never the old config over the XDG config, which would switch the vault), then remove it. A config obsidian-wiki
   cannot read stops the upgrade and the install over it, as its own `list` crashes on it. Row ids are never printed in
-  a step: a fix points at "the config line step above" or "the XDG_CONFIG_HOME step above". A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
+  a step, and a step that depends on another names it in words that hold in any order ("first fix XDG_CONFIG_HOME as its
+  own step says", "first fix the obsidian-wiki config line as its own step says"); Fabric Dashboards lists failures
+  before warnings. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
   run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory`
   for a person who declined it. On Windows without the right to make links obsidian-wiki copies its skills: the first
   vault is made, and afterwards `doctor`'s `memory.wiki.clash` names obsidian-wiki's own copies as the person's skills
