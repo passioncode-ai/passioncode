@@ -214,6 +214,8 @@ switch (tool) {
     if (args[0] === '--version') { out(`obsidian-wiki ${version}`); process.exit(0); }
     const recorded = () => { try { return (/^OBSIDIAN_WIKI_VERSION="?([^"\n]*)"?$/m.exec(fs.readFileSync(config, 'utf8')) || [])[1] || null; } catch (_) { return null; } };
     if (args[0] === 'list') {
+      // As the real 2026.11.4: a config it cannot read ends `list` with a PermissionError (its stale check reads it; round 23, 3).
+      try { if (fs.statSync(config).isFile()) fs.readFileSync(config); } catch (e) { if (e.code === 'EACCES' || e.code === 'EPERM') { err(`PermissionError: [Errno 13] Permission denied: '${config}'`); process.exit(1); } }
       if (process.env.OBSIDIAN_WIKI_NO_UPDATE_CHECK) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki list ran with its update check off\n');
       if (process.env.FAKE_WIKI_LIST_ASKS_SETUP) { err(`obsidian-wiki upgraded ${recorded()} to ${version} but the skills could not be refreshed (fake).\n   Run: obsidian-wiki setup`); out('wiki-update'); process.exit(0); }
       // As _check_stale and write_config (test/fake-wiki-config.js, compared with real outputs; round 17, R6).

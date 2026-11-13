@@ -515,7 +515,7 @@ test('PC-178: with obsidian-wiki not installed, a config line its refresh would 
   const rows = s.rows();
   const w = rows.find((r) => r.id === 'memory.wiki');
   assert.ok(rows.some((r) => r.id === 'memory.vault.config-form'), JSON.stringify(rows));
-  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line memory\.vault\.config-form names; then /.test(w.fix) && w.gate === 'consent', JSON.stringify(w));
+  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line, as the config line step above says; then /.test(w.fix) && w.gate === 'consent', JSON.stringify(w));
   const need = M.needs(s.home, path.join(s.home, 'New'), 'linux');
   assert.ok(/after export/.test(need.note || ''), JSON.stringify(need));
 });
@@ -527,7 +527,7 @@ test('PC-178: the refresh step after a clash of unreadable folders asks to repai
   process.env.FAKE_WIKI_DOCTOR = report;
   fs.symlinkSync(path.join(s.home, '.codex'), path.join(s.home, '.codex'));
   const v = s.rows().find((r) => r.id === 'memory.vault');
-  assert.ok(/first repair the folders memory\.wiki\.clash names; then run: obsidian-wiki list/.test(v.fix) && !/move or rename/.test(v.fix), v.fix);
+  assert.ok(/first repair the folders the clash step above names; then run: obsidian-wiki list/.test(v.fix) && !/move or rename/.test(v.fix), v.fix);
 });
 
 test('PC-178: a long memory fix keeps the prohibition first and stays under 1000 characters; a long clash list is capped', { skip: SH }, (t) => {
@@ -636,7 +636,7 @@ test('PC-178: two vault lines keep the hook from being registered and the repair
   assert.throws(() => M.hook({ home: s.home }), /writes OBSIDIAN_VAULT_PATH more than once.*; nothing was changed$/);
   assert.equal(fs.readFileSync(s.settings, 'utf8'), before);
   const h = s.rows(s.vaultDir).find((r) => r.id === 'memory.hooks');
-  assert.ok(h && h.repair === null && h.gate === 'consent' && /^first rewrite the OBSIDIAN_VAULT_PATH line memory\.vault\.config-form names; then /.test(h.fix), JSON.stringify(h));
+  assert.ok(h && h.repair === null && h.gate === 'consent' && /^first rewrite the OBSIDIAN_VAULT_PATH line, as the config line step above says; then /.test(h.fix), JSON.stringify(h));
 });
 
 test('PC-178: rows that point at a repo line outside the package say remove it; an empty repo line is accepted', { skip: SH }, (t) => {
@@ -647,7 +647,7 @@ test('PC-178: rows that point at a repo line outside the package say remove it; 
   fs.writeFileSync(report, JSON.stringify({ checks: [{ name: 'setup-version', status: 'warn', detail: 'recorded 2026.10.2' }] }));
   process.env.FAKE_WIKI_DOCTOR = report;
   const v = s.rows().find((r) => r.id === 'memory.vault');
-  assert.ok(/first remove the OBSIDIAN_WIKI_REPO line memory\.vault\.config-form names; then run: obsidian-wiki list/.test(v.fix), v.fix);
+  assert.ok(/first remove the OBSIDIAN_WIKI_REPO line, as the config line step above says; then run: obsidian-wiki list/.test(v.fix), v.fix);
   fs.rmSync(path.join(s.state, 'version'));
   const w = s.rows().find((r) => r.id === 'memory.wiki');
   assert.ok(/^first remove the OBSIDIAN_WIKI_REPO line/.test(w.fix), w.fix);
@@ -721,7 +721,7 @@ test('PC-178: while a config line would be rewritten, every hooks row asks for i
   const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
   fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`);
   const h = s.rows().find((r) => r.id === 'memory.hooks');
-  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line memory\.vault\.config-form names; then /.test(plainFix(h.fix)), h.fix);
+  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line, as the config line step above says; then /.test(plainFix(h.fix)), h.fix);
   // A spaced vault line that names the launcher's vault.
   fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH = "${s.vaultDir}"\n`);
   const k = s.rows(s.vaultDir).find((r) => r.id === 'memory.hooks');
@@ -1074,7 +1074,7 @@ test('PC-178: memory.legacy is a warning through add(), hidden only by memory.ho
   const x = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
   delete process.env.XDG_CONFIG_HOME;
   // The step itself only in memory.config; the others point at it (round 22, 3).
-  for (const r of x.filter((r) => r.fix && /\bsetup\b/.test(r.fix) && r.id !== 'memory.config')) assert.match(r.fix, /^(never .*; )?first the step memory\.config names; then /, JSON.stringify(r));
+  for (const r of x.filter((r) => r.fix && /\bsetup\b/.test(r.fix) && r.id !== 'memory.config')) assert.match(r.fix, /^(never .*; )?first the XDG_CONFIG_HOME step above; then /, JSON.stringify(r));
   // Where Claude Code reads ~/.claude/settings.json, memory.hooks carries the very same text: one row.
   fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`);
   const here = s.rows();
@@ -1134,7 +1134,7 @@ test('PC-178: with obsidian-wiki installed, a config that is a folder or names n
     assert.ok(v && v.state === 'fail' && v.manual === true && v.gate === 'consent' && v.detail === M.vaultWhy(s.home, NPX).why, JSON.stringify(v));
     // A registered SessionStart hook recaps nothing then: never "starts each session with a recap".
     const h = s.rows().find((r) => r.id === 'memory.hooks');
-    assert.ok(h && h.state !== 'ok' && /recaps nothing while memory\.vault names why/.test(h.detail), JSON.stringify(h));
+    assert.ok(h && h.state !== 'ok' && /its recap finds no vault in the config it reads|its recap reads/.test(h.detail), JSON.stringify(h));
   }
 });
 
@@ -1178,7 +1178,8 @@ test('PC-178: an older ~/.obsidian-wiki comes first in setup and in memory.hooks
   fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`); // and a form
   const w = M.vaultWhy(s.home, NPX);
   assert.equal(w.kind, 'legacy');
-  assert.equal(w.step, `remove ${legacy}; obsidian-wiki's commands read ${path.join(s.home, '.config', 'obsidian-wiki', 'config')}, which stays; copy into ${path.join(s.home, '.config', 'obsidian-wiki')} only files it lacks, never the old config over it`);
+  const xdgDir = path.join(s.home, '.config', 'obsidian-wiki');
+  assert.equal(w.step, `copy into ${xdgDir} the files of ${legacy} it lacks (never ${path.join(legacy, 'config')} over ${path.join(xdgDir, 'config')}), then remove ${legacy}; obsidian-wiki's commands read ${path.join(xdgDir, 'config')}, which stays`);
   const h = s.rows().find((r) => r.id === 'memory.hooks');
   assert.ok(h && h.fix.startsWith(w.step), JSON.stringify(h));
 });
@@ -1192,46 +1193,61 @@ test('PC-178: an XDG_CONFIG_HOME that starts with ~ is named with the same step 
 });
 
 // Round 22 (PC-178).
-test('PC-178: the older folder\'s step, followed literally, keeps the vault the commands read and adds no form', { skip: SH }, (t) => {
+test('PC-178: the older folder\'s step, followed literally in printed order, keeps the vault the commands read and adds no form', { skip: SH }, (t) => {
   for (const outside of [false, true]) {
     const s = sandbox(t);
     const xdg = path.join(s.home, '.config', 'obsidian-wiki');
     const legacy = path.join(s.home, '.obsidian-wiki');
-    const other = path.join(s.home, 'Other');
     fs.mkdirSync(legacy);
-    fs.writeFileSync(path.join(legacy, 'config'), `OBSIDIAN_VAULT_PATH="${other}"\n${outside ? 'OBSIDIAN_WIKI_REPO="/opt/mine"\n' : ''}`);
+    fs.writeFileSync(path.join(legacy, 'config'), `OBSIDIAN_VAULT_PATH="${path.join(s.home, 'Other')}"\n${outside ? 'OBSIDIAN_WIKI_REPO="/opt/mine"\n' : ''}`);
     fs.writeFileSync(path.join(legacy, 'WRITING.md'), '# old\n');
-    fs.writeFileSync(path.join(legacy, 'update-check.json'), '{}');
+    fs.writeFileSync(path.join(legacy, 'only-old.md'), 'kept\n'); // a file only the old folder holds
     fs.writeFileSync(path.join(xdg, 'WRITING.md'), '# mine\n');
     const before = M.configuredVault(s.home);
     const w = M.vaultWhy(s.home, NPX);
     assert.equal(w.kind, 'legacy');
-    assert.match(w.step, /^remove .*\.obsidian-wiki; obsidian-wiki's commands read .*config, which stays; copy into .* only files it lacks, never the old config over it$/);
-    // The step: copy only the files the XDG folder lacks, never the config over it; then remove the older folder.
-    for (const f of fs.readdirSync(legacy)) if (!fs.existsSync(path.join(xdg, f))) fs.copyFileSync(path.join(legacy, f), path.join(xdg, f));
-    fs.rmSync(legacy, { recursive: true });
+    // The clauses, in the order they are printed: copy what the XDG folder lacks (never the old config over it), then remove.
+    const m = /^copy into (.+) the files of (.+) it lacks \(never (.+) over (.+)\), then remove (.+); obsidian-wiki's commands read (.+), which stays$/.exec(w.step);
+    assert.ok(m && m[1] === xdg && m[2] === legacy && m[5] === legacy, w.step);
+    for (const f of fs.readdirSync(m[2])) if (!fs.existsSync(path.join(m[1], f)) && path.join(m[2], f) !== m[3]) fs.copyFileSync(path.join(m[2], f), path.join(m[1], f));
+    fs.rmSync(m[5], { recursive: true });
+    assert.equal(fs.readFileSync(path.join(xdg, 'only-old.md'), 'utf8'), 'kept\n');
+    assert.equal(fs.readFileSync(path.join(xdg, 'WRITING.md'), 'utf8'), '# mine\n');
     assert.equal(M.configuredVault(s.home), before);
     assert.equal(M.legacyShadow(s.home), null);
     assert.equal(M.vaultWhy(s.home, NPX), null);
-    assert.equal(fs.readFileSync(path.join(xdg, 'WRITING.md'), 'utf8'), '# mine\n');
   }
+  // A link to nothing beside the older folder: no "which stays" (memory.vault asks to repair or remove it).
+  const s = sandbox(t);
+  fs.mkdirSync(path.join(s.home, '.obsidian-wiki'));
+  const cfg = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.rmSync(cfg);
+  fs.symlinkSync(path.join(s.home, 'gone'), cfg);
+  assert.doesNotMatch(M.vaultWhy(s.home, NPX).step, /which stays/);
 });
 
-test('PC-178: memory.hooks reads ok only when the recap reads the vault the commands read', { skip: SH }, (t) => {
-  const cases = [
-    ['XDG_CONFIG_HOME=~/cfg', (s) => { const d = path.join(s.home, 'cfg', 'obsidian-wiki'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`); process.env.XDG_CONFIG_HOME = '~/cfg'; }],
-    ['a relative vault line', (s) => fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="Wiki"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
-    ['an apostrophe vault value', (s) => fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}'"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+test('PC-178: memory.hooks reads ok only when the recap, as its script reads the config, reads the vault the commands read', { skip: SH }, (t) => {
+  const cfg = (s) => path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const okCases = [
+    // Measured with the real 2026.11.4 recap: these print the vault's memory.
+    ['a repo outside the package', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="/opt/mine"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['a single-quoted vault', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH='${s.vaultDir}'\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['the version twice', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
   ];
-  for (const [name, arrange] of cases) {
+  const notCases = [
+    ['XDG_CONFIG_HOME=~/cfg', (s) => { const d = path.join(s.home, 'cfg', 'obsidian-wiki'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`); process.env.XDG_CONFIG_HOME = '~/cfg'; }],
+    ['a relative vault line', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="Wiki"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['an apostrophe vault value', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}'x"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['an empty vault line', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH=\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+  ];
+  for (const [name, arrange, want] of [...okCases.map((c) => [...c, true]), ...notCases.map((c) => [...c, false])]) {
     const s = sandbox(t);
     arrange(s);
     const h = s.rows().find((r) => r.id === 'memory.hooks');
     delete process.env.XDG_CONFIG_HOME;
-    assert.ok(h && h.state !== 'ok' && /recaps nothing while memory\.[\w.-]+ names why/.test(h.detail), `${name}: ${JSON.stringify(h)}`);
+    assert.ok(h && (h.state === 'ok') === want, `${name}: ${JSON.stringify(h)}`);
+    if (!want) assert.ok(/its recap (finds no vault|reads)/.test(h.detail) && !/\bmemory\.[a-z]/.test(h.detail), `${name}: ${h.detail}`);
   }
-  const s = sandbox(t);
-  assert.equal(s.rows().find((r) => r.id === 'memory.hooks').state, 'ok');
 });
 
 test('PC-178: the empty-line step reads the config only when it can', { skip: SH }, (t) => {
@@ -1242,4 +1258,48 @@ test('PC-178: the empty-line step reads the config only when it can', { skip: SH
   let calls = 0;
   fs.readFileSync = function (p, ...a) { if (String(p) === config && ++calls > 2) throw Object.assign(new Error('gone'), { code: 'ENOENT' }); return real.call(fs, p, ...a); };
   try { assert.doesNotThrow(() => M.vaultWhy(s.home, NPX)); } finally { fs.readFileSync = real; }
+});
+
+// Round 23 (PC-178).
+test('PC-178: no memory row names a row id in text a person reads', { skip: SH }, (t) => {
+  const states = [
+    (s) => fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`),
+    (s) => { fs.mkdirSync(path.join(s.home, '.obsidian-wiki')); },
+    (s) => { process.env.XDG_CONFIG_HOME = 'rel'; },
+    (s) => fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), 'OBSIDIAN_VAULT_PATH=\n'),
+  ];
+  for (const [i, arrange] of states.entries()) {
+    for (const version of [M.PIN, '2026.10.2']) {
+      const s = sandbox(t, { version, hooks: [] });
+      arrange(s);
+      const rows = s.rows(s.vaultDir);
+      delete process.env.XDG_CONFIG_HOME;
+      for (const r of rows) for (const text of [r.fix, r.detail]) assert.ok(!/\bmemory\.[a-z][a-z.-]*\b/.test(String(text || '')), `${i} ${version} ${r.id}: ${text}`);
+    }
+  }
+});
+
+test('PC-178: an unreadable config stops the tool repair, the upgrade and the install over it', { skip: SH || (process.getuid && process.getuid() === 0 && 'root reads any file') }, (t) => {
+  const s = sandbox(t, { version: '2026.10.2' });
+  delete process.env.FAKE_TOOLS_QUIET;
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+  fs.chmodSync(config, 0o000);
+  try {
+    const w = s.rows().find((r) => r.id === 'memory.wiki');
+    assert.ok(w && w.repair === null && w.gate === 'consent' && /make obsidian-wiki's config readable/.test(w.fix), JSON.stringify(w));
+    assert.throws(() => M.upgrade({ home: s.home, NPX }), /cannot be read .*; nothing was upgraded/);
+    fs.rmSync(path.join(s.state, 'version'));
+    fs.rmSync(path.join(s.state, 'uv-tools', 'obsidian-wiki'), { recursive: true, force: true }); // not installed, not held by uv
+    assert.match(M.needs(s.home, path.join(s.home, 'New'), 'linux').note || '', /cannot be read/);
+    assert.throws(() => M.install({ home: s.home, vault: path.join(s.home, 'New'), claude: { here: false }, NPX }), /cannot be read .*; nothing was installed/);
+    const log = (() => { try { return fs.readFileSync(path.join(s.home, 'fake-tools.log'), 'utf8'); } catch (_) { return ''; } })();
+    assert.ok(!/uv tool install/.test(log), log);
+  } finally { fs.chmodSync(config, 0o600); }
+  // The fake list, as the real one: a PermissionError on an unreadable config.
+  fs.writeFileSync(path.join(s.state, 'version'), '2026.10.2');
+  fs.chmodSync(config, 0o000);
+  const r = require('node:child_process').spawnSync(path.join(s.bin, 'obsidian-wiki'), ['list'], { env: process.env, encoding: 'utf8' });
+  fs.chmodSync(config, 0o600);
+  assert.ok(r.status === 1 && /PermissionError/.test(r.stderr), JSON.stringify(r));
 });
