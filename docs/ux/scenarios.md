@@ -383,7 +383,7 @@
 - **Preconditions:** uv is installed (https://docs.astral.sh/uv/getting-started/installation/); for the newcomer, no
   obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`), no folder `~/.wiki`
   that holds files, no skill of their own with a name obsidian-wiki bundles in an agent's global skills folder, no
-  XDG_CONFIG_HOME set to a relative path, and git
+  XDG_CONFIG_HOME set to a relative path or one that starts with ~, and git
   (on a Mac, Apple's command line tools: `xcode-select -p` answers).
 - **Steps:**
   1. Run `setup` (or `setup --yes`). In a terminal, answer the question about Obsidian, then the one about the agents' wiki
@@ -438,7 +438,8 @@
   `memory.vault.config-form` names the key and its form, and the config is left byte for byte. An older
   `~/.obsidian-wiki` beside the XDG folder obsidian-wiki's commands read: the vault is made, but no SessionStart recap is
   registered (its script would read the older folder and recap another vault), and `memory.hooks` warns until the person
-  removes it (the config the commands read stays; only files it lacks are copied in, never the old config over it). An upgrade whose refresh refuses after the reinstall puts the previous version back. A config
+  copies into the XDG folder the files of the older one it lacks (never the old config over the XDG config), then
+  removes the older folder; the XDG config obsidian-wiki's commands read stays. An upgrade whose refresh refuses after the reinstall puts the previous version back. A config
   with Windows line endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same
   way. A config whose `OBSIDIAN_WIKI_REPO` names an existing obsidian-wiki package outside uv's folder is the person's own
   copy off this PATH: setup installs nothing over it, and `memory.wiki` names that package with the step to put its
@@ -454,10 +455,12 @@
   that names no vault the launcher can use (a config form, an empty vault line, a config that cannot be read, a link to
   nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that prints the reason (the same text a
   `doctor` row carries in every branch) and points at that row's step, printed once above it, never a path and never a
-  setup step. With obsidian-wiki installed, a config that is a folder or names no vault stays a `doctor` failure
+  setup step. With obsidian-wiki installed, a config that is a link to nothing, a folder, a file that cannot be read or names no vault stays a `doctor` failure
   (`manual`), and a registered SessionStart hook then reads as recapping nothing; an `XDG_CONFIG_HOME` that starts with
-  `~` is named like a relative one; an older `~/.obsidian-wiki` asks to remove it while the XDG config stays (only files it
-  lacks are copied in, never the old config over it, which would switch the vault). A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
+  `~` is named like a relative one; an older `~/.obsidian-wiki` asks to copy into the XDG folder the files of the older one it
+  lacks (never the old config over the XDG config, which would switch the vault), then remove it. A config obsidian-wiki
+  cannot read stops the upgrade and the install over it, as its own `list` crashes on it. Row ids are never printed in
+  a step: a fix points at "the config line step above" or "the XDG_CONFIG_HOME step above". A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
   run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory`
   for a person who declined it. On Windows without the right to make links obsidian-wiki copies its skills: the first
   vault is made, and afterwards `doctor`'s `memory.wiki.clash` names obsidian-wiki's own copies as the person's skills
