@@ -6,6 +6,7 @@
     {"query": "The adapter change is ready; land it on main in fabric-agent-adapter.", "shouldTrigger": true},
     {"query": "Release the passioncode launcher and tag the version.", "shouldTrigger": true},
     {"query": "Which passioncode-ai repository owns the fabric-service protocol schemas?", "shouldTrigger": true},
+    {"query": "Fabric Dashboards crashes for our client's team; who do I report a platform issue to?", "shouldTrigger": true},
     {"query": "Bump the fabric-agent-contract pin in the adapter.", "shouldTrigger": true},
     {"query": "Publish this change to the public fabric-dashboards repo.", "shouldTrigger": true},
     {"query": "What license do we put in package.json for fabric-switchboard?", "shouldTrigger": true},

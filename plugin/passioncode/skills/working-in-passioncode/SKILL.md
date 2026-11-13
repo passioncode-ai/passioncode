@@ -77,6 +77,27 @@ agent; the data room and lessons; deals and the P&L; where to ask) is one page:
 Read it there; this skill does not copy it. Access and keys are asked from the PM agent, never from
 another agent's owner by hand.
 
+### A platform issue goes to PassionCode's owners
+
+Wherever the session runs (PassionCode, Appvillis, the operator's personal organization, a client),
+sort an issue before you route it (decision PM-D19, passioncode-pm-agent
+[docs/decisions.md](https://github.com/passioncode-ai/passioncode-pm-agent/blob/main/docs/decisions.md),
+2026-11-12; the knowledge base's
+[team.md §6](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/team.md#6-platform-issues-and-the-report-of-client-organizations-pm-d19)
+owns it):
+
+- **An issue of one agent** (its own code, prompt, data or keys) goes the usual way: that agent's
+  repository and owner, then the organization's architect and owners.
+- **An issue of the platform** goes to **PassionCode's owners** (the operator and the partner), never
+  to the organization's architect or owner. The platform is Fabric, Fabric Switchboard, Fabric
+  Dashboards, Fabric Inbox, Project Observatory, the PassionCode launcher and skills, the Fabric
+  Agent Adapter and Contract, studio-agent and the Studio spaces, the board and the agent templates
+  base. File it with its evidence (what failed, the version, the command and its output, no personal
+  data or secret) on the board to the part's owning Project (`com.submit`) and to Kira, the
+  passioncode-pm-agent Project, which carries it to the owners. A client organization's PM agent
+  also sends it, with its usage, to PassionCode's client-tracking agent (`gtm-deal-desk`, tool
+  `tracking.report.add`, one client key per reporting agent).
+
 ## 1. Before the first edit
 
 1. Read the knowledge base, then the repository's `AGENTS.md` (its `CLAUDE.md` imports
