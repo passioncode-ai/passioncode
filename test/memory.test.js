@@ -1030,7 +1030,11 @@ test('PC-178: every reason a config names no usable vault is one text, and a doc
       try { fs.chmodSync(config, 0o600); } catch (_) { /* not a file */ }
       assert.ok(w && w.why && w.step, `${branch}, ${reason}: ${JSON.stringify(w)}`);
       const row = rows.find((r) => r.area === 'memory' && String(r.detail).includes(w.why));
-      assert.ok(row && row.fix && row.state === 'warn', `${branch}, ${reason}: ${w.why}\n${JSON.stringify(rows.map((r) => [r.id, r.detail]))}`);
+      // A failure where obsidian-wiki's own doctor fails it (installed: a folder, no vault set; round 21, 3), else a warning.
+      const want = branch === 'installed' && (reason === 'folder' || reason === 'empty' || reason === 'missing') ? 'fail' : 'warn';
+      assert.ok(row && row.fix && row.state === want && row.gate === 'consent', `${branch}, ${reason}: ${w.why}\n${JSON.stringify(rows.map((r) => [r.id, r.state, r.gate, r.detail]))}`);
+      assert.ok(row.fix.includes(w.step), `${branch}, ${reason}: the row's fix carries the step: ${row.fix}`);
+      assert.ok(!w.step.includes(NPX) && !/setup, then run setup again/.test(w.step), `${branch}, ${reason}: ${w.step}`); // round 21, 2
     }
   }
   // The person's own copy off PATH (a readable config that names its package): an empty vault line and an older folder.
@@ -1117,4 +1121,70 @@ test('PC-178: the fake doctor resolves a link in the vault path as Path.resolve 
   fs.symlinkSync(s.vaultDir, path.join(s.home, 'link'));
   assert.equal(doctorVault(`OBSIDIAN_VAULT_PATH="${path.join(s.home, 'link')}"\n`, { home: s.home }).detail, fs.realpathSync(s.vaultDir));
   assert.equal(doctorVault(`OBSIDIAN_VAULT_PATH="${path.join(s.home, 'link', 'gone')}"\n`, { home: s.home }).detail, path.join(fs.realpathSync(s.vaultDir), 'gone'));
+});
+
+// Round 21 (PC-178).
+test('PC-178: with obsidian-wiki installed, a config that is a folder or names no vault stays a failure setup cannot repair', { skip: SH }, (t) => {
+  for (const make of [(c) => fs.writeFileSync(c, 'OBSIDIAN_VAULT_PATH=\n'), (c) => { fs.rmSync(c); fs.mkdirSync(c); }]) {
+    const s = sandbox(t);
+    make(path.join(s.home, '.config', 'obsidian-wiki', 'config'));
+    const v = s.rows().find((r) => r.id === 'memory.vault');
+    assert.ok(v && v.state === 'fail' && v.manual === true && v.gate === 'consent' && v.detail === M.vaultWhy(s.home, NPX).why, JSON.stringify(v));
+    // A registered SessionStart hook recaps nothing then: never "starts each session with a recap".
+    const h = s.rows().find((r) => r.id === 'memory.hooks');
+    assert.ok(h && h.state !== 'ok' && /recaps nothing while memory\.vault names why/.test(h.detail), JSON.stringify(h));
+  }
+});
+
+test('PC-178: a config that is a link to nothing has gate consent whether obsidian-wiki is installed or not', { skip: SH }, (t) => {
+  for (const installed of [true, false]) {
+    const s = sandbox(t);
+    if (!installed) fs.rmSync(path.join(s.state, 'version'));
+    const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+    fs.rmSync(config);
+    fs.symlinkSync(path.join(s.home, 'gone'), config);
+    const v = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } }).find((r) => r.id === 'memory.vault');
+    assert.ok(v && v.gate === 'consent', `${installed}: ${JSON.stringify(v)}`);
+  }
+});
+
+test('PC-178: the folder and empty-line steps clear the reason when followed literally', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  const folder = () => { fs.rmSync(config, { recursive: true, force: true }); fs.mkdirSync(config); };
+  folder();
+  assert.match(M.vaultWhy(s.home, NPX).step, /^remove the folder .* \(setup then writes its own config\), or replace that folder with obsidian-wiki's config file$/);
+  fs.rmSync(config, { recursive: true }); // "remove the folder"
+  assert.equal(M.vaultWhy(s.home, NPX), null);
+  folder();
+  fs.rmSync(config, { recursive: true }); fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`); // "replace that folder with the config file"
+  assert.equal(M.vaultWhy(s.home, NPX), null);
+  fs.writeFileSync(config, 'OBSIDIAN_VAULT_PATH=\nX=1\n');
+  assert.match(M.vaultWhy(s.home, NPX).step, /^replace the empty OBSIDIAN_VAULT_PATH line in .* with OBSIDIAN_VAULT_PATH="<absolute path>"$/);
+  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nX=1\n`);
+  assert.equal(M.vaultWhy(s.home, NPX), null);
+  fs.writeFileSync(config, 'X=1\n');
+  assert.match(M.vaultWhy(s.home, NPX).step, /^write OBSIDIAN_VAULT_PATH="<absolute path>" once in /);
+  fs.writeFileSync(config, `X=1\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`);
+  assert.equal(M.vaultWhy(s.home, NPX), null);
+});
+
+test('PC-178: an older ~/.obsidian-wiki comes first in setup and in memory.hooks alike, and its step removes the folder', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: [] });
+  const legacy = path.join(s.home, '.obsidian-wiki');
+  fs.mkdirSync(legacy);
+  fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`); // and a form
+  const w = M.vaultWhy(s.home, NPX);
+  assert.equal(w.kind, 'legacy');
+  assert.equal(w.step, `move what ${legacy} holds into ${path.join(s.home, '.config', 'obsidian-wiki')} and remove ${legacy}`);
+  const h = s.rows().find((r) => r.id === 'memory.hooks');
+  assert.ok(h && h.fix.startsWith(w.step), JSON.stringify(h));
+});
+
+test('PC-178: an XDG_CONFIG_HOME that starts with ~ is named with the same step as a relative one', { skip: SH }, (t) => {
+  sandbox(t);
+  process.env.XDG_CONFIG_HOME = '~/cfg';
+  const x = M.xdgProblem();
+  delete process.env.XDG_CONFIG_HOME;
+  assert.match(x, /^XDG_CONFIG_HOME starts with ~ \(~\/cfg\), which obsidian-wiki's SessionStart recap reads as a relative folder while its commands read your home; set it to an absolute folder, or unset it, then run setup again$/);
 });

@@ -74,7 +74,7 @@ const SITE = /(new Error\(|\bfail\(|\brefuse\(|\blefts\.push\(|\breturn |\bdetai
 // Literals that are not printed text: a page, a scratch folder's prefix, a file name, a TOML header or key, a command's
 // name, a state code, an empty string, a requirement built for uv, the shell quoting helper, a command's .exe name, a
 // version's major.minor.
-const NOT_TEXT = /'https:\/\/|passioncode-hook-|'utf8'|'\.wiki'|\[tool\]|'tool', '|'wiki-session-recap\.sh'|'wiki-stop-capture\.sh'|'obsidian-wiki'\b(?! is)|return '';|return 'uv';|return 'unknown';|const req = |const q = |\.exe`|\? 'ahead'|\? 'unknown' : 'equal'|\? 'fail' : |requirement: |requirement = `|with\.push\(`|`\$\{m\[1\]\}\.\$\{m\[2\]\}`|'profiles-unreadable'|const PY_SPACE = /;
+const NOT_TEXT = /'https:\/\/|passioncode-hook-|'utf8'|'\.wiki'|\[tool\]|'tool', '|'wiki-session-recap\.sh'|'wiki-stop-capture\.sh'|'obsidian-wiki'\b(?! is)|return '';|return 'uv';|return 'unknown';|const req = |const q = |\.exe`|\? 'ahead'|\? 'unknown' : 'equal'|\? 'fail' : |requirement: |requirement = `|with\.push\(`|`\$\{m\[1\]\}\.\$\{m\[2\]\}`|'profiles-unreadable'|const PY_SPACE = |const tail = /;
 function unregistered(lines, rows) {
   const covered = new Set();
   for (const r of rows) {

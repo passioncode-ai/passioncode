@@ -3834,7 +3834,9 @@ test('PC-178: a config that names no usable vault gets the step that prints why 
     assert.ok(!steps.includes(OB.guideNoVault), `${name}: ${steps.join('\n')}`);
     assert.ok(!steps.some((x) => /setup step|doctor says why/.test(x)), `${name}: ${steps.join('\n')}`);
     const third = steps.find((x) => x.startsWith('Obsidian: open your wiki vault in it once'));
-    assert.ok(w && third && third.includes(w.why) && third.includes(w.step), `${name}: ${JSON.stringify(w)}\n${steps.join('\n')}`);
+    assert.ok(w && third && third.includes(w.why) && third.includes('the wiki memory step above clears it, then open the vault'), `${name}: ${JSON.stringify(w)}\n${steps.join('\n')}`);
+    // One step, printed once: the memory row's fix is its only copy (round 21, 1).
+    assert.equal(steps.filter((x) => x.includes(w.step)).length, 1, `${name}: ${w.step}\n${steps.join('\n')}`);
     assert.ok((r.json.after || r.json).checks.some((c) => c.area === 'memory' && String(c.detail).includes(w.why)), `${name}: no doctor row carries ${w.why}`);
     assert.ok(!steps.some((x) => /paste \/|paste '|Notes/.test(x)), `${name}: ${steps.join('\n')}`);
   }
@@ -3851,4 +3853,16 @@ test('PC-178: a --wiki-vault path with a double quote, a line break or a control
   const plan = await cli(m, api, 'setup', '--dry-run', '--json', '--offline', '--wiki-vault', vault);
   const item = plan.json.plan.find((i) => i.kind === 'memory');
   assert.ok(item && !item.selected && item.note === `${vault} has a double quote, a line break or a control character in its path; choose another folder with --wiki-vault <dir>`, JSON.stringify(item));
+});
+
+// Round 21 (PC-178, 3): with obsidian-wiki installed, a config that names no vault stays a failure: doctor exits 1.
+test('PC-178: an empty vault line with obsidian-wiki installed fails doctor (memory.vault fail, manual)', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  giveWiki(m, PIN, { vault: path.join(m.home, 'Notes'), hooks: [] });
+  fs.writeFileSync(wikiConfig(m), 'OBSIDIAN_VAULT_PATH=\n');
+  const r = await cli(m, api, 'doctor', '--json', '--offline');
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  const v = r.json.checks.find((c) => c.id === 'memory.vault');
+  assert.ok(v && v.state === 'fail' && v.manual === true, JSON.stringify(v));
 });
