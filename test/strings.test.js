@@ -149,3 +149,22 @@ test('every config form has a strings.md row at its CONFIG_FORMS literal', () =>
     assert.ok(n > from && n < to, `${value} cites ${row.loc}, outside CONFIG_FORMS (lines ${from + 1} to ${to - 1})`);
   }
 });
+
+// PC-178 round 20 (6): every memory row id lib/memory.js gives a person's gate appears in cli.md's list of gates.
+test('every memory row with a gate is in cli.md\'s list of gates', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'lib/memory.js'), 'utf8').split(/\r?\n/);
+  const ids = new Set();
+  for (let i = 0; i < src.length; i++) {
+    const m = /id: '(memory[\w.-]*)'/.exec(src[i]);
+    if (!m) continue;
+    // The row's object: this line and the next two (a row spans at most three lines in lib/memory.js).
+    const text = src.slice(i, i + 3).join(' ');
+    if (/gate: (?!null\b)/.test(text)) ids.add(m[1]);
+  }
+  ids.add('memory.vault.config-form'); // configFormRow's id, its gate on a later line
+  const cli = fs.readFileSync(path.join(ROOT, 'docs/reference/cli.md'), 'utf8');
+  const at = cli.indexOf('Today: `consent` for');
+  const list = cli.slice(at, cli.indexOf('`secret` for\n`memory.obsidian.signature`', at));
+  assert.ok(at > 0 && list.length > 100);
+  for (const id of ids) assert.ok(list.includes(`\`${id}\``), `${id} is not in cli.md's list of gates`);
+});

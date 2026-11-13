@@ -3809,7 +3809,7 @@ test('PC-178: every darwin step that sends the person to open the vault names Cm
 // Round 18 (PC-178, break 1): the no-vault guide only where obsidian-wiki has no config at all; a config that names no vault
 // the launcher can use (an empty line, a form, a link to nothing, a folder, a file it cannot read, an older ~/.obsidian-wiki
 // that shadows it) gets the third step, which names the config and doctor, never a path and never a setup step.
-test('PC-178: a config that names no usable vault gets the step that names the config and doctor, never a setup step or a path', { skip: MAC_SIM }, async (t) => {
+test('PC-178: a config that names no usable vault gets the step that prints why and the person\'s step, which a doctor row carries, never a setup step or a path', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const cases = [
     ['a form', (m) => fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH='/Users/x/Notes'\n`)],
@@ -3827,12 +3827,15 @@ test('PC-178: a config that names no usable vault gets the step that names the c
     fs.mkdirSync(path.dirname(wikiConfig(m)), { recursive: true });
     arrange(m);
     const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--without', 'wiki');
+    // Round 20 (1): the step prints the reason and its step itself, the same text a doctor row of the run carries.
+    const w = require('../lib/memory').vaultWhy(m.home, 'npx @passioncode-ai/passioncode@latest');
     try { fs.chmodSync(wikiConfig(m), 0o600); } catch (_) { /* not a file */ }
     const steps = r.json.humanSteps;
     assert.ok(!steps.includes(OB.guideNoVault), `${name}: ${steps.join('\n')}`);
-    assert.ok(!steps.some((x) => /setup step/.test(x)), `${name}: ${steps.join('\n')}`);
+    assert.ok(!steps.some((x) => /setup step|doctor says why/.test(x)), `${name}: ${steps.join('\n')}`);
     const third = steps.find((x) => x.startsWith('Obsidian: open your wiki vault in it once'));
-    assert.ok(third && third.includes(wikiConfig(m)) && third.includes('doctor'), `${name}: ${steps.join('\n')}`);
+    assert.ok(w && third && third.includes(w.why) && third.includes(w.step), `${name}: ${JSON.stringify(w)}\n${steps.join('\n')}`);
+    assert.ok((r.json.after || r.json).checks.some((c) => c.area === 'memory' && String(c.detail).includes(w.why)), `${name}: no doctor row carries ${w.why}`);
     assert.ok(!steps.some((x) => /paste \/|paste '|Notes/.test(x)), `${name}: ${steps.join('\n')}`);
   }
   // No config at all: the no-vault guide.

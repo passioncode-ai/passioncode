@@ -879,7 +879,7 @@ const FORM_TABLE = {
       : [remove]) },
   relative: { cases: [['OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_REPO="venv/lib/python3.12/site-packages/obsidian_wiki/_data"\n'], ['OBSIDIAN_VAULT_PATH', 'OBSIDIAN_VAULT_PATH="Wiki"\n']],
     arms: (k) => (k === 'OBSIDIAN_VAULT_PATH'
-      ? [{ says: /write that folder's absolute path once as OBSIDIAN_VAULT_PATH="<absolute path>"/, fix: /once as OBSIDIAN_VAULT_PATH="<absolute path>"/, apply: (t, key) => keep(String(t), key, `${key}="/v"`) }]
+      ? [{ says: /write the vault's absolute path \(the folder `obsidian-wiki setup` ran in, joined with Wiki\) once as OBSIDIAN_VAULT_PATH="<absolute path>"/, fix: /joined with Wiki\) once as OBSIDIAN_VAULT_PATH="<absolute path>"/, not: /the absolute path of the folder `obsidian-wiki setup` ran in/, apply: (t, key) => keep(String(t), key, `${key}="/v"`) }]
       : [remove, { says: /write it as an absolute path to obsidian-wiki's package folder \(\.\.\.\/obsidian_wiki\/_data\)/, fix: /write it as an absolute path to obsidian-wiki's package folder \(\.\.\.\/obsidian_wiki\/_data\)/, apply: (t, key) => keep(String(t), key, `${key}="${VALUES[key]}"`) }]) },
   outside: { cases: [['OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_REPO="/opt/mine"\n'], ['OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_REPO="mine/notes"\n']], arms: () => [remove] },
   // Round 19 (R7): an apostrophe at either end of the vault's value, which obsidian-wiki's recap strips (read_var).
@@ -906,6 +906,7 @@ test('PC-178: every config form has a row, and each step its note and doctor fix
       for (const arm of row.arms(key)) {
         assert.match(note, arm.says, `${name} ${key}: ${note}`);
         assert.match(fix, arm.fix, `${name} ${key}: ${fix}`);
+        if (arm.not) { assert.doesNotMatch(note, arm.not); assert.doesNotMatch(fix, arm.not); }
         fs.writeFileSync(config, arm.apply(before, key));
         assert.equal(M.configForm(s.home), null, `${name} ${key}: ${JSON.stringify(fs.readFileSync(config, 'utf8'))}`);
         applied++;
@@ -1001,46 +1002,78 @@ test('PC-178: a relative vault line is a config form; ~/ is the home\'s', { skip
 });
 
 // Round 19 (PC-178).
-test('PC-178: doctor names an older ~/.obsidian-wiki whatever Claude Code\'s state, so the Obsidian step\'s "doctor says why" holds', { skip: SH }, (t) => {
+// Round 20 (PC-178, 1): the reason setup's Obsidian step prints is one function's, and a doctor row carries the same text in
+// every branch: obsidian-wiki installed, not installed, a copy uv holds that does not run, the person's own copy.
+const REASONS = {
+  legacy: (s) => fs.mkdirSync(path.join(s.home, '.obsidian-wiki')),
+  link: (s, c) => { fs.rmSync(c); fs.symlinkSync(path.join(s.home, 'gone'), c); },
+  folder: (s, c) => { fs.rmSync(c); fs.mkdirSync(c); },
+  ...(process.getuid && process.getuid() === 0 ? {} : { unreadable: (s, c) => fs.chmodSync(c, 0o000) }),
+  form: (s, c) => fs.writeFileSync(c, `OBSIDIAN_VAULT_PATH='${s.vaultDir}'\n`),
+  empty: (s, c) => fs.writeFileSync(c, 'OBSIDIAN_VAULT_PATH=\n'),
+  missing: (s, c) => fs.writeFileSync(c, 'X=1\n'),
+};
+const BRANCHES = {
+  installed: () => {},
+  'not installed': (s) => fs.rmSync(path.join(s.state, 'version')),
+  'uv holds one that does not run': (s) => { fs.rmSync(path.join(s.state, 'version')); receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n'); },
+};
+test('PC-178: every reason a config names no usable vault is one text, and a doctor row carries it in every branch', { skip: SH }, (t) => {
+  for (const [branch, arrange] of Object.entries(BRANCHES)) {
+    for (const [reason, make] of Object.entries(REASONS)) {
+      const s = sandbox(t);
+      const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+      arrange(s);
+      make(s, config);
+      const w = M.vaultWhy(s.home, NPX);
+      const rows = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
+      try { fs.chmodSync(config, 0o600); } catch (_) { /* not a file */ }
+      assert.ok(w && w.why && w.step, `${branch}, ${reason}: ${JSON.stringify(w)}`);
+      const row = rows.find((r) => r.area === 'memory' && String(r.detail).includes(w.why));
+      assert.ok(row && row.fix && row.state === 'warn', `${branch}, ${reason}: ${w.why}\n${JSON.stringify(rows.map((r) => [r.id, r.detail]))}`);
+    }
+  }
+  // The person's own copy off PATH (a readable config that names its package): an empty vault line and an older folder.
+  for (const reason of ['empty', 'legacy']) {
+    const s = sandbox(t);
+    fs.rmSync(path.join(s.state, 'version'));
+    const pkg = path.join(s.home, 'venv', 'lib', 'python3.12', 'site-packages', 'obsidian_wiki', '_data');
+    fs.mkdirSync(pkg, { recursive: true });
+    const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+    fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH=${reason === 'empty' ? '' : `"${s.vaultDir}"`}\nOBSIDIAN_WIKI_REPO="${pkg}"\n`);
+    if (reason === 'legacy') REASONS.legacy(s);
+    const rows = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
+    assert.ok(rows.some((r) => r.id === 'memory.wiki' && /your own obsidian-wiki/.test(r.detail)), JSON.stringify(rows));
+    const w = M.vaultWhy(s.home, NPX);
+    assert.ok(rows.some((r) => String(r.detail).includes(w.why)), `own copy, ${reason}: ${JSON.stringify(rows)}`);
+  }
+  // A usable vault: no reason and no such row.
+  const s = sandbox(t);
+  assert.equal(M.vaultWhy(s.home, NPX), null);
+  assert.ok(!fs.readFileSync(path.join(__dirname, '..', 'lib', 'setup.js'), 'utf8').includes('doctor says why'));
+});
+
+test('PC-178: memory.legacy is a warning through add(), hidden only by memory.hooks with the same text, never by a path that contains the folder\'s', { skip: SH }, (t) => {
   const s = sandbox(t);
   const legacy = path.join(s.home, '.obsidian-wiki');
   fs.mkdirSync(legacy);
-  const at = (rows) => rows.filter((r) => r.area === 'memory' && String(r.detail).includes(legacy));
-  // Claude Code absent; Claude Code reading another settings file; obsidian-wiki not installed.
-  const absent = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
-  assert.ok(at(absent).length === 1 && at(absent)[0].state === 'info', JSON.stringify(absent));
-  const elsewhere = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: true, settings: path.join(s.home, 'other', 'settings.json') } });
-  assert.equal(at(elsewhere).length, 1, JSON.stringify(elsewhere));
-  // Where Claude Code reads ~/.claude/settings.json, memory.hooks names it (a warning): one row, not two.
-  const here = s.rows();
-  assert.ok(at(here).length === 1 && at(here)[0].id === 'memory.hooks' && at(here)[0].state === 'warn', JSON.stringify(at(here)));
-  fs.rmSync(path.join(s.state, 'version'));
-  const none = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
-  assert.equal(at(none).length, 1, JSON.stringify(none));
-});
-
-test('PC-178: with obsidian-wiki not installed, a config that names no usable vault has a memory.vault row naming it and why', { skip: SH }, (t) => {
-  const s = sandbox(t);
-  fs.rmSync(path.join(s.state, 'version'));
-  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
-  const cases = [
-    ['an empty line', () => fs.writeFileSync(config, 'OBSIDIAN_VAULT_PATH=\n'), /names no vault/],
-    ['no vault line', () => fs.writeFileSync(config, 'X=1\n'), /names no vault/],
-    ['a form', () => fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH='${s.vaultDir}'\n`), /memory\.vault\.config-form/],
-    ['a link to nothing', () => fs.symlinkSync(path.join(s.home, 'gone'), config), /cannot be read/],
-    ['a folder', () => fs.mkdirSync(config), /is a folder/],
-    ...(process.getuid && process.getuid() === 0 ? [] : [['a file it cannot read', () => { fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`); fs.chmodSync(config, 0o000); }, /cannot be read/]]),
-  ];
-  for (const [name, arrange, why] of cases) {
-    fs.rmSync(config, { recursive: true, force: true });
-    arrange();
-    const v = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } }).find((r) => r.id === 'memory.vault');
-    try { fs.chmodSync(config, 0o600); } catch (_) { /* not a file */ }
-    assert.ok(v && v.detail.includes(config) && why.test(v.detail) && v.fix, `${name}: ${JSON.stringify(v)}`);
+  for (const vault of [path.join(s.home, '.obsidian-wiki-vault'), path.join(legacy, 'vault')]) {
+    fs.mkdirSync(vault, { recursive: true });
+    fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${vault}"\n`);
+    const rows = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
+    const l = rows.find((r) => r.id === 'memory.legacy');
+    assert.ok(l && l.state === 'warn' && l.gate === 'consent' && l.area === 'memory', `${vault}: ${JSON.stringify(rows)}`);
   }
-  fs.rmSync(config, { recursive: true, force: true });
-  fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`);
-  assert.equal(M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } }).find((r) => r.id === 'memory.vault'), undefined, 'a usable vault needs no row');
+  // XDG first, like every row that names setup.
+  process.env.XDG_CONFIG_HOME = 'rel';
+  const x = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
+  delete process.env.XDG_CONFIG_HOME;
+  for (const r of x.filter((r) => r.fix && /\bsetup\b/.test(r.fix) && r.id !== 'memory.config')) assert.match(r.fix, /^(never .*; )?first set XDG_CONFIG_HOME/, JSON.stringify(r));
+  // Where Claude Code reads ~/.claude/settings.json, memory.hooks carries the very same text: one row.
+  fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`);
+  const here = s.rows();
+  assert.ok(here.some((r) => r.id === 'memory.hooks' && r.detail === M.vaultWhy(s.home, NPX).why), JSON.stringify(here));
+  assert.ok(!here.some((r) => r.id === 'memory.legacy'), JSON.stringify(here));
 });
 
 test('PC-178: ~ followed by either separator is the home on Windows, only ~/ elsewhere', () => {
@@ -1062,12 +1095,20 @@ test('PC-178: a vault path that starts or ends with an apostrophe is refused; a 
   assert.ok(f && f.form === M.CONFIG_FORMS.breaks && f.key === null, JSON.stringify(f));
 });
 
-test('PC-178: a relative vault line names the folder obsidian-wiki setup ran in, and the step to write its absolute path', { skip: SH }, (t) => {
+test('PC-178: a relative vault line\'s step carries its value; a ~user value names no folder it was made against', { skip: SH }, (t) => {
   const s = sandbox(t);
-  fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), 'OBSIDIAN_VAULT_PATH="Wiki"\n');
-  const note = M.configFormNote(M.configForm(s.home));
-  assert.match(note, /made against the folder `obsidian-wiki setup` ran in/);
-  assert.match(note, /write that folder's absolute path once as OBSIDIAN_VAULT_PATH="<absolute path>"/);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, 'OBSIDIAN_VAULT_PATH="Wiki"\n');
+  const f = M.configForm(s.home);
+  for (const text of [M.configFormNote(f), M.configFormRow(f, NPX).fix]) {
+    assert.match(text, /write the vault's absolute path \(the folder `obsidian-wiki setup` ran in, joined with Wiki\) once as OBSIDIAN_VAULT_PATH="<absolute path>"/);
+    assert.doesNotMatch(text, /the absolute path of the folder `obsidian-wiki setup` ran in/);
+  }
+  fs.writeFileSync(config, 'OBSIDIAN_VAULT_PATH="~bob/Wiki"\n');
+  const g = M.configForm(s.home);
+  assert.equal(g.form, M.CONFIG_FORMS.relative);
+  assert.doesNotMatch(M.configFormNote(g), /obsidian-wiki setup/);
+  assert.match(M.configFormNote(g), /~bob\/Wiki with its home spelled out/);
 });
 
 test('PC-178: the fake doctor resolves a link in the vault path as Path.resolve does', { skip: SH }, (t) => {

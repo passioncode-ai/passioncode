@@ -43,7 +43,7 @@ function realPart(p) {
 function doctorVault(text, { home, cwd = process.cwd() }) {
   const v = readConfig(text).OBSIDIAN_VAULT_PATH || '';
   if (!v) return { name: 'vault-config', status: 'fail', detail: 'OBSIDIAN_VAULT_PATH is not set', hint: 'run: obsidian-wiki setup --vault /path/to/your/vault' };
-  const expanded = v.replace(/^~(?=$|\/)/, home);
+  const expanded = require('../lib/memory').expandHome(v, home); // the one ~ rule (round 20, 4)
   // pathlib on the POSIX hosts obsidian-wiki's hooks run on; posix also on Windows, where the tests run it on Unix paths.
   const resolved = path.isAbsolute(expanded) && !path.posix.isAbsolute(expanded) ? path.resolve(cwd, expanded) : path.posix.resolve(cwd.split(path.sep).join('/'), expanded);
   return { name: 'vault-config', status: 'pass', detail: realPart(resolved), hint: '' };
