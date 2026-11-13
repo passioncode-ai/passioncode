@@ -127,6 +127,23 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   reserved yet; a register that gains one is declared under `idRegisters` and taken with
   `agent_sync.py reserve <REG>`.
 
+## Step 0 before every change
+
+The operator's rule of 2026-11-13 (asset-foundry session `476195c4`, relayed on the board as `3390f915`; fabric-workspace
+`knowledge/rules.md` §0 and North Star principle 12 at `5694460b`). Before any change to this repository:
+
+1. **The workstation is set up.** `npx @passioncode-ai/passioncode doctor` (the launcher this repository ships) reports
+   no `fail`: the skills family with `task-pipeline` (`npx --yes sshlg-skills@latest update`), an updated harness, the
+   Fabric board, Fabric Dashboards, Switchboard where sessions run, and Observatory, each installed and set up. With a
+   `fail`, no change: set the machine up first (`passioncode setup`).
+2. **The change goes through `task-pipeline` inside a tracked workflow** (Observatory checkpoints after each step),
+   never on the side.
+3. **What works keeps working.** A changed workflow, template or organization copy is a new version beside the old
+   one; here that is a new launcher release and a new member pin in `family.json`, never a rewritten tag
+   (Local rules).
+4. **Keys come from the operator's Observatory vault, by name** (`use_secret.py run --vault-only`), split per project
+   where possible and reused where not. The launcher itself holds no key.
+
 ## Agents close questions themselves, by access level
 
 The operator's standing rule of 2026-11-13 ([authority](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/authority.md#agents-close-questions-themselves-by-access-level-operator-2026-11-13),
