@@ -58,11 +58,14 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   machine without uv or git, with XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs
   in), with a skill of the person's that shares a name with one of obsidian-wiki's, with an obsidian-wiki uv holds that
   does not run, with a config line obsidian-wiki's refresh would rewrite (`memory.vault.config-form`: the person rewrites
-  the line, gate `consent`), with a memory check that could not run ("could not be checked"), with a vault path that holds
+  the line, gate `consent`), with a relative `OBSIDIAN_VAULT_PATH` (obsidian-wiki's own setup writes one verbatim; the
+  vault was made against the folder that setup ran in, and the person writes that folder's absolute path), with a memory check that could not run ("could not be checked"), with a vault path that holds
   a double quote, a line break or a control character other than tab, or with a `~/.wiki` that holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
   (or unsets it), moves that skill, reinstalls obsidian-wiki as the note names, fixes what the note names, or names
   another folder: on a run that changes nothing else, `skipped` names the
   wiki memory; in any run, `humanSteps` carries the reason. Healthy otherwise, and say so.
+- A person who declined the wiki memory (said no to it, or asked to leave it out) gets `--without memory` on every later
+  `setup` you run for them, until the launcher remembers the choice itself (PC-205): a `--yes` run would install it.
 - Exit 0: nothing failed in what the run covered; 1: a step or a check failed; 2: bad arguments. The `memory.*`
   rows of a part named in `leftOut` (the wiki memory left out with `--without`, or by `--no-apps`) do not count,
   except a failing Obsidian signature, which always does: report those rows from `after.checks` all the same. A plan
