@@ -206,7 +206,14 @@ project, after every turn, to write into the vault. On the operator's machine th
     "first <step>; then setup" for the launcher's vault even when obsidian-wiki's doctor ends with a traceback (a config
     not saved as UTF-8). Obsidian's step: the no-vault guide only with no obsidian-wiki config at all; a config that names
     no vault the launcher can use (a form, an empty line, a config that cannot be read, or one an older `~/.obsidian-wiki`
-    shadows) gets a step that names the config and `doctor`, since setup makes no vault over an existing config. `hook()` and the hook repair also wait for
+    shadows) gets a step that names the config and `doctor`, since setup makes no vault over an existing config.
+    Round 19: every "doctor says why" is answered: `memory.legacy` names an older `~/.obsidian-wiki` wherever
+    `memory.hooks` does not, and with obsidian-wiki not installed a config that names no usable vault is a `memory.vault`
+    row. A vault value with an apostrophe at either end is a form (the recap's `read_var` strips one and reads another
+    folder), and a `--wiki-vault` path that starts or ends with one is refused; a break after the vault line's closing
+    quote is the whole config's form. A relative vault line, which obsidian-wiki's own setup writes verbatim, names the
+    folder that setup ran in. `~\` is the home on Windows too (`expandHome`). Obsidian's catalog guide had no reader and
+    is gone. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
