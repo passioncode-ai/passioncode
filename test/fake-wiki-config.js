@@ -4,6 +4,7 @@
 // KEY="value" (an empty value too; the repo is always the package path), a repeated managed line is dropped, a managed
 // key that is missing is appended in VAULT, REPO, VERSION order (so a config with no vault line gains
 // OBSIDIAN_VAULT_PATH=""), and the file ends with a newline. test/memory.test.js compares it with the real outputs.
+const path = require('path');
 const MANAGED = ['OBSIDIAN_VAULT_PATH', 'OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_VERSION'];
 // Python's str.splitlines() line breaks (\r\n counts once).
 const splitlines = (text) => { const out = text.split(/\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]/); if (out.length && out[out.length - 1] === '') out.pop(); return out; };
@@ -33,7 +34,8 @@ function doctorVault(text, { home, cwd = process.cwd() }) {
   const v = readConfig(text).OBSIDIAN_VAULT_PATH || '';
   if (!v) return { name: 'vault-config', status: 'fail', detail: 'OBSIDIAN_VAULT_PATH is not set', hint: 'run: obsidian-wiki setup --vault /path/to/your/vault' };
   const expanded = v.replace(/^~(?=$|\/)/, home);
-  return { name: 'vault-config', status: 'pass', detail: require('path').resolve(cwd, expanded), hint: '' };
+  // pathlib on the POSIX hosts obsidian-wiki's hooks run on; posix also on Windows, where the tests run it on Unix paths.
+  return { name: 'vault-config', status: 'pass', detail: path.isAbsolute(expanded) && !path.posix.isAbsolute(expanded) ? path.resolve(cwd, expanded) : path.posix.resolve(cwd.split(path.sep).join('/'), expanded), hint: '' };
 }
 function refreshConfig(text, { repo, version }) {
   const managed = { OBSIDIAN_VAULT_PATH: readValue(text, 'OBSIDIAN_VAULT_PATH'), OBSIDIAN_WIKI_REPO: repo, OBSIDIAN_WIKI_VERSION: version };
