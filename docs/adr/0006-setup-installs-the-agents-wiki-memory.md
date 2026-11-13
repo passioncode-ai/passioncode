@@ -188,7 +188,7 @@ project, after every turn, to write into the vault. On the operator's machine th
     the quotes around a bare managed value (`OBSIDIAN_VAULT_PATH=/x` becomes `OBSIDIAN_VAULT_PATH="/x"`, the same
     meaning); a config with no vault line gains `OBSIDIAN_VAULT_PATH=""`. Accepted: no value changes its meaning. A
     config that is not UTF-8 stops its `list` (UnicodeDecodeError), so it is refused as its own form; a vault path with a
-    double quote, a line break or a control character is refused, since the config holds it between quotes on one line.
+    double quote, a line break or a control character other than tab is refused, since the config holds it between quotes on one line.
     Round 17: one rule (`cannotHold`, `CONFIG_BREAKS`) names the characters the config cannot hold in a value: the double
     quote, any C0 control but tab, `\x85`, U+2028 and U+2029 (every break Python's `splitlines()` reads, and the quote);
     the vault path and `configForm` both read it. One reader (`configuredVault`) gives the vault the config names, as
@@ -196,7 +196,17 @@ project, after every turn, to write into the vault. On the operator's machine th
     empty line. Every form `configForm` returns is in `CONFIG_FORMS`, and a test applies each printed step to each form and
     finds it gone: the package check comes before the relative check (a relative value naming no `obsidian_wiki/_data`
     folder only asks to remove the line), and a managed value with a double quote is its own form (the vault: move it to a
-    folder whose path has no double quote, then write the line once). `hook()` and the hook repair also wait for
+    folder whose path has no double quote, then write the line once).
+    Round 18: a break or control character inside the vault's value is that same form (saving the file without it would
+    change the path), a relative vault line is a config form (the recap resolves it against each session's folder; `~/`
+    is the home's), and every form of an `OBSIDIAN_WIKI_REPO` line but a relative path naming the package asks only to
+    remove the line (obsidian-wiki writes the package path back, so following "write it once" could land in a second
+    form); the table test applies each step with the value the config held. Which vault is the launcher's is an identity
+    read of the raw vault line, whatever its form (`vaultIdentity`, never printed), so a config form keeps the hooks fix
+    "first <step>; then setup" for the launcher's vault even when obsidian-wiki's doctor ends with a traceback (a config
+    not saved as UTF-8). Obsidian's step: the no-vault guide only with no obsidian-wiki config at all; a config that names
+    no vault the launcher can use (a form, an empty line, a config that cannot be read, or one an older `~/.obsidian-wiki`
+    shadows) gets a step that names the config and `doctor`, since setup makes no vault over an existing config. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
