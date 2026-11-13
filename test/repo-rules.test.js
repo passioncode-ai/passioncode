@@ -11,7 +11,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const test = require('node:test');
-const { orgOf, rulesLine, KNOWLEDGE, KNOWLEDGE_WEB, PRINCIPLE_10, PRINCIPLE_11 } = require('../plugin/passioncode/hooks/repo-rules');
+const { orgOf, rulesLine, courseLine, KNOWLEDGE, KNOWLEDGE_WEB, PRINCIPLE_10, PRINCIPLE_11, COURSE_RULE, COURSE_PLAN } = require('../plugin/passioncode/hooks/repo-rules');
 
 function repo(url) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-rules-'));
@@ -76,4 +76,35 @@ test('the line names Fabric principles 10 and 11 by anchor, between the read-fir
   assert.match(line, /a free agent takes the next task/);
   assert.match(line, /every run leaves a lesson/);
   assert.equal(line.split('\n').length, 1);
+});
+
+test('the course-check line names rules §0 and the one plan, the link to name, and the unread board', () => {
+  const line = courseLine();
+  assert.equal(COURSE_RULE, `${KNOWLEDGE}rules.md#0-the-course-check-the-plan-and-the-north-star-before-every-change`);
+  assert.equal(COURSE_PLAN, 'fabric-workspace/docs/plans/2026-11-11-unified/README.md');
+  assert.match(line, /^\[passioncode\] course check before every change: /);
+  assert.ok(line.includes(COURSE_RULE) && line.includes(COURSE_PLAN), `both links: ${line}`);
+  assert.match(line, /North Star/);
+  assert.match(line, /track, plan row or gap/);
+  assert.match(line, /goes to the board first/);
+  assert.match(line, /com\.list \{unread: true\}/);
+  assert.equal(line.split('\n').length, 1);
+});
+
+test('the session-start hook prints the course line right after the read-first line, only in a passioncode-ai repository', () => {
+  const hook = path.join(__dirname, '..', 'plugin', 'passioncode', 'hooks', 'session-start.js');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-course-home-'));
+  const stateDir = path.join(home, '.passioncode');
+  fs.mkdirSync(stateDir);
+  // A check from just now and nothing published: the hook starts no probe and no update, so only its lines run.
+  fs.writeFileSync(path.join(stateDir, 'state.json'), JSON.stringify({ checkedAt: new Date().toISOString() }));
+  const run = (cwd) => execFileSync(process.execPath, [hook], {
+    input: JSON.stringify({ cwd }), encoding: 'utf8', timeout: 20000,
+    env: { ...process.env, HOME: home, USERPROFILE: home, PASSIONCODE_HOME: stateDir },
+  });
+  const ours = run(repo('git@github.com:passioncode-ai/fabric.git')).split('\n');
+  const at = ours.findIndex((l) => l.startsWith('[passioncode] passioncode-ai repository: '));
+  assert.ok(at >= 0, ours.join('\n'));
+  assert.equal(ours[at + 1], courseLine());
+  assert.ok(!run(repo('git@github.com:ssheleg/private-agent.git')).includes('course check'));
 });

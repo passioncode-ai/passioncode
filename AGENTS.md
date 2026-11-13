@@ -7,6 +7,20 @@
    every major feature and release across PassionCode.ai as `RM-*` tracks with owner, phase and
    state. It is the entry point: a task here that serves a track names it, and the track's status
    is edited only in the roadmap.
+1a. **The course check, before every change** ([rules §0](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/rules.md#0-the-course-check-the-plan-and-the-north-star-before-every-change)):
+   the [North Star](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/north-star.md) metric and
+   gaps, and the [one plan in waves](https://github.com/passioncode-ai/fabric-workspace/blob/main/docs/plans/2026-11-11-unified/README.md).
+   Name the track, plan row or gap the change serves; work that serves none goes to the board first.
+1b. **The North Star sections this repository serves** (operator, 2026-11-13; [North Star §6](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/north-star.md#merged-with-the-north-star-validated-by-the-architect-operator-2026-11-13)
+   «Merged with the North Star, validated by the architect»): [S4.1](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/system/prompt-onboarding.md)
+   step 7 (each person's machine: `setup` and its doctor); §4 «One system, not a pile of tools» (`setup` installs the
+   system's apps and registers their MCP as one set, [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md));
+   §10 «Deployment and continuity» (each agent from its installer; the set stays current with `update`); §13 step 6
+   (PassionCode's agents update skills); gap G14 (rows PC-153, PC-154). When the launcher's state changes against
+   them (a release, a gap closed or opened, a «where we stand» fact), write fabric-workspace a board message naming
+   the section and the evidence. Before each npm publication the architect's audit runs on this checkout
+   (fabric-agents-database `tools/audit.py scan`, then `start`, judged by `playbooks/audit-agent.md`); a blocking gap
+   holds the release (PC-200).
 2. The PassionCode.ai knowledge base — `fabric-workspace/knowledge/` in your clone (org-index
    `scripts/clone_all.sh` makes it) or https://wiki.passioncode.ai/knowledge — at least its
    [README](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/README.md),
@@ -96,7 +110,8 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   (`PASSIONCODE_CHECKOUT_ROOT`), never a committed path.
 - `working-in-passioncode` summarises the knowledge base and org-index and points to them; it
   never restates a long document. A rule that changes there changes here in the next release,
-  and so does the session-start line (`plugin/passioncode/hooks/repo-rules.js`, held by
+  and so do the session-start lines, the read-first one and the course check
+  (`plugin/passioncode/hooks/repo-rules.js` `rulesLine` and `courseLine`, held by
   `test/repo-rules.test.js`).
 - The licence is the organization's (Fabric ADR-0092): `AGPL-3.0-only OR
   LicenseRef-PassionCode-Commercial`; `LICENSE`, `COMMERCIAL-LICENSE.md` and `CLA.md` byte for byte
@@ -112,6 +127,27 @@ agent (ADR-0003, ADR-0004) and `doctor` makes one proving call to each (README,
   reserved yet; a register that gains one is declared under `idRegisters` and taken with
   `agent_sync.py reserve <REG>`.
 
+## Agents close questions themselves, by access level
+
+The operator's standing rule of 2026-11-13 ([authority](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/authority.md#agents-close-questions-themselves-by-access-level-operator-2026-11-13),
+fabric-workspace `4e2a1491`): a question an agent would put to the operator is decided by the agent, by the access
+levels below, the operator's recorded decisions (`docs/adr/`, the backlog rows) and this repository's goal, then the
+safest reversible option. Write the decision and its reason where the work lives (the backlog row, an ADR, the
+handoff) and go on at once. Trust comes from the checks (`npm test`, `claude plugin validate --strict`, the architect's
+audit before a publication, the published package read back), not from a person. Ask only at a human gate: a sign-in,
+a one-time code, a consent screen, a typed secret, a payment, spend above a limit, a send to people outside the estate,
+or access wider than the act needs; name the gate once and continue other work.
+
+| Scope | Who decides |
+|---|---|
+| this repository, its backlog, `family.json`, `trust.json` and its releases (PassionCode) | the operator and the partner, equally; an agent acts for them |
+| a person's own computer, where `setup`, `doctor` and `update` run | that person only: the launcher changes nothing there they did not run |
+| the operator's personal agents, keys and data | the operator only; never a member of the set (Local rules) |
+
+A level not written here: take the narrowest access that lets the act happen and record the open point on the row,
+never stop on it. A board run with no person in the session still stops before an npm publication or any other
+production step and hands that step to a session with a person.
+
 ## Platforms
 
 The organization's rule is every product on Mac, Windows and Linux
@@ -123,8 +159,9 @@ repository meets it with these departures, for these reasons:
   update, README "Staying current").
 - CI (`.github/workflows/validate.yml`) runs the whole gate on `ubuntu-latest`, `macos-latest` and `windows-latest`
   only, one Windows version, with Node 22.
-- That workflow runs on every push and pull request, not only nightly: its three jobs take a few minutes, and a pull
-  request is merged on their green result.
+- That workflow runs in the organisation's nightly batch (23:00 Europe/Warsaw, the operator's decision of 2026-09-25,
+  PC-07), on a manual run for an urgent candidate, and inside `release.yml` on a tag; not on every push or pull request.
+  `npm test` before a push is the gate a pull request is merged on.
 
 ## Lifecycle
 

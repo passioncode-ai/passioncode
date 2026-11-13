@@ -30,9 +30,9 @@
   first, setup makes the vault but registers no SessionStart recap, and setup names why (`doctor` shows it in `memory.hooks` or `memory.legacy`). A config with Windows line
   endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same way. Your own
   obsidian-wiki off the PATH (its package named in the config, outside uv's folder) is never installed over: `doctor`
-  names it and the step to put its command folder on PATH. A new vault now goes in the hidden `~/.wiki`, never
-  `~/Documents` (which iCloud may sync), and a `--wiki-vault` inside `~/Documents` is refused too; the step to open it names Cmd+Shift+G in Obsidian's folder picker and the
-  path. A config with any control character but tab and newline is refused like the line breaks above, and a relative
+  names it and the step to put its command folder on PATH. A new vault goes in the hidden `~/.wiki`; the step to open it names Cmd+Shift+G in
+  Obsidian's folder picker and the path. A new vault never goes in `~/Documents` (which iCloud may sync); a `--wiki-vault`
+  inside it is refused, and an existing vault there is left as it is. A config with any control character but tab and newline is refused like the line breaks above, and a relative
   `OBSIDIAN_WIKI_REPO` naming obsidian-wiki's package folder is a config form whose step is to remove the line or write it as an absolute path to that folder (one naming no package folder: remove the line); a config not saved
   as UTF-8 is its own form, a vault line with a double quote, a line break or a control character in its value asks to move the vault and write the line once,
   a relative vault line is a config form (obsidian-wiki's recap would read it against each session's folder), every other form of an `OBSIDIAN_WIKI_REPO` line asks only to remove it,
@@ -72,10 +72,33 @@
 - An agent folder that holds only skill folders (obsidian-wiki's setup makes `~/.codex/skills`, `~/.gemini/skills` and
   more) no longer counts as that agent, so no MCP server is registered for an agent that is not installed (PC-178).
 
-This ships in the release after 0.2.76, whose publication is held (PC-123).
+This ships in the release after 0.2.76.
 
 ### Changed
 
+- **The North Star sections the launcher serves** (PC-200, Fabric's announcement `d4404828`, 2026-11-13): `AGENTS.md`
+  item 1b names S4.1 step 7, North Star §4, §10, §13 step 6 and gap G14, says when to write fabric-workspace about a
+  change against them, and runs the architect's audit before each npm publication.
+- **A platform issue goes to PassionCode's owners** (PC-187, Kira's board message `77168f19`, 2026-11-12; decision
+  PM-D19 of passioncode-pm-agent): `working-in-passioncode` §0 gains a section that sorts an issue of one agent (its
+  owner, then the organization's architect and owners) from an issue of the platform (Fabric and its tools, Project
+  Observatory, the launcher and skills, the adapter and contract, studio-agent and the Studio spaces, the board, the
+  templates base). A platform issue goes, from every organization, on the board to the part's owning Project and to
+  Kira (passioncode-pm-agent) for the operator and the partner, with evidence and no personal data; a client
+  organization's PM agent also reports it with its usage to `gtm-deal-desk` (`tracking.report.add`); the skill
+  points to the knowledge base's `team.md` §6, which owns the rule. New eval scenario
+  `platform-issue-to-passioncode-owners` and one trigger query.
+- **The course check in every passioncode-ai repository** (PC-186, fabric-workspace's board request `5c460b82`,
+  2026-11-12; the source is fabric-workspace `knowledge/rules.md` §0): `working-in-passioncode` §0 now starts with the
+  course check (the North Star metric and gaps, the one plan in waves and S4.1; the change names the track, plan row or
+  gap it serves; work that serves none goes to the board first; after the change the row is updated and its board
+  thread told) and a short "Our own system" section pointing to `knowledge/team.md`. Its description names the course
+  check, «сверка курса» and «онбординг в PassionCode» and takes 332 characters. The session-start hook prints a second
+  line in every passioncode-ai repository, the course check with links to rules §0 and the one plan and a call to read
+  `com.list {unread: true}` (`courseLine` in `plugin/passioncode/hooks/repo-rules.js`). `setting-up-passioncode` §0
+  gives a person joining PassionCode.ai the order of team.md P1 to P6: Kira first (`/start`, `/claude`), then
+  `setup`, then org-index and the knowledge base, access only through the PM agent. This repository's `AGENTS.md`
+  carries the template's item 1a, the course check.
 - **Observatory Log 0.35.12** (PC-176, project-observatory's board request `7809e7a1`, 2026-11-11): the set pins
   Observatory's tag `v0.35.12` instead of `v0.26.0`. Its three skills' descriptions take 1,046 characters (from
   2,243), within Claude Code's skill-listing budget, and every Observatory Log change since 0.26.0 comes with it.

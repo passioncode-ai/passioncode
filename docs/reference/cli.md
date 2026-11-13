@@ -97,7 +97,7 @@ check fails. The summary and the failed ids are saved to
 `~/.passioncode/doctor.json` (with `blocked`, the failed ids whose app folder this user cannot write, PC-147, and `manual`, the
 failed ids no setup run repairs, such as a failing wiki vault, PC-178; `setup` saves only the rows of what it covered, so
 the `memory.*` rows of a part named in `leftOut` are not among them, while a plain `doctor` saves them all until
-PC-187), which the
+PC-217), which the
 SessionStart hook repeats while it has failures (naming `doctor` instead of `setup` when every one is blocked or manual), and release lookups are kept 30 minutes in `~/.passioncode/releases-cache.json`. Doctor writes nothing else and
 starts, stops or opens nothing, apart from the anonymous counts every command
 sends when they are on ([Anonymous usage counts](#anonymous-usage-counts): `~/.passioncode/analytics.json`, its notice

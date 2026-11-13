@@ -1,10 +1,10 @@
 ---
 name: working-in-passioncode
 description: >-
-  Use when working in any passioncode-ai repository: landing a PR, releases, tags and pins,
-  which repo owns what, handoffs, decisions, secrets, licensing: "open a PR in passioncode-ai",
-  "tag a version", «работаю в репозитории PassionCode», «как выпустить релиз». NOT for product
-  UX or copy (super-ux) or building Fabric agents (fabric-agent-adapter).
+  Use when working in any passioncode-ai repository: the course check (North Star, plan), a PR,
+  releases, pins, owners, handoffs, secrets, licensing: "open a PR in passioncode-ai",
+  «сверка курса», «онбординг в PassionCode», «как выпустить релиз». NOT for product UX or copy
+  (super-ux) or building Fabric agents (fabric-agent-adapter).
 license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
 compatibility: Any agent that can read files and run git. The gh CLI and a clone of passioncode-ai/org-index make the checks exact; without them follow the fallbacks in the body.
 metadata:
@@ -29,8 +29,9 @@ stricter, **that file wins**.
 Any work in a passioncode-ai repository: "work on a PassionCode repo", "open a PR in
 passioncode-ai", "release", "tag a version", "which repo owns this", "bump the contract pin",
 "publish this to the public repo", "what license do we use", "how is it done here", "where do I
-record a decision", in any language. It covers the org map, landing (protected and unprotected
-main, fast-forward, never force-push shared work, never touch another session's work), nightly CI
+record a decision", "check the course", "which North Star gap does this serve", "how do we
+onboard to PassionCode", in any language. It covers the course check (North Star, the one plan,
+S4.1), our own system (`team.md`), the org map, landing (protected and unprotected main, fast-forward, never force-push shared work, never touch another session's work), nightly CI
 and why a blocked run is not green, handoffs, decisions, ids and leases, secrets, licensing
 (AGPL-3.0 or commercial, CLA), the repository standard, the privacy gate, and releases, versions
 and pins. Not this skill: product UX, visual design or copy (super-ux, sheleg-design,
@@ -39,15 +40,63 @@ repositories outside passioncode-ai.
 
 ## 0. The protocol: before and after every piece of work
 
+**Before a change, the course check** (binding in every passioncode-ai repository; the knowledge
+base's [rules §0](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/rules.md#0-the-course-check-the-plan-and-the-north-star-before-every-change)
+is the source, this is its summary):
+
+1. **Where we run**: the [North Star](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/north-star.md#0-the-measure)
+   metric, its guardrails and its open gaps (`G1`..).
+2. **The plan**: the roadmap track (`RM-*`), the row of the
+   [one plan in waves](https://github.com/passioncode-ai/fabric-workspace/blob/main/docs/plans/2026-11-11-unified/README.md)
+   and, for anything between a prompt and a working organization, the step of S4.1
+   (`knowledge/system/prompt-onboarding.md`).
+3. **Name the link** in the task, PR or handoff: the track, plan row or S4.1 step the change serves
+   and the gap or guardrail it moves (for example "RM-35, plan 2.1, S4.1 step 3, G2"). Work that
+   serves none is not started on your own: post it to the board first (`com.submit` to
+   fabric-workspace) and take the next planned task meanwhile.
+4. **Read the board** for what waits on you: `com.list {unread: true}`.
+
 **Before the first edit**, read the knowledge base (at least its `README.md`, `vision.md`,
 `principles.md` and `how-to-work.md`), then the repository's `AGENTS.md`. The session-start hook
 of this plugin prints that line in every passioncode-ai repository.
 
-**After the work**, in the same run: update the repository's own docs in the change that changes
+**After the work**, in the same run: update the plan row, the roadmap track or the S4.1 step the
+change moved (state and date) and say what changed in the board thread that owns it; a date that
+slipped is corrected the day it slips. Update the repository's own docs in the change that changes
 the behaviour; if a fact that crosses repositories changed (a product, a version, a plan row, a
 principle, a rule), update the knowledge base page that owns it (`products.md`, `plans.md`, …);
 land both; then publish (`node scripts/workspace.mjs sync` from a Fabric checkout) or leave it to
 the scheduled sync. A page there is read as true: every claim carries its receipt.
+
+### Our own system
+
+How PassionCode.ai's own people and agents work (the two onboardings: a member's P1 to P6 through
+the PM agent Kira, an organization's through S4.1; deploying our agents; the architect before any
+agent; the data room and lessons; deals and the P&L; where to ask) is one page:
+[knowledge/team.md](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/team.md).
+Read it there; this skill does not copy it. Access and keys are asked from the PM agent, never from
+another agent's owner by hand.
+
+### A platform issue goes to PassionCode's owners
+
+Wherever the session runs (PassionCode, Appvillis, the operator's personal organization, a client),
+sort an issue before you route it (decision PM-D19, passioncode-pm-agent
+[docs/decisions.md](https://github.com/passioncode-ai/passioncode-pm-agent/blob/main/docs/decisions.md),
+2026-11-12; the knowledge base's
+[team.md §6](https://github.com/passioncode-ai/fabric-workspace/blob/main/knowledge/team.md#6-platform-issues-and-the-report-of-client-organizations-pm-d19)
+owns it):
+
+- **An issue of one agent** (its own code, prompt, data or keys) goes the usual way: that agent's
+  repository and owner, then the organization's architect and owners.
+- **An issue of the platform** goes to **PassionCode's owners** (the operator and the partner), never
+  to the organization's architect or owner. The platform is Fabric, Fabric Switchboard, Fabric
+  Dashboards, Fabric Inbox, Project Observatory, the PassionCode launcher and skills, the Fabric
+  Agent Adapter and Contract, studio-agent and the Studio spaces, the board and the agent templates
+  base. File it with its evidence (what failed, the version, the command and its output, no personal
+  data or secret) on the board to the part's owning Project (`com.submit`) and to Kira, the
+  passioncode-pm-agent Project, which carries it to the owners. A client organization's PM agent
+  also sends it, with its usage, to PassionCode's client-tracking agent (`gtm-deal-desk`, tool
+  `tracking.report.add`, one client key per reporting agent).
 
 ## 1. Before the first edit
 

@@ -11,7 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { decide, loadTrust, loadRegistryKeys, needsProbe, claimProbe, releaseProbe, npmCommand, npmMissing, npmMissingLine, NPM_MISSING, PACKAGE, recordProbe } = require('./update-check');
-const { rulesLine } = require('./repo-rules');
+const { rulesLine, courseLine } = require('./repo-rules');
 const { openLog, logEvent } = require('./update-log');
 
 const DIR = process.env.PASSIONCODE_HOME || path.join(os.homedir(), '.passioncode');
@@ -184,7 +184,7 @@ async function main() {
   let cwd = process.cwd();
   try { const input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}'); if (input && typeof input.cwd === 'string') cwd = input.cwd; } catch (_) { /* no stdin */ }
   const rules = rulesLine(cwd);
-  if (rules) lines.unshift(rules);
+  if (rules) lines.unshift(rules, courseLine());
   // The last saved setup check (ADR-0004): one line while it has failures. Doctor itself never runs here.
   const last = read(path.join(DIR, 'doctor.json'), null);
   const fails = last && last.summary && Number(last.summary.fail);
