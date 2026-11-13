@@ -2857,6 +2857,35 @@ test('PC-178: without git the vault is not offered and the note names how to get
   assert.ok(!toolLog(m).some((l) => /^git /.test(l)), 'git itself is not run, so no install dialog opens');
 });
 
+// Round 26 (the seam reading of 5da53ce, risk 2): the ~/Documents refusal is for a new vault only. A config whose vault
+// is already inside ~/Documents keeps working: no refusal in the plan or in doctor, and the hook repair is still offered.
+test('PC-178: an existing vault inside ~/Documents keeps working: no refusal, and the hook repair stays', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = withMemory();
+  assert.equal((await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki')).status, 0);
+  // As if an older launcher, or the person, had put it there: move the vault, the config and the launcher's record with it.
+  const was = path.join(m.home, '.wiki');
+  const vault = path.join(m.home, 'Documents', 'Wiki');
+  fs.mkdirSync(path.dirname(vault), { recursive: true });
+  fs.renameSync(was, vault);
+  fs.writeFileSync(wikiConfig(m), fs.readFileSync(wikiConfig(m), 'utf8').split(was).join(vault));
+  const stateFile = path.join(m.home, '.passioncode', 'state.json');
+  const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+  assert.equal(state.wiki && state.wiki.vault, was, JSON.stringify(state));
+  state.wiki.vault = vault;
+  fs.writeFileSync(stateFile, JSON.stringify(state));
+  setWikiHooks(m, []);
+  const doc = await cli(m, api, 'doctor', '--json', '--offline');
+  const memoryRows = (doc.json.after || doc.json).checks.filter((c) => c.area === 'memory');
+  assert.ok(!memoryRows.some((c) => /inside ~\/Documents|outside ~\/Documents/.test(`${c.detail} ${c.fix || ''}`)), JSON.stringify(memoryRows));
+  assert.deepEqual([row(doc, 'memory.hooks').state, row(doc, 'memory.hooks').repair], ['info', { kind: 'hook', product: 'wiki' }]);
+  const plan = await cli(m, api, 'setup', '--dry-run', '--json', '--offline');
+  assert.ok(!plan.json.plan.some((i) => i.kind === 'memory' && /inside ~\/Documents/.test(String(i.note || ''))), JSON.stringify(plan.json.plan));
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open');
+  assert.ok(r.json.actions.some((a) => a.kind === 'hook' && a.outcome === 'done'), JSON.stringify(r.json.actions));
+  assert.deepEqual(wikiHooks(m), ['SessionStart']);
+});
+
 test('PC-178: a SessionStart hook missing from a vault the launcher made is registered again by setup', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = withMemory();
