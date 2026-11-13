@@ -23,11 +23,13 @@
 // $FAKE_WIKI_STATE/uv-tools, where a test may put a uv-receipt.toml. $FAKE_TOOLS_QUIET: nothing is logged (a test's arrangement).
 // $FAKE_UV_FAIL and $FAKE_WIKI_SETUP_FAIL make those commands fail ($FAKE_WIKI_SETUP_FAIL=late writes the config, then
 // fails; =quiet exits 0 without a config). Like obsidian-wiki 2026.11.4, an ordinary command (`list`) whose config
-// records another version rewrites the version and package path (its stale refresh), keeping every other key beside the package path. brew and xcode-select
-// answer as installed ones do.
+// records another version runs its stale refresh, write_config (test/fake-wiki-config.js): every managed line written as
+// KEY="value", a repeated one dropped, a missing one appended (an empty vault line too), every other line kept. `uv tool
+// install` records `specifier = "==<version>"` as uv 0.12.13 does. brew and xcode-select answer as installed ones do.
 const fs = require('fs');
 const path = require('path');
 const catalog = require('../lib/catalog');
+const { refreshConfig } = require('./fake-wiki-config');
 
 const [tool, ...args] = process.argv.slice(2);
 const home = process.env.HOME;
@@ -129,7 +131,10 @@ switch (tool) {
       if (adds && !fs.existsSync(path.join(adds, 'SKILL.md'))) { fs.mkdirSync(adds, { recursive: true }); fs.writeFileSync(path.join(adds, 'SKILL.md'), '---\nname: mine\n---\n'); }
       // uv's record of the tool, naming the command it installed (round 16, R6).
       fs.mkdirSync(path.join(state, 'uv-tools', 'obsidian-wiki'), { recursive: true });
-      fs.writeFileSync(path.join(state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml'), `[tool]\nrequirements = [{ name = "obsidian-wiki" }]\nentrypoints = [{ name = "obsidian-wiki", install-path = "${path.join(dir, 'obsidian-wiki')}", from = "obsidian-wiki" }]\n`);
+      // uv 0.12.13 records the specifier it was given (`==<version>`), and the extras (round 17, R6).
+      const extras = (/^obsidian-wiki\[([^\]]*)\]/.exec(args.find((a) => /^obsidian-wiki(\[[^\]]*\])?==/.test(a)) || '') || [])[1];
+      const req = `{ name = "obsidian-wiki"${extras ? `, extras = [${extras.split(',').map((e) => `"${e.trim()}"`).join(', ')}]` : ''}, specifier = "==${spec.split('==')[1]}" }`;
+      fs.writeFileSync(path.join(state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml'), `[tool]\nrequirements = [${req}]\nentrypoints = [{ name = "obsidian-wiki", install-path = "${path.join(dir, 'obsidian-wiki')}", from = "obsidian-wiki" }]\n`);
       out(`Installed 1 executable: obsidian-wiki`); process.exit(0);
     }
     process.exit(2);
@@ -204,13 +209,10 @@ switch (tool) {
     if (args[0] === 'list') {
       if (process.env.OBSIDIAN_WIKI_NO_UPDATE_CHECK) fs.appendFileSync(path.join(home, 'fake-tools.log'), 'obsidian-wiki list ran with its update check off\n');
       if (process.env.FAKE_WIKI_LIST_ASKS_SETUP) { err(`obsidian-wiki upgraded ${recorded()} to ${version} but the skills could not be refreshed (fake).\n   Run: obsidian-wiki setup`); out('wiki-update'); process.exit(0); }
-      // As _check_stale and write_config: the version and the package path recorded, every managed value quoted (round 16, R6, R10).
+      // As _check_stale and write_config (test/fake-wiki-config.js, compared with real outputs; round 17, R6).
       if (recorded() && recorded() !== version) {
         refreshSkills();
-        let text = fs.readFileSync(config, 'utf8').replace(/^(OBSIDIAN_VAULT_PATH|OBSIDIAN_WIKI_REPO|OBSIDIAN_WIKI_VERSION)=([^"\n][^\n]*)$/gm, '$1="$2"');
-        text = text.replace(/^OBSIDIAN_WIKI_VERSION="[^"]*"/m, `OBSIDIAN_WIKI_VERSION="${version}"`);
-        text = /^OBSIDIAN_WIKI_REPO=/m.test(text) ? text.replace(/^OBSIDIAN_WIKI_REPO="[^"]*"/m, `OBSIDIAN_WIKI_REPO="${pkg}"`) : `${text.replace(/\n?$/, '\n')}OBSIDIAN_WIKI_REPO="${pkg}"\n`;
-        fs.writeFileSync(config, text);
+        fs.writeFileSync(config, refreshConfig(fs.readFileSync(config, 'utf8'), { repo: pkg, version }));
       }
       if (process.env.FAKE_WIKI_LIST_MISSING_SKILLS) err(`⚠️  3 skill(s) missing from ~/.claude/skills/ (e.g. wiki-agent).\n   Run: obsidian-wiki setup`);
       out('wiki-update\nwiki-query'); process.exit(0);

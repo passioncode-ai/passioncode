@@ -3804,3 +3804,25 @@ test('PC-178: every darwin step that sends the person to open the vault names Cm
     if (m === b) assert.ok(open.some((x) => x.includes(`paste ${path.join(b.home, 'Notes')}`)), JSON.stringify(open)); // the vault the config names
   }
 });
+
+// Round 17 (PC-178): the vault Obsidian's step names is the one reader's: none for a config form, none for an empty line.
+test('PC-178: a config form or an empty vault line gives the general Obsidian step, never a path read from that line', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  for (const [line, want] of [[`OBSIDIAN_VAULT_PATH='/Users/x/Notes'`, OB.guide], ['OBSIDIAN_VAULT_PATH=', OB.guideNoVault], ['OBSIDIAN_VAULT_PATH=""', OB.guideNoVault]]) {
+    const m = withMemory();
+    fs.mkdirSync(path.dirname(wikiConfig(m)), { recursive: true });
+    fs.writeFileSync(wikiConfig(m), `${line}\n`);
+    const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--without', 'wiki');
+    assert.ok(r.json.humanSteps.includes(want), `${line}: ${r.json.humanSteps.join('\n')}`);
+    assert.ok(!r.json.humanSteps.some((x) => /'\/Users\/x\/Notes'|paste '|paste "/.test(x)), r.json.humanSteps.join('\n'));
+  }
+});
+
+test('PC-178: a --wiki-vault path with a double quote, a line break or a control character has one step', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: [...TOOLS, 'uv', 'obsidian-wiki'], memory: true });
+  const vault = path.join(m.home, 'a"b');
+  const plan = await cli(m, api, 'setup', '--dry-run', '--json', '--offline', '--wiki-vault', vault);
+  const item = plan.json.plan.find((i) => i.kind === 'memory');
+  assert.ok(item && !item.selected && item.note === `${vault} has a double quote, a line break or a control character in its path; choose another folder with --wiki-vault <dir>`, JSON.stringify(item));
+});

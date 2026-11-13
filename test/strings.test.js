@@ -68,12 +68,13 @@ test('every strings.md row points at the line that holds its text', () => {
 
 // PC-178 round 15, widened in round 16: every literal lib/memory.js prints has a strings.md row covering its line, so an
 // unregistered memory string fails here instead of in a reading. A printed literal is one thrown, passed to fail(),
-// refuse() or lefts.push(), returned, set as a row's detail or fix, a ternary arm on its own line, or a constant (or arrow
-// constant) whose value is a string or template. Not covered: a `detail`/`fix` shorthand property (it names a variable).
-const SITE = /(new Error\(|\bfail\(|\brefuse\(|\blefts\.push\(|\breturn |\bdetail: |\bfix: )\s*\(?[`'"]|^\s*[?:] [`'"]|^\s*const \w+ = (?:\([^)]*\) => |\w+ => )?\(?[`'"]/;
+// refuse() or lefts.push(), returned, set as a row's detail or fix, a ternary arm on its own line or after `? ` anywhere on a
+// line (round 17), or a constant (or arrow constant) whose value is a string or template. Not covered: a `detail`/`fix` shorthand property (it names a variable).
+const SITE = /(new Error\(|\bfail\(|\brefuse\(|\blefts\.push\(|\breturn |\bdetail: |\bfix: )\s*\(?[`'"]|^\s*[?:] [`'"]|\? [`'"]|^\s*const \w+ = (?:\([^)]*\) => |\w+ => )?\(?[`'"]/;
 // Literals that are not printed text: a page, a scratch folder's prefix, a file name, a TOML header or key, a command's
-// name, a state code, an empty string, a requirement built for uv, the shell quoting helper.
-const NOT_TEXT = /'https:\/\/|passioncode-hook-|'utf8'|'\.wiki'|\[tool\]|'tool', '|'wiki-session-recap\.sh'|'wiki-stop-capture\.sh'|'obsidian-wiki'\b(?! is)|return '';|return 'uv';|return 'unknown';|const req = |const q = /;
+// name, a state code, an empty string, a requirement built for uv, the shell quoting helper, a command's .exe name, a
+// version's major.minor.
+const NOT_TEXT = /'https:\/\/|passioncode-hook-|'utf8'|'\.wiki'|\[tool\]|'tool', '|'wiki-session-recap\.sh'|'wiki-stop-capture\.sh'|'obsidian-wiki'\b(?! is)|return '';|return 'uv';|return 'unknown';|const req = |const q = |\.exe`|\? 'ahead'|\? 'unknown' : 'equal'|\? 'fail' : |requirement: |requirement = `|with\.push\(`|`\$\{m\[1\]\}\.\$\{m\[2\]\}`|'profiles-unreadable'/;
 function unregistered(lines, rows) {
   const covered = new Set();
   for (const r of rows) {
@@ -86,7 +87,7 @@ function unregistered(lines, rows) {
 }
 test('every printed string in lib/memory.js has a strings.md row (thrown, failed, refused, pushed, returned, a row\'s detail or fix, a ternary arm, a string constant)', () => {
   // A planted probe: the check reports an unregistered literal of each kind.
-  const probe = ['throw new Error(`probe one`);', '  lefts.push(`probe two`);', '  return `probe three`;', "    : 'probe four'", "const PROBE = 'probe five';", '  add({ fix: `probe six` });'];
+  const probe = ['throw new Error(`probe one`);', '  lefts.push(`probe two`);', '  return `probe three`;', "    : 'probe four'", "const PROBE = 'probe five';", '  add({ fix: `probe six` });', "  : form === 'x' ? `probe seven`"];
   assert.equal(unregistered(probe, []).length, probe.length);
   const rows = fs.readFileSync(path.join(ROOT, 'docs/brand/strings.md'), 'utf8').split(/\r?\n/)
     .filter((l) => /^\| [a-z][\w.-]* \|/.test(l)).map((row) => {
@@ -104,9 +105,14 @@ test('the docs quote the vault step and the refresh step as they print', () => {
   const vault = rows['setup.memory-open-vault'].replace('${route(v)}', rows['setup.memory-open-route.mac']).replace(/\$\{v\}/g, '<dir>');
   const refresh = rows['memory.refresh'].split('; ${NEVER}')[0];
   assert.match(refresh, /records the installed version and package path/);
+  // Either route the step prints: on a Mac, or elsewhere (round 17, R8).
+  const other = rows['setup.memory-open-vault'].replace('${route(v)}', rows['setup.memory-open-route']).replace(/\$\{v\}/g, '<dir>');
   for (const doc of ['docs/reference/cli.md', 'docs/ux/scenarios.md', 'README.md', 'SECURITY.md', 'CHANGELOG.md']) {
-    const text = collapse(fs.readFileSync(path.join(ROOT, doc), 'utf8'));
-    for (const m of text.matchAll(/"(Open the wiki vault [^"]*)"/g)) assert.equal(m[1], vault, `${doc} quotes the vault step as it prints`);
+    let raw = fs.readFileSync(path.join(ROOT, doc), 'utf8');
+    // A released CHANGELOG section is a record of what printed then: only Unreleased is read (round 17, R8).
+    if (doc === 'CHANGELOG.md') { const at = raw.indexOf('## Unreleased'); raw = raw.slice(at, raw.indexOf('\n## ', at + 1)); }
+    const text = collapse(raw);
+    for (const m of text.matchAll(/"(Open the wiki vault [^"]*)"/g)) assert.ok(m[1] === vault || m[1] === other, `${doc} quotes the vault step as it prints: ${m[1]}`);
     for (const m of text.matchAll(/"(run: obsidian-wiki list \([^"]*)"/g)) assert.ok(m[1].startsWith(refresh), `${doc} quotes the refresh step as it prints`);
   }
   assert.ok(collapse(fs.readFileSync(path.join(ROOT, 'docs/reference/cli.md'), 'utf8')).includes(`"${vault}"`), 'cli.md quotes the vault step');
