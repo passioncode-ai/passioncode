@@ -222,7 +222,13 @@ project, after every turn, to write into the vault. On the operator's machine th
     or a file that cannot be read, a config form, an empty or missing vault line), and `doctor` carries the same text in
     every branch. `memory.legacy` is a warning made through `add()`, hidden only by a `memory.hooks` row with the same
     text. A relative vault line's step carries its value. One `~` rule (`expandHome`) for the config folder, XDG,
-    `HERMES_HOME` and the fake doctor. `hook()` and the hook repair also wait for
+    `HERMES_HOME` and the fake doctor.
+    Round 21: the Obsidian step prints the why and points at the memory row's step, which is printed once; the form step
+    drops the row's literal setup tail; with obsidian-wiki installed, a config that is a folder or names no vault stays a
+    failure (`manual`), as obsidian-wiki's own doctor fails it, and a registered SessionStart hook reads as recapping
+    nothing; every reason has gate `consent` in every branch; the folder, empty-line and older-folder steps clear when
+    followed literally; an older folder comes first in setup and in `memory.hooks` alike; an `XDG_CONFIG_HOME` that
+    starts with `~` is named like a relative one, since the recap reads it as written. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
