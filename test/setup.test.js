@@ -3724,7 +3724,7 @@ test('PC-178: beside an older ~/.obsidian-wiki the recap would read another vaul
   assert.ok(a && a.outcome === 'done' && /SessionStart recap was not registered: obsidian-wiki's SessionStart recap reads .*\.obsidian-wiki while its commands read/.test(a.detail), JSON.stringify(a));
   assert.deepEqual(wikiHooks(m), []);
   const h = row(r, 'memory.hooks');
-  assert.ok(h && h.state === 'warn' && h.gate === 'consent' && !h.repair && /remove .*\.obsidian-wiki, or merge it into/.test(h.fix), JSON.stringify(h));
+  assert.ok(h && h.state === 'warn' && h.gate === 'consent' && !h.repair && /^move what .*\.obsidian-wiki holds into .* and remove .*\.obsidian-wiki, then /.test(h.fix), JSON.stringify(h));
   const r2 = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   assert.ok(!r2.json.actions.some((x) => x.kind === 'hook'), JSON.stringify(r2.json.actions));
 });
