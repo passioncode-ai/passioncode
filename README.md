@@ -148,7 +148,7 @@ or rename, and installs no obsidian-wiki while one is there; and only where git 
 tools, which setup names as a step), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` (which adds obsidian-wiki's
 skills to every agent's skills folder, making the folders of agents that are not installed) and registers only the
 SessionStart recap for Claude Code (only where Claude Code reads `~/.claude`; obsidian-wiki writes nowhere else). The run
-ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, every other key kept), and the Stop hook (which asks
+ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, and, with the same meaning, quotes around a bare value or an empty vault line where there was none (ADR-0006 decision 16), every other key kept), and the Stop hook (which asks
 every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
 someone did. `--without` leaves a part out: `obsidian` the app; `wiki` obsidian-wiki, its vault, its upgrade and the
 hook repair; `memory` both.

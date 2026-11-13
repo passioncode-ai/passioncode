@@ -401,7 +401,7 @@
   Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
   `doctor`'s `memory` rows read ok.
 - **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
-  are (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
+  are (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, and, with the same meaning, quotes around a bare value or an empty vault line where there was none (ADR-0006 decision 16), every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
   `doctor --fix`), never with `obsidian-wiki setup`; a copy uv does not list (pipx, pip `--user`) is the person's to
   bring up. `--wiki-vault <dir>` puts a new vault elsewhere; `--without obsidian` leaves out the app, `--without wiki`
   obsidian-wiki, its vault, its upgrade and the hook repair, `--without memory` both, and `--no-apps` both too. A
@@ -410,7 +410,7 @@
   inside the app: an older version is information, and setup never replaces a working copy for it (only a damaged copy
   of this user's own); a copy in `/Applications` that root owns (a package or MDM install) counts as this user's, with no
   second copy, while one another user dragged in stays theirs and this user gets their own.
-  Where Claude Code reads another folder (`CLAUDE_CONFIG_DIR`), no hook is registered (obsidian-wiki writes only
+  Where Claude Code reads another folder (`CLAUDE_CONFIG_DIR`), no hook is registered (obsidian-wiki's hooks writer targets only
   `~/.claude/settings.json`) and `doctor` says so; where Claude Code is not installed, no hook is offered.
 - **UI elements:** the plan's `memory` and Obsidian `install` lines, the memory question, `doctor`'s `memory` section
 - **States covered:** empty, success, partial, error
@@ -443,8 +443,11 @@
   way. A config whose `OBSIDIAN_WIKI_REPO` names an existing obsidian-wiki package outside uv's folder is the person's own
   copy off this PATH: setup installs nothing over it, and `memory.wiki` names that package with the step to put its
   command folder on PATH. A config that is not saved as UTF-8 is refused the same way, a relative `OBSIDIAN_WIKI_REPO`
-  asks to remove that line or write it as an absolute path, and a vault path with a double quote or a line break is
-  refused. A memory check that fails in a way nobody foresaw is one
+  that names obsidian-wiki's package folder asks to remove that line or write it as an absolute path to that folder (one
+  that names no package folder asks only to remove the line), a vault line with a double quote in its value asks to move
+  the vault to a folder whose path has no double quote and write the line once, and a vault path with a double quote, a
+  line break or a control character is refused with one step: choose another folder with `--wiki-vault`. A config form
+  or an empty vault line gives Obsidian's general step, never a path read from that line. A memory check that fails in a way nobody foresaw is one
   `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
