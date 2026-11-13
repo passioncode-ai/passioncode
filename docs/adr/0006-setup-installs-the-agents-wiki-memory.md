@@ -179,9 +179,12 @@ project, after every turn, to write into the vault. On the operator's machine th
 15. **The default vault is the hidden `~/.wiki` (the operator, 2026-11-12, round 14).** Quotes: «в документы не кладем
     ничего, у нас папка DATA»; «для лайнчера надо папка в root какая-то может даже скрытая». A new vault goes in `~/.wiki`,
     never `~/Documents/Wiki`: iCloud may sync `~/Documents`, and a Git repository in a synced folder breaks. It sits
-    outside `~/.passioncode`, so `passioncode uninstall` never reaches it; `--wiki-vault` is unchanged. Obsidian's folder
+    outside `~/.passioncode`, so `passioncode uninstall` never reaches it. Obsidian's folder
     picker hides dot folders, so the plan line names the full path and the step names the route (round 15): choose
-    Open folder as vault, press Cmd+Shift+G and paste the path.
+    Open folder as vault, press Cmd+Shift+G and paste the path. Round 25 (the operator's «ничего» read as it stands): a
+    `--wiki-vault` the person chose inside `~/Documents`, or `~/Documents` itself, is refused too, as written or through
+    a link, with the step "choose a folder outside ~/Documents (iCloud may sync Documents, and a Git repository in a
+    synced folder breaks)".
 16. **What the refresh would rewrite, and a copy of the person's own, are left alone (round 14).** A config with a line
     break Python's `splitlines()` reads besides `\n` (measured with the real 2026.11.4: `\r` before a key let a spaced key
     through, and its refresh emptied it; U+2028 in a value was truncated) or a byte order mark is refused as a whole. A
@@ -241,15 +244,20 @@ project, after every turn, to write into the vault. On the operator's machine th
     copy), and says the XDG config stays only where it is a readable file. `memory.hooks` models the recap script itself
     (`recapVault`: the folder it picks, the last vault line, its quote stripping, `~` as the home; checked against the
     real 2026.11.4 script on eight configs), so a repo outside the package, a single-quoted vault and a repeated version
-    line read `ok`. A config obsidian-wiki cannot read stops the tool repair, the upgrade and the install over it, as its
+    line read `ok` (the single-quoted vault reversed in round 24: the commands read it with its apostrophes). `hook()` and
+    the hook repair also wait for a config line `memory.vault.config-form` names (two vault lines send the recap and the
+    commands to different vaults). A config obsidian-wiki cannot read stops the tool repair, the upgrade and the install over it, as its
     own `list` crashes on it. No row id is printed in a step.
     Round 24: `memory.hooks` is `ok` iff the recap (`recapVault`) and obsidian-wiki's commands (`commandsVault`, as
-    `cli.py` reads the first exact vault line: whitespace and double quotes stripped, no `~` expansion) read the same
+    `cli.py` reads the first exact vault line: whitespace and double quotes stripped) read the same
     existing folder, and never while `XDG_CONFIG_HOME` is relative or starts with `~`. Steps that depend on another name
     it in order-free words ("as its own step says"), since Fabric Dashboards lists failures first. One predicate for an
     unreadable config (`unreadConfig`, a link to nothing included). From this round the coordinator's finish line applies:
-    a state a person plausibly reaches, or one that harms, is fixed here; states built only to probe go to the backlog. `hook()` and the hook repair also wait for
-    a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
+    a state a person plausibly reaches, or one that harms, is fixed here; states built only to probe go to the backlog.
+    Round 25: `commandsVault` expands a leading `~` or `~/` as the home, as every obsidian-wiki command does
+    (`resolve_vault_path` and the doctor), so a `~/vault` line reads `ok` (`~user` stays as written). "As the wiki vault
+    step says" only where that step is the unreadable config's; beside an older folder or an `XDG_CONFIG_HOME` problem
+    the step names the config itself.
 ## Consequences
 
 - One `setup` gives a new machine a working wiki memory, unless one of the reasons `cli.md` lists for leaving it out
