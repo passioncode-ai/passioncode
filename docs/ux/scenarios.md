@@ -454,9 +454,14 @@
   that names no vault the launcher can use (a config form, an empty vault line, a config that cannot be read, a link to
   nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that names the config and `doctor`, never a
   path and never a setup step. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
-  run only: the next `setup --yes` offers it again. On Windows without the right to make links obsidian-wiki copies its
-  skills, and those copies read as a clash of the person's skills, so the vault step and the upgrade stay unavailable
-  there until PC-193 lands. A memory check that fails in a way nobody foresaw is one
+  run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory`
+  for a person who declined it. On Windows without the right to make links obsidian-wiki copies its skills: the first
+  vault is made, and afterwards `doctor`'s `memory.wiki.clash` names obsidian-wiki's own copies as the person's skills
+  and the upgrade stays unavailable, until PC-193 lands. An older `~/.obsidian-wiki` is named by `doctor` whatever
+  Claude Code's state (`memory.hooks` where Claude Code reads `~/.claude/settings.json`, else `memory.legacy`), and with
+  obsidian-wiki not installed a config that names no usable vault is a `memory.vault` row naming it and why. A vault
+  value with an apostrophe at either end is a config form (the recap strips one), a `--wiki-vault` path that starts or
+  ends with one is refused, and a relative vault line names the folder `obsidian-wiki setup` ran in. A memory check that fails in a way nobody foresaw is one
   `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
@@ -469,7 +474,7 @@
   included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
   failure with its check names, and the session-start line then names `doctor`, not `setup`, which cannot repair it; a
   Stop hook someone registered is an information row naming its effect on every session, removed only by the person
-  (a hand edit; obsidian-wiki never writes Claude Code's settings file, which keeps its permission bits). A skill of the
+  (a hand edit; the launcher never lets obsidian-wiki write Claude Code's settings file, which keeps its permission bits). A skill of the
   person's that shares a name with one of obsidian-wiki's (in any agent's global skills folder, `skill-creator` for
   one) stops the install of obsidian-wiki, the vault step and the upgrade: obsidian-wiki's setup and its version refresh would delete or replace it,
   so the step is named unavailable with the first five entries and how many more (`doctor --json` lists every one), `doctor` shows `memory.wiki.clash`, and the person moves or renames

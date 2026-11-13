@@ -152,7 +152,7 @@ ends by naming the vault to open in Obsidian. An existing config or vault is lef
 every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
 someone did. `--without` leaves a part out: `obsidian` the app; `wiki` obsidian-wiki, its vault, its upgrade and the
 hook repair; `memory` both. Leaving it out, or answering "no" to its question, lasts that run only: the next `setup --yes`
-offers the wiki memory again (PC-205 would remember the choice).
+installs it again (a terminal run asks again; PC-205 would remember the choice).
 
 `doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of

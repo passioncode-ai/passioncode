@@ -107,8 +107,8 @@ source or editable; an unknown key or table). A vault step that fails removes wh
 step added to obsidian-wiki's config folder: the config and `WRITING.md`, or the folder when the step made it), and when the same run installed obsidian-wiki a
 step that fails before the vault stands uninstalls it again (`uv tool uninstall obsidian-wiki`); a failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry. An older
 obsidian-wiki is brought up with `uv tool install --force` and then `obsidian-wiki list` with its update check off
-(`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`), whose stale refresh records the new version and package path and keeps every other key of the
-config (the same `list` runs right after installing obsidian-wiki over an existing config); a `list` that asks for
+(`OBSIDIAN_WIKI_NO_UPDATE_CHECK=1`), whose stale refresh records the new version and package path (and, with the same meaning, quotes around a bare value
+or an empty vault line where there was none) and keeps every other key of the config (the same `list` runs right after installing obsidian-wiki over an existing config); a `list` that asks for
 `obsidian-wiki setup` fails the step instead. It never registers or removes obsidian-wiki's
 Stop hook, never runs `obsidian-wiki setup` over an existing config (setup rewrites the config), never replaces a working
 Obsidian for its version, and never runs an installer script from the network (a missing uv is `brew install uv` where
