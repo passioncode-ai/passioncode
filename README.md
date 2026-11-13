@@ -135,7 +135,7 @@ does not answer is started through launchd (`launchctl kickstart`, never a kill)
 installs [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) (MIT), the tool your agents read and write their
 memory with, at the version this launcher pins (`uv tool install obsidian-wiki==2026.11.4`; with no
 [uv](https://docs.astral.sh/uv/getting-started/installation/) it names that step instead: `brew install uv` where Homebrew
-is, else uv's installer, which you run), and, on a Mac, Obsidian, where you read that memory. Obsidian publishes no signed
+is and this user can write its bin folder, else uv's installer, which you run), and, on a Mac, Obsidian, where you read that memory. Obsidian publishes no signed
 checksums, so its image must match GitHub's digest and the app must carry Obsidian's own Developer ID team `6JSW4SJWN9`,
 its notarization ticket and Gatekeeper's yes. Obsidian updates itself inside the app, so setup never replaces a working
 copy for its version, only a damaged one of yours; a copy in `/Applications` that root owns (a package or MDM install) counts as yours, while one another user dragged in stays theirs and you get your own. When you have no

@@ -415,7 +415,7 @@
 - **UI elements:** the plan's `memory` and Obsidian `install` lines, the memory question, `doctor`'s `memory` section
 - **States covered:** empty, success, partial, error
 - **Errors & recovery:** No uv: the memory is not offered and the steps name how to get it ("The wiki memory: needs uv:
-  brew install uv, ..." where Homebrew is, else "a person installs it with the installer its page names"); no git: the
+  brew install uv, ..." where Homebrew is and this user can write its bin folder, else "a person installs it with the installer its page names"); no git: the
   same, naming Apple's command line tools on a Mac (`xcode-select -p` is asked first, so no install dialog opens);
   everything else is set up. A vault step that fails (git or obsidian-wiki's own setup) fails the run and leaves nothing
   of the vault; when the same run installed obsidian-wiki, it is uninstalled again and the error says so (an uninstall that
@@ -452,8 +452,12 @@
   `--wiki-vault`. Obsidian's step names a vault in three ways: the vault the run made or the existing config names, with
   its path; with no obsidian-wiki config, its guide says the vault comes with the wiki memory's setup step; with a config
   that names no vault the launcher can use (a config form, an empty vault line, a config that cannot be read, a link to
-  nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that prints the reason and the person's step
-  itself (the same text a `doctor` row carries in every branch), never a path and never a setup step. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
+  nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that prints the reason (the same text a
+  `doctor` row carries in every branch) and points at that row's step, printed once above it, never a path and never a
+  setup step. With obsidian-wiki installed, a config that is a folder or names no vault stays a `doctor` failure
+  (`manual`), and a registered SessionStart hook then reads as recapping nothing; an `XDG_CONFIG_HOME` that starts with
+  `~` is named like a relative one; an older `~/.obsidian-wiki` asks to move what it holds into the XDG folder and
+  remove it. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
   run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory`
   for a person who declined it. On Windows without the right to make links obsidian-wiki copies its skills: the first
   vault is made, and afterwards `doctor`'s `memory.wiki.clash` names obsidian-wiki's own copies as the person's skills
