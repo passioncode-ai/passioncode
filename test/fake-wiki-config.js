@@ -30,12 +30,23 @@ function readConfig(text) {
  * empty or missing value, else pass with the path expanded (~) and resolved against `cwd`. Recorded with the real one on
  * 2026-11-13: an empty line and no line fail; of two lines the last wins; a spaced key passes; ~/v is the home's.
  */
+/** Path.resolve(strict=False): links resolved in the longest part that exists, the rest kept (round 19, R10). */
+function realPart(p) {
+  const fs = require('fs');
+  const rest = [];
+  for (let at = p; ; at = path.dirname(at)) {
+    if (path.dirname(at) === at) return p; // nothing below the root exists: as written
+    try { return path.join(fs.realpathSync(at), ...rest.reverse()); } catch (_) { /* not there */ }
+    rest.push(path.basename(at));
+  }
+}
 function doctorVault(text, { home, cwd = process.cwd() }) {
   const v = readConfig(text).OBSIDIAN_VAULT_PATH || '';
   if (!v) return { name: 'vault-config', status: 'fail', detail: 'OBSIDIAN_VAULT_PATH is not set', hint: 'run: obsidian-wiki setup --vault /path/to/your/vault' };
   const expanded = v.replace(/^~(?=$|\/)/, home);
   // pathlib on the POSIX hosts obsidian-wiki's hooks run on; posix also on Windows, where the tests run it on Unix paths.
-  return { name: 'vault-config', status: 'pass', detail: path.isAbsolute(expanded) && !path.posix.isAbsolute(expanded) ? path.resolve(cwd, expanded) : path.posix.resolve(cwd.split(path.sep).join('/'), expanded), hint: '' };
+  const resolved = path.isAbsolute(expanded) && !path.posix.isAbsolute(expanded) ? path.resolve(cwd, expanded) : path.posix.resolve(cwd.split(path.sep).join('/'), expanded);
+  return { name: 'vault-config', status: 'pass', detail: realPart(resolved), hint: '' };
 }
 function refreshConfig(text, { repo, version }) {
   const managed = { OBSIDIAN_VAULT_PATH: readValue(text, 'OBSIDIAN_VAULT_PATH'), OBSIDIAN_WIKI_REPO: repo, OBSIDIAN_WIKI_VERSION: version };

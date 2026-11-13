@@ -2509,7 +2509,7 @@ test('PC-178: setup --yes installs Obsidian, checked by its own chain, and the w
   assert.equal(row(r, 'memory.hooks.stop'), undefined);
   // The vault it made is named to open in Obsidian; Obsidian's general guide gives way to it.
   assert.ok(r.json.humanSteps.includes(`Open the wiki vault ${vault} in Obsidian once to read what your agents remember: choose Open folder as vault, press Cmd+Shift+G and paste ${vault}.`), JSON.stringify(r.json.humanSteps));
-  assert.ok(!r.json.humanSteps.includes(OB.guide), JSON.stringify(r.json.humanSteps));
+  assert.ok(!r.json.humanSteps.some((x) => x.startsWith('Obsidian: open')), JSON.stringify(r.json.humanSteps)); // the vault the run made is named instead
   assert.ok(r.json.humanSteps.some((s) => /^Restart your coding agents/.test(s)), JSON.stringify(r.json.humanSteps));
   // obsidian-wiki's setup made ~/.gemini/skills: a folder of skills only is not Gemini CLI, so nothing is registered there.
   const doc = await cli(m, api, 'doctor', '--json', '--offline');
@@ -2540,7 +2540,7 @@ test('PC-178: an Obsidian release that fails its own chain installs nothing', { 
 test('PC-178: an existing wiki config and vault are left exactly as they are', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
   const m = machine({ tools: [...TOOLS, 'uv', 'obsidian-wiki'], memory: true });
-  const vault = path.join(m.home, 'Notes');
+  const vault = path.join(fs.realpathSync(m.home), 'Notes'); // the fake doctor resolves links as Path.resolve does (round 19, R10)
   giveWiki(m, PIN, { vault, hooks: [] });
   const before = fs.readFileSync(wikiConfig(m), 'utf8');
   const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
