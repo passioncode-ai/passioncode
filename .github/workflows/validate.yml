@@ -1,8 +1,13 @@
 name: validate
 
+# PC-07: hosted CI runs in the organisation's nightly batch (the operator's decision of 2026-09-25, org-index
+# docs/CI-BATCHING.md), not on every push or pull request; `npm test` before a push is the gate. A manual run is for
+# an urgent candidate (`gh workflow run validate.yml --ref <branch>`); release.yml still calls this on its tag.
 on:
-  push:
-  pull_request:
+  schedule:
+    - cron: '0 21 * * *'   # 23:00 Warsaw in summer time
+    - cron: '0 22 * * *'   # 23:00 Warsaw in winter time
+  workflow_dispatch:
   workflow_call:
     inputs:
       ref:
@@ -13,9 +18,33 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: validate-${{ github.workflow }}-${{ inputs.ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'schedule' }}
+
 jobs:
-  node:
+  # Of the two crons only the one at 23:00 Europe/Warsaw runs the suites; every other event runs them.
+  gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      run: ${{ steps.g.outputs.run }}
+    steps:
+      - id: g
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = schedule ] && [ "$(TZ=Europe/Warsaw date +%H)" != 23 ]; then
+            echo "not 23:00 in Warsaw; skipping this cron"; echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  node:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,6 +57,8 @@ jobs:
   # PC-132: macOS, where the apps install, runs the whole gate as Linux does (the suite's fake codesign and hdiutil
   # stand in for the real ones there too).
   macos:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
@@ -45,6 +76,8 @@ jobs:
   # their reason (AGENTS.md lists them): POSIX links, paths and modes, signals, an unwritable folder,
   # setup.test.js's macOS simulation, and the reg-simulated PC-86/88/89 doctor and setup cases (shell-script stand-ins).
   windows:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: windows-latest
     timeout-minutes: 20
     steps:

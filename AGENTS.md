@@ -157,8 +157,9 @@ repository meets it with these departures, for these reasons:
   update, README "Staying current").
 - CI (`.github/workflows/validate.yml`) runs the whole gate on `ubuntu-latest`, `macos-latest` and `windows-latest`
   only, one Windows version, with Node 22.
-- That workflow runs on every push and pull request, not only nightly: its three jobs take a few minutes, and a pull
-  request is merged on their green result.
+- That workflow runs in the organisation's nightly batch (23:00 Europe/Warsaw, the operator's decision of 2026-09-25,
+  PC-07), on a manual run for an urgent candidate, and inside `release.yml` on a tag; not on every push or pull request.
+  `npm test` before a push is the gate a pull request is merged on.
 
 ## Lifecycle
 
