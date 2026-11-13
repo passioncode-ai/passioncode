@@ -1031,7 +1031,8 @@ test('PC-178: every reason a config names no usable vault is one text, and a doc
       assert.ok(w && w.why && w.step, `${branch}, ${reason}: ${JSON.stringify(w)}`);
       const row = rows.find((r) => r.area === 'memory' && String(r.detail).includes(w.why));
       // A failure where obsidian-wiki's own doctor fails it (installed: a folder, no vault set; round 21, 3), else a warning.
-      const want = branch === 'installed' && (reason === 'folder' || reason === 'empty' || reason === 'missing') ? 'fail' : 'warn';
+      // Round 22 (2): a link to nothing and an unreadable config too (the real doctor fails or crashes on them).
+      const want = branch === 'installed' && reason !== 'legacy' && reason !== 'form' ? 'fail' : 'warn';
       assert.ok(row && row.fix && row.state === want && row.gate === 'consent', `${branch}, ${reason}: ${w.why}\n${JSON.stringify(rows.map((r) => [r.id, r.state, r.gate, r.detail]))}`);
       assert.ok(row.fix.includes(w.step), `${branch}, ${reason}: the row's fix carries the step: ${row.fix}`);
       assert.ok(!w.step.includes(NPX) && !/setup, then run setup again/.test(w.step), `${branch}, ${reason}: ${w.step}`); // round 21, 2
@@ -1072,7 +1073,8 @@ test('PC-178: memory.legacy is a warning through add(), hidden only by memory.ho
   process.env.XDG_CONFIG_HOME = 'rel';
   const x = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
   delete process.env.XDG_CONFIG_HOME;
-  for (const r of x.filter((r) => r.fix && /\bsetup\b/.test(r.fix) && r.id !== 'memory.config')) assert.match(r.fix, /^(never .*; )?first set XDG_CONFIG_HOME/, JSON.stringify(r));
+  // The step itself only in memory.config; the others point at it (round 22, 3).
+  for (const r of x.filter((r) => r.fix && /\bsetup\b/.test(r.fix) && r.id !== 'memory.config')) assert.match(r.fix, /^(never .*; )?first the step memory\.config names; then /, JSON.stringify(r));
   // Where Claude Code reads ~/.claude/settings.json, memory.hooks carries the very same text: one row.
   fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`);
   const here = s.rows();
@@ -1153,7 +1155,7 @@ test('PC-178: the folder and empty-line steps clear the reason when followed lit
   const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
   const folder = () => { fs.rmSync(config, { recursive: true, force: true }); fs.mkdirSync(config); };
   folder();
-  assert.match(M.vaultWhy(s.home, NPX).step, /^remove the folder .* \(setup then writes its own config\), or replace that folder with obsidian-wiki's config file$/);
+  assert.match(M.vaultWhy(s.home, NPX).step, /^remove the folder .*, or replace that folder with obsidian-wiki's config file$/);
   fs.rmSync(config, { recursive: true }); // "remove the folder"
   assert.equal(M.vaultWhy(s.home, NPX), null);
   folder();
@@ -1176,7 +1178,7 @@ test('PC-178: an older ~/.obsidian-wiki comes first in setup and in memory.hooks
   fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`); // and a form
   const w = M.vaultWhy(s.home, NPX);
   assert.equal(w.kind, 'legacy');
-  assert.equal(w.step, `move what ${legacy} holds into ${path.join(s.home, '.config', 'obsidian-wiki')} and remove ${legacy}`);
+  assert.equal(w.step, `remove ${legacy}; obsidian-wiki's commands read ${path.join(s.home, '.config', 'obsidian-wiki', 'config')}, which stays; copy into ${path.join(s.home, '.config', 'obsidian-wiki')} only files it lacks, never the old config over it`);
   const h = s.rows().find((r) => r.id === 'memory.hooks');
   assert.ok(h && h.fix.startsWith(w.step), JSON.stringify(h));
 });
@@ -1187,4 +1189,57 @@ test('PC-178: an XDG_CONFIG_HOME that starts with ~ is named with the same step 
   const x = M.xdgProblem();
   delete process.env.XDG_CONFIG_HOME;
   assert.match(x, /^XDG_CONFIG_HOME starts with ~ \(~\/cfg\), which obsidian-wiki's SessionStart recap reads as a relative folder while its commands read your home; set it to an absolute folder, or unset it, then run setup again$/);
+});
+
+// Round 22 (PC-178).
+test('PC-178: the older folder\'s step, followed literally, keeps the vault the commands read and adds no form', { skip: SH }, (t) => {
+  for (const outside of [false, true]) {
+    const s = sandbox(t);
+    const xdg = path.join(s.home, '.config', 'obsidian-wiki');
+    const legacy = path.join(s.home, '.obsidian-wiki');
+    const other = path.join(s.home, 'Other');
+    fs.mkdirSync(legacy);
+    fs.writeFileSync(path.join(legacy, 'config'), `OBSIDIAN_VAULT_PATH="${other}"\n${outside ? 'OBSIDIAN_WIKI_REPO="/opt/mine"\n' : ''}`);
+    fs.writeFileSync(path.join(legacy, 'WRITING.md'), '# old\n');
+    fs.writeFileSync(path.join(legacy, 'update-check.json'), '{}');
+    fs.writeFileSync(path.join(xdg, 'WRITING.md'), '# mine\n');
+    const before = M.configuredVault(s.home);
+    const w = M.vaultWhy(s.home, NPX);
+    assert.equal(w.kind, 'legacy');
+    assert.match(w.step, /^remove .*\.obsidian-wiki; obsidian-wiki's commands read .*config, which stays; copy into .* only files it lacks, never the old config over it$/);
+    // The step: copy only the files the XDG folder lacks, never the config over it; then remove the older folder.
+    for (const f of fs.readdirSync(legacy)) if (!fs.existsSync(path.join(xdg, f))) fs.copyFileSync(path.join(legacy, f), path.join(xdg, f));
+    fs.rmSync(legacy, { recursive: true });
+    assert.equal(M.configuredVault(s.home), before);
+    assert.equal(M.legacyShadow(s.home), null);
+    assert.equal(M.vaultWhy(s.home, NPX), null);
+    assert.equal(fs.readFileSync(path.join(xdg, 'WRITING.md'), 'utf8'), '# mine\n');
+  }
+});
+
+test('PC-178: memory.hooks reads ok only when the recap reads the vault the commands read', { skip: SH }, (t) => {
+  const cases = [
+    ['XDG_CONFIG_HOME=~/cfg', (s) => { const d = path.join(s.home, 'cfg', 'obsidian-wiki'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`); process.env.XDG_CONFIG_HOME = '~/cfg'; }],
+    ['a relative vault line', (s) => fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="Wiki"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['an apostrophe vault value', (s) => fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}'"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+  ];
+  for (const [name, arrange] of cases) {
+    const s = sandbox(t);
+    arrange(s);
+    const h = s.rows().find((r) => r.id === 'memory.hooks');
+    delete process.env.XDG_CONFIG_HOME;
+    assert.ok(h && h.state !== 'ok' && /recaps nothing while memory\.[\w.-]+ names why/.test(h.detail), `${name}: ${JSON.stringify(h)}`);
+  }
+  const s = sandbox(t);
+  assert.equal(s.rows().find((r) => r.id === 'memory.hooks').state, 'ok');
+});
+
+test('PC-178: the empty-line step reads the config only when it can', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, 'OBSIDIAN_VAULT_PATH=\n');
+  const real = fs.readFileSync;
+  let calls = 0;
+  fs.readFileSync = function (p, ...a) { if (String(p) === config && ++calls > 2) throw Object.assign(new Error('gone'), { code: 'ENOENT' }); return real.call(fs, p, ...a); };
+  try { assert.doesNotThrow(() => M.vaultWhy(s.home, NPX)); } finally { fs.readFileSync = real; }
 });

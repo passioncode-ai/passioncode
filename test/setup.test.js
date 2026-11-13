@@ -3161,7 +3161,7 @@ test('PC-178: obsidian-wiki\'s config is found as it finds it, and a config that
   const r = await cli(n, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   assert.ok(!r.json.plan.some((i) => i.kind === 'memory'), JSON.stringify(r.json.plan));
   const v = row(r, 'memory.vault');
-  assert.equal(v.state, 'warn');
+  assert.ok(v.state === 'fail' && v.manual === true && v.gate === 'consent', JSON.stringify(v)); // obsidian-wiki's doctor fails it (round 22, 2)
   assert.ok(v.detail.includes(cfg), v.detail);
   assert.ok(fs.lstatSync(cfg).isSymbolicLink(), 'the link stays');
 });
@@ -3667,7 +3667,7 @@ test('PC-178: with a relative XDG_CONFIG_HOME setup still installs Obsidian, ins
   // Every other memory row that names setup asks for the XDG step first.
   const d = await cli(m, api, 'doctor', '--json', '--offline');
   const w = row(d, 'memory.wiki');
-  assert.ok(w && /^first set XDG_CONFIG_HOME to an absolute folder, or unset it; then /.test(w.fix), JSON.stringify(w));
+  assert.ok(w && /^first the step memory\.config names; then /.test(w.fix), JSON.stringify(w)); // the XDG step once (round 22, 3)
 });
 
 test('PC-178: a SessionStart recap that fails after the vault stands names the kept vault, and the next setup registers it', { skip: MAC_SIM }, async (t) => {
@@ -3724,7 +3724,7 @@ test('PC-178: beside an older ~/.obsidian-wiki the recap would read another vaul
   assert.ok(a && a.outcome === 'done' && /SessionStart recap was not registered: obsidian-wiki's SessionStart recap reads .*\.obsidian-wiki while its commands read/.test(a.detail), JSON.stringify(a));
   assert.deepEqual(wikiHooks(m), []);
   const h = row(r, 'memory.hooks');
-  assert.ok(h && h.state === 'warn' && h.gate === 'consent' && !h.repair && /^move what .*\.obsidian-wiki holds into .* and remove .*\.obsidian-wiki, then /.test(h.fix), JSON.stringify(h));
+  assert.ok(h && h.state === 'warn' && h.gate === 'consent' && !h.repair && /^remove .*\.obsidian-wiki; obsidian-wiki's commands read .*, which stays; copy into .* only files it lacks, never the old config over it, then /.test(h.fix), JSON.stringify(h));
   const r2 = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--with', 'wiki');
   assert.ok(!r2.json.actions.some((x) => x.kind === 'hook'), JSON.stringify(r2.json.actions));
 });
@@ -3819,6 +3819,8 @@ test('PC-178: a config that names no usable vault gets the step that prints why 
     ['a folder', (m) => fs.mkdirSync(wikiConfig(m))],
     ['a file it cannot read', (m) => { fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Notes')}"\n`); fs.chmodSync(wikiConfig(m), 0o000); }],
     ['an older ~/.obsidian-wiki', (m) => { fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Notes')}"\n`); fs.mkdirSync(path.join(m.home, '.obsidian-wiki')); }],
+    // Round 22 (3): an XDG_CONFIG_HOME that starts with ~; its step only in memory.config.
+    ['an XDG_CONFIG_HOME that starts with ~', (m) => { const d = path.join(m.home, 'cfg', 'obsidian-wiki'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'config'), `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Notes')}"\n`); m.env = { ...(m.env || {}), XDG_CONFIG_HOME: '~/cfg' }; }],
   ];
   for (const [name, arrange] of cases) {
     if (name === 'a file it cannot read' && process.getuid && process.getuid() === 0) continue; // root reads any file
@@ -3828,7 +3830,10 @@ test('PC-178: a config that names no usable vault gets the step that prints why 
     arrange(m);
     const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--without', 'wiki');
     // Round 20 (1): the step prints the reason and its step itself, the same text a doctor row of the run carries.
+    const xdgWas = process.env.XDG_CONFIG_HOME;
+    if (m.env && m.env.XDG_CONFIG_HOME) process.env.XDG_CONFIG_HOME = m.env.XDG_CONFIG_HOME;
     const w = require('../lib/memory').vaultWhy(m.home, 'npx @passioncode-ai/passioncode@latest');
+    if (xdgWas === undefined) delete process.env.XDG_CONFIG_HOME; else process.env.XDG_CONFIG_HOME = xdgWas;
     try { fs.chmodSync(wikiConfig(m), 0o600); } catch (_) { /* not a file */ }
     const steps = r.json.humanSteps;
     assert.ok(!steps.includes(OB.guideNoVault), `${name}: ${steps.join('\n')}`);
@@ -3865,4 +3870,19 @@ test('PC-178: an empty vault line with obsidian-wiki installed fails doctor (mem
   assert.equal(r.status, 1, r.stdout + r.stderr);
   const v = r.json.checks.find((c) => c.id === 'memory.vault');
   assert.ok(v && v.state === 'fail' && v.manual === true, JSON.stringify(v));
+});
+
+// Round 22 (PC-178, 3): obsidian-wiki not installed, uv here, a config form: the form's step is printed once (the
+// config-form row's fix), never again in the memory item's note.
+test('PC-178: a config form with obsidian-wiki to install prints its step once', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: [...TOOLS, 'uv'], memory: true });
+  fs.mkdirSync(path.dirname(wikiConfig(m)), { recursive: true });
+  fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH='${path.join(m.home, 'Notes')}'\n`);
+  const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open');
+  const w = require('../lib/memory').vaultWhy(m.home, 'npx @passioncode-ai/passioncode@latest');
+  assert.equal(w.kind, 'form');
+  assert.equal(r.json.humanSteps.filter((x) => x.includes(w.step)).length, 1, `${w.step}\n${r.json.humanSteps.join('\n')}`);
+  // The memory item's note (the same form, in its own words) is not a second copy.
+  assert.ok(!r.json.humanSteps.some((x) => x.startsWith('The wiki memory: ') && x.includes(w.why)), r.json.humanSteps.join('\n'));
 });
