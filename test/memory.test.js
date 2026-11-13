@@ -1090,6 +1090,16 @@ test('PC-178: ~ followed by either separator is the home on Windows, only ~/ els
   assert.equal(M.expandHome('~x', '/home/a', 'darwin'), '~x');
 });
 
+// Round 25 (the operator: «в документы не кладем ничего»): nothing goes into ~/Documents, an explicit vault included.
+test('PC-178: a vault inside ~/Documents is refused, a folder that only starts with its name is not', () => {
+  const home = '/home/a';
+  const DOCS = 'is inside ~/Documents';
+  for (const dir of ['/home/a/Documents', '/home/a/Documents/', '/home/a/Documents/wiki', '/home/a/x/../Documents/wiki']) assert.equal(M.vaultProblem(dir, home), DOCS, dir);
+  for (const dir of ['/home/a/Documents2/wiki', '/home/a/.wiki', '/home/b/Documents/wiki']) assert.equal(M.vaultProblem(dir, home), null, dir);
+  if (process.platform === 'darwin') assert.equal(M.vaultProblem('/home/a/documents/wiki', home), DOCS); // a case-insensitive disk
+  assert.equal(M.vaultNote('/home/a/Documents/wiki', DOCS), '/home/a/Documents/wiki is inside ~/Documents; choose a folder outside ~/Documents (iCloud may sync Documents, and a Git repository in a synced folder breaks) with --wiki-vault <dir>');
+});
+
 test('PC-178: a vault path that starts or ends with an apostrophe is refused; a break after the closing quote is the whole config\'s', { skip: SH }, (t) => {
   assert.equal(M.vaultProblem("/tmp/a'"), "starts or ends with an apostrophe, which obsidian-wiki's recap strips");
   assert.match(M.vaultNote("/tmp/a'", M.vaultProblem("/tmp/a'")), /; choose another folder with --wiki-vault <dir>$/);
@@ -1232,6 +1242,9 @@ test('PC-178: memory.hooks reads ok only when the recap, as its script reads the
     // Measured with the real 2026.11.4 recap: these print the vault's memory.
     ['a repo outside the package', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="/opt/mine"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
     ['the version twice', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    // Round 25 (1): every obsidian-wiki command and the recap expand a leading ~ (cli.py resolve_vault_path, the recap script).
+    ['a quoted ~/ vault', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="~/${path.basename(s.vaultDir)}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['a bare ~/ vault', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH=~/${path.basename(s.vaultDir)}\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
   ];
   const notCases = [
     ['XDG_CONFIG_HOME=~/cfg', (s) => { const d = path.join(s.home, 'cfg', 'obsidian-wiki'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`); process.env.XDG_CONFIG_HOME = '~/cfg'; }],
@@ -1334,6 +1347,38 @@ test('PC-178: steps that name another step in words find it, obsidian-wiki insta
     assertReferences(rows, String(installed));
     if (!installed) assert.ok(rows.findIndex((r) => r.id === 'memory.vault.config-form') < rows.findIndex((r) => r.id === 'memory.wiki'), JSON.stringify(rows.map((r) => r.id)));
   }
+});
+
+// Round 25 (2): "as the wiki vault step says" only where that step is the unreadable config's; beside an older folder the
+// step names the config itself.
+test('PC-178: an unreadable config beside an older folder names the config, never a wiki vault step that says something else', { skip: SH || (process.getuid && process.getuid() === 0 && 'root reads any file') }, (t) => {
+  // The seam reading of b8c39d0: a link to nothing as well as a file nobody may read, obsidian-wiki installed or not.
+  for (const layout of ['unreadable', 'link to nothing']) for (const installed of [true, false]) {
+    const s = sandbox(t, { version: '2026.10.2', hooks: [] });
+    receipt(s, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+    if (!installed) { fs.rmSync(path.join(s.state, 'version')); fs.rmSync(path.join(s.state, 'uv-tools', 'obsidian-wiki'), { recursive: true, force: true }); }
+    fs.mkdirSync(path.join(s.home, '.obsidian-wiki'));
+    const cfg = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+    if (layout === 'unreadable') fs.chmodSync(cfg, 0o000); else { fs.rmSync(cfg); fs.symlinkSync(path.join(s.home, 'gone'), cfg); }
+    let rows;
+    try { rows = s.rows(s.vaultDir); } finally { if (layout === 'unreadable') fs.chmodSync(cfg, 0o600); }
+    const name = `${layout}, ${installed ? 'installed' : 'not installed'}`;
+    const w = rows.find((r) => r.id === 'memory.wiki');
+    assert.ok(w && !/as the wiki vault step says/.test(w.fix) && w.fix.includes(`first make obsidian-wiki's config ${cfg} readable, or remove it; then`), `${name}: ${JSON.stringify(w)}`);
+    assertReferences(rows, name);
+    for (const r of rows) if (/as the wiki vault step says/.test(String(r.fix || ''))) assert.ok(rows.some((o) => o.id === 'memory.vault' && /cannot be read/.test(o.detail)), `${name}: ${r.id}`);
+  }
+  // The unreadable config alone: its own wiki vault step says it, and the reference stays.
+  const u = sandbox(t, { version: '2026.10.2', hooks: [] });
+  receipt(u, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+  const cfg = path.join(u.home, '.config', 'obsidian-wiki', 'config');
+  fs.chmodSync(cfg, 0o000);
+  let rows;
+  try { rows = u.rows(u.vaultDir); } finally { fs.chmodSync(cfg, 0o600); }
+  const w = rows.find((r) => r.id === 'memory.wiki');
+  assert.ok(w && /as the wiki vault step says/.test(w.fix), JSON.stringify(rows));
+  assert.ok(rows.some((o) => o.id === 'memory.vault' && /cannot be read/.test(o.detail)), JSON.stringify(rows));
+  assertReferences(rows, 'alone');
 });
 
 test('PC-178: one predicate for an unreadable config: a link to nothing, and beside an older folder', { skip: SH || (process.getuid && process.getuid() === 0 && 'root reads any file') }, (t) => {

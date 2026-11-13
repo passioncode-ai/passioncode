@@ -3860,6 +3860,17 @@ test('PC-178: a --wiki-vault path with a double quote, a line break or a control
   assert.ok(item && !item.selected && item.note === `${vault} has a double quote, a line break or a control character in its path; choose another folder with --wiki-vault <dir>`, JSON.stringify(item));
 });
 
+// Round 25 (the operator, 2026-11-12: «в документы не кладем ничего»): an explicit --wiki-vault inside ~/Documents is refused too.
+test('PC-178: a --wiki-vault inside ~/Documents is refused with its step', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine({ tools: [...TOOLS, 'uv', 'obsidian-wiki'], memory: true });
+  for (const vault of [path.join(m.home, 'Documents'), path.join(m.home, 'Documents', 'wiki')]) {
+    const plan = await cli(m, api, 'setup', '--dry-run', '--json', '--offline', '--wiki-vault', vault);
+    const item = plan.json.plan.find((i) => i.kind === 'memory');
+    assert.ok(item && !item.selected && item.note === `${vault} is inside ~/Documents; choose a folder outside ~/Documents (iCloud may sync Documents, and a Git repository in a synced folder breaks) with --wiki-vault <dir>`, JSON.stringify(item));
+  }
+});
+
 // Round 21 (PC-178, 3): with obsidian-wiki installed, a config that names no vault stays a failure: doctor exits 1.
 test('PC-178: an empty vault line with obsidian-wiki installed fails doctor (memory.vault fail, manual)', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
