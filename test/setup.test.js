@@ -3474,7 +3474,7 @@ test('PC-178: the refresh step is offered only at or above the pin; below it the
   fs.writeFileSync(wikiConfig(m), fs.readFileSync(wikiConfig(m), 'utf8').replace('OBSIDIAN_WIKI_VERSION="2026.10.2"', 'OBSIDIAN_WIKI_VERSION="2026.09.1"'));
   const v = row(await cli(m, api, 'doctor', '--json', '--offline'), 'memory.vault');
   assert.ok(!/obsidian-wiki list/.test(v.fix), v.fix);
-  assert.match(v.fix, /by the obsidian-wiki step above/); // words, never a row id (round 23, 4)
+  assert.match(v.fix, /as its own step says; its upgrade records the version/); // words, never a row id (round 23, 4)
 });
 
 // Round 8 (PC-178).
@@ -3667,7 +3667,7 @@ test('PC-178: with a relative XDG_CONFIG_HOME setup still installs Obsidian, ins
   // Every other memory row that names setup asks for the XDG step first.
   const d = await cli(m, api, 'doctor', '--json', '--offline');
   const w = row(d, 'memory.wiki');
-  assert.ok(w && /^first the XDG_CONFIG_HOME step above; then /.test(w.fix), JSON.stringify(w)); // the XDG step once (round 22, 3)
+  assert.ok(w && /^first fix XDG_CONFIG_HOME as its own step says; then /.test(w.fix), JSON.stringify(w)); // the XDG step once (round 22, 3)
 });
 
 test('PC-178: a SessionStart recap that fails after the vault stands names the kept vault, and the next setup registers it', { skip: MAC_SIM }, async (t) => {
@@ -3839,7 +3839,7 @@ test('PC-178: a config that names no usable vault gets the step that prints why 
     assert.ok(!steps.includes(OB.guideNoVault), `${name}: ${steps.join('\n')}`);
     assert.ok(!steps.some((x) => /setup step|doctor says why/.test(x)), `${name}: ${steps.join('\n')}`);
     const third = steps.find((x) => x.startsWith('Obsidian: open your wiki vault in it once'));
-    assert.ok(w && third && third.includes(w.why) && third.includes('the wiki memory step above clears it, then open the vault'), `${name}: ${JSON.stringify(w)}\n${steps.join('\n')}`);
+    assert.ok(w && third && third.includes(w.why) && third.includes('the wiki memory step that names this clears it, then open the vault'), `${name}: ${JSON.stringify(w)}\n${steps.join('\n')}`);
     // One step, printed once: the memory row's fix is its only copy (round 21, 1).
     assert.equal(steps.filter((x) => x.includes(w.step)).length, 1, `${name}: ${w.step}\n${steps.join('\n')}`);
     assert.ok((r.json.after || r.json).checks.some((c) => c.area === 'memory' && String(c.detail).includes(w.why)), `${name}: no doctor row carries ${w.why}`);
@@ -3923,7 +3923,16 @@ test('PC-178: the Obsidian step names doctor when no memory row of the run carri
   const result = { actions: [], platform: 'linux', home };
   const error = [{ id: 'memory.error', area: 'memory', state: 'warn', detail: 'the wiki memory could not be checked: boom', fix: 'fix what it names, then npx @passioncode-ai/passioncode@latest doctor' }];
   const a = S.humanSteps(result, error, [], [OB], false).find((x) => x.startsWith('Obsidian:'));
-  assert.ok(a && !/step above/.test(a) && /doctor names the step that clears it/.test(a), a);
+  assert.ok(a && !/step that names this/.test(a) && /doctor names the step that clears it/.test(a), a);
+  // A failing row of another kind (Obsidian's signature) is not the wiki memory step (round 24, 5).
+  const signature = [{ id: 'memory.obsidian.signature', area: 'memory', state: 'fail', detail: 'Obsidian at /x: its signature is not valid', fix: 'reinstall Obsidian' }];
+  const c = S.humanSteps(result, signature, [], [OB], false).find((x) => x.startsWith('Obsidian:'));
+  assert.ok(c && /doctor names the step that clears it/.test(c), c);
+  // A row that carries this very reason: the step that names it.
+  const why = M.vaultWhy(home, 'npx @passioncode-ai/passioncode@latest');
+  const carried = [{ id: 'memory.vault', area: 'memory', state: 'warn', detail: why.why, fix: `${why.step}, then npx @passioncode-ai/passioncode@latest setup --with wiki` }];
+  const d = S.humanSteps(result, carried, [], [OB], false).find((x) => x.startsWith('Obsidian:'));
+  assert.ok(d && /the wiki memory step that names this clears it/.test(d), d);
   const real = M.vaultWhy;
   M.vaultWhy = () => { throw new Error('boom'); };
   try {

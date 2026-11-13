@@ -515,7 +515,7 @@ test('PC-178: with obsidian-wiki not installed, a config line its refresh would 
   const rows = s.rows();
   const w = rows.find((r) => r.id === 'memory.wiki');
   assert.ok(rows.some((r) => r.id === 'memory.vault.config-form'), JSON.stringify(rows));
-  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line, as the config line step above says; then /.test(w.fix) && w.gate === 'consent', JSON.stringify(w));
+  assert.ok(/^first fix the obsidian-wiki config line as its own step says; then /.test(w.fix) && w.gate === 'consent', JSON.stringify(w));
   const need = M.needs(s.home, path.join(s.home, 'New'), 'linux');
   assert.ok(/after export/.test(need.note || ''), JSON.stringify(need));
 });
@@ -527,7 +527,7 @@ test('PC-178: the refresh step after a clash of unreadable folders asks to repai
   process.env.FAKE_WIKI_DOCTOR = report;
   fs.symlinkSync(path.join(s.home, '.codex'), path.join(s.home, '.codex'));
   const v = s.rows().find((r) => r.id === 'memory.vault');
-  assert.ok(/first repair the folders the clash step above names; then run: obsidian-wiki list/.test(v.fix) && !/move or rename/.test(v.fix), v.fix);
+  assert.ok(/first repair the folders as their step says; then run: obsidian-wiki list/.test(v.fix) && !/move or rename/.test(v.fix), v.fix);
 });
 
 test('PC-178: a long memory fix keeps the prohibition first and stays under 1000 characters; a long clash list is capped', { skip: SH }, (t) => {
@@ -636,7 +636,7 @@ test('PC-178: two vault lines keep the hook from being registered and the repair
   assert.throws(() => M.hook({ home: s.home }), /writes OBSIDIAN_VAULT_PATH more than once.*; nothing was changed$/);
   assert.equal(fs.readFileSync(s.settings, 'utf8'), before);
   const h = s.rows(s.vaultDir).find((r) => r.id === 'memory.hooks');
-  assert.ok(h && h.repair === null && h.gate === 'consent' && /^first rewrite the OBSIDIAN_VAULT_PATH line, as the config line step above says; then /.test(h.fix), JSON.stringify(h));
+  assert.ok(h && h.repair === null && h.gate === 'consent' && /^first fix the obsidian-wiki config line as its own step says; then /.test(h.fix), JSON.stringify(h));
 });
 
 test('PC-178: rows that point at a repo line outside the package say remove it; an empty repo line is accepted', { skip: SH }, (t) => {
@@ -647,10 +647,10 @@ test('PC-178: rows that point at a repo line outside the package say remove it; 
   fs.writeFileSync(report, JSON.stringify({ checks: [{ name: 'setup-version', status: 'warn', detail: 'recorded 2026.10.2' }] }));
   process.env.FAKE_WIKI_DOCTOR = report;
   const v = s.rows().find((r) => r.id === 'memory.vault');
-  assert.ok(/first remove the OBSIDIAN_WIKI_REPO line, as the config line step above says; then run: obsidian-wiki list/.test(v.fix), v.fix);
+  assert.ok(/first fix the obsidian-wiki config line as its own step says; then run: obsidian-wiki list/.test(v.fix), v.fix);
   fs.rmSync(path.join(s.state, 'version'));
   const w = s.rows().find((r) => r.id === 'memory.wiki');
-  assert.ok(/^first remove the OBSIDIAN_WIKI_REPO line/.test(w.fix), w.fix);
+  assert.ok(/^first fix the obsidian-wiki config line as its own step says/.test(w.fix), w.fix);
   fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO=\n`);
   assert.equal(M.configForm(s.home), null);
 });
@@ -721,11 +721,11 @@ test('PC-178: while a config line would be rewritten, every hooks row asks for i
   const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
   fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`);
   const h = s.rows().find((r) => r.id === 'memory.hooks');
-  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line, as the config line step above says; then /.test(plainFix(h.fix)), h.fix);
+  assert.ok(/^first fix the obsidian-wiki config line as its own step says; then /.test(plainFix(h.fix)), h.fix);
   // A spaced vault line that names the launcher's vault.
   fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH = "${s.vaultDir}"\n`);
   const k = s.rows(s.vaultDir).find((r) => r.id === 'memory.hooks');
-  assert.ok(/^first rewrite the OBSIDIAN_VAULT_PATH line/.test(plainFix(k.fix)) && k.repair === null, JSON.stringify(k));
+  assert.ok(/^first fix the obsidian-wiki config line as its own step says/.test(plainFix(k.fix)) && k.repair === null, JSON.stringify(k));
 });
 
 test('PC-178: doctor --json lists each clash entry with its problem; the refresh step names the package path', { skip: SH }, (t) => {
@@ -1074,7 +1074,7 @@ test('PC-178: memory.legacy is a warning through add(), hidden only by memory.ho
   const x = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } });
   delete process.env.XDG_CONFIG_HOME;
   // The step itself only in memory.config; the others point at it (round 22, 3).
-  for (const r of x.filter((r) => r.fix && /\bsetup\b/.test(r.fix) && r.id !== 'memory.config')) assert.match(r.fix, /^(never .*; )?first the XDG_CONFIG_HOME step above; then /, JSON.stringify(r));
+  for (const r of x.filter((r) => r.fix && /\bsetup\b/.test(r.fix) && r.id !== 'memory.config')) assert.match(r.fix, /^(never .*; )?first fix XDG_CONFIG_HOME as its own step says; then /, JSON.stringify(r));
   // Where Claude Code reads ~/.claude/settings.json, memory.hooks carries the very same text: one row.
   fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`);
   const here = s.rows();
@@ -1231,7 +1231,6 @@ test('PC-178: memory.hooks reads ok only when the recap, as its script reads the
   const okCases = [
     // Measured with the real 2026.11.4 recap: these print the vault's memory.
     ['a repo outside the package', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_REPO="/opt/mine"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
-    ['a single-quoted vault', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH='${s.vaultDir}'\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
     ['the version twice', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
   ];
   const notCases = [
@@ -1239,6 +1238,12 @@ test('PC-178: memory.hooks reads ok only when the recap, as its script reads the
     ['a relative vault line', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="Wiki"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
     ['an apostrophe vault value', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}'x"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
     ['an empty vault line', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH=\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    // Round 24 (1): the recap reads <vault>, the commands "'<vault>'" or no vault (measured).
+    ['a single-quoted vault', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH='${s.vaultDir}'\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['an apostrophe-ended vault', (s) => fs.writeFileSync(cfg(s), `OBSIDIAN_VAULT_PATH="${s.vaultDir}'"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    ['a leading-space vault line', (s) => fs.writeFileSync(cfg(s), ` OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`)],
+    // Round 24 (2): a relative XDG_CONFIG_HOME whose config names the vault: never ok.
+    ['a relative XDG_CONFIG_HOME', (s) => { const d = path.join(s.home, 'relcfg', 'obsidian-wiki'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n`); process.env.XDG_CONFIG_HOME = 'relcfg'; }],
   ];
   for (const [name, arrange, want] of [...okCases.map((c) => [...c, true]), ...notCases.map((c) => [...c, false])]) {
     const s = sandbox(t);
@@ -1260,6 +1265,16 @@ test('PC-178: the empty-line step reads the config only when it can', { skip: SH
   try { assert.doesNotThrow(() => M.vaultWhy(s.home, NPX)); } finally { fs.readFileSync = real; }
 });
 
+// Round 24 (3): a fix that names another step by its words has that row in the same set of rows, whatever the order.
+const REFERENCES = [
+  [/fix XDG_CONFIG_HOME as its own step says/, 'memory.config'],
+  [/fix the obsidian-wiki config( line)? as its own step says/, 'memory.vault.config-form'],
+  [/as their step says/, 'memory.wiki.clash'],
+  [/as the wiki vault step says/, 'memory.vault'],
+];
+function assertReferences(rows, name) {
+  for (const r of rows) for (const [words, id] of REFERENCES) if (words.test(String(r.fix || ''))) assert.ok(rows.some((o) => o.id === id), `${name}: ${r.id} refers to ${id}, which is not there: ${r.fix}`);
+}
 // Round 23 (PC-178).
 test('PC-178: no memory row names a row id in text a person reads', { skip: SH }, (t) => {
   const states = [
@@ -1274,7 +1289,8 @@ test('PC-178: no memory row names a row id in text a person reads', { skip: SH }
       arrange(s);
       const rows = s.rows(s.vaultDir);
       delete process.env.XDG_CONFIG_HOME;
-      for (const r of rows) for (const text of [r.fix, r.detail]) assert.ok(!/\bmemory\.[a-z][a-z.-]*\b/.test(String(text || '')), `${i} ${version} ${r.id}: ${text}`);
+      for (const r of rows) for (const text of [r.fix, r.detail]) assert.ok(!/\bmemory\.[a-z][a-z.-]*\b/.test(String(text || '')) && !/\babove\b/.test(String(text || '')), `${i} ${version} ${r.id}: ${text}`);
+      assertReferences(rows, `${i} ${version}`);
     }
   }
 });
@@ -1302,4 +1318,41 @@ test('PC-178: an unreadable config stops the tool repair, the upgrade and the in
   const r = require('node:child_process').spawnSync(path.join(s.bin, 'obsidian-wiki'), ['list'], { env: process.env, encoding: 'utf8' });
   fs.chmodSync(config, 0o600);
   assert.ok(r.status === 1 && /PermissionError/.test(r.stderr), JSON.stringify(r));
+});
+
+// Round 24 (PC-178).
+test('PC-178: steps that name another step in words find it, obsidian-wiki installed or not, a clash too', { skip: SH }, (t) => {
+  for (const installed of [true, false]) {
+    const s = sandbox(t, { version: '2026.10.2', hooks: [] });
+    if (!installed) fs.rmSync(path.join(s.state, 'version'));
+    fs.writeFileSync(path.join(s.home, '.config', 'obsidian-wiki', 'config'), `OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_VAULT_PATH="${s.vaultDir}"\n`);
+    const name = require('../lib/catalog').WIKI.skills[0];
+    fs.mkdirSync(path.join(s.home, '.agents', 'skills', name), { recursive: true });
+    fs.writeFileSync(path.join(s.home, '.agents', 'skills', name, 'SKILL.md'), 'mine');
+    const rows = s.rows(s.vaultDir);
+    for (const r of rows) assert.ok(!/\babove\b/.test(String(r.fix || '')), `${r.id}: ${r.fix}`);
+    assertReferences(rows, String(installed));
+    if (!installed) assert.ok(rows.findIndex((r) => r.id === 'memory.vault.config-form') < rows.findIndex((r) => r.id === 'memory.wiki'), JSON.stringify(rows.map((r) => r.id)));
+  }
+});
+
+test('PC-178: one predicate for an unreadable config: a link to nothing, and beside an older folder', { skip: SH || (process.getuid && process.getuid() === 0 && 'root reads any file') }, (t) => {
+  const s = sandbox(t);
+  fs.rmSync(path.join(s.state, 'version'));
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.rmSync(config);
+  fs.symlinkSync(path.join(s.home, 'gone'), config);
+  const w = M.checks({ home: s.home, NPX, newer: () => false, claude: { here: false, settings: s.settings } }).find((r) => r.id === 'memory.wiki');
+  assert.match(w.fix, /make obsidian-wiki's config readable, or remove it/);
+  assert.match(M.needs(s.home, path.join(s.home, 'New'), 'linux').note || '', /cannot be read \(ENOENT\)/);
+  // An older folder, an XDG config that cannot be read, a copy uv holds below the pin: no tool repair.
+  const u = sandbox(t, { version: '2026.10.2' });
+  receipt(u, '[tool]\nrequirements = [{ name = "obsidian-wiki" }]\n');
+  fs.mkdirSync(path.join(u.home, '.obsidian-wiki'));
+  const cfg = path.join(u.home, '.config', 'obsidian-wiki', 'config');
+  fs.chmodSync(cfg, 0o000);
+  try {
+    const v = u.rows().find((r) => r.id === 'memory.wiki');
+    assert.ok(v && v.repair === null && v.gate === 'consent', JSON.stringify(v));
+  } finally { fs.chmodSync(cfg, 0o600); }
 });
