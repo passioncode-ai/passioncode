@@ -452,8 +452,8 @@
   `--wiki-vault`. Obsidian's step names a vault in three ways: the vault the run made or the existing config names, with
   its path; with no obsidian-wiki config, its guide says the vault comes with the wiki memory's setup step; with a config
   that names no vault the launcher can use (a config form, an empty vault line, a config that cannot be read, a link to
-  nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that names the config and `doctor`, never a
-  path and never a setup step. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
+  nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that prints the reason and the person's step
+  itself (the same text a `doctor` row carries in every branch), never a path and never a setup step. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
   run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory`
   for a person who declined it. On Windows without the right to make links obsidian-wiki copies its skills: the first
   vault is made, and afterwards `doctor`'s `memory.wiki.clash` names obsidian-wiki's own copies as the person's skills
