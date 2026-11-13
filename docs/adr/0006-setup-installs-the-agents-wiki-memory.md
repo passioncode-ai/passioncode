@@ -171,7 +171,8 @@ project, after every turn, to write into the vault. On the operator's machine th
     `~/.obsidian-wiki` whenever that folder exists, while its commands read the XDG folder when that exists: with both
     there the recap would bring the older vault into every session. Setup then registers no SessionStart recap (the vault
     is still made), offers no hook repair, and `doctor`'s `memory.hooks` is a warning naming both folders until the
-    person removes or merges the older one. An upgrade whose refresh refuses after the reinstall puts the previous
+    person removes the older one (round 22: the XDG config stays; only files it lacks are copied in, never the old
+    config over it, which would switch the vault). An upgrade whose refresh refuses after the reinstall puts the previous
     version back. Every obsidian-wiki command runs with the launcher's home as `HOME`, so what it reads is what the
     launcher decided on.
 
@@ -228,7 +229,14 @@ project, after every turn, to write into the vault. On the operator's machine th
     failure (`manual`), as obsidian-wiki's own doctor fails it, and a registered SessionStart hook reads as recapping
     nothing; every reason has gate `consent` in every branch; the folder, empty-line and older-folder steps clear when
     followed literally; an older folder comes first in setup and in `memory.hooks` alike; an `XDG_CONFIG_HOME` that
-    starts with `~` is named like a relative one, since the recap reads it as written. `hook()` and the hook repair also wait for
+    starts with `~` is named like a relative one, since the recap reads it as written.
+    Round 22: the older folder's step is to remove it while the config the commands read stays (only files it lacks are
+    copied in): moving its files in would overwrite that config (the same names) and switch the vault. A crash of
+    obsidian-wiki's own doctor on the config (a config that cannot be read ends it with a traceback) counts as its
+    failure, so with obsidian-wiki installed a link to nothing, a folder, an unreadable config and an empty vault line are
+    all a `memory.vault` failure (`manual`, gate `consent`). `memory.hooks` reads `ok` only when the recap reads the vault
+    the commands read (`recapReadsVault`: no reason `vaultWhy` names). The XDG step is printed once, in `memory.config`;
+    other rows point at it. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
