@@ -171,8 +171,8 @@ project, after every turn, to write into the vault. On the operator's machine th
     `~/.obsidian-wiki` whenever that folder exists, while its commands read the XDG folder when that exists: with both
     there the recap would bring the older vault into every session. Setup then registers no SessionStart recap (the vault
     is still made), offers no hook repair, and `doctor`'s `memory.hooks` is a warning naming both folders until the
-    person removes the older one (round 22: the XDG config stays; only files it lacks are copied in, never the old
-    config over it, which would switch the vault). An upgrade whose refresh refuses after the reinstall puts the previous
+    person copies into the XDG folder the files of the older one it lacks (never the old config over the XDG config, which
+    would switch the vault), then removes the older one; the XDG config the commands read stays (round 23). An upgrade whose refresh refuses after the reinstall puts the previous
     version back. Every obsidian-wiki command runs with the launcher's home as `HOME`, so what it reads is what the
     launcher decided on.
 
@@ -236,7 +236,13 @@ project, after every turn, to write into the vault. On the operator's machine th
     failure, so with obsidian-wiki installed a link to nothing, a folder, an unreadable config and an empty vault line are
     all a `memory.vault` failure (`manual`, gate `consent`). `memory.hooks` reads `ok` only when the recap reads the vault
     the commands read (`recapReadsVault`: no reason `vaultWhy` names). The XDG step is printed once, in `memory.config`;
-    other rows point at it. `hook()` and the hook repair also wait for
+    other rows point at it.
+    Round 23: the older folder's step copies first, then removes (the round-22 order removed the files it meant to
+    copy), and says the XDG config stays only where it is a readable file. `memory.hooks` models the recap script itself
+    (`recapVault`: the folder it picks, the last vault line, its quote stripping, `~` as the home; checked against the
+    real 2026.11.4 script on eight configs), so a repo outside the package, a single-quoted vault and a repeated version
+    line read `ok`. A config obsidian-wiki cannot read stops the tool repair, the upgrade and the install over it, as its
+    own `list` crashes on it. No row id is printed in a step. `hook()` and the hook repair also wait for
     a config line `memory.vault.config-form` names (two vault lines send the recap and the commands to different vaults).
 ## Consequences
 
