@@ -60,7 +60,7 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   does not run, with a config line obsidian-wiki's refresh would rewrite (`memory.vault.config-form`: the person rewrites
   the line, gate `consent`), with a relative `OBSIDIAN_VAULT_PATH` (obsidian-wiki's own setup writes one verbatim; the person writes the vault's
   absolute path: the folder `obsidian-wiki setup` ran in, joined with the relative value), with a memory check that could not run ("could not be checked"), with a vault path that holds
-  a double quote, a line break or a control character other than tab, or that starts or ends with an apostrophe, or with a `~/.wiki` that holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
+  a double quote, a line break or a control character other than tab, or that starts or ends with an apostrophe, with a `--wiki-vault` inside `~/Documents`, with an obsidian-wiki config that cannot be read (a link to nothing too), or with a `~/.wiki` that holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
   (or unsets it), moves that skill, reinstalls obsidian-wiki as the note names, fixes what the note names, or names
   another folder: on a run that changes nothing else, `skipped` names the
   wiki memory; in any run, `humanSteps` carries the reason. Healthy otherwise, and say so.
@@ -92,7 +92,7 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
   person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
   note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files, or a vault path with
-  a double quote, a line break or a control character, or an apostrophe at either end: ask the person for another and pass `--wiki-vault`. A `memory.hooks.stop` row is the person's choice: report it, never
+  a double quote, a line break or a control character, or an apostrophe at either end, or one inside `~/Documents`: ask the person for another and pass `--wiki-vault`. A `memory.hooks.stop` row is the person's choice: report it, never
   remove it without their word.
 - For the wiki memory's setup, repair or hooks, use this launcher's `setup` and `doctor`, never obsidian-wiki's own
   `wiki-setup` skill: that skill runs `obsidian-wiki setup` (which rewrites an existing config) and offers the Stop hook.
@@ -123,7 +123,7 @@ reference names the format); never write one there for them.
   steps that need them in person (sign-ins, consents, secrets in hidden prompts). It is never empty after a
   first install: sign-ins and consents always remain.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
-  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path or starts with ~, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, the vault path holds a double quote, a line break or a control character other than tab or starts or ends with an apostrophe, or `~/.wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
+  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path or starts with ~, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, the vault path holds a double quote, a line break or a control character other than tab or starts or ends with an apostrophe, the vault is inside `~/Documents`, obsidian-wiki's config cannot be read (a link to nothing too), or `~/.wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its

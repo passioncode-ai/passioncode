@@ -141,7 +141,7 @@ its notarization ticket and Gatekeeper's yes. Obsidian updates itself inside the
 copy for its version, only a damaged one of yours; a copy in `/Applications` that root owns (a package or MDM install) counts as yours, while one another user dragged in stays theirs and you get your own. When you have no
 obsidian-wiki config yet, setup makes a new vault in the hidden folder `~/.wiki`, whose full path setup names since
 Obsidian's folder picker does not show it (or the folder `--wiki-vault` names; never one
-that already holds files, never while XDG_CONFIG_HOME is a relative path, which obsidian-wiki reads from the folder it
+that already holds files, never `~/Documents` or a folder inside it (iCloud may sync Documents, and a Git repository in a synced folder breaks), never while XDG_CONFIG_HOME is a relative path, which obsidian-wiki reads from the folder it
 runs in, or starts with ~, which its SessionStart recap reads as written (setup then installs no obsidian-wiki either, and `doctor` shows `memory.config`), and never while a skill of
 yours shares a name with one of obsidian-wiki's, since its setup would replace it: setup names the first five and how many more for you to move
 or rename, and installs no obsidian-wiki while one is there; and only where git is, on a Mac Apple's command line

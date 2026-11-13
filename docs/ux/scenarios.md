@@ -471,7 +471,7 @@
   Claude Code's state (`memory.hooks` where Claude Code reads `~/.claude/settings.json`, else `memory.legacy`), and with
   obsidian-wiki not installed a config that names no usable vault is a `memory.vault` row naming it and why. A vault
   value with an apostrophe at either end is a config form (the recap strips one), a `--wiki-vault` path that starts or
-  ends with one is refused, and a relative vault line names the folder `obsidian-wiki setup` ran in. A memory check that fails in a way nobody foresaw is one
+  ends with one is refused, as is one inside `~/Documents` (nothing goes into Documents: iCloud may sync it), and a relative vault line names the folder `obsidian-wiki setup` ran in. A memory check that fails in a way nobody foresaw is one
   `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
   shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
   `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the

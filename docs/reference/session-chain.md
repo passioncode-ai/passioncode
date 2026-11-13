@@ -42,7 +42,7 @@ sections 2 to 5.
   the person's own declares in `~/.passioncode/rules.d/`, or `--allow-commands`). Without them, a session Fabric starts
   stops at the first prompt for these tools unless Fabric's permission mode lets it act without asking.
 - **The agents' wiki memory** (PC-178, [ADR-0006](../adr/0006-setup-installs-the-agents-wiki-memory.md)). obsidian-wiki's
-  SessionStart recap hook for Claude Code ([lib/memory.js:912](../../lib/memory.js#L912)), and obsidian-wiki's 40 skills
+  SessionStart recap hook for Claude Code (`hook()` in [lib/memory.js](../../lib/memory.js)), and obsidian-wiki's 40 skills
   ([lib/catalog.js:107](../../lib/catalog.js#L107)), `wiki-setup` among them, linked into each agent's global skills
   folder ([lib/catalog.js:115](../../lib/catalog.js#L115)) by obsidian-wiki's own setup. A session Fabric starts runs
   with permissions bypassed (the table above), so nothing but the setting-up skill keeps it from running `wiki-setup`'s
