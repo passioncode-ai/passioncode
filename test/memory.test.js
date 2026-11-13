@@ -599,13 +599,14 @@ test('PC-178: a config with a line break obsidian-wiki reads differently, or a b
   for (const [text, form] of [
     [`# a\rOBSIDIAN_VAULT_PATH = "${v}"\r`, breaks],
     [`OBSIDIAN_VAULT_PATH="${v}"\r\nOBSIDIAN_WIKI_VERSION="2026.10.2"\r\n`, breaks],
-    [`OBSIDIAN_VAULT_PATH="${v}\u2028x"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, breaks],
+    // Round 18 (R9): a break inside the vault's value is the vault's own form, whose step moves the vault.
+    [`OBSIDIAN_VAULT_PATH="${v}\u2028x"\nOBSIDIAN_WIKI_VERSION="2026.10.2"\n`, /writes OBSIDIAN_VAULT_PATH with a double quote, a line break or a control character in its value/],
     ...['\v', '\f', '\x1c', '\x1d', '\x1e', '\x85', '\u2029'].map((c) => [`OBSIDIAN_VAULT_PATH="${v}"\n#${c}\n`, breaks]),
     // Round 15: \x1f, which Python's strip() takes for whitespace, before a key or before its =; any other C0 control.
     [`\x1fOBSIDIAN_VAULT_PATH="${v}"\n`, breaks],
     [`OBSIDIAN_VAULT_PATH\x1f="${v}"\n`, breaks],
     [`OBSIDIAN_VAULT_PATH="${v}"\n#\x00\x07\x1b\n`, breaks],
-    [`﻿OBSIDIAN_VAULT_PATH="${v}"\n`, /starts with a byte order mark: save it without one/],
+    [`\ufeffOBSIDIAN_VAULT_PATH="${v}"\n`, /starts with a byte order mark: save it without one/],
   ]) {
     fs.writeFileSync(config, text);
     fs.rmSync(path.join(s.home, 'fake-tools.log'), { force: true });
@@ -828,7 +829,8 @@ test('PC-178: one rule names the characters obsidian-wiki\'s config cannot hold 
     fs.writeFileSync(config, `OBSIDIAN_VAULT_PATH="/a${c}b"\n`);
     const f = M.configForm(s.home);
     assert.ok(f, JSON.stringify(c));
-    assert.equal(f.form, c === '"' ? M.CONFIG_FORMS.quote : c === '\n' ? M.CONFIG_FORMS.quote : M.CONFIG_FORMS.breaks, JSON.stringify(c));
+    assert.equal(f.form, M.CONFIG_FORMS.quote, JSON.stringify(c)); // each one inside the vault's value moves the vault (round 18, R9)
+    assert.equal(f.key, 'OBSIDIAN_VAULT_PATH', JSON.stringify(c));
   }
 });
 
@@ -849,42 +851,38 @@ test('PC-178: one reader gives the vault obsidian-wiki\'s config names, and none
   assert.equal((src.match(/OBSIDIAN_VAULT_PATH="\?/g) || []).length, 0, 'a second vault reader');
 });
 
-// Every form configForm can return, a config that has it, and each step its printed text offers, applied literally.
+// Every form configForm can return, a config that has it, and each step its printed text offers, applied literally with
+// the value the config held (round 18, R9: never an empty value that would pass where the person's would not).
 const KEYED = ['OBSIDIAN_VAULT_PATH', 'OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_VERSION'];
+const VALUES = { OBSIDIAN_VAULT_PATH: '/v', OBSIDIAN_WIKI_REPO: '/opt/venv/lib/python3.12/site-packages/obsidian_wiki/_data', OBSIDIAN_WIKI_VERSION: '2026.11.4' };
 const keep = (text, key, line) => text.split('\n').filter((l) => !new RegExp(`^\\s*(export\\s+)?${key}\\s*=`).test(l)).concat(line == null ? [] : [line]).join('\n');
-const ABS_PKG = '/opt/venv/lib/python3.12/site-packages/obsidian_wiki/_data';
+const once = { says: /write it once as/, fix: /once as/, apply: (t, k) => keep(String(t), k, `${k}="${VALUES[k]}"`) };
+const remove = { says: /remove that line/, fix: /remove the .* line/, apply: (t, k) => keep(String(t), k, null) };
+// A keyed form's step: write the line once for the vault and the version, remove it for the repo (obsidian-wiki writes the
+// package path back, so the person never has to know it).
+const keyed = (k) => (k === 'OBSIDIAN_WIKI_REPO' ? [remove] : [once]);
 const FORM_TABLE = {
-  utf8: { keys: [null], make: () => Buffer.concat([Buffer.from('OBSIDIAN_VAULT_PATH="/v'), Buffer.from([0xe9]), Buffer.from('"\n')]),
-    arms: [{ says: /save it as UTF-8/, fix: /save .* as UTF-8/, apply: (b) => Buffer.from(Buffer.from(b).toString('latin1'), 'utf8') }] },
-  bom: { keys: [null], make: () => '﻿OBSIDIAN_VAULT_PATH="/v"\n',
-    arms: [{ says: /save it without one/, fix: /without a byte order mark/, apply: (t) => String(t).replace(/^﻿/, '') }] },
-  breaks: { keys: [null], make: () => 'OBSIDIAN_VAULT_PATH="/v"\r\nX=a\x0bb\u2028\n',
-    arms: [{ says: /plain line endings \(\\n\) and no control characters/, fix: /plain line endings \(\\n\) and no control characters/, apply: (t) => String(t).replace(/\r\n/g, '\n').replace(/[\r\x0b\x0c\x1c-\x1e\x85\u2028\u2029]/g, '\n').replace(/[\x00-\x08\x0e-\x1f]/g, '') }] },
-  twice: { keys: KEYED, make: (k) => `${k}="a"\n${k}="b"\n`,
-    arms: [{ says: /write it once as/, fix: /once as/, apply: (t, k) => keep(String(t), k, `${k}=""`) }] },
-  exported: { keys: KEYED, make: (k) => `export ${k}="a"\n`,
-    arms: [{ says: /write it once as/, fix: /once as/, apply: (t, k) => keep(String(t), k, `${k}=""`) }] },
-  spaced: { keys: KEYED, make: (k) => `${k} = "a"\n`,
-    arms: [{ says: /write it once as/, fix: /once as/, apply: (t, k) => keep(String(t), k, `${k}=""`) }] },
-  single: { keys: KEYED, make: (k) => `${k}='a'\n`,
-    arms: [{ says: /write it once as/, fix: /once as/, apply: (t, k) => keep(String(t), k, `${k}=""`) }] },
-  after: { keys: KEYED, make: (k) => `${k}="a" # mine\n`,
-    arms: [{ says: /write it once as/, fix: /once as/, apply: (t, k) => keep(String(t), k, `${k}=""`) }] },
-  quote: { keys: KEYED, make: (k) => `${k}=/x/a"b\n`,
-    arms: [
-      { only: 'OBSIDIAN_VAULT_PATH', says: /move the vault to a folder whose path has no double quote, then write OBSIDIAN_VAULT_PATH="<new path>" once/, fix: /move the vault to a folder whose path has no double quote, then write OBSIDIAN_VAULT_PATH="<new path>" once/, apply: (t, k) => keep(String(t), k, `${k}="/x/ab"`) },
-      { except: 'OBSIDIAN_VAULT_PATH', says: /remove that line/, fix: /remove the .* line/, apply: (t, k) => keep(String(t), k, null) },
-    ] },
-  relative: { keys: ['OBSIDIAN_WIKI_REPO'], make: (k) => `${k}="venv/lib/python3.12/site-packages/obsidian_wiki/_data"\n`,
-    arms: [
-      { says: /remove that line/, fix: /remove the .* line/, apply: (t, k) => keep(String(t), k, null) },
-      { says: /write it as an absolute path to obsidian-wiki's package folder \(\.\.\.\/obsidian_wiki\/_data\)/, fix: /write it as an absolute path to obsidian-wiki's package folder \(\.\.\.\/obsidian_wiki\/_data\)/, apply: (t, k) => keep(String(t), k, `${k}="${ABS_PKG}"`) },
-    ] },
-  outside: { keys: ['OBSIDIAN_WIKI_REPO'], make: (k) => `${k}="/opt/mine"\n`,
-    arms: [{ says: /remove that line/, fix: /remove the .* line/, apply: (t, k) => keep(String(t), k, null) }] },
+  utf8: { cases: [[null, Buffer.concat([Buffer.from('OBSIDIAN_VAULT_PATH="/v"\n#'), Buffer.from([0xe9]), Buffer.from('\n')])]],
+    arms: () => [{ says: /save it as UTF-8/, fix: /save .* as UTF-8/, apply: (b) => Buffer.from(Buffer.from(b).toString('latin1'), 'utf8') }] },
+  bom: { cases: [[null, '\ufeffOBSIDIAN_VAULT_PATH="/v"\n']],
+    arms: () => [{ says: /save it without one/, fix: /without a byte order mark/, apply: (t) => String(t).replace(/^\ufeff/, '') }] },
+  breaks: { cases: [[null, 'OBSIDIAN_VAULT_PATH="/v"\r\nX=a\x0bb\u2028\n']],
+    arms: () => [{ says: /plain line endings \(\\n\) and no control characters/, fix: /plain line endings \(\\n\) and no control characters/, apply: (t) => String(t).replace(/\r\n/g, '\n').replace(/[\r\x0b\x0c\x1c-\x1e\x85\u2028\u2029]/g, '\n').replace(/[\x00-\x08\x0e-\x1f]/g, '') }] },
+  twice: { cases: KEYED.map((k) => [k, `${k}="${VALUES[k]}"\n${k}="${VALUES[k]}"\n`]), arms: keyed },
+  exported: { cases: KEYED.map((k) => [k, `export ${k}="${VALUES[k]}"\n`]), arms: keyed },
+  spaced: { cases: KEYED.map((k) => [k, `${k} = "${VALUES[k]}"\n`]), arms: keyed },
+  single: { cases: KEYED.map((k) => [k, `${k}='${VALUES[k]}'\n`]), arms: keyed },
+  after: { cases: KEYED.map((k) => [k, `${k}="${VALUES[k]}" # mine\n`]), arms: keyed },
+  quote: { cases: [...KEYED.map((k) => [k, `${k}=/x/a"b\n`]), ['OBSIDIAN_VAULT_PATH', 'OBSIDIAN_VAULT_PATH="/x/a\x0bb"\n'], ['OBSIDIAN_VAULT_PATH', 'OBSIDIAN_VAULT_PATH="/x/a\u2028b"\n']],
+    arms: (k) => (k === 'OBSIDIAN_VAULT_PATH'
+      ? [{ says: /move the vault to a folder whose path has no double quote, line break or control character, then write OBSIDIAN_VAULT_PATH="<new path>" once/, fix: /move the vault to a folder whose path has no double quote, line break or control character, then write OBSIDIAN_VAULT_PATH="<new path>" once/, apply: (t, key) => keep(String(t), key, `${key}="/x/ab"`) }]
+      : [remove]) },
+  relative: { cases: [['OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_REPO="venv/lib/python3.12/site-packages/obsidian_wiki/_data"\n'], ['OBSIDIAN_VAULT_PATH', 'OBSIDIAN_VAULT_PATH="Wiki"\n']],
+    arms: (k) => (k === 'OBSIDIAN_VAULT_PATH'
+      ? [{ says: /write it once as OBSIDIAN_VAULT_PATH="<absolute path>"/, fix: /once as OBSIDIAN_VAULT_PATH="<absolute path>"/, apply: (t, key) => keep(String(t), key, `${key}="/v"`) }]
+      : [remove, { says: /write it as an absolute path to obsidian-wiki's package folder \(\.\.\.\/obsidian_wiki\/_data\)/, fix: /write it as an absolute path to obsidian-wiki's package folder \(\.\.\.\/obsidian_wiki\/_data\)/, apply: (t, key) => keep(String(t), key, `${key}="${VALUES[key]}"`) }]) },
+  outside: { cases: [['OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_REPO="/opt/mine"\n'], ['OBSIDIAN_WIKI_REPO', 'OBSIDIAN_WIKI_REPO="mine/notes"\n']], arms: () => [remove] },
 };
-// A relative repo that names no package folder is outside the package: only "remove that line" (round 17, 3).
-const OUTSIDE_RELATIVE = 'OBSIDIAN_WIKI_REPO="mine/notes"\n';
 
 test('PC-178: every config form has a row, and each step its note and doctor fix print clears the form', { skip: SH }, (t) => {
   const s = sandbox(t);
@@ -896,15 +894,13 @@ test('PC-178: every config form has a row, and each step its note and doctor fix
   for (const [, name] of src.matchAll(/CONFIG_FORMS\.(\w+)/g)) assert.ok(FORM_TABLE[name], name);
   let applied = 0;
   for (const [name, row] of Object.entries(FORM_TABLE)) {
-    for (const key of row.keys) {
-      const before = row.make(key);
+    for (const [key, before] of row.cases) {
       fs.writeFileSync(config, before);
       const form = M.configForm(s.home);
       assert.ok(form && form.form === M.CONFIG_FORMS[name] && form.key === key, `${name} ${key}: ${JSON.stringify(form)}`);
       const note = M.configFormNote(form);
       const fix = M.configFormRow(form, NPX).fix;
-      for (const arm of row.arms) {
-        if ((arm.only && arm.only !== key) || (arm.except && arm.except === key)) continue;
+      for (const arm of row.arms(key)) {
         assert.match(note, arm.says, `${name} ${key}: ${note}`);
         assert.match(fix, arm.fix, `${name} ${key}: ${fix}`);
         fs.writeFileSync(config, arm.apply(before, key));
@@ -913,11 +909,10 @@ test('PC-178: every config form has a row, and each step its note and doctor fix
       }
     }
   }
-  assert.equal(applied, 24, "every key of every form, each step it offers");
-  fs.writeFileSync(config, OUTSIDE_RELATIVE);
-  const f = M.configForm(s.home);
-  assert.equal(f.form, M.CONFIG_FORMS.outside);
-  assert.doesNotMatch(M.configFormNote(f), /absolute path/);
+  assert.equal(applied, 28, 'every case of every form, each step it offers');
+  // A relative repo naming no package folder is outside the package: only "remove that line" (round 17, 3).
+  fs.writeFileSync(config, 'OBSIDIAN_WIKI_REPO="mine/notes"\n');
+  assert.doesNotMatch(M.configFormNote(M.configForm(s.home)), /absolute path/);
 });
 
 test('PC-178: the refresh quoting a bare managed value, or adding an empty vault line, is the same meaning (ADR-0006 decision 16)', { skip: SH }, (t) => {
@@ -929,7 +924,7 @@ test('PC-178: the refresh quoting a bare managed value, or adding an empty vault
   require('node:child_process').execFileSync(path.join(s.bin, 'obsidian-wiki'), ['list'], { env: process.env });
   const text = fs.readFileSync(config, 'utf8');
   assert.match(text, /^OBSIDIAN_VAULT_PATH=""$/m);
-  assert.match(text, /^OBSIDIAN_WIKI_VERSION="2026\.10\.2"$|^OBSIDIAN_WIKI_VERSION="[^"]+"$/m);
+  assert.match(text, /^OBSIDIAN_WIKI_VERSION="2026\.10\.2"$/m); // exactly the installed version (round 18, R11)
   assert.equal(M.configForm(s.home), null);
   assert.equal(M.configuredVault(s.home), null);
 });
@@ -954,4 +949,50 @@ test('PC-178: the fake uv records the version specifier it installed, as uv 0.12
   require('node:child_process').execFileSync(path.join(s.bin, 'uv'), ['tool', 'install', `obsidian-wiki==${M.PIN}`], { env: process.env });
   const receipt = fs.readFileSync(path.join(s.state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml'), 'utf8');
   assert.match(receipt, new RegExp(`\\{ name = "obsidian-wiki", specifier = "==${M.PIN.replace(/\./g, '\\.')}" \\}`));
+});
+
+// Round 18 (PC-178).
+test('PC-178: the launcher\'s vault stays its own in a config not saved as UTF-8, whose doctor ends with a traceback', { skip: SH }, (t) => {
+  const s = sandbox(t, { hooks: [] });
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, Buffer.concat([Buffer.from(`OBSIDIAN_VAULT_PATH="${s.vaultDir}"\nOBSIDIAN_WIKI_VERSION="${M.PIN}"\n#`), Buffer.from([0xe9]), Buffer.from('\n')]));
+  const r = require('node:child_process').spawnSync(path.join(s.bin, 'obsidian-wiki'), ['doctor', '--json'], { env: process.env, encoding: 'utf8' });
+  assert.ok(r.status !== 0 && /Traceback/.test(r.stderr) && !r.stdout.trim(), JSON.stringify(r));
+  const h = s.rows(s.vaultDir).find((x) => x.id === 'memory.hooks');
+  assert.match(h.fix, /then .*setup$/);
+  assert.doesNotMatch(h.fix, /by hand/);
+});
+
+test('PC-178: the fake doctor checks the vault as obsidian-wiki 2026.11.4\'s _read_config does', () => {
+  const { doctorVault, readConfig, pyStrip } = require('./fake-wiki-config');
+  // Recorded with the real one on 2026-11-13 (a sandbox home /h).
+  assert.deepEqual([doctorVault('OBSIDIAN_VAULT_PATH=\n', { home: '/h' }).detail, doctorVault('X=1\n', { home: '/h' }).status], ['OBSIDIAN_VAULT_PATH is not set', 'fail']);
+  assert.equal(doctorVault('OBSIDIAN_VAULT_PATH="/v"\nOBSIDIAN_VAULT_PATH="/w"\n', { home: '/h' }).detail, '/w');
+  assert.equal(doctorVault('  OBSIDIAN_VAULT_PATH = "/v" \n', { home: '/h' }).detail, '/v');
+  assert.equal(doctorVault('OBSIDIAN_VAULT_PATH=~/v\n', { home: '/h' }).detail, '/h/v');
+  assert.equal(doctorVault('OBSIDIAN_VAULT_PATH="/v\u00a0"\n', { home: '/h' }).detail, '/v\u00a0');
+  assert.equal(readConfig('# A=1\nB = 2 \n').B, '2');
+  assert.equal(pyStrip('\x1f\x85 a \u3000'), 'a');
+  assert.equal(pyStrip('\ufeffa'), '\ufeffa'); // not whitespace to Python
+});
+
+test('PC-178: the fake uv records --with and --python as uv 0.12.13 does', { skip: SH }, (t) => {
+  const s = sandbox(t, { vault: false });
+  fs.rmSync(path.join(s.state, 'version'));
+  require('node:child_process').execFileSync(path.join(s.bin, 'uv'), ['tool', 'install', `obsidian-wiki[ast]==${M.PIN}`, '--with', 'tree-sitter<0.22', '--python', '3.12'], { env: process.env });
+  const receipt = fs.readFileSync(path.join(s.state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml'), 'utf8');
+  assert.match(receipt, /\{ name = "tree-sitter", specifier = "<0\.22" \}/);
+  assert.match(receipt, /^python = "3\.12"$/m);
+  assert.match(receipt, /\{ name = "obsidian-wiki", extras = \["ast"\], specifier = "==/);
+});
+
+test('PC-178: a relative vault line is a config form; ~/ is the home\'s', { skip: SH }, (t) => {
+  const s = sandbox(t);
+  const config = path.join(s.home, '.config', 'obsidian-wiki', 'config');
+  fs.writeFileSync(config, 'OBSIDIAN_VAULT_PATH="Wiki"\n');
+  assert.equal(M.configForm(s.home).form, M.CONFIG_FORMS.relative);
+  assert.equal(M.configuredVault(s.home), null);
+  fs.writeFileSync(config, 'OBSIDIAN_VAULT_PATH="~/Wiki"\n');
+  assert.equal(M.configForm(s.home), null);
+  assert.equal(M.configuredVault(s.home), s.vaultDir);
 });

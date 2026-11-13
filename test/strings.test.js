@@ -74,7 +74,7 @@ const SITE = /(new Error\(|\bfail\(|\brefuse\(|\blefts\.push\(|\breturn |\bdetai
 // Literals that are not printed text: a page, a scratch folder's prefix, a file name, a TOML header or key, a command's
 // name, a state code, an empty string, a requirement built for uv, the shell quoting helper, a command's .exe name, a
 // version's major.minor.
-const NOT_TEXT = /'https:\/\/|passioncode-hook-|'utf8'|'\.wiki'|\[tool\]|'tool', '|'wiki-session-recap\.sh'|'wiki-stop-capture\.sh'|'obsidian-wiki'\b(?! is)|return '';|return 'uv';|return 'unknown';|const req = |const q = |\.exe`|\? 'ahead'|\? 'unknown' : 'equal'|\? 'fail' : |requirement: |requirement = `|with\.push\(`|`\$\{m\[1\]\}\.\$\{m\[2\]\}`|'profiles-unreadable'/;
+const NOT_TEXT = /'https:\/\/|passioncode-hook-|'utf8'|'\.wiki'|\[tool\]|'tool', '|'wiki-session-recap\.sh'|'wiki-stop-capture\.sh'|'obsidian-wiki'\b(?! is)|return '';|return 'uv';|return 'unknown';|const req = |const q = |\.exe`|\? 'ahead'|\? 'unknown' : 'equal'|\? 'fail' : |requirement: |requirement = `|with\.push\(`|`\$\{m\[1\]\}\.\$\{m\[2\]\}`|'profiles-unreadable'|const PY_SPACE = /;
 function unregistered(lines, rows) {
   const covered = new Set();
   for (const r of rows) {
@@ -116,4 +116,36 @@ test('the docs quote the vault step and the refresh step as they print', () => {
     for (const m of text.matchAll(/"(run: obsidian-wiki list \([^"]*)"/g)) assert.ok(m[1].startsWith(refresh), `${doc} quotes the refresh step as it prints`);
   }
   assert.ok(collapse(fs.readFileSync(path.join(ROOT, 'docs/reference/cli.md'), 'utf8')).includes(`"${vault}"`), 'cli.md quotes the vault step');
+  // Round 18 (3): what the refresh may change, as the plan and done lines print it (KEPT_APART), and every doc that says the
+  // version and package path says the quotes too.
+  const kept = rows['memory.kept-apart'];
+  assert.match(kept, /quotes around a bare value or an empty vault line where there was none$/);
+  for (const k of ['setup.memory-install', 'setup.repair-tool', 'memory.done-upgrade-brought', 'memory.done-upgrade-forced']) assert.ok(rows[k] && /\$\{(memory\.)?KEPT_APART\}/.test(rows[k]), `${k} prints KEPT_APART: ${rows[k]}`);
+  const head = "the version and package path obsidian-wiki's refresh records";
+  for (const doc of ['README.md', 'docs/reference/cli.md', 'docs/ux/scenarios.md', 'CHANGELOG.md', 'docs/adr/0006-setup-installs-the-agents-wiki-memory.md', 'plugin/passioncode/skills/setting-up-passioncode/SKILL.md', 'test/evals/setting-up-passioncode/scenarios.json']) {
+    let raw = fs.readFileSync(path.join(ROOT, doc), 'utf8');
+    if (doc === 'CHANGELOG.md') { const at = raw.indexOf('## Unreleased'); raw = raw.slice(at, raw.indexOf('\n## ', at + 1)); }
+    const text = collapse(raw);
+    for (let at = text.indexOf(head); at >= 0; at = text.indexOf(head, at + 1)) {
+      assert.ok(text.slice(at, at + 400).includes('quotes around a bare value or an empty vault line'), `${doc}: ${text.slice(at, at + 200)}`);
+    }
+  }
+});
+
+// PC-178 round 18 (R12): every form configForm can name has a strings.md row that cites its literal in CONFIG_FORMS, never a
+// comment that happens to hold the same words.
+test('every config form has a strings.md row at its CONFIG_FORMS literal', () => {
+  const memory = require('../lib/memory');
+  const lines = fs.readFileSync(path.join(ROOT, 'lib/memory.js'), 'utf8').split(/\r?\n/);
+  const from = lines.findIndex((l) => l.startsWith('const CONFIG_FORMS = Object.freeze({')) + 1;
+  const to = lines.findIndex((l, i) => i >= from && l.startsWith('});')) + 1;
+  assert.ok(from > 0 && to > from);
+  const rows = fs.readFileSync(path.join(ROOT, 'docs/brand/strings.md'), 'utf8').split(/\r?\n/)
+    .filter((l) => /^\| [a-z][\w.-]* \|/.test(l)).map((row) => { const c = row.split(' | '); return { text: c[1].replace(/\\\|/g, '|'), loc: c[2] }; });
+  for (const value of Object.values(memory.CONFIG_FORMS)) {
+    const row = rows.find((r) => r.text === value && r.loc.startsWith('lib/memory.js:'));
+    assert.ok(row, `no row for ${value}`);
+    const n = Number(row.loc.split(':')[1]);
+    assert.ok(n > from && n < to, `${value} cites ${row.loc}, outside CONFIG_FORMS (lines ${from + 1} to ${to - 1})`);
+  }
 });

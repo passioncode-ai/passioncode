@@ -25,11 +25,12 @@
 // fails; =quiet exits 0 without a config). Like obsidian-wiki 2026.11.4, an ordinary command (`list`) whose config
 // records another version runs its stale refresh, write_config (test/fake-wiki-config.js): every managed line written as
 // KEY="value", a repeated one dropped, a missing one appended (an empty vault line too), every other line kept. `uv tool
-// install` records `specifier = "==<version>"` as uv 0.12.13 does. brew and xcode-select answer as installed ones do.
+// install` records `specifier = "==<version>"`, each --with and --python as uv 0.12.13 does; `doctor` checks vault-config as
+// _read_config reads it and ends with a traceback over a config that is not UTF-8. brew and xcode-select answer as installed ones do.
 const fs = require('fs');
 const path = require('path');
 const catalog = require('../lib/catalog');
-const { refreshConfig } = require('./fake-wiki-config');
+const { refreshConfig, doctorVault } = require('./fake-wiki-config');
 
 const [tool, ...args] = process.argv.slice(2);
 const home = process.env.HOME;
@@ -134,7 +135,13 @@ switch (tool) {
       // uv 0.12.13 records the specifier it was given (`==<version>`), and the extras (round 17, R6).
       const extras = (/^obsidian-wiki\[([^\]]*)\]/.exec(args.find((a) => /^obsidian-wiki(\[[^\]]*\])?==/.test(a)) || '') || [])[1];
       const req = `{ name = "obsidian-wiki"${extras ? `, extras = [${extras.split(',').map((e) => `"${e.trim()}"`).join(', ')}]` : ''}, specifier = "==${spec.split('==')[1]}" }`;
-      fs.writeFileSync(path.join(state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml'), `[tool]\nrequirements = [${req}]\nentrypoints = [{ name = "obsidian-wiki", install-path = "${path.join(dir, 'obsidian-wiki')}", from = "obsidian-wiki" }]\n`);
+      // Each --with as its own requirement and --python as the record's python, as uv 0.12.13 writes them (round 18, R11).
+      const withs = args.flatMap((a, i) => (a === '--with' ? [args[i + 1]] : a.startsWith('--with=') ? [a.slice(7)] : [])).map((w) => {
+        const m = /^([A-Za-z0-9._-]+)(\[[^\]]*\])?(.*)$/.exec(w);
+        return `{ name = "${m[1]}"${m[2] ? `, extras = [${m[2].slice(1, -1).split(',').map((e) => `"${e.trim()}"`).join(', ')}]` : ''}${m[3] ? `, specifier = "${m[3]}"` : ''} }`;
+      });
+      const py = args.includes('--python') ? args[args.indexOf('--python') + 1] : null;
+      fs.writeFileSync(path.join(state, 'uv-tools', 'obsidian-wiki', 'uv-receipt.toml'), `[tool]\nrequirements = [${[req, ...withs].join(', ')}]\n${py ? `python = "${py}"\n` : ''}entrypoints = [{ name = "obsidian-wiki", install-path = "${path.join(dir, 'obsidian-wiki')}", from = "obsidian-wiki" }]\n`);
       out(`Installed 1 executable: obsidian-wiki`); process.exit(0);
     }
     process.exit(2);
@@ -260,11 +267,17 @@ switch (tool) {
     if (args[0] === 'doctor') {
       if (process.env.FAKE_WIKI_DOCTOR) { out(fs.readFileSync(process.env.FAKE_WIKI_DOCTOR, 'utf8')); process.exit(0); }
       if (!fs.existsSync(config)) { out(JSON.stringify({ status: 'fail', checks: [{ name: 'global-config', status: 'fail', detail: `${config} missing`, hint: 'run: obsidian-wiki setup --vault /path/to/your/vault' }] })); process.exit(1); }
-      const vault = /OBSIDIAN_VAULT_PATH="([^"]*)"/.exec(fs.readFileSync(config, 'utf8'))[1];
+      // As the real 2026.11.4: a config that is not UTF-8 ends its doctor with a traceback, no report (round 18, 2).
+      let text;
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(fs.readFileSync(config)); } catch (_) {
+        err(`Traceback (most recent call last):\n  File "<frozen codecs>", line 322, in decode\nUnicodeDecodeError: 'utf-8' codec can't decode byte (fake)`); process.exit(1);
+      }
+      // Its vault-config check (_read_config: the last line wins; an empty value fails), test/fake-wiki-config.js (round 18, R11).
+      const vc = doctorVault(text, { home });
       const lag = recorded() && recorded() !== version
         ? [{ name: 'setup-version', status: 'warn', detail: `setup ran with ${recorded()}; installed package is ${version}`, hint: 'run: obsidian-wiki setup' }] : [];
-      out(JSON.stringify({ status: lag.length ? 'warn' : 'pass', checks: [{ name: 'vault-config', status: 'pass', detail: vault, hint: '' }, ...lag, { name: 'session-hooks', status: 'info', detail: 'not registered (optional)', hint: 'run: obsidian-wiki hooks install' }] }));
-      process.exit(0);
+      out(JSON.stringify({ status: vc.status === 'fail' ? 'fail' : lag.length ? 'warn' : 'pass', checks: [vc, ...lag, { name: 'session-hooks', status: 'info', detail: 'not registered (optional)', hint: 'run: obsidian-wiki hooks install' }] }));
+      process.exit(vc.status === 'fail' ? 1 : 0);
     }
     process.exit(2);
   }

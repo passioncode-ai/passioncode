@@ -3806,16 +3806,39 @@ test('PC-178: every darwin step that sends the person to open the vault names Cm
 });
 
 // Round 17 (PC-178): the vault Obsidian's step names is the one reader's: none for a config form, none for an empty line.
-test('PC-178: a config form or an empty vault line gives the general Obsidian step, never a path read from that line', { skip: MAC_SIM }, async (t) => {
+// Round 18 (PC-178, break 1): the no-vault guide only where obsidian-wiki has no config at all; a config that names no vault
+// the launcher can use (an empty line, a form, a link to nothing, a folder, a file it cannot read, an older ~/.obsidian-wiki
+// that shadows it) gets the third step, which names the config and doctor, never a path and never a setup step.
+test('PC-178: a config that names no usable vault gets the step that names the config and doctor, never a setup step or a path', { skip: MAC_SIM }, async (t) => {
   const api = await releaseServer(t);
-  for (const [line, want] of [[`OBSIDIAN_VAULT_PATH='/Users/x/Notes'`, OB.guide], ['OBSIDIAN_VAULT_PATH=', OB.guideNoVault], ['OBSIDIAN_VAULT_PATH=""', OB.guideNoVault]]) {
+  const cases = [
+    ['a form', (m) => fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH='/Users/x/Notes'\n`)],
+    ['an empty line', (m) => fs.writeFileSync(wikiConfig(m), 'OBSIDIAN_VAULT_PATH=\n')],
+    ['an empty quoted line', (m) => fs.writeFileSync(wikiConfig(m), 'OBSIDIAN_VAULT_PATH=""\n')],
+    ['a link to nothing', (m) => fs.symlinkSync(path.join(m.home, 'gone'), wikiConfig(m))],
+    ['a folder', (m) => fs.mkdirSync(wikiConfig(m))],
+    ['a file it cannot read', (m) => { fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Notes')}"\n`); fs.chmodSync(wikiConfig(m), 0o000); }],
+    ['an older ~/.obsidian-wiki', (m) => { fs.writeFileSync(wikiConfig(m), `OBSIDIAN_VAULT_PATH="${path.join(m.home, 'Notes')}"\n`); fs.mkdirSync(path.join(m.home, '.obsidian-wiki')); }],
+  ];
+  for (const [name, arrange] of cases) {
+    if (name === 'a file it cannot read' && process.getuid && process.getuid() === 0) continue; // root reads any file
     const m = withMemory();
+    fs.mkdirSync(path.join(m.home, 'Notes'), { recursive: true });
     fs.mkdirSync(path.dirname(wikiConfig(m)), { recursive: true });
-    fs.writeFileSync(wikiConfig(m), `${line}\n`);
+    arrange(m);
     const r = await cli(m, api, 'setup', '--yes', '--json', '--no-open', '--without', 'wiki');
-    assert.ok(r.json.humanSteps.includes(want), `${line}: ${r.json.humanSteps.join('\n')}`);
-    assert.ok(!r.json.humanSteps.some((x) => /'\/Users\/x\/Notes'|paste '|paste "/.test(x)), r.json.humanSteps.join('\n'));
+    try { fs.chmodSync(wikiConfig(m), 0o600); } catch (_) { /* not a file */ }
+    const steps = r.json.humanSteps;
+    assert.ok(!steps.includes(OB.guideNoVault), `${name}: ${steps.join('\n')}`);
+    assert.ok(!steps.some((x) => /setup step/.test(x)), `${name}: ${steps.join('\n')}`);
+    const third = steps.find((x) => x.startsWith('Obsidian: open your wiki vault in it once'));
+    assert.ok(third && third.includes(wikiConfig(m)) && third.includes('doctor'), `${name}: ${steps.join('\n')}`);
+    assert.ok(!steps.some((x) => /paste \/|paste '|Notes/.test(x)), `${name}: ${steps.join('\n')}`);
   }
+  // No config at all: the no-vault guide.
+  const n = withMemory();
+  const r = await cli(n, api, 'setup', '--yes', '--json', '--no-open', '--without', 'wiki');
+  assert.ok(r.json.humanSteps.includes(OB.guideNoVault), r.json.humanSteps.join('\n'));
 });
 
 test('PC-178: a --wiki-vault path with a double quote, a line break or a control character has one step', { skip: MAC_SIM }, async (t) => {
