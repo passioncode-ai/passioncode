@@ -23,6 +23,7 @@
 | SCN-015 | See and change what Claude Code may do without asking | permissions | Operator | PC-125 | implemented | 2026-11-04 |
 | SCN-016 | Know about and turn off the anonymous usage counts | analytics | Operator | PC-123 | implemented | 2026-11-04 |
 | SCN-017 | Set up a second macOS user on a Mac where another user installed the apps | setup, doctor | Newcomer | PC-145, PC-146, PC-147 | implemented | 2026-11-06 |
+| SCN-018 | Get the agents' wiki memory and Obsidian with the same setup | setup, doctor | Newcomer, Operator | PC-178 | implemented | 2026-11-12 |
 
 ## Personas
 
@@ -114,9 +115,9 @@
   1. Run uninstall.
   2. Fix any reported plugin failure and retry.
   3. Inspect status (it does not list an MCP entry an incomplete uninstall kept; the uninstall's error names it); optionally restore displaced files.
-- **Expected result:** Success clears the active installation, so nothing updates itself while nothing is installed; the update switch stays as the person set it (LC-16, PC-131), and `status` still shows it (on by default) although nothing installed updates (an update the session hook had already started still finishes, which can take several minutes: once `~/.passioncode/logs/update.log` shows it ended, run status, and if it shows a version run uninstall again); the session hook's update folders (`~/.passioncode/run/`) are removed with it unless an update recorded in the last hour may still run from them, when the hook's own sweep removes them later (LC-12, PC-143); recovery copies remain. Repeating uninstall is safe (with more than one Claude Code folder, only the first uninstall acts; docs/reference/cli.md gives the manual commands for the others, PC-129).
-- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later the person's own folder `SWITCHBOARD_CLAUDE_SOURCE_DIR` names, else `~/.claude`, never the home's rebuilt copy, PC-129), the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it).
-- **UI elements:** Removed list, errors, status.
+- **Expected result:** Success clears the active installation, so nothing updates itself while nothing is installed; the update switch stays as the person set it (LC-16, PC-131), and `status` still shows it (on by default) although nothing installed updates (an update the session hook had already started still finishes, which can take several minutes: once `~/.passioncode/logs/update.log` shows it ended, run status, and if it shows a version run uninstall again); the session hook's update folders (`~/.passioncode/run/`) are removed with it unless an update recorded in the last hour may still run from them, when the hook's own sweep removes them later (LC-12, PC-143); recovery copies remain. Repeating uninstall is safe (with more than one Claude Code folder, only the first uninstall acts; docs/reference/cli.md gives the manual commands for the others, PC-129). The agents' wiki memory stays: uninstall says so and runs only read-only commands to name what of it stays.
+- **Alt paths:** A relative owned link is removed; unrelated files stay. A marketplace serving another plugin is retained. The Claude Code rules for PassionCode's own tools (PC-117) and for commands (PC-119) that setup added stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later the person's own folder `SWITCHBOARD_CLAUDE_SOURCE_DIR` names, else `~/.claude`, never the home's rebuilt copy, PC-129), the rules `permissions allow` added and a default mode `permissions mode` set stay there too (PC-125), and the declarations agents wrote in `~/.passioncode/rules.d`, the permissions ledger `~/.passioncode/permissions.json`, the analytics switch `~/.passioncode/analytics.json` (an `off` survives a reinstall) and the shared `PassionCode/installation.json` stay; the person removes them there, or at any time with `permissions remove` and `permissions mode default` (which sets the mode to `default`; it does not unset it). Uninstall and restore leave the agents' wiki memory too (obsidian-wiki, its vault and SessionStart hook, and Obsidian, ADR-0006, SCN-018); uninstall names the parts it finds.
+- **UI elements:** Removed list, errors, status; uninstall prints that the agents' wiki memory stays (obsidian-wiki, its vault and SessionStart hook, and Obsidian), and to name what of it stays it runs only read-only commands (`obsidian-wiki --version`, `uv --version`, `uv tool list`, `uv tool dir`, uv's record).
 - **States covered:** empty, error, success
 - **Errors & recovery:** Plugin failure returns exit 1 and preserves the marketplace/current needed for retry. An MCP entry whose file the system cannot open now (a link into a locked folder) does not stop the rest: uninstall finishes and lists what it removed, exits 1 naming the file and keeps the entry recorded, and a retry once the file and its folder are readable and writable removes it (PC-127). `config.toml` is read as text: a launcher table edited since (a key or comment added inside it included) or a server declared another way is reported as kept; an entry no longer declared is taken as gone; an entry kept because it was changed is no longer tracked, so a retry leaves it (PC-127). A reinstall keeps the update switch as it was; an uninstall by 0.2.75 or earlier wrote it off, and `config set update.auto on` turns it back on.
 - **Status:** implemented
@@ -167,7 +168,7 @@
 - **Entry point:** `npx @passioncode-ai/passioncode@latest setup` (in a terminal), or `setup --yes --json` from a coding agent
 - **Preconditions:** Node 18+; macOS for the apps; no PassionCode.ai app or skill installed.
 - **Steps:**
-  1. Run setup. In a terminal, answer one question per absent app (an app whose folder you cannot write is named instead and never asked, SCN-017; Fabric, an early preview, defaults to no without Docker and the Supabase CLI), one for the repairs, if any are left, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
+  1. Run setup. In a terminal, answer one question per absent app (Obsidian included on macOS; an app whose folder you cannot write is named instead and never asked, SCN-017; Fabric, an early preview, defaults to no without Docker and the Supabase CLI), then one for the agents' wiki memory when it is offered (SCN-018), then one for the repairs, if any are left, then, where Claude Code is and its rules for PassionCode's own tools are missing, one for those rules (default no), and, where Claude Code is and a rule for commands is missing, one for the rules for commands (default no): an app that bundles an MCP server (Fabric Switchboard, Fabric Dashboards, Fabric) runs the skill and MCP update itself, so a new computer that takes one is often asked no repairs question.
   2. Read the result: what was installed, the checks before and after, and the numbered steps that stay the person's.
   3. Do those steps (sign-ins, consents, secrets in each product's hidden prompt), restart the coding agents.
 - **Expected result:** The chosen apps are installed from verified releases and opened once; the skill set is installed; every bundled MCP server is registered for every agent present and answers its proving call; the person's steps are listed once.
@@ -206,7 +207,7 @@
 - **Preconditions:** None.
 - **Steps:**
   1. Run doctor.
-  2. Read one line per check, grouped by area (prerequisites, skills, apps, MCP, services), each with its state and, when not ok, its fix.
+  2. Read one line per check, grouped by area (prerequisites, skills, apps, `memory` for the agents' wiki memory (SCN-018), MCP, services), each with its state and, when not ok, its fix.
 - **Expected result:** Nothing is installed, registered, started, stopped or opened; the only writes are doctor's own result, its release cache (`~/.passioncode/releases-cache.json`, release lookups kept 30 minutes) and, unless they are off, the launcher's anonymous counts (SCN-016). The `sessions.on-demand` row says whether sessions Fabric starts on a board request can run here: ok when nothing is missing, a warning naming each missing part, information on Linux, without Fabric or when only the tool rules, Claude Code itself or a Fabric entry doctor cannot read are missing. Each registered stdio MCP server answers `initialize` and `tools/list` and one read-only tool; Fabric's server is never started (it enrols a session as it starts), its entry and binary are checked. The result is saved for the session hook. Exit 0 when no check failed, 1 otherwise.
 - **Alt paths:** `--offline` skips the latest-release lookups; `--fix` repairs as setup does. On Windows the apps rows
   come from each app's uninstall entry (`reg query`) or its install folder: the installed version, whether a newer
@@ -251,7 +252,7 @@
   1. Paste the prompt.
   2. The agent runs `setup --yes --json`, finishes each step an agent may take, runs `doctor` (the README prompt, whose plain `doctor` shows the notice) or `analytics status` once without `--json` (the skill), and reports.
 - **Expected result:** The person reads what was set up or fixed, what still fails, and a numbered list of their own steps; the launcher's anonymous-counts notice word for word, or the status line it printed (SCN-016); no secret is asked for in the chat.
-- **Alt paths:** "Don't change anything" → the agent runs doctor only, and names the counts and `analytics off` without running `analytics status` or another command to show the notice (its `doctor --json` counts only where the notice was shown before).
+- **Alt paths:** "Don't change anything" → the agent runs doctor only, and names the counts and `analytics off` without running `analytics status` or another command to show the notice (its `doctor --json` counts only where the notice was shown before). When the wiki memory's note names `brew install uv`, the agent runs it and then `setup` again; nothing else is installed by hand, and uv's installer stays the person's step (SCN-018).
 - **UI elements:** The agent's reply.
 - **States covered:** success, error
 - **Errors & recovery:** The agent reports a failed command with its exit code and does not fall back to manual installs.
@@ -264,10 +265,11 @@
 - **Persona:** Operator
 - **Feature:** session start
 - **Entry point:** SessionStart hook
-- **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run.
+- **Preconditions:** `~/.passioncode/doctor.json` from an earlier setup or doctor run (setup saves the rows of what it
+  covered, so a part it left out marks no line; a plain `doctor` saves them all until PC-217).
 - **Steps:**
   1. Start a session.
-- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), the line names `doctor`, which shows that folder, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
+- **Expected result:** While the saved result has failures, one line names their count, the first ids and the command that repairs them; when every failure is one `setup` cannot repair because this user cannot write the app's folder (`blocked` in the saved file, SCN-017), or one no setup run repairs (`manual`, SCN-018), the line names `doctor`, which shows that folder, or the checks no setup run repairs, and when only some are, it says `setup` repairs what it can. The hook never runs doctor.
 - **Alt paths:** No failures or no file: silent.
 - **UI elements:** One hook line.
 - **States covered:** empty, error
@@ -286,7 +288,7 @@
   1. Run setup with the train. The plan names each app's pinned release instead of its latest.
   2. Read the result: apps installed or reinstalled at their pin, the train saved for later runs.
   3. Later, run `doctor` (offline is enough): one line per app against its pin and one `train` line.
-- **Expected result:** Every installed app the train pins is at its pinned version, unless its folder or the app itself is not this user's to replace (SCN-017: the run names it in `blocked`, "Not installed or replaced: ..."); `doctor` says how many are.
+- **Expected result:** Every installed app the train pins is at its pinned version (a train pins PassionCode.ai apps only: Obsidian follows its latest release and obsidian-wiki the launcher's own pin, SCN-018), unless its folder or the app itself is not this user's to replace (SCN-017: the run names it in `blocked`, "Not installed or replaced: ..."); `doctor` says how many are.
 - **Alt paths:** An app newer than its pin is reported and left alone (never downgraded); `--train none` returns to the latest releases; `--dry-run` shows the train's plan (when it names a train other than the saved one, its last item is "save release train <name>", followed only by Claude Code's tool rules while they are offered, PC-117) and saves nothing; without a terminal and without `--yes`, a plan whose only item is the train closes with "Run it with --yes, or in a terminal, to apply.", since a terminal then asks nothing and saves the train at once (while Claude Code's tool rules are offered a terminal asks about them, so it closes with the questions footer, PC-117); a yes to the tool rules alone is a run the person agreed to, so it saves a named train with them; in a terminal, answered no to every offer (at least one of them defaulting to yes), the train is not saved, the report says so, the run exits by its checks (1 when a check still fails, PC-93), the report lists no plan under its headline, and the person's steps name `setup --train <name>` where a failing or warning check's own fix names `setup` (and `setup --train <name> --with fabric` for Fabric without its prerequisites); `--train none` in a terminal is saved on any answer, and when the repairs are answered no, the steps name `setup` where a failing or warning check's own fix names it.
 - **UI elements:** The plan, the `app.<id>` and `train` lines; exit code.
 - **States covered:** success, partial, error
@@ -373,3 +375,121 @@
 - **Coverage:** `test/catalog.test.js` (where an app goes, the note for another user's or an administrator's copy), `test/setup.test.js` tests beginning `PC-145, PC-146` and `PC-147`, `test/self-update.test.js` test beginning `session start names the failures`.
 - **Product:** unobserved
 
+### SCN-018: Get the agents' wiki memory and Obsidian with the same setup
+
+- **Persona:** Newcomer (a new Mac or a new macOS user in a Studio space); Operator (a machine that already has a wiki)
+- **Feature:** setup, doctor
+- **Entry point:** `npx @passioncode-ai/passioncode@latest setup` in a terminal or through the person's coding agent
+- **Preconditions:** uv is installed (https://docs.astral.sh/uv/getting-started/installation/); for the newcomer, no
+  obsidian-wiki config (`~/.obsidian-wiki/config`, `~/.config/obsidian-wiki/config`), no folder `~/.wiki`
+  that holds files, no skill of their own with a name obsidian-wiki bundles in an agent's global skills folder, no
+  XDG_CONFIG_HOME set to a relative path or one that starts with ~, and git
+  (on a Mac, Apple's command line tools: `xcode-select -p` answers).
+- **Steps:**
+  1. Run `setup` (or `setup --yes`). In a terminal, answer the question about Obsidian, then the one about the agents' wiki
+     memory (both default yes), then the repairs question if one is asked.
+  2. Run `doctor` and read its `memory` section.
+  3. Open the vault in Obsidian, as the steps say: choose Open folder as vault, press Cmd+Shift+G (the folder is hidden)
+     and paste its path.
+- **Expected result:** obsidian-wiki 2026.11.4 is installed with uv; `~/.wiki` is a new vault and a Git
+  repository; obsidian-wiki's setup added its skills to every agent's skills folder (making the folders of agents that
+  are not installed); Claude Code starts the next session with the vault's recap (obsidian-wiki's SessionStart hook) and no
+  Stop hook; on a Mac, Obsidian is in this user's `~/Applications`, its image matched GitHub's digest and the app carries
+  team `6JSW4SJWN9`, its ticket and Gatekeeper's yes; the steps name the restart and the vault to open in Obsidian
+  ("Open the wiki vault <dir> in Obsidian once to read what your agents remember: choose Open folder as vault, press
+  Cmd+Shift+G and paste <dir>."), also when Obsidian was installed before; where
+  Obsidian is not installed (Linux, Windows, `--without obsidian`) the step names its download page instead.
+  `doctor`'s `memory` rows read ok.
+- **Alt paths:** A person who already has an obsidian-wiki config keeps it, their vault and their hooks exactly as they
+  are (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, and, with the same meaning, quotes around a bare value or an empty vault line where there was none (ADR-0006 decision 16), every other key kept); an older obsidian-wiki that uv lists is brought up to the pin with `uv tool install --force` (also by
+  `doctor --fix`), never with `obsidian-wiki setup`; a copy uv does not list (pipx, pip `--user`) is the person's to
+  bring up. `--wiki-vault <dir>` puts a new vault elsewhere; `--without obsidian` leaves out the app, `--without wiki`
+  obsidian-wiki, its vault, its upgrade and the hook repair, `--without memory` both, and `--no-apps` both too. A
+  `~/.claude/settings.json` that is a link stays one: the SessionStart entry is added where it points. On Linux and Windows setup installs no
+  Obsidian and `doctor` names its download page; obsidian-wiki is still installed where uv is. Obsidian updates itself
+  inside the app: an older version is information, and setup never replaces a working copy for it (only a damaged copy
+  of this user's own); a copy in `/Applications` that root owns (a package or MDM install) counts as this user's, with no
+  second copy, while one another user dragged in stays theirs and this user gets their own.
+  Where Claude Code reads another folder (`CLAUDE_CONFIG_DIR`), no hook is registered (obsidian-wiki's hooks writer targets only
+  `~/.claude/settings.json`) and `doctor` says so; where Claude Code is not installed, no hook is offered.
+- **UI elements:** the plan's `memory` and Obsidian `install` lines, the memory question, `doctor`'s `memory` section
+- **States covered:** empty, success, partial, error
+- **Errors & recovery:** No uv: the memory is not offered and the steps name how to get it ("The wiki memory: needs uv:
+  brew install uv, ..." where Homebrew is and this user can write its bin folder, else "a person installs it with the installer its page names"); no git: the
+  same, naming Apple's command line tools on a Mac (`xcode-select -p` is asked first, so no install dialog opens);
+  everything else is set up. A vault step that fails (git or obsidian-wiki's own setup) fails the run and leaves nothing
+  of the vault; when the same run installed obsidian-wiki, it is uninstalled again and the error says so (an uninstall that
+  fails is named for the person to run), so the next `setup` starts again. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry. A registered SessionStart entry whose
+  script is gone is a `memory.hooks` warning (gate `consent`): the person removes the entry, then `setup` registers it
+  again for the vault the launcher made. An upgrade stops, naming it, on anything in uv's record it cannot carry (a
+  requirement given as a URL, path, Git source or editable; an unknown key or table): the person brings obsidian-wiki up
+  with uv. XDG_CONFIG_HOME set to a relative path: 
+  obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual (obsidian-wiki reads it from the folder it runs in, so it would not find
+  its config where the launcher does); `doctor` shows `memory.config` with the fix to set it to an absolute folder or
+  unset it. A launcher state file that cannot be read keeps the vault step going, and its line says the vault was not
+  recorded, so a missing SessionStart hook will not be offered as a repair. A skills folder or entry that cannot be read (a looped
+  link, a folder this user may not read) is named on its own, "<folder> could not be read (<code>)", with the fix to repair the link or the permissions, then run setup, never as a skill of
+  yours to move, in `memory.wiki.clash`, and counts as a clash: no install, vault step or upgrade runs over it. An obsidian-wiki uv holds that does not run (its Python gone,
+  or its command not on this PATH) is never installed over or uninstalled: `memory.wiki` warns "installed by uv but does
+  not run" with the person's reinstall, using what uv recorded (its own version specifier, never the pin, each value
+  single-quoted). A config line obsidian-wiki's version refresh would rewrite (a spaced, single-quoted, exported, commented or
+  repeated `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_WIKI_REPO` or `OBSIDIAN_WIKI_VERSION`, or an `OBSIDIAN_WIKI_REPO` outside
+  obsidian-wiki's package) stops every `obsidian-wiki list` (the upgrade, the install over a config):
+  `memory.vault.config-form` names the key and its form, and the config is left byte for byte. An older
+  `~/.obsidian-wiki` beside the XDG folder obsidian-wiki's commands read: the vault is made, but no SessionStart recap is
+  registered (its script would read the older folder and recap another vault), and `memory.hooks` warns until the person
+  copies into the XDG folder the files of the older one it lacks (never the old config over the XDG config), then
+  removes the older folder; the XDG config obsidian-wiki's commands read stays. An upgrade whose refresh refuses after the reinstall puts the previous version back. A config
+  with Windows line endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same
+  way. A config whose `OBSIDIAN_WIKI_REPO` names an existing obsidian-wiki package outside uv's folder is the person's own
+  copy off this PATH: setup installs nothing over it, and `memory.wiki` names that package with the step to put its
+  command folder on PATH. A config that is not saved as UTF-8 is refused the same way, a relative `OBSIDIAN_WIKI_REPO`
+  that names obsidian-wiki's package folder asks to remove that line or write it as an absolute path to that folder (one
+  that names no package folder asks only to remove the line; every other form of that line asks only to remove it too), a
+  vault line with a double quote, a line break or a control character in its value asks to move the vault to a folder
+  whose path has none and write the line once, a relative vault line is a config form (the recap would read it against
+  each session's folder), and a vault path with a double quote, a line break or a control character other than tab
+  (exactly: any C0 control but tab, `\x85`, U+2028 or U+2029) is refused with one step: choose another folder with
+  `--wiki-vault`. Obsidian's step names a vault in three ways: the vault the run made or the existing config names, with
+  its path; with no obsidian-wiki config, its guide says the vault comes with the wiki memory's setup step; with a config
+  that names no vault the launcher can use (a config form, an empty vault line, a config that cannot be read, a link to
+  nothing or a folder, or one an older `~/.obsidian-wiki` shadows), a step that prints the reason (the same text a
+  `doctor` row carries in every branch), never a path and never a setup step, in one of three texts: it names the wiki
+  memory step that carries the reason where a printed row does, names `doctor` where none does, and says the config
+  could not be checked where the reason itself could not be read. With obsidian-wiki installed, a config that is a link to nothing, a folder, a file that cannot be read or names no vault stays a `doctor` failure
+  (`manual`), and a registered SessionStart hook then reads as recapping nothing; an `XDG_CONFIG_HOME` that starts with
+  `~` is named like a relative one; an older `~/.obsidian-wiki` asks to copy into the XDG folder the files of the older one it
+  lacks (never the old config over the XDG config, which would switch the vault), then remove it. A config obsidian-wiki
+  cannot read stops the upgrade and the install over it, as its own `list` crashes on it. Row ids are never printed in
+  a step, and a step that depends on another names it in words that hold in any order ("first fix XDG_CONFIG_HOME as its
+  own step says", "first fix the obsidian-wiki config line as its own step says"); Fabric Dashboards lists failures
+  before warnings. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that
+  run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory`
+  for a person who declined it. On Windows without the right to make links obsidian-wiki copies its skills: the first
+  vault is made, and afterwards `doctor`'s `memory.wiki.clash` names obsidian-wiki's own copies as the person's skills
+  and the upgrade stays unavailable, until PC-193 lands. An older `~/.obsidian-wiki` is named by `doctor` whatever
+  Claude Code's state (`memory.hooks` where Claude Code reads `~/.claude/settings.json`, else `memory.legacy`), and with
+  obsidian-wiki not installed a config that names no usable vault is a `memory.vault` row naming it and why. A vault
+  value with an apostrophe at either end is a config form (the recap strips one), a `--wiki-vault` path that starts or
+  ends with one is refused, as is one inside `~/Documents` (nothing goes into Documents: iCloud may sync it), and a relative vault line names the folder `obsidian-wiki setup` ran in. A memory check that fails in a way nobody foresaw is one
+  `memory.error` warning in `doctor`, and the memory is left out of `setup` with that note, never a crash. On a new Mac uv's `~/.local/bin` may not be on the
+  shell's PATH: `memory.wiki.path` warns that agents cannot run obsidian-wiki by name, with the fix
+  `uv tool update-shell` and a new terminal (the launcher does not edit shell files). A SessionStart hook missing from the
+  vault the launcher made is registered again by the next `setup` or `doctor --fix`, while the config still names that
+  vault; any other vault's missing hook is the person's choice. The restart step follows a memory action that ran, a
+  hook repair and a tool upgrade. A folder a failed vault step cannot remove is named with
+  what to do. Memory rows of a part the run left out (`--without`, `--no-apps`) do not fail the run (a failing Obsidian
+  signature always fails it; the JSON names the parts in `leftOut`). A `~/.wiki` that holds files is never written: the steps name
+  `--wiki-vault`. An Obsidian image that differs from GitHub's digest, carries another team (PassionCode.ai's own
+  included) or has no digest installs nothing and fails that step. `obsidian-wiki doctor` failing is a `memory.vault`
+  failure with its check names, and the session-start line then names `doctor`, not `setup`, which cannot repair it; a
+  Stop hook someone registered is an information row naming its effect on every session, removed only by the person
+  (a hand edit; the launcher never lets obsidian-wiki write Claude Code's settings file, which keeps its permission bits). A skill of the
+  person's that shares a name with one of obsidian-wiki's (in any agent's global skills folder, `skill-creator` for
+  one) stops the install of obsidian-wiki, the vault step and the upgrade: obsidian-wiki's setup and its version refresh would delete or replace it,
+  so the step is named unavailable with the first five entries and how many more (`doctor --json` lists every one), `doctor` shows `memory.wiki.clash`, and the person moves or renames
+  them, then runs setup again. No fix ever names `obsidian-wiki setup` over a config: after an upgrade,
+  or an install over an existing config, the version setup recorded and the package path are refreshed by `obsidian-wiki list`, keeping every other key.
+- **Status:** implemented
+- **Coverage:** `test/setup.test.js` and `test/memory.test.js` tests beginning `PC-178:`, `test/launcher.test.js` test beginning `PC-178: an agent folder`, `test/catalog.test.js` test beginning `PC-178: an administrator`, `test/self-update.test.js` test beginning `session start names the failures`.
+- **Product:** unobserved

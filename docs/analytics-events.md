@@ -78,6 +78,12 @@ check-failed share on Macs with several users may fall. On Windows an installati
 itself (its session hook could not start npm, PC-135), so `app_updated` from Windows starts with the first update an
 installation of 0.2.76 or later runs: a step in the Windows update count at that release, not a jump in updates (PC-143).
 
+From the release after 0.2.76 (PC-178, decided 2026-11-12; the date is set when the tag is published), `setup` also
+installs the agents' wiki memory, and `doctor` has `memory.*` rows. So `setup`'s failed share (`command_run` with
+`outcome` `failed`, `app_error` from `setup`) and `doctor`'s `check-failed` share count failures of the memory too (a
+failed uv install or vault step, a failing vault), and `setup`'s `duration` bucket can rise, since a first run downloads
+obsidian-wiki (and Obsidian on a Mac). No event or property changes: read it as a change in what the commands do.
+
 The host sees the connection's IP address and uses it for a country, a daily visitor hash and rate limits without storing
 it; events are kept two years and the installation id is removed from them after 400 days
 (from the live store; backups age out within their own retention).

@@ -48,11 +48,21 @@ function setup() {
   fs.symlinkSync(path.join(home, '.agents/skills/example-agent'), path.join(home, '.claude/skills/example-agent'));
   fs.mkdirSync(path.join(home, '.cursor/skills'), { recursive: true });
   fs.mkdirSync(path.join(home, '.codex/skills/creating-fabric-agents'), { recursive: true }); // a plain copy
+  // Codex has run here (its sessions folder): a folder that holds only skills is another tool's, not Codex (PC-178).
+  fs.mkdirSync(path.join(home, '.codex/sessions'), { recursive: true });
   return { home, payload, members };
 }
 
+// PC-178: doctor asks uv, obsidian-wiki and brew by name; stand-ins that answer as absent commands (exit 127) keep the
+// host's own out of these results.
+const NO_MEMORY_TOOLS = (() => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-no-memory-'));
+  for (const n of ['uv', 'obsidian-wiki', 'brew']) fs.writeFileSync(path.join(dir, n), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
+  return `${dir}${path.delimiter}${process.env.PATH}`;
+})();
+
 function run(env, ...args) {
-  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
+  return spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', env: { ...process.env, PATH: NO_MEMORY_TOOLS, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', PASSIONCODE_FABRIC_DASHBOARDS_MCP: path.join(env.home, 'no-fabric-dashboards-mcp'), KIMI_CODE_HOME: '', ...(env.extra || {}) } });
 }
 const calls = (home) => { try { return fs.readFileSync(path.join(home, 'claude-calls.log'), 'utf8').trim().split('\n').filter(Boolean); } catch (_) { return []; } };
 
@@ -121,7 +131,7 @@ test('PC-129: a relative CLAUDE_CONFIG_DIR means one folder to the launcher and 
   fs.renameSync(path.join(env.home, '.claude'), cfg);
   fs.renameSync(path.join(env.home, '.claude.json'), path.join(cfg, '.claude.json'));
   env.extra = { ...env.extra, CLAUDE_CONFIG_DIR: 'claude-config' }; // relative: the CLI runs from ~/.passioncode, the launcher from home
-  const at = (...args) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', cwd: env.home, env: { ...process.env, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', ...env.extra } });
+  const at = (...args) => spawnSync(process.execPath, [BIN, ...args], { encoding: 'utf8', cwd: env.home, env: { ...process.env, PATH: NO_MEMORY_TOOLS, HOME: env.home, USERPROFILE: env.home, PASSIONCODE_PAYLOAD: env.payload, PASSIONCODE_CLAUDE: FAKE, PASSIONCODE_HOME: '', KIMI_CODE_HOME: '', ...env.extra } });
   const up = at('update', '--json');
   assert.equal(up.status, 0, up.stderr + up.stdout);
   const servers = () => JSON.parse(fs.readFileSync(path.join(cfg, '.claude.json'), 'utf8')).mcpServers;
@@ -1088,6 +1098,28 @@ test('an agent that is not on the machine gets no registration and no invented c
   assert.equal(fs.existsSync(path.join(env.home, '.gemini', 'settings.json')), false);
   assert.equal(fs.existsSync(path.join(env.home, '.kimi-code')), false);
   assert.ok(fs.readFileSync(path.join(env.home, '.codex', 'config.toml'), 'utf8').includes('["mcp_servers"."fabric-dashboards"]'));
+});
+
+test('PC-178: an agent folder that holds only skill folders is not that agent, so nothing is registered for it', () => {
+  const env = setup();
+  withFakeMcp(env);
+  env.extra.PASSIONCODE_CLAUDE = path.join(env.home, 'no-claude');
+  // What obsidian-wiki's setup leaves for agents it knows and that are not here.
+  fs.mkdirSync(path.join(env.home, '.gemini/skills'), { recursive: true });
+  fs.mkdirSync(path.join(env.home, '.gemini/antigravity/skills'), { recursive: true });
+  const r = run(env, 'update', '--json');
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  const gemini = JSON.parse(r.stdout).steps.filter((s) => s.kind === 'mcp' && s.detail.startsWith('Gemini CLI not found'));
+  assert.ok(gemini.length >= 1, r.stdout);
+  assert.equal(fs.existsSync(path.join(env.home, '.gemini', 'settings.json')), false);
+  const L = require('../lib/launcher');
+  assert.equal(L.agentFolder(path.join(env.home, '.gemini')), false);
+  assert.equal(L.agentFolder(path.join(env.home, '.codex')), true, 'a folder with more than skills is the agent');
+  fs.mkdirSync(path.join(env.home, '.empty-agent'));
+  assert.equal(L.agentFolder(path.join(env.home, '.empty-agent')), true, 'an empty folder still counts');
+  // Skill channels follow the skills folders that exist (ADR-0006 Consequences): the member skills are linked into
+  // the folders obsidian-wiki's setup made, though no MCP server is registered for those agents.
+  assert.ok(fs.readdirSync(path.join(env.home, '.gemini', 'skills')).length > 0, 'member skills linked into ~/.gemini/skills');
 });
 
 test('restore removes the MCP registrations the last update added', () => {

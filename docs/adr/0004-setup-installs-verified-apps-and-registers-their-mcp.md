@@ -1,6 +1,6 @@
 # ADR-0004 — `setup` sets up a new machine and repairs an existing one; `doctor` checks, read-only (amended 2026-11-04, PC-123: apart from the anonymous counts; 2026-11-06, PC-145 to PC-147: apps per user)
 
-Status: accepted · 2026-10-13 · brief: [docs/tasks/2026-10-13-setup-doctor.md](../tasks/2026-10-13-setup-doctor.md)
+Status: accepted · 2026-10-13 · brief: [docs/tasks/2026-10-13-setup-doctor.md](../tasks/2026-10-13-setup-doctor.md) · amended 2026-11-12 by [ADR-0006](0006-setup-installs-the-agents-wiki-memory.md) (PC-178: a third-party app's own chain)
 
 ## Context
 
@@ -45,7 +45,10 @@ and checksums from GitHub's asset digests and checks no signature.
    equals its `SHA256SUMS` line **and** GitHub's digest; the extracted app passes
    `codesign --verify --strict`, names Team ID `KJ35UYYL22`, and passes `xcrun stapler validate` and
    `spctl --assess --type execute`. A failure removes the download and installs nothing. Sigstore
-   attestations are not checked (that needs `gh`); the chain above does not depend on them.
+   attestations are not checked (that needs `gh`); the chain above does not depend on them. (Amended 2026-11-12,
+   PC-178: Obsidian, whose vendor publishes no signed `SHA256SUMS`, is checked by a chain of its own: GitHub's digest,
+   its own Developer ID team `6JSW4SJWN9`, the stapled ticket and Gatekeeper,
+   [ADR-0006](0006-setup-installs-the-agents-wiki-memory.md).)
 3. **macOS installs apps; every system gets the rest.** Apps are installed on macOS; on other
    systems setup does the skills and MCP and names each app's download page.
 4. **MCP registration generalises ADR-0003** to every stdio server inside an installed app

@@ -2,6 +2,78 @@
 
 ## Unreleased
 
+### Added
+
+- **`setup` installs the agents' wiki memory** (PC-178, the operator's request of 2026-11-12, ADR-0006): the
+  open-source obsidian-wiki (github.com/Ar9av/obsidian-wiki, MIT) at the version this launcher pins, 2026.11.4, with
+  `uv tool install`, and, on a Mac, Obsidian, where a person reads the memory. Obsidian publishes no signed checksums, so
+  its image must match GitHub's digest and the app must carry Obsidian's own Developer ID team `6JSW4SJWN9`, a stapled
+  ticket and Gatekeeper's yes; it goes into `~/Applications` like the other apps. A user with no obsidian-wiki config
+  gets a new vault in `~/.wiki` (or the folder `--wiki-vault` names, never one that holds files), made a Git
+  repository, set up with `obsidian-wiki setup --no-hooks` and given only the SessionStart recap for Claude Code. An
+  existing config, vault or hook is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records
+  after an upgrade, or an install over an existing config, and, with the same meaning, quotes around a bare value or an empty vault line where there was none (ADR-0006 decision 16), every other key kept beside the version and package path), and obsidian-wiki's Stop hook (it asks every session in every
+  project to write into the vault after every turn) is never registered. The SessionStart hook goes only where Claude
+  Code is installed and reads `~/.claude/settings.json` (obsidian-wiki's hooks writer targets only `~/.claude/settings.json`). A vault step that fails
+  leaves nothing it made, so the next run starts again; when the same run installed obsidian-wiki, a step that fails
+  before the vault stands (the version check after the install, the version refresh over an existing config, git
+  init, obsidian-wiki setup) uninstalls it again (`uv tool uninstall obsidian-wiki`) and
+  says so, or names the uninstall that failed. A skills folder or entry that cannot be read (a looped link, a folder
+  you may not read) blocks the memory and is named on its own, with the fix to repair the link or the permissions; a
+  memory check that fails in a way nobody foresaw is one `memory.error` warning in `doctor`, never a crash; an
+  obsidian-wiki uv holds that does not run is never installed over or uninstalled, and `doctor` names your reinstall
+  from what uv recorded (the version specifier uv recorded, none meaning PyPI's latest, never the pin; each value quoted
+  for the shell). A config line obsidian-wiki's version refresh would rewrite (a spaced, single-quoted, exported,
+  commented or repeated managed key, or an `OBSIDIAN_WIKI_REPO` outside its package) stops every `obsidian-wiki list` and
+  is named; the upgrade keeps the Python obsidian-wiki's venv was made with, and puts the previous version back when the
+  refresh refuses after the reinstall. Beside an older `~/.obsidian-wiki`, which obsidian-wiki's recap script reads
+  first, setup makes the vault but registers no SessionStart recap, and setup names why (`doctor` shows it in `memory.hooks` or `memory.legacy`). A config with Windows line
+  endings, another line break obsidian-wiki reads differently, or a byte order mark is refused the same way. Your own
+  obsidian-wiki off the PATH (its package named in the config, outside uv's folder) is never installed over: `doctor`
+  names it and the step to put its command folder on PATH. A new vault goes in the hidden `~/.wiki`; the step to open it names Cmd+Shift+G in
+  Obsidian's folder picker and the path. A new vault never goes in `~/Documents` (which iCloud may sync); a `--wiki-vault`
+  inside it is refused, and an existing vault there is left as it is. A config with any control character but tab and newline is refused like the line breaks above, and a relative
+  `OBSIDIAN_WIKI_REPO` naming obsidian-wiki's package folder is a config form whose step is to remove the line or write it as an absolute path to that folder (one naming no package folder: remove the line); a config not saved
+  as UTF-8 is its own form, a vault line with a double quote, a line break or a control character in its value asks to move the vault and write the line once,
+  a relative vault line is a config form (obsidian-wiki's recap would read it against each session's folder), every other form of an `OBSIDIAN_WIKI_REPO` line asks only to remove it,
+  and a vault path with a double quote, a line break or a control character other than tab (exactly: any C0 control but tab, `\x85`, U+2028 or U+2029) is refused with one step (choose another folder with `--wiki-vault`). Every step that names a vault
+  names its path and, on a Mac, Cmd+Shift+G; with no obsidian-wiki config Obsidian's guide says the vault comes with the wiki memory's setup step, and a config that names no vault the launcher can use (a config form, an empty vault line, a config that cannot be read, a link to nothing or a folder, or one an older `~/.obsidian-wiki` shadows) gets a step that prints why and the person's step itself (the same text a `doctor` row carries, obsidian-wiki installed or not), never a path read from it and never a setup step. With obsidian-wiki installed, a config that is a link to nothing, a folder, a file that cannot be read or names no vault stays a `doctor` failure (`manual`), and a registered SessionStart hook then reads as recapping nothing; an `XDG_CONFIG_HOME` that starts with `~` is named like a relative one (the recap reads it as written); an older `~/.obsidian-wiki` asks to copy into the XDG folder the files of the older one it lacks (never the old config over the XDG config), then remove it; the XDG config obsidian-wiki's commands read stays. A config obsidian-wiki cannot read stops the upgrade and the install over it, as its own `list` crashes on it; `memory.hooks` reads `ok` only when the recap, as its script reads the config, and obsidian-wiki's commands, as `cli.py` reads it, read the same existing vault (a leading `~` as the home in both, as every obsidian-wiki command reads it), and never while `XDG_CONFIG_HOME` is relative or starts with `~`. A step that depends on another names it in words that hold in any order ("first fix XDG_CONFIG_HOME as its own step says"), never by its position or its row id. A declined wiki memory (`--without memory`, or "no" to its question) is declined for that run only: the next `setup --yes` installs it again (a terminal run asks again), so an agent passes `--without memory` for a person who declined it (PC-205 would remember the choice). `doctor` names an older `~/.obsidian-wiki` whatever Claude Code's state (`memory.legacy` where `memory.hooks` does not), and with obsidian-wiki not installed a config that names no usable vault is a `memory.vault` row; a vault value with an apostrophe at either end is a config form, a `--wiki-vault` path that starts or ends with one is refused, a relative vault line names the folder `obsidian-wiki setup` ran in, and `~\` is the home on Windows. A failure writing the SessionStart entry after the vault stands keeps the vault and obsidian-wiki and records the vault; the error names the kept vault and the cause, the same step is among the person's steps, and once the cause is fixed, the next `setup` registers the entry.
+  With XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs in) obsidian-wiki is not installed or upgraded, no vault is made and no SessionStart hook is registered; Obsidian and the apps are set up as usual; `doctor` shows it as
+  `memory.config`, and every other memory row that names `setup` asks for that step first. Without uv the steps name `brew install uv` where Homebrew is and this user can write its bin folder,
+  else uv's installer as the person's step; without git, Apple's command line tools (asked with `xcode-select -p` first,
+  so no dialog opens). An older obsidian-wiki uv lists is brought up to the pin with `uv tool install --force`, then
+  `obsidian-wiki list` (also right after installing obsidian-wiki over an existing config) records the new version and package path (and, with the same meaning, quotes around a bare value or an empty vault line where there was none) and keeps every other key of the config (`doctor --fix` too); a copy
+  another tool put first on PATH is named, never replaced. Obsidian updates itself inside the app, so an older version is
+  information and a working Obsidian is never replaced; a copy in `/Applications` that root owns (a package or MDM
+  install) counts as yours, while one another user dragged in stays theirs and you get your own.
+  The run ends by naming the new vault to open in Obsidian (or Obsidian's download page where it is not installed).
+  A missing SessionStart hook is registered again only for the vault setup made, while the config still names it; a
+  memory part the run leaves out (`--without`, `--no-apps`) does not fail it (a damaged Obsidian signature always does;
+  the JSON names the parts in `leftOut`). obsidian-wiki's own hints are never relayed: a fix names only a short list of
+  safe commands, or says what obsidian-wiki reports and the safe route. A newer obsidian-wiki, suffixed or not, is never
+  taken back to the pin. A `~/.claude/settings.json` that is a link stays a link (the entry goes where it points), a
+  copy of obsidian-wiki that uv does not list is never replaced by uv, and an XDG config folder that is a link to nothing
+  does not hide an older `~/.obsidian-wiki` config. obsidian-wiki's setup and its version refresh replace a skill of
+  the same name as one of theirs in every agent's global skills folder (it deleted a `skill-creator` on a real Mac), so
+  neither runs while a skill of yours shares a name, nor does installing obsidian-wiki over an existing config: setup
+  names the first five and how many more for you to move or rename, and `doctor` shows it (its JSON lists every one). obsidian-wiki never writes Claude Code's settings file (its writer made it world-readable): the launcher adds the
+  SessionStart entry, keeping the file private. The upgrade keeps the extras, requirements and Python uv recorded, and stops, naming it, on anything else uv
+  recorded (a requirement given as a URL, path, Git source or editable; an unknown key or table), for the person to bring
+  it up with uv. A registered SessionStart entry whose script is gone is a `doctor` warning (gate `consent`): remove the
+  entry by hand, then `setup` registers it again for the vault the launcher made.
+  `uninstall` says which parts of the memory stay, where any of it is installed. `--with` and `--without` take `obsidian`, `wiki` and
+  `memory`; `--no-apps` leaves the memory out, its upgrade included. obsidian-wiki's setup creates skills folders for
+  agents that are not installed (`~/.codex/skills`, `~/.gemini/skills` and more), and the set's member skills are then
+  linked into those folders as into any agent's.
+- **`doctor` has a `memory` section** (PC-178): Obsidian's version, signature and team; obsidian-wiki against the pin
+  and whether it is on PATH; the vault, read with `obsidian-wiki doctor --json`; the SessionStart hook; and, as
+  information, a Stop hook someone registered, with its effect and how to remove it. A memory failure no setup run
+  repairs (a failing vault) is listed in `doctor.json` as `manual`, and the session-start line names `doctor` for it.
+- An agent folder that holds only skill folders (obsidian-wiki's setup makes `~/.codex/skills`, `~/.gemini/skills` and
+  more) no longer counts as that agent, so no MCP server is registered for an agent that is not installed (PC-178).
+
+This ships in the release after 0.2.76.
+
 ### Changed
 
 - **The North Star sections the launcher serves** (PC-200, Fabric's announcement `d4404828`, 2026-11-13): `AGENTS.md`

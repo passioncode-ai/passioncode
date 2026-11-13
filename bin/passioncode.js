@@ -27,9 +27,9 @@ function cachedNpmStatus({ latest, checkedAt, installed, refused, refusedVersion
   return `npm latest (cached) ${latest} (${checked}${stale ? '; stale: older than installed' : ''}${refused ? `; not installed automatically: ${REFUSED[refused] || 'refused'}` : ''})`;
 }
 
-const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills
+const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the apps, their MCP servers, the skills, the agents' wiki memory
 
-  ${NPX} setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
+  ${NPX} setup [--yes|-y] [--with ids] [--without ids] [--train name|none] [--wiki-vault dir] [--no-apps] [--no-open] [--dry-run] [--allow-tools] [--allow-commands] [--offline] [--json]
         a new machine: install and configure everything; an existing one: check, repair, check again
   ${NPX} doctor [--fix] [--offline] [--json]     check everything (changes nothing but the anonymous counts); --fix repairs as setup does
   ${NPX} update [--dry-run] [--quiet] [--json]   install or update the skill set and the apps' MCP registrations
@@ -44,23 +44,34 @@ const HELP = `passioncode sets up and checks PassionCode.ai on this machine: the
 onboard is another name for setup, install for update. --offline skips the check for newer app
 releases; --quiet prints nothing when an update succeeds; --allow-tools lets Claude Code use
 PassionCode's own tools without asking, --allow-commands run the commands setup lists (--yes
-never does either). App ids: switchboard, dashboards,
-observatory, inbox, fabric. Exit codes: 0 nothing failed (or only a plan was shown), 1 a check
-or a step failed, 2 bad arguments. Claude Code gets plugins from the local "passioncode"
+never does either). Ids for --with and --without: switchboard, dashboards, observatory, inbox,
+fabric (the apps); obsidian, wiki, or memory for both (the agents' wiki memory). A new vault goes
+in ~/.wiki; --wiki-vault names an absolute folder or one that starts with ~/. Exit codes:
+0 nothing failed in what the run covered (the memory.* rows of a part named in leftOut do not
+count, except a failing Obsidian signature), or only a plan was shown, 1 a check or a step failed,
+2 bad arguments. Claude Code gets plugins from the local "passioncode"
 marketplace; other agents get the same skills through ~/.agents/skills. Restart your agent after
 a change.`;
 
-const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric'];
+const IDS = ['switchboard', 'dashboards', 'observatory', 'inbox', 'fabric', 'obsidian', 'wiki', 'memory']; // PC-178: the wiki memory's
 
 /** Flags of setup and doctor: booleans, plus --with/--without taking a comma list. Null when invalid. */
 function parseSetupArgs(cmd, rest) {
   const allowed = cmd === 'doctor' ? ['--fix', '--json', '--offline'] : ['--yes', '-y', '--json', '--offline', '--no-apps', '--no-open', '--dry-run', '--allow-tools', '--allow-commands'];
-  const o = { flags: new Set(), withIds: null, withoutIds: [], train: undefined };
+  const o = { flags: new Set(), withIds: null, withoutIds: [], train: undefined, wikiVault: null };
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
     const m = /^--(with|without)(?:=(.*))?$/.exec(arg);
     const tr = /^--train(?:=(.*))?$/.exec(arg);
-    if (tr && cmd !== 'doctor') {
+    const wv = /^--wiki-vault(?:=(.*))?$/.exec(arg);
+    if (wv && cmd !== 'doctor') {
+      // PC-178: where a new wiki vault goes; an absolute folder, `~/` read as the home folder.
+      let value = wv[1] !== undefined ? wv[1] : rest[++i];
+      if (!value || o.wikiVault) return null;
+      if (value === '~' || value.startsWith('~/')) value = require('path').join(require('os').homedir(), value.slice(1));
+      if (!require('path').isAbsolute(value)) return { usage: `--wiki-vault takes an absolute folder, or one that starts with ~/ (not ${value})` };
+      o.wikiVault = require('path').normalize(value);
+    } else if (tr && cmd !== 'doctor') {
       const value = tr[1] !== undefined ? tr[1] : rest[++i];
       if (!value || o.train !== undefined) return null;
       o.train = value === 'none' ? null : value; // PC-89: a release train's pinned versions instead of the latest
@@ -86,8 +97,9 @@ function asker() {
 
 async function setupOrDoctor(cmd, rest) {
   const o = parseSetupArgs(cmd, rest);
+  if (o && o.usage) { process.stderr.write(`passioncode: ${o.usage}.\n`); return 2; } // PC-178: a relative --wiki-vault
   if (!o) {
-    process.stderr.write(`passioncode: unsupported arguments for ${cmd}; run passioncode help. App ids: ${IDS.join(', ')}.\n`);
+    process.stderr.write(`passioncode: unsupported arguments for ${cmd}; run passioncode help. Ids: ${IDS.join(', ')}.\n`);
     return 2;
   }
   if (o.train) {
@@ -116,6 +128,7 @@ async function setupOrDoctor(cmd, rest) {
     noOpen: o.flags.has('--no-open'), dryRun: o.flags.has('--dry-run'), repairOnly, online, ask: json ? null : asker(), log, train: o.train,
     allowTools: o.flags.has('--allow-tools'),
     allowCommands: o.flags.has('--allow-commands'),
+    wikiVault: o.wikiVault,
   });
   process.stdout.write(json ? JSON.stringify(r, null, 2) + '\n' : S.render(r, { repairOnly }) + '\n');
   return S.exitCode(r);
@@ -312,7 +325,17 @@ async function main(argv) {
     }
     if (cmd === 'uninstall') {
       const r = partly(() => L.uninstall(), 'Removed');
-      out(r, r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.');
+      // PC-178: the parts of the wiki memory found here, named (obsidian-wiki when it answers, Obsidian when the app is
+      // there); nothing when neither is. A --json run asks nothing of them (round 6, P6): its answer is the removals.
+      let stays = '';
+      if (!json) {
+        const here = require('../lib/memory').present(require('os').homedir());
+        // The vault only where obsidian-wiki has a config, the hook only where its entry is registered (round 7, P2).
+        const wiki = here.vault && here.hook ? 'obsidian-wiki, its vault and SessionStart hook' : here.vault ? 'obsidian-wiki and its vault' : here.hook ? 'obsidian-wiki and its SessionStart hook' : 'obsidian-wiki';
+        const parts = [here.wiki ? wiki : null, here.obsidian ? 'Obsidian' : null].filter(Boolean);
+        if (parts.length) stays = `\nThe agents' wiki memory stays: ${parts.join(', and ')}.`;
+      }
+      out(r, `${r.length ? `Removed:\n  ${r.join('\n  ')}` : 'Nothing was installed.'}${stays}`);
       return 0;
     }
     process.stdout.write(HELP + '\n');

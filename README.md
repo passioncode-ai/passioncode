@@ -3,9 +3,12 @@
 The **PassionCode.ai launcher** (`@passioncode-ai/passioncode` on npm) sets up PassionCode.ai on a
 computer with one command: the apps (Fabric, Fabric Switchboard, Fabric Dashboards, Fabric Inbox,
 Project Observatory) from their signed releases, their MCP servers for every coding agent on it,
-and the PassionCode.ai skills listed in [`family.json`](family.json). Run the same command on a
+the PassionCode.ai skills listed in [`family.json`](family.json), and the agents' wiki memory
+(the open-source [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) with a vault of its own, and
+Obsidian to read it in). Run the same command on a
 computer that is already set up, and it checks everything, repairs what is wrong and tells you
-what changed.
+what changed; a computer set up before the wiki memory came gets it on its next `setup`, unless something setup names holds it
+back (the reasons are listed in [the CLI reference](docs/reference/cli.md#setup-and-doctor); see the wiki memory below).
 
 ```bash
 npx @passioncode-ai/passioncode@latest setup     # a new computer: set up · an existing one: check and repair
@@ -27,9 +30,10 @@ Paste this into Claude Code, Codex or another coding agent:
 
 > Set up PassionCode.ai on this computer, or check and repair it if it is already set up. Run
 > `npx --yes @passioncode-ai/passioncode@latest setup --yes --json` (it needs Node 18 or newer)
-> and read its JSON: it installs the missing apps from their signed releases, the skills and
-> every MCP server, repairs whatever is wrong, and checks everything again. Do not download or
-> install anything by hand, and never stop or kill a running app. Then run each product
+> and read its JSON: it installs the missing PassionCode.ai apps from their signed releases (and
+> Obsidian, checked by its own signature and notarization), the skills, every MCP server and the
+> agents' wiki memory, repairs whatever is wrong, and checks everything again. Do not download or
+> install anything by hand, except `brew install uv` when a step names it, and never stop or kill a running app. Then run each product
 > onboarding step it lists that an agent may run, never ask me for a key or password in the
 > chat (the tools open their own hidden prompts), and finish with
 > `npx --yes @passioncode-ai/passioncode@latest doctor`. Tell me briefly what you set up or
@@ -42,15 +46,18 @@ Paste this into Claude Code, Codex or another coding agent:
 Once the skills are installed, "set me up" or "check my setup" is enough: the
 `setting-up-passioncode` skill knows the rest. What stays yours: signing in, consenting, typing a
 secret into a product's own hidden prompt, starting Docker for Fabric, unlocking a folder setup cannot write (or asking
-an administrator), and restarting your agent.
+an administrator), installing uv with its own installer where Homebrew is not yours (setup names the page), installing
+Apple's command line tools when setup asks for git, the steps setup names when it leaves the wiki memory out (moving or
+renaming a skill of yours, rewriting a config line, setting XDG_CONFIG_HOME; the full list is in
+[the CLI reference](docs/reference/cli.md#setup-and-doctor)), opening the wiki vault in Obsidian once, and restarting your agent.
 
 ## Quick start for a new teammate
 
 1. **Install** (Node 18 or newer; the Claude Code CLI on `PATH` for the plugins):
    `npx @passioncode-ai/passioncode@latest setup`, then restart your agents. In a terminal it asks
-   one question per absent app (on macOS; one whose folder you cannot write is named instead, SCN-017), one for the repairs, if any are left, one for Claude Code's rules for PassionCode's own tools where Claude Code is and they are missing, and one for the rules for commands where Claude Code is and any are missing (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
-   (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`), `--no-apps` sets up the skills
-   and MCP only, `--dry-run` shows the plan, `--allow-tools` lets Claude Code use PassionCode's own tools without asking and
+   one question per absent app (on macOS, Obsidian included; one whose folder you cannot write is named instead, SCN-017), then one for the agents' wiki memory when it is offered, then one for the repairs, if any are left, then one for Claude Code's rules for PassionCode's own tools where Claude Code is and they are missing, and one for the rules for commands where Claude Code is and any are missing (an app you install that bundles an MCP server runs the skill and MCP update itself; a `--json` run never asks); `--yes` accepts the plan, `--with`/`--without <ids>` choose apps
+   (`switchboard`, `dashboards`, `observatory`, `inbox`, `fabric`) and the memory (`obsidian`, `wiki`, or `memory` for both), `--no-apps` sets up the skills
+   and MCP only (no memory either), `--dry-run` shows the plan, `--allow-tools` lets Claude Code use PassionCode's own tools without asking and
    `--allow-commands` run the commands setup lists, such as `gh pr merge` (each offered as its own question in a
    terminal, never by `--yes` alone). Apps are installed on macOS; on other systems setup
    names each download page, and on Windows `doctor` reads which version of each app is installed. Skills only: `npx @passioncode-ai/passioncode@latest update`.
@@ -99,9 +106,11 @@ an administrator), and restarting your agent.
   for every agent that is present: Claude Code (through `claude mcp add --scope user`), Codex CLI
   (`~/.codex/config.toml`), Gemini CLI (`~/.gemini/settings.json`) and Kimi Code
   (`~/.kimi-code/mcp.json`). An entry that already exists is left alone; one that points elsewhere
-  is reported and kept. `restore` and `uninstall` remove what the launcher added (the Claude Code
+  is reported and kept. `restore` and `uninstall` remove the parts the launcher added (the Claude Code
   tool and command rules setup or `permissions allow` added and a mode `permissions mode` set stay in `~/.claude/settings.json` (or the folder `CLAUDE_CONFIG_DIR` names; in a session of Fabric Switchboard 0.7.14 or later, your own Claude folder, and with an earlier one `~/.claude`, [docs/reference/cli.md](docs/reference/cli.md)), and agents' declarations in
-  `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay)
+  `~/.passioncode/rules.d` and the permissions ledger `~/.passioncode/permissions.json` stay;
+  so does the agents' wiki memory: obsidian-wiki, its vault and SessionStart hook, and Obsidian,
+  [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md))
   ([ADR-0003](docs/adr/0003-fabric-dashboards-mcp-registration.md),
   [ADR-0004](docs/adr/0004-setup-installs-verified-apps-and-registers-their-mcp.md)).
 
@@ -109,21 +118,51 @@ an administrator), and restarting your agent.
 
 `setup` checks first, then installs the absent apps you chose, repairs what the checks found,
 checks again and prints a before → after table and the steps that stay yours. On a healthy
-computer it changes nothing (apart from the anonymous counts) and exits 0. An app is installed only after its release's
+computer it changes nothing (apart from the anonymous counts) and exits 0. A PassionCode.ai app is installed only after its release's
 `SHA256SUMS.asc` verifies against the PassionCode.ai release key bundled in this package
 (fingerprint `63B3 0DC3 24BD 6974 87AA 3194 4FAF B8AE C803 B6A7`), the file matches the signed
 checksum and GitHub's digest, and the app passes `codesign`, carries team `KJ35UYYL22`, has its
-notarization ticket stapled and is accepted by Gatekeeper. Apps go into your own `~/Applications` (made on the first
+notarization ticket stapled and is accepted by Gatekeeper. Obsidian, which publishes no signed checksums, is checked by
+its own chain instead: the image against GitHub's digest, then team `6JSW4SJWN9`, the stapled ticket and Gatekeeper
+([ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md)). Apps go into your own `~/Applications` (made on the first
 install); a copy in `/Applications` that is yours and that you may replace stays there. An outdated or damaged app is
 reinstalled only when it is not running and you may replace it; the old one goes to the Trash ("running" means running
 for you: on a Mac with several users only your own processes count, so a copy of yours that another user has open, or runs an MCP server from (an entry they set by hand: the launcher's own follow each user's copy, PC-149), is still replaced and goes to your Trash; that user restarts it, PC-151). One you cannot replace
 (another user's, or in a folder you cannot write) is named, never reinstalled. A family service that
 does not answer is started through launchd (`launchctl kickstart`, never a kill).
 
+**The agents' wiki memory** (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md)). `setup` also
+installs [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) (MIT), the tool your agents read and write their
+memory with, at the version this launcher pins (`uv tool install obsidian-wiki==2026.11.4`; with no
+[uv](https://docs.astral.sh/uv/getting-started/installation/) it names that step instead: `brew install uv` where Homebrew
+is and this user can write its bin folder, else uv's installer, which you run), and, on a Mac, Obsidian, where you read that memory. Obsidian publishes no signed
+checksums, so its image must match GitHub's digest and the app must carry Obsidian's own Developer ID team `6JSW4SJWN9`,
+its notarization ticket and Gatekeeper's yes. Obsidian updates itself inside the app, so setup never replaces a working
+copy for its version, only a damaged one of yours; a copy in `/Applications` that root owns (a package or MDM install) counts as yours, while one another user dragged in stays theirs and you get your own. When you have no
+obsidian-wiki config yet, setup makes a new vault in the hidden folder `~/.wiki`, whose full path setup names since
+Obsidian's folder picker does not show it (or the folder `--wiki-vault` names; never one
+that already holds files, never `~/Documents` or a folder inside it (iCloud may sync Documents, and a Git repository in a synced folder breaks), never while XDG_CONFIG_HOME is a relative path, which obsidian-wiki reads from the folder it
+runs in, or starts with ~, which its SessionStart recap reads as written (setup then installs no obsidian-wiki either, and `doctor` shows `memory.config`), and never while a skill of
+yours shares a name with one of obsidian-wiki's, since its setup would replace it: setup names the first five and how many more for you to move
+or rename, and installs no obsidian-wiki while one is there; and only where git is, on a Mac Apple's command line
+tools, which setup names as a step), makes it a Git repository, runs `obsidian-wiki setup --no-hooks` (which adds obsidian-wiki's
+skills to every agent's skills folder, making the folders of agents that are not installed) and registers only the
+SessionStart recap for Claude Code (only where Claude Code reads `~/.claude`; obsidian-wiki's hooks writer targets only `~/.claude/settings.json`). The run
+ends by naming the vault to open in Obsidian. An existing config or vault is left exactly as it is (apart from the version and package path obsidian-wiki's refresh records after an upgrade, or an install over an existing config, and, with the same meaning, quotes around a bare value or an empty vault line where there was none (ADR-0006 decision 16), every other key kept), and the Stop hook (which asks
+every session in every project to write into the vault after every turn) is never registered; `doctor` names it if
+someone did. `--without` leaves a part out: `obsidian` the app; `wiki` obsidian-wiki, its vault, its upgrade and the
+hook repair; `memory` both. Leaving it out, or answering "no" to its question, lasts that run only: the next `setup --yes`
+installs it again (a terminal run asks again; PC-205 would remember the choice).
+
 `doctor` changes nothing but the launcher's anonymous counts, sent once their notice has been shown unless they are off ([docs/analytics-events.md](docs/analytics-events.md)). It reads prerequisites, the skill set, each app's version, signature
 and team, each agent's MCP entries with one proving call per server, and the Fabric services of
-the family; each line names its state and its fix. Exit codes: **0** no check failed (or `setup`
-only showed its plan), **1** a check (or a setup step) failed, **2** bad arguments. `doctor --fix` runs setup's repairs without
+the family, and the agents' wiki memory (`memory` lines: Obsidian and its signature, obsidian-wiki and its version,
+the vault as `obsidian-wiki doctor --json` reads it, or why the config names no usable vault, a failure while obsidian-wiki is
+installed and the config is a folder, a link to nothing, unreadable or names no vault, and the Claude Code hooks); each
+line names its state and its fix.
+Exit codes: **0** nothing failed in what the run covered (the `memory` lines of a part named in `leftOut` do not count,
+except a failing Obsidian signature), or `setup` only showed its plan, **1** a check (or a setup step) failed, **2** bad
+arguments. `doctor --fix` runs setup's repairs without
 installing new apps. Details: the [CLI contract](docs/reference/cli.md#setup-and-doctor).
 
 **Release trains.** An organization's machines install one set of pinned app versions instead of
@@ -131,7 +170,8 @@ each app's latest release: `setup --train organization-r1` installs and reinstal
 the versions in [`trains/organization-r1.json`](trains/organization-r1.json), remembers the train,
 and `doctor` then compares every app with its pin (offline too) in an `app.<id>` line per app and
 one `train` line. An app newer than its pin is reported and left alone (a damaged one, or one whose version cannot be read, is reinstalled from the latest
-release): the train never takes an app back, because its data may not open in an older release. `setup --train none` returns to the
+release): the train never takes an app back, because its data may not open in an older release. A train pins PassionCode.ai apps
+only: Obsidian follows its latest release, and obsidian-wiki the launcher's own pin. `setup --train none` returns to the
 latest releases. Either change is saved with `--yes` or in a terminal (after its answers, or at once when there is nothing to ask; a `--json` run never asks), never with `--dry-run`; without either it is only shown as a plan. A named
 train is not saved when every offer in the terminal (at least one of them defaulting to yes) is
 answered no, while `--train none` is saved on any answer. The skills are pinned by the launcher release itself (`family.json`). Which

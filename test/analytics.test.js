@@ -175,9 +175,17 @@ test('PC-123: the real command keeps its exit code, and a host that never answer
   assert.ok(took >= 1800 && took < 4000, `took ${took} ms`);
 });
 
+// PC-178: doctor asks uv, obsidian-wiki and brew by name; stand-ins that answer as absent commands (exit 127) keep the
+// host's own out of these results.
+const NO_MEMORY_TOOLS = (() => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-no-memory-'));
+  for (const n of ['uv', 'obsidian-wiki', 'brew']) fs.writeFileSync(path.join(dir, n), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
+  return `${dir}${path.delimiter}${process.env.PATH}`;
+})();
+
 test('PC-124: on Linux the sessions row says doctor checks their apps on macOS and Windows only', () => {
   const h = home();
-  const env = { ...process.env, HOME: h, USERPROFILE: h, PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_PLATFORM: 'linux',
+  const env = { ...process.env, PATH: NO_MEMORY_TOOLS, HOME: h, USERPROFILE: h, PASSIONCODE_HOME: path.join(h, '.passioncode'), PASSIONCODE_PLATFORM: 'linux',
     PASSIONCODE_SERVICES_DIR: path.join(h, 'services'), PASSIONCODE_ANALYTICS: 'off', PASSIONCODE_CLAUDE: path.join(__dirname, 'fake-claude.js') };
   const r = spawnSync(process.execPath, [path.join(ROOT, 'bin', 'passioncode.js'), 'doctor', '--json', '--offline'], { env, encoding: 'utf8' });
   const row = JSON.parse(r.stdout).checks.find((c) => c.id === 'sessions.on-demand');

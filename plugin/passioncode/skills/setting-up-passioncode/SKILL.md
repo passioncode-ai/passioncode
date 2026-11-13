@@ -1,12 +1,12 @@
 ---
 name: setting-up-passioncode
 description: >-
-  Use when a person asks to install, set up, check, repair or update the PassionCode.ai tools on
-  this computer (Fabric and its apps, Observatory, their MCP servers, the skills): "install
-  Fabric", "check my setup", «установи PassionCode», «проверь мою установку». NOT for working in
-  a passioncode-ai repository (working-in-passioncode).
+  Use when a person asks to install, set up, check, repair or update PassionCode.ai here (Fabric,
+  its apps and MCP servers, the skills, the agents' wiki memory and Obsidian): "install Fabric",
+  "check my setup", «установи PassionCode», «проверь мою установку». NOT for working in a
+  passioncode-ai repository (working-in-passioncode).
 license: AGPL-3.0-only OR LicenseRef-PassionCode-Commercial
-compatibility: Needs Node 18+ and network access to npm and GitHub; it reaches analytics.passioncode.ai when it can (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills and MCP servers and names each app's download page.
+compatibility: Needs Node 18+ and network access to npm and GitHub, and to PyPI through uv for the agents' wiki memory (uv may fetch a Python); it reaches analytics.passioncode.ai when it can (anonymous counts, unless turned off). Apps are installed on macOS; on other systems the command sets up the skills, the MCP servers and obsidian-wiki, and names each app's download page.
 metadata:
   author: PassionCode.ai
 ---
@@ -36,12 +36,13 @@ for them. Setup and doctor still run if `npx` works in your shell.
 ## When this skill applies
 
 The person wants the PassionCode.ai tools on this computer (Fabric, Fabric Switchboard, Fabric
-Dashboards, Fabric Inbox, Project Observatory, their MCP servers and the PassionCode.ai skills)
-installed, checked, repaired or updated: "set me up with PassionCode", "install Fabric", "check my
-setup", "is my Fabric setup OK", "run the doctor", "the fabric-dashboards MCP is not working", "fix
-my setup", "onboard me to PassionCode" (section 0 first), in any language. Not this skill:
-contributing to a passioncode-ai repository (working-in-passioncode), building a Fabric agent or
-service (the fabric-agent-adapter skills), or product UX.
+Dashboards, Fabric Inbox, Project Observatory, their MCP servers and the PassionCode.ai skills, and
+the agents' wiki memory: obsidian-wiki, its vault and Obsidian) installed, checked, repaired or
+updated: "set me up with PassionCode", "install Fabric", "check my setup", "is my Fabric setup OK",
+"run the doctor", "the fabric-dashboards MCP is not working", "set up the wiki memory", "install
+Obsidian", "fix my setup", "onboard me to PassionCode" (section 0 first), in any language. Not this
+skill: contributing to a passioncode-ai repository (working-in-passioncode), building a Fabric agent
+or service (the fabric-agent-adapter skills), or product UX.
 
 ## 0. A person joining PassionCode.ai: the order
 
@@ -68,11 +69,25 @@ organization's own PM agent), skips this section.
 npx --yes @passioncode-ai/passioncode@latest setup --yes --json
 ```
 
-- It checks everything first, installs the apps that are missing from their signed releases,
+- It checks everything first, installs the PassionCode.ai apps that are missing from their signed releases (Obsidian,
+  for the wiki memory, checked by its own signature and notarization),
   repairs what is wrong (skills, MCP registrations, an outdated or damaged app that is not
   running, a stopped service its supervisor owns), checks again and returns JSON.
-- A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe.
-- Exit 0: no step and no check failed; 1: a step or a check failed; 2: bad arguments. A plan
+- A healthy machine: an empty `actions` list, no `skipped`, no `blocked`, exit 0. Running it again is always safe. A
+  machine without uv or git, with XDG_CONFIG_HOME set to a relative path (obsidian-wiki reads it from the folder it runs
+  in) or one that starts with ~ (its SessionStart recap reads it as written), with a skill of the person's that shares a name with one of obsidian-wiki's, with an obsidian-wiki uv holds that
+  does not run, with a config line obsidian-wiki's refresh would rewrite (`memory.vault.config-form`: the person rewrites
+  the line, gate `consent`), with a relative `OBSIDIAN_VAULT_PATH` (obsidian-wiki's own setup writes one verbatim; the person writes the vault's
+  absolute path: the folder `obsidian-wiki setup` ran in, joined with the relative value), with a memory check that could not run ("could not be checked"), with a vault path that holds
+  a double quote, a line break or a control character other than tab, or that starts or ends with an apostrophe, with a `--wiki-vault` inside `~/Documents`, with an obsidian-wiki config that cannot be read (a link to nothing too), or with a `~/.wiki` that holds files, leaves the memory out until the person installs uv or git, sets XDG_CONFIG_HOME to an absolute folder
+  (or unsets it), moves that skill, reinstalls obsidian-wiki as the note names, fixes what the note names, or names
+  another folder: on a run that changes nothing else, `skipped` names the
+  wiki memory; in any run, `humanSteps` carries the reason. Healthy otherwise, and say so.
+- A person who declined the wiki memory (said no to it, or asked to leave it out) gets `--without memory` on every later
+  `setup` you run for them, until the launcher remembers the choice itself (PC-205): a `--yes` run would install it.
+- Exit 0: nothing failed in what the run covered; 1: a step or a check failed; 2: bad arguments. The `memory.*`
+  rows of a part named in `leftOut` (the wiki memory left out with `--without`, or by `--no-apps`) do not count,
+  except a failing Obsidian signature, which always does: report those rows from `after.checks` all the same. A plan
   (`planOnly: true`: `--dry-run`, or a run without `--yes` that would change something, since a
   `--json` run never asks; a declined terminal run is not a plan and exits by its checks, and when it
   declined a named train it carries `planOnly` together with `declined: true`) changes nothing and exits 0 even
@@ -80,9 +95,28 @@ npx --yes @passioncode-ai/passioncode@latest setup --yes --json
   `after.summary` and `plan`, not the exit code alone. Exit 1 with no JSON on stdout is a runtime
   error: report its stderr line and the exit code.
 - Use `--with <ids>` / `--without <ids>` for a subset (`switchboard`, `dashboards`,
-  `observatory`, `inbox`, `fabric`), `--no-apps` for skills and MCP only, `--dry-run` to show
+  `observatory`, `inbox`, `fabric`; the agents' wiki memory: `obsidian`, `wiki`, or `memory` for
+  both), `--no-apps` for skills and MCP only, `--dry-run` to show
   the plan first. Fabric is an early preview and needs Docker (or OrbStack) and the Supabase CLI;
   without them it is offered, not installed; say so.
+- The agents' wiki memory (PC-178) comes with the apps: obsidian-wiki at the launcher's pin, installed with uv, a
+  new vault in `~/.wiki` (or `--wiki-vault <dir>`) when the person has no obsidian-wiki config, and Obsidian on
+  a Mac. Never run `obsidian-wiki setup`, any `obsidian-wiki hooks install` or `hooks uninstall`, or its wiki-setup
+  skill yourself: obsidian-wiki's writer rewrites `~/.claude/settings.json` without its permission bits, so setup writes
+  the SessionStart entry itself and a Stop entry is the person's hand edit. A `memory` item unavailable because a skill
+  of the person's shares a name with one of obsidian-wiki's: read the whole list from the `entries` of the
+  `memory.wiki.clash` row in `doctor --json` (the note and the detail print only the first five) and pass it on; never move or delete those skills
+  yourself (obsidian-wiki's setup would delete them). Setup registers only the
+  SessionStart recap and leaves an existing vault as it is, and the config's keys apart from the version and package path obsidian-wiki's refresh records, and, with the same meaning, quotes around a bare value or an empty vault line where there was none. Any `memory.*` `doctor` row with a non-null `gate` is the person's step, never yours: pass it on (for one, the `memory.hooks` or `memory.legacy` row asking to copy into the XDG folder the files of an older `~/.obsidian-wiki` it lacks (never the old config over the XDG config), then remove it: never delete, move or edit that folder yourself). Other products' rows keep their own rules (an onboarding row of Fabric Switchboard, Project Observatory or Fabric Inbox is yours to run up to the person's sign-in or secret). A `memory` plan item that is `unavailable` names
+  why in `note`. No uv: when the note says `brew install uv`, run it, then run setup again; otherwise installing uv is the
+  person's step (its page's installer, which you never pipe into a shell yourself): pass the note on. No git: pass the
+  note on (on a Mac, Apple's command line tools, whose dialog the person answers). A folder that holds files, or a vault path with
+  a double quote, a line break or a control character, or an apostrophe at either end, or one inside `~/Documents`: ask the person for another and pass `--wiki-vault`. A `memory.hooks.stop` row is the person's choice: report it, never
+  remove it without their word.
+- For the wiki memory's setup, repair or hooks, use this launcher's `setup` and `doctor`, never obsidian-wiki's own
+  `wiki-setup` skill: that skill runs `obsidian-wiki setup` (which rewrites an existing config) and offers the Stop hook.
+  If the person asks for it anyway, it must not run `obsidian-wiki setup` over an existing config nor register the Stop
+  hook.
 - Only checking? `npx --yes @passioncode-ai/passioncode@latest doctor --json` changes nothing (apart from the launcher's
   anonymous counts).
   Exit 0: no check failed; 1: at least one did; 2: bad arguments.
@@ -108,7 +142,7 @@ reference names the format); never write one there for them.
   steps that need them in person (sign-ins, consents, secrets in hidden prompts). It is never empty after a
   first install: sign-ins and consents always remain.
 - `skipped[]`, when a run that was not a plan changed nothing: apps it did not install by default
-  (Fabric without Docker); each one's reason is in `humanSteps`. Tell the person, never call the
+  (Fabric without Docker), and `the wiki memory` while uv (or git) is missing, XDG_CONFIG_HOME is a relative path or starts with ~, a skill of the person's shares a name with one of obsidian-wiki's, an obsidian-wiki uv holds does not run, a config line obsidian-wiki's refresh would rewrite, a memory check could not run, the vault path holds a double quote, a line break or a control character other than tab or starts or ends with an apostrophe, the vault is inside `~/Documents`, obsidian-wiki's config cannot be read (a link to nothing too), or `~/.wiki` holds files; each one's reason is in `humanSteps`. Tell the person, never call the
   machine fully set up. In a plan the same apps are `plan` items with `selected: false`.
 - `blocked[]`, in any run, a plan included, whatever else it changed: the apps it could not install or replace because
   their folder (or, for a reinstall, the app itself) is not writable for this user. The reason is the `note` of its
@@ -143,8 +177,9 @@ Then run `doctor --json` again and report the change.
 - Never stop, kill or restart an app or a service by hand. Apps start when opened; a service's
   supervisor (launchd, or this machine's app supervisor if it has one) owns it. A command or a
   machine rule that says how apps start wins over `open`.
-- Never download an app another way, and never pipe a downloaded script into a shell. The command verifies the signed
-  checksums, the Developer ID team and Apple's notarization; a hand download skips all three.
+- Never download an app another way, and never pipe a downloaded script into a shell. For PassionCode.ai apps the
+  command verifies the signed checksums, the Developer ID team and Apple's notarization; for Obsidian, GitHub's digest,
+  Obsidian's own Developer ID team and Apple's notarization. A hand download skips them.
 - Never run setup with sudo and never ask for an administrator's password: apps go into the person's own
   `~/Applications`; a folder they cannot write is named in `blocked`, and you pass its note on.
 - Never replace an app the person is running. The result says "quit X, then run setup"; pass that on.
