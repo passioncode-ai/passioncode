@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`doctor` reads MCP servers across Claude Code homes** (PC-223, board request f1dcf1a9 from riffly): a warning
+  `mcp.homes.duplicate` when one home (the default one or a Switchboard home) has two names for one MCP URL, and
+  `mcp.homes.signin` when Switchboard's read-only `switchboard mcp-homes --json` (SB-359) shows a server signed in in
+  some homes and not others (`info` until that report exists). Never a failure, and the keychain is never read. Both
+  fixes say: add a server once under one name, and read `switchboard_status` → `session.mode` before reporting
+  "needs authentication" ([CLI reference](docs/reference/cli.md#mcp-servers-across-claude-code-homes-pc-223)).
+
 - **`setup` installs the agents' wiki memory** (PC-178, the operator's request of 2026-11-12, ADR-0006): the
   open-source obsidian-wiki (github.com/Ar9av/obsidian-wiki, MIT) at the version this launcher pins, 2026.11.4, with
   `uv tool install`, and, on a Mac, Obsidian, where a person reads the memory. Obsidian publishes no signed checksums, so

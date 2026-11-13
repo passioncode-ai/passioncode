@@ -91,8 +91,8 @@ launcher did not install), for `memory.wiki.clash` (moving or renaming the perso
 account holds; `secret` for a service that waits for setup
 (DEC-0044 says only that a key is not entered or a model not chosen, so the key names it), for a missing
 `observatory` or `fabric-inbox` MCP server or service descriptor (their onboarding asks for a key first) and for a
-`blocked` row whose folder an administrator must open; `sign-in` for Fabric Switchboard's onboarding. Readers that do
-not know the field ignore it. `ok` is false when any
+`blocked` row whose folder an administrator must open; `sign-in` for Fabric Switchboard's onboarding and for a
+`mcp.homes.signin` warning. Readers that do not know the field ignore it. `ok` is false when any
 check fails. The summary and the failed ids are saved to
 `~/.passioncode/doctor.json` (with `blocked`, the failed ids whose app folder this user cannot write, PC-147, and `manual`, the
 failed ids no setup run repairs, such as a failing wiki vault, PC-178; `setup` saves only the rows of what it covered, so
@@ -341,6 +341,28 @@ new app is copied beside the target (`<App>.app.passioncode-<pid>.partial`), che
 
 Evidence: `lib/setup.js`, `lib/doctor.js`, `lib/releases.js`; `test/setup.test.js`
 and `test/openpgp.test.js`.
+
+### MCP servers across Claude Code homes (PC-223)
+
+Claude Code keeps each MCP server's OAuth sign-in in the keychain item of the home it runs in: `Claude Code-credentials`
+for the default home and `Claude Code-credentials-<hash>` for each home Fabric Switchboard launches. A server signed in
+in one home reads "needs authentication" in the others, and a second name for the same URL in one home is a second
+sign-in. `doctor` reads the default home and every home under Switchboard's data folder (`homes/*` holding a
+`.claude.json`; the folder is `PASSIONCODE_SWITCHBOARD_DATA` when set) and adds two rows to area `mcp`, never a `fail`:
+
+- `mcp.homes.duplicate`: `warn` when one home has two server names for one URL, read from its `.claude.json`
+  (`mcpServers`, user scope and per project, a project's only together with the home's global ones) and from the `.mcp.json`
+  of the plugins its `settings.json` enables (`plugin:<plugin>:<server>`); `entries` lists every one as
+  `{ home, folder, url, names }`. `ok` otherwise. claude.ai connectors keep no local URL and are not compared.
+- `mcp.homes.signin`: `warn` (gate `sign-in`) when Switchboard's read-only report `switchboard mcp-homes --json`
+  (SB-359: per home `{ id, default?, label?, servers: [{ name, url?, signed_in }] }`, no token) shows a server signed in
+  in some homes and not in others; `entries` lists `{ name, signed, not }`. `info` while no Switchboard answers that
+  report, and absent when there is only one home. The command is the Switchboard app's own binary
+  (`PASSIONCODE_SWITCHBOARD_BIN` replaces it); `doctor` never reads the keychain.
+
+Both fixes say: add each server once under one name (the plugin's where its plugin is enabled), and before reporting
+"needs authentication" read `switchboard_status` → `session.mode` to see which home the session runs in, then sign in
+there once. The code is `lib/mcp-homes.js`; the tests are `test/mcp-homes.test.js`.
 
 ## Update and failure boundaries
 
