@@ -165,6 +165,18 @@ A level not written here: take the narrowest access that lets the act happen and
 never stop on it. A board run with no person in the session still stops before an npm publication or any other
 production step and hands that step to a session with a person.
 
+The Fabric coordinator's rule for every agent (operator, 2026-11-13, Fabric session `a6d4264e`; relayed on the board as
+`35556d27`):
+
+1. **A relay is the approval.** The operator's decision relayed on the board from one of the operator's projects,
+   with the words verbatim, the date, where it was said and its scope, is the operator's approval: act on it and cite
+   the relay; never ask for it again in this session (global-26, "told one, told all").
+2. **A question for a person never stays in the chat text,** where nobody will find it: only `fabric_question_ask`
+   (one queue on Fabric's home) or a request to the Fabric coordinator on the board, and only after the table above
+   left it to a person.
+3. **A dropped board link is reported.** A run whose `fabric` MCP disconnected says so in its summary (from CO-575 the
+   link survives a Fabric restart by name).
+
 ## Platforms
 
 The organization's rule is every product on Mac, Windows and Linux
