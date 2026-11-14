@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.78 - unreleased
+## 0.2.78 - 2026-11-15
 
 Prepared while 0.2.77 waits for its publication (board message `188f46f6`, the S4.1 pulse): tagged only after 0.2.77
 reaches npm, so npm never holds two unpublished releases.
