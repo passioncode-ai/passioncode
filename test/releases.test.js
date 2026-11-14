@@ -63,3 +63,138 @@ test('PC-151: pgrep is asked only about this user\'s processes', { skip: (proces
   assert.deepEqual(args.slice(0, 3), ['-U', String(process.getuid()), '-f']);
   fs.rmSync(bin, { recursive: true, force: true });
 });
+
+// PC-185: release lookups send a token the machine has, and a refused API falls back to the web host's newest tag.
+const http = require('node:http');
+
+async function fakeGitHub(t, handle) {
+  const seen = [];
+  const server = http.createServer((req, res) => { seen.push({ url: req.url, auth: req.headers.authorization || null }); handle(req, res); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const saved = { api: process.env.PASSIONCODE_GITHUB_API, web: process.env.PASSIONCODE_GITHUB_WEB, gh: process.env.GITHUB_TOKEN, ghcli: process.env.GH_TOKEN };
+  process.env.PASSIONCODE_GITHUB_API = `${base}/api`;
+  process.env.PASSIONCODE_GITHUB_WEB = `${base}/web`;
+  delete process.env.GITHUB_TOKEN;
+  delete process.env.GH_TOKEN;
+  t.after(() => {
+    server.close();
+    for (const [k, v] of [['PASSIONCODE_GITHUB_API', saved.api], ['PASSIONCODE_GITHUB_WEB', saved.web], ['GITHUB_TOKEN', saved.gh], ['GH_TOKEN', saved.ghcli]]) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+  });
+  return { base, seen };
+}
+
+const stable = { id: 'x', name: 'X', repo: 'acme/x', asset: (v) => `X-${v}.zip` };
+const pre = { id: 'f', name: 'F', repo: 'acme/f', prerelease: true, asset: (v) => `F-${v}.dmg` };
+const vendor = { id: 'o', name: 'O', repo: 'acme/o', trust: 'vendor', asset: (v) => `O-${v}.dmg` };
+const json = (res, status, body) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(body)); };
+const latestBody = { tag_name: 'v1.2.3', html_url: 'https://example.invalid/r', assets: [{ name: 'X-1.2.3.zip', browser_download_url: 'https://example.invalid/a', size: 5, digest: 'sha256:' + 'a'.repeat(64) }] };
+
+test('PC-185: GITHUB_TOKEN, then GH_TOKEN, is sent to the API as a bearer token; none is sent without one', async (t) => {
+  const { seen } = await fakeGitHub(t, (req, res) => json(res, 200, latestBody));
+  await R.latestRelease(stable);
+  assert.equal(seen.at(-1).auth, null, 'no token on the machine, no header');
+  process.env.GH_TOKEN = 'gh-cli-value';
+  await R.latestRelease(stable);
+  assert.equal(seen.at(-1).auth, 'Bearer gh-cli-value');
+  process.env.GITHUB_TOKEN = 'actions-value';
+  const release = await R.latestRelease(stable);
+  assert.equal(seen.at(-1).auth, 'Bearer actions-value', 'GITHUB_TOKEN wins');
+  assert.equal(release.version, '1.2.3');
+  assert.equal(release.source, undefined, 'an API answer carries no source mark');
+});
+
+test('PC-185: a blank or multi-word token value is no token', () => {
+  assert.equal(R.githubToken({ GITHUB_TOKEN: '  ', GH_TOKEN: '' }), null);
+  assert.equal(R.githubToken({ GITHUB_TOKEN: 'a b' }), null);
+  assert.equal(R.githubToken({ GITHUB_TOKEN: ' ', GH_TOKEN: ' t1 ' }), 't1');
+});
+
+test('PC-185: a token the API refuses (401) does not stop the lookup: it is asked once more without one', async (t) => {
+  const { seen } = await fakeGitHub(t, (req, res) => (req.headers.authorization ? json(res, 401, { message: 'Bad credentials' }) : json(res, 200, latestBody)));
+  process.env.GITHUB_TOKEN = 'revoked-value';
+  const release = await R.latestRelease(stable);
+  assert.equal(release.version, '1.2.3');
+  assert.deepEqual(seen.map((s) => s.auth), ['Bearer revoked-value', null]);
+});
+
+test('PC-185: a rate-limited API (403) falls back to the releases/latest redirect, builds the asset links on the web host and is not cached', async (t) => {
+  const { base, seen } = await fakeGitHub(t, (req, res) => {
+    if (req.url.startsWith('/api/')) return json(res, 403, { message: 'API rate limit exceeded' });
+    if (req.url === '/web/acme/x/releases/latest') { res.statusCode = 302; res.setHeader('Location', 'https://github.com/acme/x/releases/tag/v2.0.1'); return res.end(); }
+    res.statusCode = 404; res.end();
+  });
+  const cacheFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'pc185-')), 'releases-cache.json');
+  t.after(() => fs.rmSync(path.dirname(cacheFile), { recursive: true, force: true }));
+  const release = await R.latestRelease(stable, { cacheFile });
+  assert.equal(release.version, '2.0.1');
+  assert.equal(release.source, 'web');
+  assert.deepEqual(release.assets.map((a) => [a.name, a.url, a.digest]), [
+    ['X-2.0.1.zip', `${base}/web/acme/x/releases/download/v2.0.1/X-2.0.1.zip`, null],
+    ['SHA256SUMS', `${base}/web/acme/x/releases/download/v2.0.1/SHA256SUMS`, null],
+    ['SHA256SUMS.asc', `${base}/web/acme/x/releases/download/v2.0.1/SHA256SUMS.asc`, null],
+  ]);
+  assert.equal(fs.existsSync(cacheFile), false, 'a web answer is never cached');
+  assert.deepEqual(seen.map((s) => s.url), ['/api/repos/acme/x/releases/latest', '/web/acme/x/releases/latest']);
+});
+
+test('PC-185: a product that ships prereleases only (Fabric) falls back to the first entry of the releases feed', async (t) => {
+  await fakeGitHub(t, (req, res) => {
+    if (req.url.startsWith('/api/')) return json(res, 429, {});
+    if (req.url === '/web/acme/f/releases.atom') {
+      res.setHeader('Content-Type', 'application/atom+xml');
+      return res.end('<feed><entry><link rel="alternate" href="https://github.com/acme/f/releases/tag/v0.3.21"/></entry><entry><link href="https://github.com/acme/f/releases/tag/v0.3.20"/></entry></feed>');
+    }
+    res.statusCode = 404; res.end();
+  });
+  const release = await R.latestRelease(pre);
+  assert.equal(release.version, '0.3.21');
+  assert.equal(release.prerelease, true);
+  assert.equal(release.assets[0].name, 'F-0.3.21.dmg');
+});
+
+test('PC-185: a vendor-trust product gets only its asset from the web host, without a digest, so installApp refuses it', async (t) => {
+  await fakeGitHub(t, (req, res) => {
+    if (req.url.startsWith('/api/')) return json(res, 403, {});
+    res.statusCode = 302; res.setHeader('Location', '/acme/o/releases/tag/v1.10.0'); res.end();
+  });
+  const release = await R.latestRelease(vendor);
+  assert.deepEqual(release.assets.map((a) => a.name), ['O-1.10.0.dmg']);
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'pc185-home-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const saved = process.env.PASSIONCODE_APPLICATIONS;
+  process.env.PASSIONCODE_APPLICATIONS = path.join(home, 'Applications');
+  t.after(() => { if (saved === undefined) delete process.env.PASSIONCODE_APPLICATIONS; else process.env.PASSIONCODE_APPLICATIONS = saved; });
+  await assert.rejects(R.installApp({ ...vendor, app: 'O.app' }, release, { work: path.join(home, 'work'), home }), /rate limit\), so its SHA-256 digest is unknown; nothing unverified is installed/);
+});
+
+test('PC-185: when the web host fails too, the error names both, suggests a token and never carries one', async (t) => {
+  await fakeGitHub(t, (req, res) => (req.url.startsWith('/api/') ? json(res, 403, {}) : (res.statusCode = 500, res.end())));
+  await assert.rejects(R.latestRelease(stable), (error) => {
+    assert.match(error.message, /answered HTTP 403 \(rate limit\) and the web fallback failed: .*HTTP 500.*; set GITHUB_TOKEN or GH_TOKEN/);
+    return true;
+  });
+  process.env.GITHUB_TOKEN = 'never-printed-value';
+  await assert.rejects(R.latestRelease(stable), (error) => {
+    assert.doesNotMatch(error.message, /never-printed-value/);
+    assert.doesNotMatch(error.message, /set GITHUB_TOKEN/, 'a machine with a token is not told to set one');
+    return true;
+  });
+});
+
+test('PC-185: any other API error is final, with no web fallback', async (t) => {
+  const { seen } = await fakeGitHub(t, (req, res) => json(res, 404, {}));
+  await assert.rejects(R.latestRelease(stable), /answered HTTP 404$/);
+  assert.equal(seen.length, 1);
+});
+
+test('PC-185: a pinned release (a train) read while the API is rate-limited comes from its tag on the web host', async (t) => {
+  const { seen } = await fakeGitHub(t, (req, res) => json(res, 403, {}));
+  const release = await R.releaseAt(stable, '1.4.0');
+  assert.equal(release.tag, 'v1.4.0');
+  assert.equal(release.source, 'web');
+  assert.equal(release.assets.length, 3);
+  assert.equal(seen.length, 1, 'the tag is known: no web lookup is needed');
+});
