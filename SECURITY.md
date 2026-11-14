@@ -44,7 +44,8 @@ the server it starts and never printed), the Fabric service descriptors (never t
 files), the apps' `Info.plist` (on Windows, the apps' uninstall entries through `reg query` and their install folders),
 the launcher's own `trains/<name>.json` and the `train` and `wiki` (the vault it made, PC-178) it saved in `~/.passioncode/state.json`,
 Claude Code's `~/.claude/settings.json` (only its `permissions` rules, for the `sessions.on-demand` row; nothing in it is
-printed or sent), and the GitHub releases API. It starts each registered stdio MCP
+printed or sent), and the GitHub releases API (with a `GITHUB_TOKEN` or `GH_TOKEN` the machine already has, sent to that
+host only and never printed; when the API refuses a lookup, the newest tag from github.com's release page, PC-185). It starts each registered stdio MCP
 server for one proving call and stops it (never Fabric's, which enrols a session as it starts), and writes only `~/.passioncode/doctor.json` and a
 release cache, apart from the anonymous counts below that every command sends while they are on (`~/.passioncode/analytics.json`,
 its notice marker, the shared `PassionCode/installation.json` created once if absent, and one request to

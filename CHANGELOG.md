@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.78 - unreleased
+
+Prepared while 0.2.77 waits for its publication (board message `188f46f6`, the S4.1 pulse): tagged only after 0.2.77
+reaches npm, so npm never holds two unpublished releases.
+
+### Fixed
+
+- **Release lookups no longer fail on GitHub's anonymous limit** (PC-185, board thread `6255f2d5`): `doctor`'s app
+  version rows and `setup` read releases with a `GITHUB_TOKEN` or `GH_TOKEN` the machine already has, sent to the API
+  host only and never printed (a token the API refuses is dropped for that call). A lookup the API refuses (403 or 429)
+  reads the newest tag from `github.com/<repo>/releases/latest`, or from the releases feed for Fabric, which ships
+  prereleases only, and builds the download links from it; every app is still verified through the signed
+  `SHA256SUMS`, and Obsidian, whose check needs GitHub's digest, is refused until the API answers. Such an answer is not
+  cached. A lookup that still fails stays a warning row that names both errors and suggests a token
+  ([CLI reference](docs/reference/cli.md#locations-and-development-overrides)).
+
+### Changed
+
+- **Fabric Agent Adapter `v0.87.0`** (was `v0.86.0`; PC-225, board message `c8289861`): the adapter's repin to Fabric
+  Agent Contract `v0.1.0+2026-11-14` (FAA-331): usage cost sums held within each row's rounding (DEC-0163), the
+  `activity-unit/1` protocol known (DEC-0164), and working-with-fabric's operator's-word rules (DEC-0156). Between the
+  two tags only file contents change under `plugins/fabric-agent-adapter`: no file is added or removed, and the set
+  installs the same five adapter skills with the same hooks and install paths.
+
 ## 0.2.77 - 2026-11-14
 
 0.2.76 was tagged on 2026-11-09 and never reached npm: its release job stopped at the App Key check (below). 0.2.77 is the
