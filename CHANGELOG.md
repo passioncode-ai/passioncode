@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.2.77 - 2026-11-14
+
+0.2.76 was tagged on 2026-11-09 and never reached npm: its release job stopped at the App Key check (below). 0.2.77 is the
+first published launcher since 0.2.75, so it carries everything under 0.2.76 as well as what follows.
+
+### Fixed
+
+- **The release job reads npm 12's `npm pack --json`** (board request `db3df88e` from fabric-workspace): npm 12 prints an
+  object keyed by package name where npm 11 printed an array, so the App Key step's `JSON.parse(s)[0].files` crashed
+  with a TypeError on the runner (run 42680768155, attempt 2) and nothing was published. The step now pipes the output
+  to `scripts/pack-carries.mjs`, which reads both shapes through the smoke's `readSinglePack` and names only the missing
+  path, never a file's content (tests `0.2.77: …` in `test/pack-carries.test.js`).
+
+### Changed
+
+- **Fabric Agent Adapter `v0.85.1`** (was `v0.75.0`; PC-184): the set now installs five adapter skills, with the new
+  `observing-products` (observer mode, adapter 0.78.0) beside the four it had.
 
 ### Added
 
