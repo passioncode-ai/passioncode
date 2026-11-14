@@ -15,8 +15,10 @@ first published launcher since 0.2.75, so it carries everything under 0.2.76 as 
 
 ### Changed
 
-- **Fabric Agent Adapter `v0.85.1`** (was `v0.75.0`; PC-184): the set now installs five adapter skills, with the new
-  `observing-products` (observer mode, adapter 0.78.0) beside the four it had.
+- **Fabric Agent Adapter `v0.86.0`** (was `v0.75.0`; PC-184): the set now installs five adapter skills, with the new
+  `observing-products` (observer mode, adapter 0.78.0) beside the four it had. 0.2.77 was first merged with `v0.85.1`;
+  before its tag the adapter named `v0.86.0` for the pin (board message `1c013400`): FAA-200's descriptor and
+  repository-match fixes in both kits and the session hooks' copy, no new skill, hook or install path.
 
 ### Added
 
