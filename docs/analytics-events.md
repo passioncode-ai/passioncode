@@ -78,7 +78,7 @@ check-failed share on Macs with several users may fall. On Windows an installati
 itself (its session hook could not start npm, PC-135), so `app_updated` from Windows starts with the first update an
 installation of 0.2.76 or later runs: a step in the Windows update count at that release, not a jump in updates (PC-143).
 
-From the release after 0.2.76 (PC-178, decided 2026-11-12; the date is set when the tag is published), `setup` also
+From 0.2.77 (PC-178, decided 2026-11-12; the date is set when it is published), `setup` also
 installs the agents' wiki memory, and `doctor` has `memory.*` rows. So `setup`'s failed share (`command_run` with
 `outcome` `failed`, `app_error` from `setup`) and `doctor`'s `check-failed` share count failures of the memory too (a
 failed uv install or vault step, a failing vault), and `setup`'s `duration` bucket can rise, since a first run downloads
@@ -90,7 +90,7 @@ it; events are kept two years and the installation id is removed from them after
 
 ## Breaks in other products' series
 
-- From launcher 0.2.76 (released 2026-11-04 or later; the date is set when the tag is published), the launcher creates the
+- From launcher 0.2.76 (tagged 2026-11-09 and never published; it reaches people as 0.2.77, whose date is set when it is published), the launcher creates the
   shared `installation.json` at its first counted run, often before any PassionCode app starts. On machines set up with
   the launcher, the apps' `app_installed` then carries `first_passioncode_app` false more often. The drop is a change in
   measurement, not in what people do: read it as a break in the series.

@@ -169,7 +169,8 @@ jobs:
           node -e 'const k=process.env.APP_KEY; if(!/^A-[A-Z]{2,4}-\d{10}$/.test(k)) { console.error("the App Key secret has an unexpected shape"); process.exit(1); } require("fs").writeFileSync("lib/analytics-key.json", JSON.stringify({ appKey: k }) + "\n")'
           node -e 'const A=require("./lib/analytics"); if(!A.appKey()) process.exit(1); console.log("App Key written")'
           # The package must carry it (package.json `files` names lib; .gitignore must not drop it): name only, never the value.
-          npm pack --dry-run --json --ignore-scripts | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const f=JSON.parse(s)[0].files.map(x=>x.path); if(!f.includes("lib/analytics-key.json")){console.error("the packed package does not carry lib/analytics-key.json");process.exit(1)} console.log("lib/analytics-key.json is in the package")})'
+          # npm 12 prints an object keyed by package name, npm <=11 an array: pack-carries reads both (0.2.77).
+          npm pack --dry-run --json --ignore-scripts | node scripts/pack-carries.mjs lib/analytics-key.json
 
       - name: npm publish
         if: steps.pub.outputs.skip == 'false'
