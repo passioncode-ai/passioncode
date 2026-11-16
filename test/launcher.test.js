@@ -837,6 +837,19 @@ test('vendor refuses credential-shaped strings', async () => {
   assert.match(hits[0], /SKILL\.md/);
 });
 
+test('PC-228: a documented placeholder name is not a credential, a key beside it still is', async () => {
+  const { scanForSecrets } = await import(require('url').pathToFileURL(path.join(ROOT, 'scripts/vendor.mjs')).href);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-scan-'));
+  fs.writeFileSync(path.join(dir, 'names.md'), '`sk-learn-example-notebooks` and `SK-...` are names.');
+  assert.deepEqual(scanForSecrets(dir), []);
+  fs.writeFileSync(path.join(dir, 'longer.md'), 'sk-learn-example-notebooks' + 'b'.repeat(30));
+  fs.writeFileSync(path.join(dir, 'both.md'), 'sk-learn-example-notebooks then sk-' + 'c'.repeat(48));
+  const hits = scanForSecrets(dir).sort();
+  assert.equal(hits.length, 2);
+  assert.match(hits[0], /^both\.md/);
+  assert.match(hits[1], /^longer\.md/);
+});
+
 // The legacy marketplace as this machine had it on 2026-09-29: registered, declared in
 // settings.json with autoUpdate, beside the person's own settings and marketplaces.
 const LEGACY_SOURCE = { source: 'github', repo: 'passioncode-ai/fabric-agent-adapter' };

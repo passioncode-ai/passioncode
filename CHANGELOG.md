@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.79 - unreleased
+
+### Changed
+
+- **Fabric Agent Adapter `v0.96.0`** (was `v0.87.0`; PC-228, board thread `6255f2d5`, messages `e830935b`, `c2957e97`,
+  `9f81b6f7`): the adapter's releases 0.88.0 to 0.96.0, ending with its repin to Fabric Agent Contract
+  `v0.1.0+2026-11-16` (FAA-342): the agent-first rule (`agent-surface.md`, probe `dashboard.agent-surface`), authority
+  levels (`working-with-fabric/references/authority-levels.md`), usage data under DEC-0157 (`usage-data.md`) and
+  instance facts (DEC-0173). Between the two tags `git diff --name-status v0.87.0 v0.96.0 -- plugins/fabric-agent-adapter`
+  adds references and kit scripts and removes nothing; the set installs the same five adapter skills with the same hooks
+  file and install paths.
+
+### Fixed
+
+- **The vendor's credential scan no longer refuses a documented placeholder** (PC-228): since `v0.93.0` the adapter's
+  redaction examples (FAA-200) name `sk-learn-example-notebooks`, which has the shape of an `sk-` key. That exact name,
+  followed by no key character, is taken out before the scan (`NOT_SECRETS` in `scripts/vendor.mjs`); a key beside it, or
+  a longer run of key characters after it, is still refused (test `PC-228: a documented placeholder name...`).
+
 ## 0.2.78 - 2026-11-15
 
 Prepared while 0.2.77 waits for its publication (board message `188f46f6`, the S4.1 pulse): tagged only after 0.2.77
