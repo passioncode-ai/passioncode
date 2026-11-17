@@ -62,7 +62,14 @@ switch (tool) {
     process.exit(1);
   }
   case 'xcrun': { const app = args[args.length - 1]; if (has(app, 'BROKEN')) { err('does not have a ticket stapled to it'); process.exit(65); } out('The validate action worked!'); process.exit(0); }
-  case 'spctl': { const app = args[args.length - 1]; if (has(app, 'BROKEN')) { err(`${app}: rejected\nsource=no usable signature`); process.exit(3); } err(`${app}: accepted\nsource=Notarized Developer ID`); process.exit(0); }
+  case 'spctl': {
+    const app = args[args.length - 1];
+    // PC-232: SLOW_ONCE in the bundle: the first assessment hangs 5 s (a busy Mac scanning a new bundle), later ones answer.
+    // SLOW: every assessment hangs 5 s. UNNOTARIZED: accepted, but as a Developer ID without notarization.
+    if (has(app, 'SLOW') || has(app, 'SLOW_ONCE')) { if (has(app, 'SLOW_ONCE')) fs.rmSync(path.join(app, 'SLOW_ONCE')); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000); }
+    if (has(app, 'UNNOTARIZED')) { err(`${app}: accepted\nsource=Developer ID\norigin=Developer ID Application: Someone (${catalog.TEAM_ID})`); process.exit(0); }
+    if (has(app, 'BROKEN')) { err(`${app}: rejected\nsource=no usable signature`); process.exit(3); } err(`${app}: accepted\nsource=Notarized Developer ID`); process.exit(0);
+  }
   case 'plutil': { try { out(JSON.parse(fs.readFileSync(args[args.length - 1], 'utf8')).CFBundleShortVersionString); process.exit(0); } catch (_) { process.exit(1); } }
   case 'pgrep': { const at = args[args.length - 1].replace(/^\(\^\| \)/, '').replace(/\/Contents\/MacOS\/$/, '').replace(/\\(.)/g, '$1'); process.exit(has(at, 'RUNNING') ? 0 : 1); }
   case 'ditto': {

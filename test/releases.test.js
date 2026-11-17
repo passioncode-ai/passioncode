@@ -198,3 +198,81 @@ test('PC-185: a pinned release (a train) read while the API is rate-limited come
   assert.equal(release.assets.length, 3);
   assert.equal(seen.length, 1, 'the tag is known: no web lookup is needed');
 });
+
+// PC-232 (studio-agent's board request b85bb7ea, STU-80/81): `setup` run for a space's user over ssh failed with only
+// "failed gatekeeper". The first assessment of a new bundle on a loaded Mac can outlast the wait, and the error must say
+// what spctl answered.
+function gatekeeperBench(t, wait) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pc-gk-'));
+  const bin = path.join(dir, 'bin');
+  fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, 'spctl'), `#!/bin/sh\nexec "${process.execPath}" "${path.join(__dirname, 'fake-tools.js')}" spctl "$@"\n`, { mode: 0o755 });
+  const saved = { PATH: process.env.PATH, HOME: process.env.HOME, PASSIONCODE_GATEKEEPER_WAIT: process.env.PASSIONCODE_GATEKEEPER_WAIT };
+  process.env.PATH = `${bin}${path.delimiter}${saved.PATH}`;
+  process.env.HOME = dir;
+  if (wait === undefined) delete process.env.PASSIONCODE_GATEKEEPER_WAIT; else process.env.PASSIONCODE_GATEKEEPER_WAIT = wait;
+  t.after(() => {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const app = (...markers) => {
+    const a = path.join(dir, `X${markers.join('-')}.app`);
+    fs.mkdirSync(path.join(a, 'Contents'), { recursive: true });
+    for (const m of markers) fs.writeFileSync(path.join(a, m), '');
+    return a;
+  };
+  const calls = () => { try { return fs.readFileSync(path.join(dir, 'fake-tools.log'), 'utf8').trim().split('\n').filter((l) => l.startsWith('spctl')).length; } catch (_) { return 0; } };
+  return { app, calls };
+}
+
+const UNIX_TOOLS = process.platform === 'win32' && 'the spctl stand-in is a shell script';
+
+test('PC-232: Gatekeeper waits 120 s, then once 600 s; PASSIONCODE_GATEKEEPER_WAIT replaces the list, a bad value is ignored', () => {
+  const saved = process.env.PASSIONCODE_GATEKEEPER_WAIT;
+  try {
+    delete process.env.PASSIONCODE_GATEKEEPER_WAIT;
+    assert.deepEqual(R.gatekeeperWaits(), [120, 600]);
+    process.env.PASSIONCODE_GATEKEEPER_WAIT = '300, 900';
+    assert.deepEqual(R.gatekeeperWaits(), [300, 900]);
+    for (const bad of ['0', 'abc', '120,x', '5000', '1.5', ',']) {
+      process.env.PASSIONCODE_GATEKEEPER_WAIT = bad;
+      assert.deepEqual(R.gatekeeperWaits(), [120, 600], bad);
+    }
+  } finally { if (saved === undefined) delete process.env.PASSIONCODE_GATEKEEPER_WAIT; else process.env.PASSIONCODE_GATEKEEPER_WAIT = saved; }
+});
+
+test('PC-232: a notarized bundle is accepted at the first try', { skip: UNIX_TOOLS }, (t) => {
+  const b = gatekeeperBench(t, '30');
+  const c = R.gatekeeperCheck(b.app());
+  assert.equal(c.ok, true, c.detail);
+  assert.equal(c.detail, 'accepted, source=Notarized Developer ID');
+  assert.equal(b.calls(), 1);
+});
+
+test('PC-232: a first assessment that times out is tried again with the longer wait, and says so', { skip: UNIX_TOOLS }, (t) => {
+  const b = gatekeeperBench(t, '1,30');
+  const c = R.gatekeeperCheck(b.app('SLOW_ONCE'));
+  assert.equal(c.ok, true, c.detail);
+  assert.match(c.detail, /^accepted, source=Notarized Developer ID \(after 1 timed-out try\)$/);
+  assert.equal(b.calls(), 2);
+});
+
+test('PC-232: when every wait runs out the check fails and names the waits and the way on', { skip: UNIX_TOOLS }, (t) => {
+  const b = gatekeeperBench(t, '1,1');
+  const c = R.gatekeeperCheck(b.app('SLOW'));
+  assert.equal(c.ok, false);
+  assert.match(c.detail, /did not answer within 1 s, then 1 s/);
+  assert.match(c.detail, /PASSIONCODE_GATEKEEPER_WAIT/);
+  assert.equal(b.calls(), 2);
+});
+
+test('PC-232: a rejection names the exit code and the source; accepted without notarization is not enough', { skip: UNIX_TOOLS }, (t) => {
+  const b = gatekeeperBench(t, '30');
+  const rejected = R.gatekeeperCheck(b.app('BROKEN'));
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.detail, 'spctl exit 3: source=no usable signature');
+  const plain = R.gatekeeperCheck(b.app('UNNOTARIZED'));
+  assert.equal(plain.ok, false, 'a Developer ID without notarization is refused, as before');
+  assert.equal(plain.detail, 'spctl exit 0: source=Developer ID');
+  assert.equal(b.calls(), 2, 'a rejection is not retried');
+});

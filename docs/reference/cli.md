@@ -342,6 +342,27 @@ new app is copied beside the target (`<App>.app.passioncode-<pid>.partial`), che
 Evidence: `lib/setup.js`, `lib/doctor.js`, `lib/releases.js`; `test/setup.test.js`
 and `test/openpgp.test.js`.
 
+### Apps on a shared Mac: the copies the launcher's MCP servers run from (PC-232)
+
+Three apps carry the stdio MCP server the launcher registers for Claude Code and Codex inside their bundle: Fabric
+Switchboard (`Contents/MacOS/switchboard mcp`), Fabric Dashboards (`Contents/Resources/bin/fabric-dashboards-mcp`) and
+Fabric (`Contents/Resources/bin/fabric-mcp`). Each entry points at this user's copy, found by the per-user rule of
+`PASSIONCODE_APPLICATIONS` (`lib/catalog.js`, `appPath` and `mcpCommand`): `~/Applications` when a copy is there.
+So on a Mac where an administrator keeps shared copies in `/Applications` and each person or space has its own copy:
+
+- the own copies of Switchboard, Dashboards and Fabric are required while their MCP entries point at them: removing one
+  makes `doctor` fail `mcp.claude.<server>` and `mcp.codex.<server>` until `setup` installs it again;
+- Project Observatory and Fabric Inbox register no stdio server from their bundle (their MCP is external), so the
+  launcher needs no own copy of those two;
+- `setup` replaces an outdated own copy only when no process of this user runs from it, an agent's MCP server included
+  (PC-151). An agent session keeps its MCP server running, so on a machine whose sessions never stop, an own copy waits
+  for a quiet moment; a host agent may swap it for a Gatekeeper-checked copy of the same release then, as setup would.
+
+`setup` needs no window session: run as that user (their own ssh login, or `sudo -n -u <user> -H` from an
+administrator), it downloads, verifies and installs the same way. The one slow step on a busy Mac is Gatekeeper's first
+assessment of a new release, which gets two tries, two and then ten minutes (`PASSIONCODE_GATEKEEPER_WAIT`); a
+failure now says what `spctl` answered.
+
 ### Colima as the Mac's Docker (PC-231)
 
 On macOS, where `colima version` answers, `doctor` recommends Colima as this Mac's Docker from the first run. The three
@@ -657,6 +678,7 @@ Evidence: [decision logic](../../plugin/passioncode/hooks/update-check.js),
 | `PASSIONCODE_REG` | Replace the `reg` doctor and setup read Windows uninstall entries with, for tests; a `.js`, `.cjs` or `.mjs` file runs through this Node, so the Windows cases run on every system (PC-143) |
 | `PASSIONCODE_NPM`, `PASSIONCODE_NPX` | Replace the `npm` the session hook's probe runs and the `npx` its background update runs, for tests; a `.js`, `.cjs` or `.mjs` file runs through this Node. Whatever they name runs in place of npm, so they are trusted local configuration like every override here |
 | `PASSIONCODE_APPLICATIONS` | One applications folder for every app setup and doctor use. Unset: each app is in this user's `~/Applications` (made on the first install), or in `/Applications` when the copy there is this user's and its folder and the app itself let them replace it; another user's copy is never replaced, moved or put in the Trash, and `doctor` names it (`app.<id>.shared`; PC-145, PC-146, SCN-017). Read on each run, never remembered: set it wherever `setup`, `doctor` and the agents start. A folder the user cannot write is named in the plan before anything is downloaded (PC-147). Only an absolute value counts: a relative one is read as unset. Another user's copy in that folder (not root's) is never this user's: `doctor` names it (`app.<id>.shared`) and reads the app as not installed, `setup` plans its install as blocked, and nothing replaces it or registers an MCP server from it. The Fabric Agent Adapter (v0.70.0) reads the variable the same way (PC-160). |
+| `PASSIONCODE_GATEKEEPER_WAIT` | How long setup lets Gatekeeper (`spctl --assess`) judge a downloaded app, in seconds, one wait per try, comma-separated, each 1 to 3600 (default `120,600`: a try that times out is made once more with ten minutes). The first assessment of a release macOS has not seen scans the bundle, which on a busy shared Mac (a Studio at a load of 100 or more) outlasts two minutes; a longer wait is not a weaker check, since only `source=Notarized Developer ID` with exit 0 passes. Any other value is ignored. A failed check names what spctl answered (`spctl exit <code>: source=...`) or that every wait ran out, in the step's error as well as in its report lines (PC-232) |
 | `PASSIONCODE_SHARED_APPLICATIONS` | The shared folder of that rule (default `/Applications`); tests set it so none reaches the machine's own |
 | `PASSIONCODE_GITHUB_API` | GitHub API base for release lookups (default `https://api.github.com`) |
 | `PASSIONCODE_GITHUB_WEB` | GitHub web host the release lookups fall back to and build download links on when the API refuses them (default `https://github.com`; PC-185), for tests |

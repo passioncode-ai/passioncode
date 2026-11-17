@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Gatekeeper on a busy Mac, and a failure that says why** (PC-232; studio-agent's board request `b85bb7ea`, STU-80
+  and STU-81): `setup --with switchboard` run for a space's user over ssh stopped with only "failed gatekeeper". The
+  same release passes `spctl` there in a quarter of a second once macOS has seen it; its first assessment scans the
+  bundle, which on a shared Studio at a high load outlasts the two minutes setup gave it. Gatekeeper now gets a second
+  try with ten minutes (`PASSIONCODE_GATEKEEPER_WAIT` replaces the waits), only `source=Notarized Developer ID` with exit
+  0 passes as before, and a failed check's detail (`spctl exit <code>: source=...`, or that every wait ran out) is in
+  the step's error, not only in its report lines. The CLI reference names which own app copies a shared Mac must keep:
+  Switchboard, Dashboards and Fabric, whose bundles the launcher's MCP servers run from
+  ([CLI reference](docs/reference/cli.md#apps-on-a-shared-mac-the-copies-the-launchers-mcp-servers-run-from-pc-232)).
+
 ### Added
 
 - **Colima recommended as the Mac's Docker from onboarding** (PC-231; the operator, 2026-11-17: «сделай это на уровне
