@@ -80,7 +80,15 @@ switch (tool) {
     if (args[0] === 'attach') { makeApp(args[args.length - 1], args[args.indexOf('-mountpoint') + 1]); process.exit(0); }
     process.exit(0); // detach
   }
-  case 'docker': if (args[0] === 'info') out('27.0.0'); else out('Docker version 27.0.0'); process.exit(0);
+  case 'docker': {
+    // PC-229: the current context lives in $HOME/fake-docker-context (default: `default`).
+    const ctx = path.join(home, 'fake-docker-context');
+    if (args[0] === 'context' && args[1] === 'show') { out(fs.existsSync(ctx) ? fs.readFileSync(ctx, 'utf8').trim() : 'default'); process.exit(0); }
+    if (args[0] === 'context' && args[1] === 'use') { fs.writeFileSync(ctx, args[2]); out(args[2]); process.exit(0); }
+    if (args[0] === 'info') out('27.0.0'); else out('Docker version 27.0.0');
+    process.exit(0);
+  }
+  case 'colima': out('colima version 0.9.1'); process.exit(0);
   case 'supabase': out('2.0.0'); process.exit(0);
   case 'launchctl': case 'open': process.exit(0);
   case 'netstat': {
