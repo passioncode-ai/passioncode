@@ -81,7 +81,7 @@ switch (tool) {
     process.exit(0); // detach
   }
   case 'docker': {
-    // PC-229: the current context lives in $HOME/fake-docker-context (default: `default`).
+    // PC-231: the current context lives in $HOME/fake-docker-context (default: `default`).
     const ctx = path.join(home, 'fake-docker-context');
     if (args[0] === 'context' && args[1] === 'show') { out(fs.existsSync(ctx) ? fs.readFileSync(ctx, 'utf8').trim() : 'default'); process.exit(0); }
     if (args[0] === 'context' && args[1] === 'use') { fs.writeFileSync(ctx, args[2]); out(args[2]); process.exit(0); }
