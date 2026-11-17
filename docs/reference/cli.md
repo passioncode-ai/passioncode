@@ -342,7 +342,7 @@ new app is copied beside the target (`<App>.app.passioncode-<pid>.partial`), che
 Evidence: `lib/setup.js`, `lib/doctor.js`, `lib/releases.js`; `test/setup.test.js`
 and `test/openpgp.test.js`.
 
-### Colima as the Mac's Docker (PC-229)
+### Colima as the Mac's Docker (PC-231)
 
 On macOS, where `colima version` answers, `doctor` recommends Colima as this Mac's Docker from the first run. The three
 rows are warnings, never failures, so onboarding proposes them at once and nothing is held back:
@@ -362,7 +362,17 @@ rows are warnings, never failures, so onboarding proposes them at once and nothi
   and `sudo launchctl disable system/com.docker.socket`, because Docker Desktop's socket helper (`RunAtLoad`) puts its
   own link back at the next boot. `PASSIONCODE_DOCKER_SOCKET` names another socket path (tests).
 
-Without Colima, or on another system, the rows are absent (`lib/colima.js`, `test/setup.test.js` "PC-229").
+**A Mac several people use** (more than one home in `/Users`, `Shared` and `Guest` aside; studio-agent's DEC-0068,
+board thread `c3b51cc0`): one system link would send every user's Docker to one user's Colima, so the socket row
+asks instead for `export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock` in `~/.zshenv`, with no gate, and
+`setup` appends it once after the person's own lines (`label: "shell"`); the row reads ok when that line is there,
+on any Mac. The context row reads `currentContext` from `~/.docker/config.json`, since `docker context show`
+answers `default` while `DOCKER_HOST` is set. The autostart row reads ok for any launchd job in
+`~/Library/LaunchAgents`, `/Library/LaunchAgents` or `/Library/LaunchDaemons` that runs `colima start` or has a
+known label (`ai.passioncode.studio-agent.colima` among them), and `setup` then adds no second one.
+`PASSIONCODE_USERS_DIR` and `PASSIONCODE_LAUNCHD_DIRS` (colon separated) name other folders (tests).
+
+Without Colima, or on another system, the rows are absent (`lib/colima.js`, `test/setup.test.js` "PC-231").
 
 ### MCP servers across Claude Code homes (PC-223)
 

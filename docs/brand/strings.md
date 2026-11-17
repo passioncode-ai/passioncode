@@ -38,9 +38,11 @@ Contract: brand-contract v1
 | setup.repair-kickstart | start the ${r.label} service through launchd | lib/setup.js:137 | SCN-009 | proposed | copy |
 | setup.repair-colima-context | make colima Docker\'s current context (docker context use colima) | lib/setup.js:136 | SCN-009 | proposed | copy |
 | setup.repair-colima-autostart | start Colima at login with the LaunchAgent ${colima.LABEL} | lib/setup.js:136 | SCN-009 | proposed | copy |
-| doctor.colima-context | Docker's current context is ${current \|\| 'unknown'}; Colima is installed and is recommended as the default | lib/colima.js:52 | SCN-009 | proposed | copy |
-| doctor.colima-autostart | Colima does not start at login, so what runs in it stays down after a restart | lib/colima.js:57 | SCN-009 | proposed | copy |
-| doctor.colima-socket | not Colima; tools that read no Docker context miss it | lib/colima.js:61 | SCN-009 | proposed | copy |
+| doctor.colima-context | Docker's current context is ${current \|\| 'unknown'}; Colima is installed and is recommended as the default | lib/colima.js:101 | SCN-009 | proposed | copy |
+| doctor.colima-autostart | Colima does not start at login, so what runs in it stays down after a restart | lib/colima.js:105 | SCN-009 | proposed | copy |
+| doctor.colima-socket | not Colima; tools that read no Docker context miss it | lib/colima.js:115 | SCN-009 | proposed | copy |
+| doctor.colima-socket-shared | on a Mac several people use, tools that read no Docker context need DOCKER_HOST to lead to this user\'s own Colima | lib/colima.js:113 | SCN-009 | proposed | copy |
+| setup.repair-colima-shell | export DOCKER_HOST to this user's own Colima in ~/.zshenv (${colima.SHELL_LINE}) | lib/setup.js:136 | SCN-009 | proposed | copy |
 | setup.plan-install | install ${pr.name}${pr.preview ? ' (early preview)' : ''} into ${path.dirname(catalog.appPath(pr, { home }))} from ${from(pr)} | lib/setup.js:87 | SCN-008 | proposed | copy |
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:89 | SCN-008, SCN-014 | proposed | copy |
 | setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:500 | SCN-009, SCN-014 | proposed | copy |
