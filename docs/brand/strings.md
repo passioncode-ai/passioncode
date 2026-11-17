@@ -201,7 +201,7 @@ Contract: brand-contract v1
 | ledger.schema | ${file} is not a ${SCHEMA} ledger | lib/ledger.js:31 | SCN-015 | proposed | error |
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:605 | SCN-008, SCN-009, SCN-015 | proposed | error |
-| setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:331 | SCN-011 | proposed | layout |
+| setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:362 | SCN-011 | proposed | layout |
 | setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}${how} | lib/catalog.js:234 | SCN-017 | proposed | layout |
 | setup.blocked-folder.how | make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write) | lib/catalog.js:233 | SCN-017 | proposed | copy |
 | setup.blocked-folder.how-admin | ask an administrator to let you write it | lib/catalog.js:233 | SCN-017 | proposed | copy |
@@ -259,10 +259,10 @@ Contract: brand-contract v1
 | doctor.memory-obsidian-other-system | ${ob.name}: setup installs it on macOS; on this system download it from ${ob.page} | lib/doctor.js:420 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-absent | ${ob.name} (where you read the agents' wiki memory): not installed | lib/doctor.js:430 | SCN-018 | proposed | copy |
 | doctor.memory-obsidian-team | (its Developer ID team is ${ob.team}) | lib/doctor.js:453 | SCN-018 | proposed | copy |
-| releases.obsidian-digest-ok | ${assetName}: SHA-256 matches GitHub's digest (${product.name} publishes no signed SHA256SUMS) | lib/releases.js:298 | SCN-018 | proposed | copy |
-| releases.obsidian-digest-differs | ${assetName}: SHA-256 ${got} differs from GitHub's digest ${asset.digest}; nothing was installed | lib/releases.js:297 | SCN-018 | proposed | copy |
-| releases.obsidian-no-digest | ${release.tag} publishes no SHA-256 digest for ${assetName}; nothing unverified is installed | lib/releases.js:286 | SCN-018 | proposed | copy |
-| releases.obsidian-rate-limited | ${assetName}: GitHub's API refused the lookup (rate limit), so its SHA-256 digest is unknown; nothing unverified is installed (set GITHUB_TOKEN or GH_TOKEN, or try again later) | lib/releases.js:286 | SCN-018 | proposed | copy |
+| releases.obsidian-digest-ok | ${assetName}: SHA-256 matches GitHub's digest (${product.name} publishes no signed SHA256SUMS) | lib/releases.js:329 | SCN-018 | proposed | copy |
+| releases.obsidian-digest-differs | ${assetName}: SHA-256 ${got} differs from GitHub's digest ${asset.digest}; nothing was installed | lib/releases.js:328 | SCN-018 | proposed | copy |
+| releases.obsidian-no-digest | ${release.tag} publishes no SHA-256 digest for ${assetName}; nothing unverified is installed | lib/releases.js:317 | SCN-018 | proposed | copy |
+| releases.obsidian-rate-limited | ${assetName}: GitHub's API refused the lookup (rate limit), so its SHA-256 digest is unknown; nothing unverified is installed (set GITHUB_TOKEN or GH_TOKEN, or try again later) | lib/releases.js:317 | SCN-018 | proposed | copy |
 | setup.plan-install.vendor | its latest release, checked by ${pr.name}'s own Developer ID signature, its notarization and GitHub's digest | lib/setup.js:74 | SCN-018 | proposed | copy |
 | setup.repair-hook | register obsidian-wiki's SessionStart recap for Claude Code again; the launcher writes the entry, keeping the file private | lib/setup.js:135 | SCN-018 | proposed | copy |
 | setup.memory-open-vault | Open the wiki vault ${v} in Obsidian once to read what your agents remember: ${route(v)}. | lib/setup.js:524 | SCN-018 | proposed | copy |
