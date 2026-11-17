@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.2.79 - unreleased
+## 0.2.79 - 2026-11-17
+
+### Added
+
+- **Colima recommended as the Mac's Docker from onboarding** (PC-231; the operator, 2026-11-17: «сделай это на уровне
+  анбординга в пашионкод чтобы агент пм любой организации при анбординге ставил это и агент студия тоже», «как
+  рекомендацию сразу»). Where Colima is installed, `doctor` adds three warnings: Docker's current context is not
+  `colima`, Colima does not start at login, `/var/run/docker.sock` does not lead to Colima. `setup` and `doctor --fix`
+  switch the context and install the LaunchAgent `ai.passioncode.colima-autostart`; the system socket is the
+  person's step (an administrator's password, `gate: "secret"`), with Docker Desktop's socket helper disabled so a boot
+  does not undo it. On a Mac several people use, each user gets `DOCKER_HOST` in `~/.zshenv` instead (no
+  administrator), and an autostart another launchd job already holds counts ([CLI reference](docs/reference/cli.md#colima-as-the-macs-docker-pc-231)).
+
 
 ### Changed
 

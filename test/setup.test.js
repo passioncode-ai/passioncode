@@ -109,7 +109,8 @@ function machine({ tools = TOOLS, toolRules = true, commandRules = true, memory 
   const bin = path.join(home, 'fakebin'); fs.mkdirSync(bin);
   for (const name of tools) fs.writeFileSync(path.join(bin, name), `#!/bin/sh\nexec "${process.execPath}" "${path.join(__dirname, 'fake-tools.js')}" ${name} "$@"\n`, { mode: 0o755 });
   // A tool left out is "not found" even where the host has one in /usr/bin (CI runners carry docker).
-  for (const name of [...TOOLS, ...MEMORY_TOOLS].filter((x) => !tools.includes(x))) fs.writeFileSync(path.join(bin, name), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
+  // PC-231: colima too, so a developer's own Colima never adds its recommendations to a test that did not ask for it.
+  for (const name of [...TOOLS, ...MEMORY_TOOLS, 'colima'].filter((x) => !tools.includes(x))) fs.writeFileSync(path.join(bin, name), '#!/bin/sh\nexit 127\n', { mode: 0o755 });
   fs.writeFileSync(path.join(home, 'key.asc'), KEY.publicArmour);
   fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ mcpServers: {} }));
   fs.mkdirSync(path.join(home, '.claude'), { recursive: true }); // Claude Code is here
@@ -3981,3 +3982,70 @@ test('PC-178: the Obsidian step names doctor when no memory row of the run carri
   } finally { M.vaultWhy = real; }
 });
 function t_cleanup(dir) { process.on('exit', () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) { /* gone */ } }); }
+
+test('PC-231: on a Mac with Colima, doctor recommends it as Docker\'s default and setup applies what needs no administrator', { skip: MAC_SIM }, async (t) => {
+  const m = machine({ tools: [...TOOLS, 'colima'] });
+  t.after(() => fs.rmSync(m.home, { recursive: true, force: true }));
+  const sock = path.join(m.home, 'var-run-docker.sock');
+  fs.symlinkSync(path.join(m.home, '.docker', 'run', 'docker.sock'), sock); // Docker Desktop's link, Desktop gone
+  const users = path.join(m.home, 'users'); fs.mkdirSync(path.join(users, 'one'), { recursive: true }); fs.mkdirSync(path.join(users, 'Shared'));
+  // One person's Mac; launchd jobs only in this home, so the developer's own /Library never answers.
+  m.env = { PASSIONCODE_DOCKER_SOCKET: sock, PASSIONCODE_USERS_DIR: users, PASSIONCODE_LAUNCHD_DIRS: path.join(m.home, 'Library', 'LaunchAgents') };
+  const api = await releaseServer(t);
+  const before = await cli(m, api, 'doctor', '--json');
+  const row = (r, id) => r.json.checks.find((c) => c.id === id);
+  for (const id of ['prereq.colima.context', 'prereq.colima.autostart', 'prereq.colima.socket']) assert.equal(row(before, id).state, 'warn', id);
+  assert.equal(row(before, 'prereq.colima.context').fix, 'docker context use colima');
+  assert.equal(row(before, 'prereq.colima.socket').gate, 'secret');
+  assert.match(row(before, 'prereq.colima.socket').fix, /sudo ln -sfn .*\.colima\/default\/docker\.sock .*launchctl disable system\/com\.docker\.socket/);
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0);
+  assert.equal(fs.readFileSync(path.join(m.home, 'fake-docker-context'), 'utf8'), 'colima');
+  const plist = fs.readFileSync(path.join(m.home, 'Library', 'LaunchAgents', 'ai.passioncode.colima-autostart.plist'), 'utf8');
+  assert.match(plist, /<key>RunAtLoad<\/key><true\/>/);
+  assert.doesNotMatch(plist, /KeepAlive/, 'colima start exits 0 on a running VM: KeepAlive would relaunch it forever');
+  assert.ok(toolLog(m).some((l) => /^launchctl bootstrap gui\/\d+ .*ai\.passioncode\.colima-autostart\.plist$/.test(l)));
+  const after = await cli(m, api, 'doctor', '--json');
+  assert.equal(row(after, 'prereq.colima.context').state, 'ok');
+  assert.equal(row(after, 'prereq.colima.autostart').state, 'ok');
+  assert.equal(row(after, 'prereq.colima.socket').state, 'warn', 'the system socket stays the person\'s step');
+  // Once the socket leads to Colima it reads ok, and a recommendation is never a failure.
+  fs.rmSync(sock); fs.symlinkSync(path.join(m.home, '.colima', 'default', 'docker.sock'), sock);
+  const done = await cli(m, api, 'doctor', '--json');
+  assert.equal(row(done, 'prereq.colima.socket').state, 'ok');
+});
+
+test('PC-231: without Colima, or off macOS, doctor says nothing about it', async () => {
+  const colima = require('../lib/colima');
+  const run = (cmd) => ({ code: cmd === 'colima' ? 127 : 0, out: '', err: '' });
+  assert.deepEqual(colima.checks({ home: os.tmpdir(), platform: 'darwin', run }), []);
+  assert.deepEqual(colima.checks({ home: os.tmpdir(), platform: 'linux', run: () => ({ code: 0, out: 'colima', err: '' }) }), []);
+});
+
+test('PC-231: on a Mac several people use, the socket row asks for DOCKER_HOST in ~/.zshenv and setup writes it once; another job\'s autostart counts', { skip: MAC_SIM }, async (t) => {
+  const m = machine({ tools: [...TOOLS, 'colima'] });
+  t.after(() => fs.rmSync(m.home, { recursive: true, force: true }));
+  const users = path.join(m.home, 'users'); for (const u of ['one', 'two']) fs.mkdirSync(path.join(users, u), { recursive: true });
+  const daemons = path.join(m.home, 'daemons'); fs.mkdirSync(daemons);
+  fs.writeFileSync(path.join(daemons, 'ai.passioncode.studio-agent.colima.plist'), '<plist/>'); // the space's own job holds Colima
+  m.env = { PASSIONCODE_DOCKER_SOCKET: path.join(m.home, 'none.sock'), PASSIONCODE_USERS_DIR: users, PASSIONCODE_LAUNCHD_DIRS: `${path.join(m.home, 'Library', 'LaunchAgents')}:${daemons}` };
+  fs.mkdirSync(path.join(m.home, '.docker'), { recursive: true });
+  fs.writeFileSync(path.join(m.home, '.docker', 'config.json'), JSON.stringify({ currentContext: 'colima' })); // what `docker context show` hides under DOCKER_HOST
+  const api = await releaseServer(t);
+  const row = (r, id) => r.json.checks.find((c) => c.id === id);
+  const before = await cli(m, api, 'doctor', '--json');
+  assert.equal(row(before, 'prereq.colima.context').state, 'ok');
+  assert.equal(row(before, 'prereq.colima.autostart').state, 'ok');
+  assert.match(row(before, 'prereq.colima.autostart').detail, /ai\.passioncode\.studio-agent\.colima/);
+  const sock = row(before, 'prereq.colima.socket');
+  assert.equal(sock.state, 'warn');
+  assert.equal(sock.gate, null, 'no administrator: each user writes their own line');
+  assert.match(sock.fix, /export DOCKER_HOST=unix:\/\/\$HOME\/\.colima\/default\/docker\.sock/);
+  fs.writeFileSync(path.join(m.home, '.zshenv'), 'export PATH=/opt/x:$PATH');
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0);
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0); // a second run adds nothing
+  const zshenv = fs.readFileSync(path.join(m.home, '.zshenv'), 'utf8');
+  assert.equal(zshenv.split('export DOCKER_HOST=').length - 1, 1);
+  assert.ok(zshenv.startsWith('export PATH=/opt/x:$PATH\n'), 'the person\'s lines stay first and unchanged');
+  assert.ok(!fs.existsSync(path.join(m.home, 'Library', 'LaunchAgents', 'ai.passioncode.colima-autostart.plist')), 'no second autostart beside the space\'s job');
+  assert.equal(row(await cli(m, api, 'doctor', '--json'), 'prereq.colima.socket').state, 'ok');
+});
