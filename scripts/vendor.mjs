@@ -41,6 +41,10 @@ export const SECRET_PATTERNS = [
   /\bxox[abprs]-[A-Za-z0-9-]{10,}/, /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/, /\bAKIA[0-9A-Z]{16}\b/,
 ];
 
+// Names a member documents that only look like a credential, matched whole: a longer run of key
+// characters after one is still scanned (PC-228; the adapter's FAA-200 redaction examples since v0.93.0).
+export const NOT_SECRETS = [/\bsk-learn-example-notebooks(?![A-Za-z0-9_-])/g];
+
 export function scanForSecrets(dir) {
   const hits = [];
   const walk = (d) => {
@@ -48,7 +52,7 @@ export function scanForSecrets(dir) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) walk(p);
       else if (fs.statSync(p).size < 2 * 1024 * 1024) {
-        const text = fs.readFileSync(p, 'utf8');
+        const text = NOT_SECRETS.reduce((t, re) => t.replace(re, ''), fs.readFileSync(p, 'utf8'));
         for (const re of SECRET_PATTERNS) if (re.test(text)) hits.push(`${path.relative(dir, p)} matches ${re}`);
       }
     }

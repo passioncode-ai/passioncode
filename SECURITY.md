@@ -252,6 +252,8 @@ updates at all runs `npx @passioncode-ai/passioncode@latest config set update.au
 
 The package contains executable launcher code and member plugin hooks as well as
 skill text. The vendor scans supported text-file sizes for credential-shaped strings
+(a short list of exact placeholder names a member documents, `NOT_SECRETS` in
+`scripts/vendor.mjs`, is taken out first; a longer run of key characters after one is still caught)
 and rejects an invalid self-plugin trust list; that scan is not a proof that all
 possible secrets or malicious code are absent. Review member code at its pinned tag.
 Automatic updates verify npm's registry signature against the pinned key and require a
