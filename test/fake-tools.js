@@ -8,6 +8,8 @@
 // netstat prints the file $FAKE_NETSTAT (a socket table in macOS's `netstat -anv -p tcp` form), or a table
 // with no listeners; `{PEER}` in it is the client port the test's server saw last, read from $FAKE_NETSTAT.peer;
 // ps answers `-o uid= -p <pid>` from $FAKE_PS_UIDS and $FAKE_PS_UIDS_EXTRA (`pid=uid,pid=uid`), else fails.
+// lsof (OBS-593, PC-234) answers `-t -- <file>` with the pids $FAKE_LSOF_HOLDERS names (`pid,pid`) for the file
+// $FAKE_LSOF_FILE and exits 0; any other file, or none named, exits 1 as lsof does when no process has it open.
 // A release "archive" is JSON { app, version, broken?, team? }; ditto and hdiutil unpack it into a
 // bundle whose MCP binary (catalog `mcp.bin`) is test/fake-mcp.js.
 // PC-178: uv and obsidian-wiki keep their state in $FAKE_WIKI_STATE (else $HOME/fake-wiki): `version` (what `uv tool
@@ -62,7 +64,14 @@ switch (tool) {
     process.exit(1);
   }
   case 'xcrun': { const app = args[args.length - 1]; if (has(app, 'BROKEN')) { err('does not have a ticket stapled to it'); process.exit(65); } out('The validate action worked!'); process.exit(0); }
-  case 'spctl': { const app = args[args.length - 1]; if (has(app, 'BROKEN')) { err(`${app}: rejected\nsource=no usable signature`); process.exit(3); } err(`${app}: accepted\nsource=Notarized Developer ID`); process.exit(0); }
+  case 'spctl': {
+    const app = args[args.length - 1];
+    // PC-232: SLOW_ONCE in the bundle: the first assessment hangs 5 s (a busy Mac scanning a new bundle), later ones answer.
+    // SLOW: every assessment hangs 5 s. UNNOTARIZED: accepted, but as a Developer ID without notarization.
+    if (has(app, 'SLOW') || has(app, 'SLOW_ONCE')) { if (has(app, 'SLOW_ONCE')) fs.rmSync(path.join(app, 'SLOW_ONCE')); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000); }
+    if (has(app, 'UNNOTARIZED')) { err(`${app}: accepted\nsource=Developer ID\norigin=Developer ID Application: Someone (${catalog.TEAM_ID})`); process.exit(0); }
+    if (has(app, 'BROKEN')) { err(`${app}: rejected\nsource=no usable signature`); process.exit(3); } err(`${app}: accepted\nsource=Notarized Developer ID`); process.exit(0);
+  }
   case 'plutil': { try { out(JSON.parse(fs.readFileSync(args[args.length - 1], 'utf8')).CFBundleShortVersionString); process.exit(0); } catch (_) { process.exit(1); } }
   case 'pgrep': { const at = args[args.length - 1].replace(/^\(\^\| \)/, '').replace(/\/Contents\/MacOS\/$/, '').replace(/\\(.)/g, '$1'); process.exit(has(at, 'RUNNING') ? 0 : 1); }
   case 'ditto': {
@@ -105,6 +114,11 @@ switch (tool) {
     out('Active Internet connections (including servers)');
     out('Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options');
     process.exit(0);
+  }
+  case 'lsof': {
+    const file = args[args.length - 1];
+    if (!process.env.FAKE_LSOF_FILE || file !== process.env.FAKE_LSOF_FILE || !process.env.FAKE_LSOF_HOLDERS) process.exit(1);
+    out(process.env.FAKE_LSOF_HOLDERS.split(',').join('\n')); process.exit(0);
   }
   case 'ps': {
     const pid = args[args.indexOf('-p') + 1];

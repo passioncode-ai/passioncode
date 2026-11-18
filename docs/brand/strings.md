@@ -47,7 +47,7 @@ Contract: brand-contract v1
 | setup.install-note | needs ${missing.join(' and ')}${explicit ? '; installed because you asked for it' : '; skipped unless you ask for it (--with ' + pr.id + ')'} | lib/setup.js:89 | SCN-008, SCN-014 | proposed | copy |
 | setup.install-note.declined | ; not installed (--with ${pr.id}) | lib/setup.js:500 | SCN-009, SCN-014 | proposed | copy |
 | setup.install-note.train | ${setupStep} --with | lib/setup.js:499 | SCN-014 | proposed | copy |
-| doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:256 | SCN-009, SCN-010 | proposed | layout |
+| doctor.app-label | ${pr.name}${pr.preview ? ' (early preview)' : ''} | lib/doctor.js:286 | SCN-009, SCN-010 | proposed | layout |
 | setup.not-taken | Nothing was changed: ${were(names)} offered and not installed.${stand(a)} | lib/setup.js:586 | SCN-009 | proposed | copy |
 | setup.skipped | Nothing was changed: ${were(names)} not installed (see your steps below).${stand(a)} | lib/setup.js:587 | SCN-009 | proposed | copy |
 | setup.declined | You declined every offer; nothing was changed.${r.blocked ? ` ${blockedToo(r.blocked)}` : ''}${stand(a)} | lib/setup.js:583 | SCN-008, SCN-009 | proposed | copy |
@@ -148,24 +148,26 @@ Contract: brand-contract v1
 | perm.allow-hint | To allow them: ${require('../lib/doctor').NPX} permissions allow <rule> | bin/passioncode.js:228 | SCN-015 | proposed | copy |
 | perm.foreign | Other allow rules (not PassionCode's; never changed here): | bin/passioncode.js:230 | SCN-015 | proposed | copy |
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:231 | SCN-015 | proposed | copy |
-| doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:243 | SCN-010 | proposed | copy |
-| doctor.skills-shadowed | shadowed by ${path.join(skillsDir, m.shadows.join(', '))} | lib/doctor.js:236 | SCN-010 | proposed | copy |
-| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:558 | SCN-010 | proposed | copy |
-| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:560 | SCN-010 | proposed | copy |
-| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:592 | SCN-010 | proposed | copy |
+| doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:273 | SCN-010 | proposed | copy |
+| doctor.skills-shadowed | shadowed by ${path.join(skillsDir, m.shadows.join(', '))} | lib/doctor.js:266 | SCN-010 | proposed | copy |
+| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:598 | SCN-010 | proposed | copy |
+| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:600 | SCN-010 | proposed | copy |
+| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:632 | SCN-010 | proposed | copy |
 | doctor.app-shared | ${label}: the copy in ${copy.path} is ${whose}, left as it is${links} | lib/catalog.js:222 | SCN-017 | proposed | layout |
-| doctor.mcp-shared | ${agent.name}: ${m.name} runs from ${other.path}, not from your copy in ${path.dirname(at)} | lib/doctor.js:381 | SCN-017 | proposed | layout |
-| doctor.mcp-shared-launcher | ${runs}; setup points it at yours | lib/doctor.js:382 | SCN-017 | proposed | layout |
-| doctor.mcp-shared-person | ${runs}; the launcher did not set this entry | lib/doctor.js:385 | SCN-017 | proposed | layout |
-| doctor.mcp-shared-remove | claude mcp remove --scope user ${m.name} | lib/doctor.js:384 | SCN-017 | proposed | copy |
-| doctor.service-foreign-user | port ${port} belongs to another OS account (${owner.owner}); doctor sent it nothing and did not read its answer | lib/doctor.js:133 | SCN-017 | proposed | copy |
-| doctor.service-owner-untold | the owner of port ${port} cannot be told (${owner.reason || 'no owner in the socket table'}); doctor sent it nothing and did not read its answer | lib/doctor.js:133 | SCN-017 | proposed | copy |
-| doctor.service-down | nothing listens on port ${port} | lib/doctor.js:128 | SCN-017 | proposed | copy |
-| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:542 | SCN-017 | proposed | copy |
-| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:542 | SCN-017 | proposed | copy |
-| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:542 | SCN-017 | proposed | copy |
-| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:535 | SCN-009 | proposed | copy |
-| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:542 | SCN-009 | proposed | copy |
+| doctor.mcp-shared | ${agent.name}: ${m.name} runs from ${other.path}, not from your copy in ${path.dirname(at)} | lib/doctor.js:411 | SCN-017 | proposed | layout |
+| doctor.mcp-shared-launcher | ${runs}; setup points it at yours | lib/doctor.js:412 | SCN-017 | proposed | layout |
+| doctor.mcp-shared-person | ${runs}; the launcher did not set this entry | lib/doctor.js:415 | SCN-017 | proposed | layout |
+| doctor.mcp-shared-remove | claude mcp remove --scope user ${m.name} | lib/doctor.js:414 | SCN-017 | proposed | copy |
+| doctor.service-foreign-user | port ${port} belongs to another OS account (${owner.owner}); doctor sent it nothing and did not read its answer | lib/doctor.js:163 | SCN-017 | proposed | copy |
+| doctor.service-owner-untold | the owner of port ${port} cannot be told (${owner.reason || 'no owner in the socket table'}); doctor sent it nothing and did not read its answer | lib/doctor.js:163 | SCN-017 | proposed | copy |
+| doctor.service-down | nothing listens on port ${port} | lib/doctor.js:158 | SCN-017 | proposed | copy |
+| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:582 | SCN-017 | proposed | copy |
+| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:582 | SCN-017 | proposed | copy |
+| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:582 | SCN-017 | proposed | copy |
+| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:576 | SCN-009 | proposed | copy |
+| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:582 | SCN-009 | proposed | copy |
+| doctor.service-held | stopped on purpose while its update runs (process ${hold.pids.join(', ')} holds ${path.basename(hold.lock)}): ${w.reason} | lib/doctor.js:569 | SCN-017 | proposed | copy |
+| doctor.service-held-fix | leave it: the update starts it again when it ends; never load or kickstart ${supervisor} meanwhile, and run doctor again in a few minutes | lib/doctor.js:570 | SCN-017 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: ${require('./launcher').npxCommand()} analytics off (each PassionCode app has its own switch). | lib/analytics.js:31 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:248 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:246 | SCN-016 | proposed | copy |
@@ -201,13 +203,13 @@ Contract: brand-contract v1
 | ledger.schema | ${file} is not a ${SCHEMA} ledger | lib/ledger.js:31 | SCN-015 | proposed | error |
 | ledger.unwritable | ${file} cannot be written: ${error.message} | lib/ledger.js:44 | SCN-015 | proposed | error |
 | setup.ledger-note | ; the permissions ledger was not updated (${error.message}) | lib/setup.js:605 | SCN-008, SCN-009, SCN-015 | proposed | error |
-| setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:331 | SCN-011 | proposed | layout |
+| setup.verify-line | ${product.app}, ${c.check}: ${c.detail} | lib/releases.js:362 | SCN-011 | proposed | layout |
 | setup.blocked-folder | ${where} is not writable for you, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or ' : ''}${how} | lib/catalog.js:234 | SCN-017 | proposed | layout |
 | setup.blocked-folder.how | make it writable (in Finder, Get Info: untick Locked, and under Sharing & Permissions give yourself Read & Write) | lib/catalog.js:233 | SCN-017 | proposed | copy |
 | setup.blocked-folder.how-admin | ask an administrator to let you write it | lib/catalog.js:233 | SCN-017 | proposed | copy |
 | setup.blocked-foreign | ${where} is another user's copy, left as it is, so nothing is downloaded: ${appsDir() ? 'unset PASSIONCODE_APPLICATIONS to use ~/Applications, or set it to a folder of your own' : 'ask an administrator to move it'} | lib/catalog.js:230 | SCN-017 | proposed | layout |
 | setup.install-note.blocked-needs | ; it also needs ${missing.join(' and ')} | lib/setup.js:88 | SCN-017 | proposed | copy |
-| doctor.app-version-unknown.blocked | if its signature check fails too, setup cannot reinstall it: | lib/doctor.js:311 | SCN-017 | proposed | copy |
+| doctor.app-version-unknown.blocked | if its signature check fails too, setup cannot reinstall it: | lib/doctor.js:341 | SCN-017 | proposed | copy |
 | setup.blocked | Nothing was changed: ${need(result.blocked)} a folder you can write; the steps below say which.${stand(a)} | lib/setup.js:663 | SCN-017 | proposed | layout |
 | setup.would-block | Nothing would change: ${need(names)} a folder you can write (see the plan below).${stand(a)} | lib/setup.js:596 | SCN-017 | proposed | layout |
 | setup.left-blocked | Not installed or replaced: ${need(names)} a folder you can write; the steps below say which. | lib/setup.js:597 | SCN-017 | proposed | layout |
@@ -256,13 +258,13 @@ Contract: brand-contract v1
 | memory.done-vault | made the wiki vault ${vault} | lib/memory.js:887 | SCN-018 | proposed | copy |
 | memory.done-hook | registered its SessionStart recap for Claude Code | lib/memory.js:903 | SCN-018 | proposed | copy |
 | memory.no-uv | uv is not installed (${UV_PAGE}); nothing was installed | lib/memory.js:776 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-other-system | ${ob.name}: setup installs it on macOS; on this system download it from ${ob.page} | lib/doctor.js:420 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-absent | ${ob.name} (where you read the agents' wiki memory): not installed | lib/doctor.js:430 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-team | (its Developer ID team is ${ob.team}) | lib/doctor.js:453 | SCN-018 | proposed | copy |
-| releases.obsidian-digest-ok | ${assetName}: SHA-256 matches GitHub's digest (${product.name} publishes no signed SHA256SUMS) | lib/releases.js:298 | SCN-018 | proposed | copy |
-| releases.obsidian-digest-differs | ${assetName}: SHA-256 ${got} differs from GitHub's digest ${asset.digest}; nothing was installed | lib/releases.js:297 | SCN-018 | proposed | copy |
-| releases.obsidian-no-digest | ${release.tag} publishes no SHA-256 digest for ${assetName}; nothing unverified is installed | lib/releases.js:286 | SCN-018 | proposed | copy |
-| releases.obsidian-rate-limited | ${assetName}: GitHub's API refused the lookup (rate limit), so its SHA-256 digest is unknown; nothing unverified is installed (set GITHUB_TOKEN or GH_TOKEN, or try again later) | lib/releases.js:286 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-other-system | ${ob.name}: setup installs it on macOS; on this system download it from ${ob.page} | lib/doctor.js:450 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-absent | ${ob.name} (where you read the agents' wiki memory): not installed | lib/doctor.js:460 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-team | (its Developer ID team is ${ob.team}) | lib/doctor.js:483 | SCN-018 | proposed | copy |
+| releases.obsidian-digest-ok | ${assetName}: SHA-256 matches GitHub's digest (${product.name} publishes no signed SHA256SUMS) | lib/releases.js:329 | SCN-018 | proposed | copy |
+| releases.obsidian-digest-differs | ${assetName}: SHA-256 ${got} differs from GitHub's digest ${asset.digest}; nothing was installed | lib/releases.js:328 | SCN-018 | proposed | copy |
+| releases.obsidian-no-digest | ${release.tag} publishes no SHA-256 digest for ${assetName}; nothing unverified is installed | lib/releases.js:317 | SCN-018 | proposed | copy |
+| releases.obsidian-rate-limited | ${assetName}: GitHub's API refused the lookup (rate limit), so its SHA-256 digest is unknown; nothing unverified is installed (set GITHUB_TOKEN or GH_TOKEN, or try again later) | lib/releases.js:317 | SCN-018 | proposed | copy |
 | setup.plan-install.vendor | its latest release, checked by ${pr.name}'s own Developer ID signature, its notarization and GitHub's digest | lib/setup.js:74 | SCN-018 | proposed | copy |
 | setup.repair-hook | register obsidian-wiki's SessionStart recap for Claude Code again; the launcher writes the entry, keeping the file private | lib/setup.js:135 | SCN-018 | proposed | copy |
 | setup.memory-open-vault | Open the wiki vault ${v} in Obsidian once to read what your agents remember: ${route(v)}. | lib/setup.js:524 | SCN-018 | proposed | copy |
@@ -283,10 +285,10 @@ Contract: brand-contract v1
 | memory.setup-no-config | obsidian-wiki setup --no-hooks --vault ${vault} wrote no config | lib/memory.js:885 | SCN-018 | proposed | copy |
 | memory.uv-installed-but | uv installed obsidian-wiki, but ${t ? `it reads ${t.version \|\| 'no version'}` : 'it does not answer'} | lib/memory.js:795 | SCN-018 | proposed | copy |
 | memory.list-failed | obsidian-wiki list (it records the new version): ${lastLine(l)} | lib/memory.js:974 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-outdated | ; ${latest.version} is out (Obsidian updates itself inside the app) | lib/doctor.js:445 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-admin |  (the copy an administrator installed in ${path.dirname(admin)}) | lib/doctor.js:442 | SCN-018 | proposed | copy |
-| doctor.memory-obsidian-admin-fix | an administrator reinstalls Obsidian from ${ob.page} | lib/doctor.js:454 | SCN-018 | proposed | copy |
-| doctor.train-unusable-fix | first make the release train usable: ${fix} | lib/doctor.js:485 | SCN-014, SCN-018 | proposed | copy |
+| doctor.memory-obsidian-outdated | ; ${latest.version} is out (Obsidian updates itself inside the app) | lib/doctor.js:475 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-admin |  (the copy an administrator installed in ${path.dirname(admin)}) | lib/doctor.js:472 | SCN-018 | proposed | copy |
+| doctor.memory-obsidian-admin-fix | an administrator reinstalls Obsidian from ${ob.page} | lib/doctor.js:484 | SCN-018 | proposed | copy |
+| doctor.train-unusable-fix | first make the release train usable: ${fix} | lib/doctor.js:515 | SCN-014, SCN-018 | proposed | copy |
 | args.unsupported-setup | passioncode: unsupported arguments for ${cmd}; run passioncode help. Ids: ${IDS.join(', ')}. | bin/passioncode.js:102 | SCN-007 | proposed | copy |
 | args.wiki-vault-relative | --wiki-vault takes an absolute folder, or one that starts with ~/ (not ${value}) | bin/passioncode.js:72 | SCN-007, SCN-018 | proposed | copy |
 | setup.restart | Restart your coding agents: skills and MCP servers load when a session starts. | lib/setup.js:554 | SCN-008, SCN-018 | proposed | copy |
@@ -345,7 +347,7 @@ Contract: brand-contract v1
 | memory.no-refresh-clash | ${clashNote(clashed)}; its version was not recorded | lib/memory.js:972 | SCN-018 | proposed | copy |
 | memory.undo-folders | , with the empty skills folders it made | lib/memory.js:873 | SCN-018 | proposed | copy |
 | memory.receipt-unreadable | uv's record for obsidian-wiki has a ${key} list with ${why}, which the launcher cannot carry into a reinstall; nothing was upgraded (bring it to ${PIN} with uv yourself) | lib/memory.js:1033 | SCN-018 | proposed | copy |
-| doctor.train-then-memory | first make the release train usable: ${fix}; then ${c.fix} | lib/doctor.js:484 | SCN-018 | proposed | copy |
+| doctor.train-then-memory | first make the release train usable: ${fix}; then ${c.fix} | lib/doctor.js:514 | SCN-018 | proposed | copy |
 | doctor.memory-config-relative-fix | ${XDG_FIRST}, then ${NPX} setup --with wiki | lib/memory.js:539 | SCN-018 | proposed | copy |
 | memory.uninstalled-again | ${error.message}; obsidian-wiki was uninstalled again (uv tool uninstall obsidian-wiki) | lib/memory.js:805 | SCN-018 | proposed | copy |
 | memory.uninstall-failed | ${error.message}; uv tool uninstall obsidian-wiki failed (${lastLine(un)}): run it yourself | lib/memory.js:806 | SCN-018 | proposed | copy |
@@ -357,8 +359,8 @@ Contract: brand-contract v1
 | memory.reinstall-recorded | reinstall it with uv, with what uv recorded: ${args.join(' ')} | lib/memory.js:1156 | SCN-018 | proposed | copy |
 | memory.reinstall-plain | reinstall it with uv (uv tool install --force obsidian-wiki, with the extras and requirements you gave it) | lib/memory.js:1157 | SCN-018 | proposed | copy |
 | doctor.memory-xdg-step | set XDG_CONFIG_HOME to an absolute folder, or unset it | lib/memory.js:524 | SCN-018 | proposed | copy |
-| doctor.memory-error | the wiki memory could not be checked: ${error.message \|\| error} | lib/doctor.js:466 | SCN-018 | proposed | copy |
-| doctor.memory-error-fix | fix what it names, then ${NPX} doctor | lib/doctor.js:466 | SCN-018 | proposed | copy |
+| doctor.memory-error | the wiki memory could not be checked: ${error.message \|\| error} | lib/doctor.js:496 | SCN-018 | proposed | copy |
+| doctor.memory-error-fix | fix what it names, then ${NPX} doctor | lib/doctor.js:496 | SCN-018 | proposed | copy |
 | setup.memory-unchecked | could not be checked (${error.message \|\| error}); fix that, then run setup again | lib/setup.js:101 | SCN-018 | proposed | copy |
 | memory.hook-kept | ${done.join(', ')} (kept); its SessionStart recap was not registered: ${reason}; fix that, then run setup again, which registers it | lib/memory.js:899 | SCN-018 | proposed | copy |
 | memory.hook-settings-unchanged | ; Claude Code's settings file was not changed | lib/memory.js:898 | SCN-018 | proposed | copy |
