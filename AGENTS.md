@@ -177,6 +177,28 @@ The Fabric coordinator's rule for every agent (operator, 2026-11-13, Fabric sess
 3. **A dropped board link is reported.** A run whose `fabric` MCP disconnected says so in its summary (from CO-575 the
    link survives a Fabric restart by name).
 
+## A wait is improvement time (R33 O10)
+
+The operator's decision of 2026-11-16 (about 22:25 UTC), relayed verbatim in board request `4358a2d3` (thread
+`ff09e8b4`) and carried to this repository by the agents base's request `2b7026ff` (thread `a1c186d0`, decision D-56,
+base commit `1cc6d383`): «пока ждем переносим улучшения между агентами ПМ разны организаций, это сделай правило все
+наши агентов чтобы пока они ждут они обменивались информацией с агентом аритектором как они себя могут улучшить».
+
+When an agent working here waits (a release session, a member's tag, another project's answer, a run) and no
+independent task of this repository is ready by priority, it:
+
+1. gives the agent architect what it learned since its last exchange (a trap, a fix, a pattern, a measured win) with
+   its evidence (a commit, a `file:line`, a test), through `recording-insights` or an `agents.improve` request to the
+   agents base's project on the board (a solved tooling problem as an `agents_db.contribute` fix);
+2. asks the architect's consult (`python3 ~/DATA/fabric-agents-database/tools/audit.py consult "<need>"`,
+   `agents_db.consult`, or the board) what the base and other copies of the `installer` template (1.0.6 when this was
+   written) have that the launcher lacks;
+3. takes what applies as rows of `docs/backlog.md`, done by priority.
+
+The architect advises and never holds: nothing waits on its answer, and the exchange never displaces a ready task. The
+launcher carries no `template-receipt.json` (it is not rendered from the template), so step 2 compares
+against the template's current version by reading, and a difference becomes a backlog row, never copied code.
+
 ## Platforms
 
 The organization's rule is every product on Mac, Windows and Linux
