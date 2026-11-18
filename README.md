@@ -129,7 +129,8 @@ install); a copy in `/Applications` that is yours and that you may replace stays
 reinstalled only when it is not running and you may replace it; the old one goes to the Trash ("running" means running
 for you: on a Mac with several users only your own processes count, so a copy of yours that another user has open, or runs an MCP server from (an entry they set by hand: the launcher's own follow each user's copy, PC-149), is still replaced and goes to your Trash; that user restarts it, PC-151). One you cannot replace
 (another user's, or in a folder you cannot write) is named, never reinstalled. A family service that
-does not answer is started through launchd (`launchctl kickstart`, never a kill).
+does not answer is started through launchd (`launchctl kickstart`, never a kill), unless its own update holds it
+stopped on purpose (Project Observatory's update lock, PC-234): that is an `info` row with no repair.
 
 **The agents' wiki memory** (PC-178, [ADR-0006](docs/adr/0006-setup-installs-the-agents-wiki-memory.md)). `setup` also
 installs [obsidian-wiki](https://github.com/Ar9av/obsidian-wiki) (MIT), the tool your agents read and write their

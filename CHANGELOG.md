@@ -4,6 +4,14 @@
 
 ### Fixed
 
+- **No restart in the middle of Observatory's update** (PC-234; Observatory's board request `ea529b7f`, OBS-593):
+  Observatory's `full update --apply` stops its server and holds its update lock; `doctor` read the closed port as
+  `FAIL` with a `kickstart` repair, an agent loaded the job at 05:18Z on 2026-11-17, and the update rolled back. While a
+  process has the workspace's `.<workspace>.observatory-update.lock` open (`lsof -t`, read only, the workspace from the
+  descriptor's doctor command), the row is `info`, «stopped on purpose while its update runs», with no repair, so
+  neither `setup` nor `doctor --fix` starts it. A lock file nobody holds changes nothing
+  ([CLI reference](docs/reference/cli.md)).
+
 - **Gatekeeper on a busy Mac, and a failure that says why** (PC-232; studio-agent's board request `b85bb7ea`, STU-80
   and STU-81): `setup --with switchboard` run for a space's user over ssh stopped with only "failed gatekeeper". The
   same release passes `spctl` there in a quarter of a second once macOS has seen it; its first assessment scans the

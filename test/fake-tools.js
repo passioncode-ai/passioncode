@@ -8,6 +8,8 @@
 // netstat prints the file $FAKE_NETSTAT (a socket table in macOS's `netstat -anv -p tcp` form), or a table
 // with no listeners; `{PEER}` in it is the client port the test's server saw last, read from $FAKE_NETSTAT.peer;
 // ps answers `-o uid= -p <pid>` from $FAKE_PS_UIDS and $FAKE_PS_UIDS_EXTRA (`pid=uid,pid=uid`), else fails.
+// lsof (OBS-593, PC-234) answers `-t -- <file>` with the pids $FAKE_LSOF_HOLDERS names (`pid,pid`) for the file
+// $FAKE_LSOF_FILE and exits 0; any other file, or none named, exits 1 as lsof does when no process has it open.
 // A release "archive" is JSON { app, version, broken?, team? }; ditto and hdiutil unpack it into a
 // bundle whose MCP binary (catalog `mcp.bin`) is test/fake-mcp.js.
 // PC-178: uv and obsidian-wiki keep their state in $FAKE_WIKI_STATE (else $HOME/fake-wiki): `version` (what `uv tool
@@ -112,6 +114,11 @@ switch (tool) {
     out('Active Internet connections (including servers)');
     out('Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)          rxbytes      txbytes  rhiwat  shiwat          process:pid    state  options');
     process.exit(0);
+  }
+  case 'lsof': {
+    const file = args[args.length - 1];
+    if (!process.env.FAKE_LSOF_FILE || file !== process.env.FAKE_LSOF_FILE || !process.env.FAKE_LSOF_HOLDERS) process.exit(1);
+    out(process.env.FAKE_LSOF_HOLDERS.split(',').join('\n')); process.exit(0);
   }
   case 'ps': {
     const pid = args[args.indexOf('-p') + 1];

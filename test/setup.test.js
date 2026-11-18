@@ -18,7 +18,7 @@ const { makeKey } = require('./pgp-fixture');
 const ROOT = path.resolve(__dirname, '..');
 const BIN = path.join(ROOT, 'bin/passioncode.js');
 const KEY = makeKey();
-const TOOLS = ['codesign', 'xcrun', 'spctl', 'plutil', 'pgrep', 'ditto', 'hdiutil', 'launchctl', 'open', 'supabase', 'docker', 'netstat', 'ps', 'xcode-select'];
+const TOOLS = ['codesign', 'xcrun', 'spctl', 'plutil', 'pgrep', 'ditto', 'hdiutil', 'launchctl', 'open', 'supabase', 'docker', 'netstat', 'ps', 'lsof', 'xcode-select'];
 // PC-178: the wiki memory's tools, absent unless a test names them (a stand-in that exits 127 hides the host's own).
 const MEMORY_TOOLS = ['uv', 'obsidian-wiki', 'brew'];
 
@@ -241,6 +241,44 @@ test('an existing broken setup: setup repairs, checks again and prints before â†
   assert.ok(!toolLog(m).some((l) => /^launchctl (kill|stop|bootout)|kickstart -k/.test(l)), 'never a kill');
   assert.ok(!toolLog(m).some((l) => l.startsWith('open ')), 'nothing installed this run, nothing opened');
   assert.ok(JSON.parse(fs.readFileSync(path.join(m.home, '.claude.json'), 'utf8')).mcpServers.fabric, 'fabric registered by the repair');
+});
+
+test('OBS-593, PC-234: a closed port while Observatory\'s update holds its lock is info, never a kickstart', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  installApp(m, catalog.byId('observatory'));
+  const workspace = path.join(m.home, 'obs', 'project-observatory-full');
+  fs.mkdirSync(workspace, { recursive: true });
+  const lock = path.join(m.home, 'obs', '.project-observatory-full.observatory-update.lock');
+  fs.writeFileSync(lock, '');
+  fs.writeFileSync(path.join(m.home, 'services', 'project-observatory.default.json'), JSON.stringify({
+    protocol: 'fabric-service/0.1', id: 'project-observatory', instance: 'default', name: 'Project Observatory',
+    origin: 'http://127.0.0.1:9', lifecycle: { manager: 'launchd', label: 'org.example.observatory' },
+    commands: { doctor: ['/opt/obs/bin/project-observatory', '--home', workspace, 'full', 'doctor'] },
+  }));
+  const row = async (env) => {
+    Object.assign(process.env, env);
+    try { return (await cli(m, api, 'doctor', '--json')).json.checks.find((c) => c.id === 'service.project-observatory.default'); }
+    finally { for (const k of Object.keys(env)) delete process.env[k]; }
+  };
+  // The update holds the lock: info, the reason named, no repair.
+  const held = await row({ FAKE_LSOF_FILE: lock, FAKE_LSOF_HOLDERS: '4711' });
+  assert.equal(held.state, 'info', JSON.stringify(held));
+  assert.match(held.detail, /Project Observatory: stopped on purpose while its update runs \(process 4711 holds \.project-observatory-full\.observatory-update\.lock\)/);
+  assert.match(held.fix, /never load or kickstart launchd org\.example\.observatory meanwhile/);
+  assert.equal(held.repair, null);
+  // setup and doctor --fix start nothing while it is held.
+  const before = toolLog(m).length;
+  Object.assign(process.env, { FAKE_LSOF_FILE: lock, FAKE_LSOF_HOLDERS: '4711' });
+  try { await cli(m, api, 'setup', '--yes'); } finally { delete process.env.FAKE_LSOF_FILE; delete process.env.FAKE_LSOF_HOLDERS; }
+  assert.ok(!toolLog(m).slice(before).some((l) => /^launchctl /.test(l)), toolLog(m).slice(before).join('\n'));
+  // The lock file there but nobody holding it (left from an earlier update): the usual failure and its kickstart.
+  const free = await row({});
+  assert.equal(free.state, 'fail', JSON.stringify(free));
+  assert.deepEqual(free.repair, { kind: 'kickstart', label: 'org.example.observatory' });
+  // Another workspace's lock says nothing about this one.
+  const other = await row({ FAKE_LSOF_FILE: path.join(m.home, 'obs', '.other.observatory-update.lock'), FAKE_LSOF_HOLDERS: '4711' });
+  assert.equal(other.state, 'fail', JSON.stringify(other));
 });
 
 test('PC-152, PC-163: doctor names a service whose connection another OS account accepted, and sends it nothing', { skip: MAC_SIM }, async (t) => {
