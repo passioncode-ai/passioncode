@@ -150,9 +150,9 @@ Contract: brand-contract v1
 | perm.refused | Rules declared on this machine and not offered as declared: | bin/passioncode.js:231 | SCN-015 | proposed | copy |
 | doctor.auto-update-off | automatic updates are off (update.auto), by config set or by an uninstall by 0.2.75 or earlier; turning them on is your choice | lib/doctor.js:273 | SCN-010 | proposed | copy |
 | doctor.skills-shadowed | shadowed by ${path.join(skillsDir, m.shadows.join(', '))} | lib/doctor.js:266 | SCN-010 | proposed | copy |
-| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:598 | SCN-010 | proposed | copy |
-| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:600 | SCN-010 | proposed | copy |
-| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:632 | SCN-010 | proposed | copy |
+| doctor.sessions-unchecked | sessions Fabric starts on a board request: doctor checks the apps they need on macOS and Windows only | lib/doctor.js:602 | SCN-010 | proposed | copy |
+| doctor.sessions-none | sessions Fabric starts on a board request: Fabric is not installed here | lib/doctor.js:604 | SCN-010 | proposed | copy |
+| doctor.sessions | sessions Fabric starts on a board request, with Claude Code as the default agent: ${missing.length ? `missing ${missing.join(', ')}` : 'everything they need is in place'} | lib/doctor.js:636 | SCN-010 | proposed | copy |
 | doctor.app-shared | ${label}: the copy in ${copy.path} is ${whose}, left as it is${links} | lib/catalog.js:222 | SCN-017 | proposed | layout |
 | doctor.mcp-shared | ${agent.name}: ${m.name} runs from ${other.path}, not from your copy in ${path.dirname(at)} | lib/doctor.js:411 | SCN-017 | proposed | layout |
 | doctor.mcp-shared-launcher | ${runs}; setup points it at yours | lib/doctor.js:412 | SCN-017 | proposed | layout |
@@ -161,13 +161,13 @@ Contract: brand-contract v1
 | doctor.service-foreign-user | port ${port} belongs to another OS account (${owner.owner}); doctor sent it nothing and did not read its answer | lib/doctor.js:163 | SCN-017 | proposed | copy |
 | doctor.service-owner-untold | the owner of port ${port} cannot be told (${owner.reason || 'no owner in the socket table'}); doctor sent it nothing and did not read its answer | lib/doctor.js:163 | SCN-017 | proposed | copy |
 | doctor.service-down | nothing listens on port ${port} | lib/doctor.js:158 | SCN-017 | proposed | copy |
-| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:582 | SCN-017 | proposed | copy |
-| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:582 | SCN-017 | proposed | copy |
-| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:582 | SCN-017 | proposed | copy |
-| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:576 | SCN-009 | proposed | copy |
-| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:582 | SCN-009 | proposed | copy |
-| doctor.service-held | stopped on purpose while its update runs (process ${hold.pids.join(', ')} holds ${path.basename(hold.lock)}): ${w.reason} | lib/doctor.js:569 | SCN-017 | proposed | copy |
-| doctor.service-held-fix | leave it: the update starts it again when it ends; never load or kickstart ${supervisor} meanwhile, and run doctor again in a few minutes | lib/doctor.js:570 | SCN-017 | proposed | copy |
+| doctor.service-foreign-user-fix | another OS account's program holds port ${w.port}: ask whoever runs it to stop it, then run doctor again | lib/doctor.js:586 | SCN-017 | proposed | copy |
+| doctor.service-owner-untold-fix | run doctor again; if it repeats, check who listens on port ${w.port} | lib/doctor.js:586 | SCN-017 | proposed | copy |
+| doctor.service-table-restricted-fix | this system shows doctor only its own sockets, so it cannot tell who answers on port ${w.port}; check the service ${doctorCmd ? `with ${doctorCmd}` : 'in Fabric Dashboards'} | lib/doctor.js:586 | SCN-017 | proposed | copy |
+| doctor.service-setup | waits for setup: ${w.setup.join(', ')} | lib/doctor.js:580 | SCN-009 | proposed | copy |
+| doctor.service-setup-fix | finish its setup: a person fills ${w.setup.join(', ')}${doctorCmd ? `; ${doctorCmd} names the steps` : ''} | lib/doctor.js:586 | SCN-009 | proposed | copy |
+| doctor.service-held | stopped on purpose while its update runs (process ${hold.pids.join(', ')} holds ${path.basename(hold.lock)}): ${w.reason} | lib/doctor.js:573 | SCN-017 | proposed | copy |
+| doctor.service-held-fix | leave it: the update starts it again when it ends; never load or kickstart ${supervisor} meanwhile, and run doctor again in a few minutes | lib/doctor.js:574 | SCN-017 | proposed | copy |
 | analytics.notice | The PassionCode launcher sends anonymous usage and error counts to improve it. Turn them off for the launcher: ${require('./launcher').npxCommand()} analytics off (each PassionCode app has its own switch). | lib/analytics.js:31 | SCN-016 | proposed | copy |
 | analytics.status | Anonymous usage and error counts from the launcher: ${s.sending ? `on, sent to ${s.host}` : why[s.reason]}. Each PassionCode app has its own switch. | bin/passioncode.js:248 | SCN-016 | proposed | copy |
 | analytics.why.off | turned off (analytics off) | bin/passioncode.js:246 | SCN-016 | proposed | copy |
@@ -494,6 +494,10 @@ Contract: brand-contract v1
 | doctor.mcp-homes.duplicate | one MCP URL under two names in one home, each signed in on its own: ${listed(say)} | lib/mcp-homes.js:179 | SCN-010 | proposed | copy |
 | doctor.mcp-homes.unmeasured | MCP sign-in by home: not measured, ${why}; doctor never reads the keychain | lib/mcp-homes.js:188 | SCN-010 | proposed | copy |
 | doctor.mcp-homes.signin | MCP sign-in differs between Claude Code homes: ${listed(gaps.map((g) => `${g.name} signed in in ${g.signed.length} of ${g.signed.length + g.not.length} (not in ${listed(g.not, 3)})`))} | lib/mcp-homes.js:203 | SCN-010 | proposed | copy |
+| doctor.mcp-search-proved | ${r.door} answered (two doors: ${tool} is reached through ${r.execute \|\| 'execute'}) | lib/doctor.js:540 | SCN-010 | proposed | copy |
+| doctor.mcp-no-tool-fix | update the launcher (npx @passioncode-ai/passioncode@latest setup) and ${t.product.name} (${t.product.page}): this server's tools no longer match the launcher's proving call | lib/doctor.js:545 | SCN-010 | proposed | copy |
+| probe.no-tool | the server lists neither ${tool} nor a search door (search and execute) | lib/mcp-probe.js:121 | SCN-010 | proposed | copy |
+| probe.search-malformed | ${name} gave no well-formed answer (no content) | lib/mcp-probe.js:137 | SCN-010 | proposed | copy |
 
 Humanization: on (own pass); diagnostic labels retained after review, no further
 wording changes. Version values and timestamps remain verbatim observations.
