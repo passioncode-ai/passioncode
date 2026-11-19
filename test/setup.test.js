@@ -493,6 +493,70 @@ test('a proving call that fails is a failed check that names the fix', { skip: M
   } finally { delete process.env.FAKE_MCP_BROKEN; }
 });
 
+// The operator's two-door rule (2026-11-18): an MCP server exposes `search` and `execute`, and an old tool name is
+// reached only through execute. Doctor proves such a server with a read-only search; one that lists neither the
+// declared tool nor a search door fails with a fix that says so.
+test('a two-door server is proved by its search door, a <domain>.search door too, and doctor names the path', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0);
+  const calls = () => { try { return fs.readFileSync(path.join(m.home, 'fake-mcp-calls.log'), 'utf8'); } catch (_) { return ''; } };
+  // The declared tool is still listed: it is the proving call, as before.
+  let r = await cli(m, api, 'doctor', '--json');
+  let c = r.json.checks.find((x) => x.id === 'mcp.claude.fabric-dashboards');
+  assert.equal(c.state, 'ok', c.detail);
+  assert.match(c.detail, /fabric-dashboards, list_services answered/);
+  assert.match(calls(), /^fabric-dashboards list_services \{\}$/m);
+  process.env.FAKE_MCP_DOORS = 'fabric-dashboards';
+  try {
+    fs.rmSync(path.join(m.home, 'fake-mcp-calls.log'), { force: true });
+    r = await cli(m, api, 'doctor', '--json');
+    c = r.json.checks.find((x) => x.id === 'mcp.claude.fabric-dashboards');
+    assert.equal(c.state, 'ok', c.detail);
+    assert.match(c.detail, /fabric-dashboards, search answered \(two doors: list_services is reached through execute\)/);
+    assert.match(c.detail, /, 2 tools$/);
+    assert.match(calls(), /^fabric-dashboards search \{\}$/m, 'search is called with an empty query');
+    assert.doesNotMatch(calls(), /execute/, 'execute is never called: it may have an effect');
+    process.env.FAKE_MCP_DOORS_DOMAIN = 'dashboards';
+    fs.rmSync(path.join(m.home, 'fake-mcp-calls.log'), { force: true });
+    r = await cli(m, api, 'doctor', '--json');
+    c = r.json.checks.find((x) => x.id === 'mcp.claude.fabric-dashboards');
+    assert.equal(c.state, 'ok', c.detail);
+    assert.match(c.detail, /dashboards\.search answered \(two doors: list_services is reached through dashboards\.execute\)/);
+    assert.match(calls(), /^fabric-dashboards dashboards\.search \{\}$/m);
+    // A search door that answers with an error, or with no well-formed answer, fails like a broken tool.
+    delete process.env.FAKE_MCP_DOORS_DOMAIN;
+    process.env.FAKE_MCP_BROKEN = 'fabric-dashboards';
+    c = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'mcp.claude.fabric-dashboards');
+    assert.equal(c.state, 'fail');
+    assert.match(c.detail, /proving call failed: search answered with an error: broken on purpose/);
+    delete process.env.FAKE_MCP_BROKEN;
+    process.env.FAKE_MCP_SEARCH_ANSWER = 'bare';
+    c = (await cli(m, api, 'doctor', '--json')).json.checks.find((x) => x.id === 'mcp.claude.fabric-dashboards');
+    assert.equal(c.state, 'fail');
+    assert.match(c.detail, /proving call failed: search gave no well-formed answer/);
+  } finally {
+    for (const k of ['FAKE_MCP_DOORS', 'FAKE_MCP_DOORS_DOMAIN', 'FAKE_MCP_BROKEN', 'FAKE_MCP_SEARCH_ANSWER']) delete process.env[k];
+  }
+});
+
+test('a server that lists neither its proving tool nor a search door fails with a fix that names both', { skip: MAC_SIM }, async (t) => {
+  const api = await releaseServer(t);
+  const m = machine();
+  installApp(m, catalog.byId('dashboards'), { version: '1.2.0' });
+  assert.equal((await cli(m, api, 'setup', '--yes', '--no-apps')).status, 0);
+  process.env.FAKE_MCP_NONE = 'fabric-dashboards';
+  try {
+    const r = await cli(m, api, 'doctor', '--json');
+    assert.equal(r.status, 1);
+    const c = r.json.checks.find((x) => x.id === 'mcp.claude.fabric-dashboards');
+    assert.equal(c.state, 'fail');
+    assert.match(c.detail, /proving call failed: the server lists neither list_services nor a search door \(search and execute\)/);
+    assert.match(c.fix, /update the launcher \(npx @passioncode-ai\/passioncode@latest setup\) and Fabric Dashboards/);
+  } finally { delete process.env.FAKE_MCP_NONE; }
+});
+
 // PC-104: with a check failing that setup cannot repair, a run that has nothing to change neither
 // says "nothing to do" nor calls the machine set up without pointing at the checks; it exits by them.
 test('PC-104: nothing to change above a failing check points at the checks and exits by them', { skip: MAC_SIM }, async (t) => {
