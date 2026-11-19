@@ -34,3 +34,22 @@ test('PC-170: a server that exits at once is a failed probe, never a crash', asy
   assert.equal(result.ok, false);
   assert.match(result.reason, /during initialize$/, result.reason);
 });
+
+// Two doors (the operator's rule of 2026-11-18): which listed tool is a search door, and what the search call takes.
+const { searchDoor, searchArgs } = require('../lib/mcp-probe');
+
+test('two doors: a bare search, or the one <domain>.search beside its <domain>.execute', () => {
+  assert.deepEqual(searchDoor(['search', 'execute']), { search: 'search', execute: 'execute' });
+  assert.deepEqual(searchDoor(['execute', 'search', 'list_services']), { search: 'search', execute: 'execute' });
+  assert.deepEqual(searchDoor(['dashboards.search', 'dashboards.execute']), { search: 'dashboards.search', execute: 'dashboards.execute' });
+  assert.equal(searchDoor(['dashboards.search']), null, 'a domain search without its execute is not a door');
+  assert.equal(searchDoor(['a.search', 'a.execute', 'b.search', 'b.execute']), null, 'two domains are ambiguous');
+  assert.equal(searchDoor(['list_services', 'research_search']), null, 'a tool that merely ends in _search is not a door');
+  assert.equal(searchDoor([]), null);
+});
+
+test('two doors: search is called with no arguments unless its schema requires a query', () => {
+  assert.deepEqual(searchArgs({ type: 'object', properties: { query: { type: 'string' } } }), {});
+  assert.deepEqual(searchArgs(undefined), {});
+  assert.deepEqual(searchArgs({ type: 'object', required: ['query'] }), { query: '*' });
+});

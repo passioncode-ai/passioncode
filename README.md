@@ -71,7 +71,9 @@ renaming a skill of yours, rewriting a config line, setting XDG_CONFIG_HOME; the
    (`fabric-dashboards`, `fabric` with `fabric-mcp --runner <agent>`, and `switchboard` with
    `switchboard mcp`) for Claude Code, Codex CLI, Gemini CLI and Kimi Code, and `doctor` proves
    each one with a real call: `initialize`, `tools/list`, then `list_services`,
-   `switchboard_accounts` or `observatory_status`. Fabric's server is never started by doctor,
+   `switchboard_accounts` or `observatory_status`; a server built with two doors (`search` and
+   `execute`, where an old tool name is reached only through `execute`) is proved by a read-only
+   `search` with an empty query instead, and doctor's line names which call proved it. Fabric's server is never started by doctor,
    because it enrols a session as it starts: doctor checks its entry, and your agent's first
    `fabric_whoami` is the proving call. Fabric is an early preview, so only `setup` registers it,
    never a background update. Project Observatory and Fabric Inbox register their

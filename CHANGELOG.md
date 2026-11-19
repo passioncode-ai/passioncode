@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.80 - unreleased
+
+### Fixed
+
+- **Doctor proves MCP servers with two doors** (PC-235): Fabric Dashboards' MCP server now exposes only `search` and
+  `execute` (the operator's rule of 2026-11-18: every MCP server has these two doors, and an old tool name is reached
+  only through `execute`), so `doctor` 0.2.79 printed `FAIL` for every agent: «proving call failed: the server lists no
+  list_services tool». When the declared proving tool is not listed but a search door is (a bare `search`, or the one
+  `<domain>.search` beside its `<domain>.execute`), doctor calls that door with an empty query, read-only, and takes a
+  well-formed answer as the proof; the line names the path («search answered (two doors: list_services is reached
+  through execute)»). `execute` is never called. A server that lists neither fails with a fix that names updating the
+  launcher and the app. Switchboard and Observatory are proved the same way when they move to two doors
+  ([CLI reference](docs/reference/cli.md)).
+
 ## 0.2.79 - 2026-11-18
 
 ### Fixed
