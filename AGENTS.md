@@ -199,6 +199,26 @@ The architect advises and never holds: nothing waits on its answer, and the exch
 launcher carries no `template-receipt.json` (it is not rendered from the template), so step 2 compares
 against the template's current version by reading, and a difference becomes a backlog row, never copied code.
 
+## Etalons live on PassionCode.ai (R33 O11)
+
+The operator's decision of 2026-11-17, relayed verbatim in board request `e081ef6d` (thread `940acb50`) and carried to
+this repository by the agents base's request `6027daf0` (thread `66eac8bd`, decision D-61, rollout row RO-620):
+«все синхронизируем, проверяем, что наша главная фабрика, эталонная, находится на passion коде, как и все остальные,
+передать всем агентам, которых я вот тут разрабатываю, что эталоны всегда на passion коде находятся, мы от них всегда
+строим и в базе данных агентов храним, пометьте это где-то на уровне моих правил».
+
+The etalon of each agent kind is its template repository `passioncode-ai/template-<agent>`, rendered from the agents
+base. For this repository that means:
+
+1. An agent, and every organisation copy of it, is built, adapted, cloned or restored from its etalon at the template's
+   current version, never from another copy or a personal repository. The launcher installs only members whose source
+   is a PassionCode.ai repository at a pinned ref (`family.json`, Local rules above), so a member that is itself built
+   from a template comes to the set through its own release, never through a copy kept here.
+2. An improvement found here that belongs to the `installer` template goes to the base first (`recording-insights`, an
+   `agents_db.contribute` or `agents.improve` request on the board), never only into this repository.
+3. The launcher is not rendered from the `installer` template and carries no `template-receipt.json` (R33 O10 above), so
+   `template_repo.py stale` names nothing for it; a template difference read by hand becomes a backlog row.
+
 ## Platforms
 
 The organization's rule is every product on Mac, Windows and Linux
