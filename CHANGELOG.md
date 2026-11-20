@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.81 - unreleased
+
+### Changed
+
+- **Fabric Agent Adapter `v0.99.0`** (was `v0.96.0`; PC-236, board thread `6255f2d5`, messages `dab45dd1`, `19d38dfd`,
+  `cff745ce`, the adapter's `3af255e3`): the adapter's releases 0.97.0 to 0.99.0, ending with its repin to Fabric Agent
+  Contract `v0.1.0+2026-11-19` (`aeecb12a`, DEC-0183): MCP servers with two doors in the service kit, the skills on two
+  doors and on a project's knowledge surface (`agent-knowledge.md`), and a responder record that no longer sticks in
+  `reconciling` (FAA-359). Between the two tags `git diff --name-status v0.96.0 v0.99.0 -- plugins/fabric-agent-adapter`
+  adds five files (four `agent-knowledge.md` references and `fabric_source_url.py`) and removes nothing; the set installs
+  the same five adapter skills with the same hooks file and install paths.
+
 ## 0.2.80 - 2026-11-19
 
 ### Fixed
